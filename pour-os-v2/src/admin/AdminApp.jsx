@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { useBoot, Gate, useActs, LS } from "../core.jsx";
 import { isMaster, todayView } from "../model.js";
 import { turnIndex, turnsOf } from "../turn.js";
-import { InboxSheet } from "../today.jsx";
+import { InboxSheet, ReadInboxSheet } from "../today.jsx";
 import { SheetRouter } from "../sheets.jsx";
 import { C, TBtn, Toast, useLocal, useBackClose } from "../ui.jsx";
 import { MY_URL } from "./common.jsx";
@@ -80,6 +80,7 @@ function AdminMain({ B }) {
     order: (p) => <OrderSheet {...p} />,
     launchOrder: (p) => <LaunchOrderSheet {...p} />,
     inbox: (p) => <InboxSheet {...p} TV={TV} setSeen={setSeen} />,
+    readInbox: (p) => <ReadInboxSheet {...p} seen={seen} setSeen={setSeen} />,   // 읽은 알림 (2026-10-13 · 나에게 온 것 아래 [읽은 알림 ›])
     lagInput: (p, s) => <LagSheet {...p} s={s} />,
     kpiEdit: (p, s) => <KpiEditSheet {...p} s={s} />,
     addRoutine: (p) => <AddRoutineSheet {...p} />,   // [+ 반복 실행] (admin/RoutineAdd.jsx)

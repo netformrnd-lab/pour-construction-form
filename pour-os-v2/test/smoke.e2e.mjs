@@ -28,7 +28,8 @@ const tasks = {
   f1: { id: 'f1', title: 'CS 문의 확인', isFixed: true, recurType: 'daily', assigneeId: 'yj', assigneeIds: ['yj'], status: 'todo', brand: 'pourstore', scope: 'brand', subs: [{ id: 's1', text: '네이버' }, { id: 's2', text: '쿠팡' }], doneDates: {}, createdAt: D0, statusLog: [] },
 };
 const projects = { p1: { id: 'p1', title: '추석 기획전', category: 'marketing', ownerId: 'yj', memberIds: ['sh'], status: 'active', startDate: '2026-10-01', dueDate: '2026-10-20', brand: 'pourstore', progress: 25, createdAt: D0 } };
-const notes = { n1: { id: 'n1', itemId: 'task:t2', text: '@김송희 소재 확인 부탁드려요', by: 'yj', byName: '남윤정', at: '2026-10-12T00:10:00.000Z', mentions: ['sh'], projectId: 'p1' } };
+const notes = { n1: { id: 'n1', itemId: 'task:t2', text: '@김송희 소재 확인 부탁드려요', by: 'yj', byName: '남윤정', at: '2026-10-12T00:10:00.000Z', mentions: ['sh'], projectId: 'p1' },
+  n2: { id: 'n2', itemId: 'task:t2', text: '확인했어요 · 내일 올릴게요', by: 'sh', byName: '김송희', at: '2026-10-12T00:20:00.000Z', projectId: 'p1' } };
 const ask = (o) => askDoc({ at: T0, run: '2026-10-12', ...o });
 const aiasks = {
   ai_pori_20261012_a: ask({ id: 'ai_pori_20261012_a', mate: 'pori', brand: 'pourstore', title: '포리 · 블로그 원고 3', sum: '27칸 표준', url: 'https://example.test/hub#team', owner: 'yj', exec: '승인되면 담당이 [임시저장 맡기기] 뒤 블로그에서 발행한다' }),
@@ -78,12 +79,39 @@ for (const w of [375, 1280]) {
     await tab(pg, '더보기'); await pg.getByText(/^AI 팀원 · 내가 맡은 AI 2/).first().click(); await pg.waitForTimeout(500);
     ok(`팀 ${w} · 더보기 › AI 팀원 시트 (내가 맡은 AI = 포리 · 겨울)`, (await pg.getByText('기본 AI 팀원 (원형)').count()) > 0 && (await pg.locator('.v2-sheet').last().getByText('겨울', { exact: false }).count()) > 0 && !(await over(pg)));
     if (w === 375) await pg.screenshot({ path: path.join(SHOTS, `smoke-team-aiteam-${w}.png`) });
+    // 읽은 알림 (2026-10-13 "OS에서 읽음한거 다시보고싶어"): 위에서 '확인할 것' 댓글 줄을 눌러 열었으니(= 읽음) → 더보기 › 읽은 알림에 있음
+    //   → [안 읽음으로] → 다시 '확인할 것' → [읽음 표시] → 알림 + 되돌리기 → 다시 [읽음 표시] → 사라짐
+    if (w === 375) {
+      await closeSheets(pg);
+      const inCard = () => pg.locator('.v2-ts.in').getByText('확인했어요 · 내일 올릴게요', { exact: false }).count();
+      await tab(pg, '오늘');
+      ok('읽은 알림: 눌러 본 댓글은 확인할 것에서 빠짐', (await inCard()) === 0);
+      await tab(pg, '더보기'); await pg.getByText('읽은 알림', { exact: true }).first().click(); await pg.waitForTimeout(400);
+      const sh = pg.locator('.v2-sheet').last();
+      ok('더보기 › 읽은 알림: 읽은 댓글 · 쓴 사람 · 처리해야 하는 줄(AI 승인 요청)은 없음', (await sh.getByText('확인했어요 · 내일 올릴게요', { exact: false }).count()) > 0 && (await sh.getByText('김송희', { exact: false }).count()) > 0 && (await sh.getByText('AI 승인 요청').count()) === 0);
+      ok('읽은 알림 375 넘침 없음', !(await over(pg))); await pg.screenshot({ path: path.join(SHOTS, 'smoke-team-readinbox-375.png') });
+      await sh.locator('button', { hasText: '안 읽음으로' }).first().click(); await pg.waitForTimeout(300);   // 줄(role=button)이 아니라 안의 진짜 버튼
+      ok('안 읽음으로 → 읽은 알림에서 빠짐', (await pg.locator('.v2-sheet').last().getByText('확인했어요 · 내일 올릴게요', { exact: false }).count()) === 0);
+      await closeSheets(pg); await tab(pg, '오늘');
+      ok('안 읽음으로 → 다시 확인할 것에', (await inCard()) > 0);
+      await pg.locator('.v2-ts.in').locator('button', { hasText: '읽음 표시' }).first().click(); await pg.waitForTimeout(300);
+      ok('읽음 표시 → 사라짐 · 알림 "더보기 › 읽은 알림" + 되돌리기', (await inCard()) === 0 && /더보기 › 읽은 알림/.test(await pg.locator('.v2-toast').innerText()));
+      await pg.locator('.v2-toast').getByRole('button', { name: '되돌리기' }).click(); await pg.waitForTimeout(300);
+      ok('되돌리기 → 다시 확인할 것에', (await inCard()) > 0);
+      await pg.locator('.v2-ts.in').locator('button', { hasText: '읽음 표시' }).first().click(); await pg.waitForTimeout(300);
+      ok('다시 읽음 표시 → 사라짐', (await inCard()) === 0);
+    }
     await closeSheets(pg);
     ok(`팀 ${w} · 화면 오류 없음`, errs.length === before, errs.slice(before));
     await s.close(); }
   // 관리자 앱 (허지은)
   { const s = await session('hj', { admin: true, w, h: w > 700 ? 900 : 812 }), pg = s.pg;
     const before = errs.length;
+    // 관리자 '나에게 온 것' 아래 [읽은 알림 ›]
+    await pg.getByRole('button', { name: /나에게 온 것/ }).first().click(); await pg.waitForTimeout(300);
+    await pg.locator('.v2-sheet').last().getByRole('button', { name: '읽은 알림 ›' }).click(); await pg.waitForTimeout(300);
+    ok(`관리자 ${w} · 나에게 온 것 › 읽은 알림`, /읽은 알림/.test(await pg.locator('.v2-sheet').last().innerText()) && !(await over(pg)));
+    await closeSheets(pg);
     for (const t of ['한눈에', '사람', 'AI 팀원', '협업 맵', '반복 실행', 'KPI', '프로젝트', '정리']) {
       await tab(pg, t); ok(`관리자 ${w} · ${t} 넘침 없음`, !(await over(pg)));
       if (w === 375) await pg.screenshot({ path: path.join(SHOTS, `smoke-admin-${t}-${w}.png`) }); }

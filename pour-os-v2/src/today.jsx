@@ -6,10 +6,10 @@ import {
   fxIsMine, fxDueOn, fxMeDone, fxCount, fxTime, fxLabel, fxSubs, fxRecurL, fxDoneWord, fxCheckPatch, fxPeople, fxHit, fxSubCount,
   todayView, projOpen, projMine, projStat, projGroups, personStat, ownerIssues, feedOf, threads, taskNoteId, projNoteId, newId, COUNT_L, LOG_L,
   reqOf, needsReview, dueApprover, canSetDue, riskOf, assignedByMe, workloadOf, onTimeOf, weekStart, nextWorkday, isOffDay, weekMine, brandLabel, brandKey, COMMON_BRAND,
-  roadOf, roadStates, phaseOfTask, curStage, isLaunchProj, projLabel, projLabelOf,
+  roadOf, roadStates, phaseOfTask, curStage, isLaunchProj, projLabel, projLabelOf, readInbox, unseePatch,
 } from "./model.js";
 import { LAUNCH_PHASES, LAUNCH_BRANDS, planNewLaunch, userByName, phaseOf } from "./launch.js";
-import { predLine, lastWord, predsOf, upcomingTurns, upLine } from "./turn.js";
+import { predLine, lastWord, predsOf, upcomingTurns, upLine, turnIndex, turnsOf } from "./turn.js";
 import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, Toast, inp, useLocal, useAutoFocus, Linked } from "./ui.jsx";
 import { HoldBtn } from "./hold.jsx";
 import { openTask, moveDue } from "./task.jsx";
@@ -26,6 +26,10 @@ import { LINK_APP } from "./links.js";
 const BTN_ON = { background: C.navy, color: "#fff", borderColor: C.navy };
 // 빠른 기한 버튼은 모두 pick.jsx dueChips (쉬는 날 빼고 · 버튼에 날짜까지)
 const markSeen = (setSeen, id) => setSeen((s) => ({ ...s, [id]: true, ...Object.fromEntries(String(id).split("|").map((k) => [k, true])) }));   // 묶은 줄(id1|id2)은 하나씩도 읽음
+// [읽음 표시] 한꺼번에 — 알림 + 5초 되돌리기 · 읽은 줄은 더보기 › '읽은 알림'에서 다시 봄 (2026-10-13 사용자 "OS에서 읽음한거 다시보고싶어")
+const markAllSeen = (setSeen, setToast, rows) => { const ids = rows.map((x) => x.id); if (!ids.length) return;
+  setSeen((s) => ({ ...s, ...Object.fromEntries(ids.flatMap((id) => [id, ...String(id).split("|")]).map((k) => [k, true])) }));
+  if (setToast) setToast({ text: `읽음 표시 ${ids.length}개 · 더보기 › 읽은 알림에서 다시 봐요`, undo: () => setSeen((s) => unseePatch(s, ids)) }); };
 // '이제 내 차례'를 본 것으로: 앞 일이 끝난 때까지 담은 키(info.seenKey · 없으면 예전 키) + (카드에서 시작·열면) 카드에 보인 '앞 일 마지막 말' 댓글
 const markTurn = (setSeen, tid, info, notes) => { if (!info || !info.last) return; const w = notes ? lastWord(info.last, notes) : null;
   setSeen((s) => ({ ...s, [info.seenKey || `tn:${tid}:${info.last.id}`]: true, ...(w ? { ["nt:" + w.id]: true } : {}) })); };
@@ -69,13 +73,29 @@ export function inboxFns(D, A, open, setSeen) {
   return { openInbox, inboxAct };
 }
 // 관리자 '나에게 온 것' — 팀원 '확인할 것'과 같은 계산 · 같은 줄 · 같은 버튼
-export function InboxSheet({ D, A, open, TV, setSeen, onBack, onClose }) {
+export function InboxSheet({ D, A, open, TV, setSeen, setToast, onBack, onClose }) {
   const { openInbox, inboxAct } = inboxFns(D, A, open, setSeen), now = new Date(), readable = TV.inbox.filter((x) => !x.keep);
   return <Sheet title={`나에게 온 것 ${TV.inbox.length}`} onBack={onBack} onClose={onClose}>
     <div style={{ fontSize: 13, color: C.sub, margin: "12px 2px 8px", lineHeight: 1.6 }}>확인 요청 · 도움 요청 · 기한 조정 · 막힘 · 맡김 · 담당 바뀜 · 내가 말한 대화의 답이 여기 모여요. 처리할 때까지 남는 것과 읽으면 사라지는 것이 있어요.</div>
     {TV.inbox.length === 0 ? <Card><Empty>새로 온 요청·알림이 없어요</Empty></Card>
       : <Card>{TV.inbox.map((x, i) => <Row key={x.id} tag={x.tag} tagTone={x.red ? "red" : null} title={x.title} sub={`${x.whoName || TV.userName(x.who) || ""}${x.at ? (x.whoName || TV.userName(x.who) ? " · " : "") + ago(x.at, now) : ""}${x.text ? " · " + x.text : ""}`} onClick={() => openInbox(x)} right={inboxAct(x)} last={i === TV.inbox.length - 1} />)}</Card>}
-    {readable.length > 0 && <div style={{ marginTop: 10 }}><TBtn tone="mute" onClick={() => setSeen((s) => ({ ...s, ...Object.fromEntries(readable.flatMap((x) => [x.id, ...String(x.id).split("|")].map((k) => [k, true]))) }))}>읽음 표시 {readable.length}</TBtn></div>}
+    <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
+      {readable.length > 0 && <TBtn tone="mute" onClick={() => markAllSeen(setSeen, setToast, readable)}>읽음 표시 {readable.length}</TBtn>}
+      <TBtn tone="mute" onClick={() => open({ type: "readInbox" })}>읽은 알림 ›</TBtn></div>
+  </Sheet>;
+}
+// 읽은 알림 (사용자 요청 2026-10-13 "OS에서 읽음한거 다시보고싶어") — '확인할 것'에서 읽음 표시한 줄 · 최근 7일 · 이 기기(폰·PC 따로)
+//   계산 = model.readInbox (읽음을 빼고 다시 센 todayView 줄 중 읽은 것 · 처리해야 사라지는 줄은 늘 '확인할 것'에 있어서 뺌) · 최근 것 먼저
+//   줄 누르면 '확인할 것'과 같은 길(그 업무·대화·프로젝트…) · [안 읽음으로] = 읽음 표시만 빼서 다시 '확인할 것'에 · 쓰기 없음(이 기기 저장만)
+export function ReadInboxSheet({ D, A, cu, open, idx, meta, seen, setSeen, onBack, onClose }) {
+  const now = new Date();
+  const list = useMemo(() => { const T0 = turnsOf(D, idx || turnIndex(D), cu.id, now, {}, (meta || {}).seededAt || ""); return readInbox(D, cu.id, now, seen || {}, T0); }, [D, idx, cu.id, seen]);
+  const { openInbox } = inboxFns(D, A, open, setSeen);
+  return <Sheet title={`읽은 알림 ${list.length}`} onBack={onBack} onClose={onClose}>
+    <div style={{ fontSize: 13, color: C.sub, margin: "12px 2px 8px", lineHeight: 1.6 }}>'확인할 것'에서 눌러 보거나 [읽음 표시]한 것이에요 · 최근 7일 · 이 기기에서 읽은 것만 보여요(폰·PC 따로) · [안 읽음으로]를 누르면 다시 '확인할 것'에 떠요</div>
+    {list.length === 0 ? <Card><Empty>최근 7일에 읽음 표시한 알림이 없어요</Empty></Card>
+      : <Card>{list.map((x, i) => <Row key={x.id} tag={x.tag} tagTone={x.red ? "red" : null} title={x.title} sub={`${x.whoName || nameOf(D.users, x.who) || ""}${x.at ? (x.whoName || nameOf(D.users, x.who) ? " · " : "") + ago(x.at, now) : ""}${x.text ? " · " + x.text : ""}`}
+          onClick={() => openInbox(x)} right={<Act onClick={() => setSeen((s) => unseePatch(s, [x.id]))}>안 읽음으로</Act>} last={i === list.length - 1} />)}</Card>}
   </Sheet>;
 }
 // 고정업무 줄 (오늘 · 1단계 2026-10-06): 제목 옆 체크리스트 a/b · 2줄 = 시간 · (매주·매월) · n/m명 체크 · 아래 칩(누르면 그 항목만 체크)
@@ -187,7 +207,7 @@ export function TodayTab({ D, cu, A, open, TV, T, seen, setSeen, setToast }) {
     <div className={"v2-tgrid" + (hasC1 ? "" : " no1") + (hasRt ? "" : " no3")}>
       {hasC1 && <div className="v2-tcol c1">
         {TV.inbox.length > 0 && <div className="v2-ts in"><>
-          <Head right={readable.length > 0 && <TBtn tone="mute" onClick={() => setSeen((s) => ({ ...s, ...Object.fromEntries(readable.flatMap((x) => [x.id, ...String(x.id).split("|")].map((k) => [k, true]))) }))}>읽음 표시</TBtn>}>확인할 것 {TV.inbox.length}</Head>
+          <Head right={readable.length > 0 && <TBtn tone="mute" onClick={() => markAllSeen(setSeen, setToast, readable)}>읽음 표시</TBtn>}>확인할 것 {TV.inbox.length}</Head>
           <Card>
             {inbox.map((x, i) => <Row key={x.id} tag={x.tag} tagTone={x.red ? "red" : null} title={x.title} sub={`${x.whoName || TV.userName(x.who) || ""}${x.at ? (x.whoName || TV.userName(x.who) ? " · " : "") + ago(x.at, now) : ""}${x.text ? " · " + x.text : ""}`} onClick={() => openInbox(x)} right={inboxAct(x)} last={i === inbox.length - 1 && TV.inbox.length <= 3} />)}
             {TV.inbox.length > 3 && <More onClick={() => setAllInbox(!allInbox)}>{allInbox ? "접기 ▴" : `${TV.inbox.length}개 모두 보기 ▾`}</More>}

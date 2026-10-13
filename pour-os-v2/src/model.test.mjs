@@ -428,6 +428,24 @@ ok("댓글 고치며 새로 부른 사람: 고친 때 기준 새 줄 (이미 읽
   assert.equal(v.length, 1); assert.equal(v[0].id, "nt:n1:2026-10-07T01:00:00Z"); assert.equal(v[0].at, "2026-10-07T01:00:00Z");
   assert.equal(M.todayView({ ...D, notes: [{ ...n, mentionedAt: null }] }, "a", now, {}).inbox.filter((x) => x.kind === "mention").length, 0);   // 처음 쓴 지 7일 넘음 → 안 뜸
 });
+ok("읽은 알림 다시 보기 (2026-10-13): 읽음 표시한 줄만 · 처리해야 사라지는 줄 빼고 · 최근 것 먼저 · 안 읽음으로 되돌리기", () => {
+  const now = new Date("2026-10-02T10:00:00");
+  const D = { users: [{ id: "a", name: "가" }, { id: "b", name: "나" }], projects: [{ id: "p", assigneeId: "a" }],
+    tasks: [{ id: "t1", title: "맡긴 일", assigneeId: "a", status: "todo", requestedBy: "b", requestedAt: "2026-10-02T09:00:00Z" },
+      { id: "t2", title: "남의 일", assigneeId: "b", status: "todo", projectId: "p" },
+      { id: "t5", title: "끝난 일", assigneeId: "a", status: "done", approvedAt: "2026-10-01T09:00:00Z", approvedBy: "b" }],
+    notes: [{ id: "n1", itemId: "task:t2", by: "b", at: "2026-10-02T09:30:00Z", text: "봐 주세요" }, { id: "n3", itemId: "task:t2", by: "b", at: "2026-09-20T09:30:00Z", text: "오래된 말" }] };
+  const seen = { "as:t1": true, "nt:n1": true, "ap:t52026-10-01T09:00:00Z": true, "nt:n3": true };
+  const r = M.readInbox(D, "a", now, seen);
+  assert.deepEqual(r.map((x) => x.id), ["nt:n1", "ap:t52026-10-01T09:00:00Z"]);   // 맡김(keep)은 늘 '확인할 것'에 · 7일 넘은 댓글은 없음 · 최근 것 먼저
+  assert.equal(M.readInbox(D, "a", now, {}).length, 0);   // 읽은 게 없으면 없음
+  const back = M.unseePatch(seen, ["nt:n1"]);
+  assert.ok(!back["nt:n1"] && back["as:t1"]);   // 그 줄만 뺌
+  assert.deepEqual(M.todayView(D, "a", now, back).inbox.map((x) => x.id).sort(), ["as:t1", "nt:n1"]);   // 다시 '확인할 것'에
+  // 묶은 줄(id1|id2)은 모두 읽었을 때만 '읽은 알림' · 안 읽음으로 = 하나씩 읽은 표시도 같이 뺌
+  assert.ok(M.seenAll({ x: true, y: true }, "x|y") && !M.seenAll({ x: true }, "x|y") && M.seenAll({ "x|y": true }, "x|y"));
+  assert.deepEqual(M.unseePatch({ "x|y": true, x: true, y: true, z: true }, ["x|y"]), { z: true });
+});
 console.log(`\n${n}개 모두 통과`);
 ok("프로젝트 없애기: 책임자·관리자만 · 저장 칸 · 같이 없앤 업무만 되살림 · 휴지통 줄", () => {
   const lead = { id: "a", name: "가" }, other = { id: "b", name: "나" }, admin = { id: "m", name: "관", master: true };

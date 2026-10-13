@@ -11,7 +11,7 @@ import { md, hm, ago, ymd, isMaster, nameOf, activeUsers } from "./model.js";
 import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, inp, Linked, useLocal } from "./ui.jsx";
 import { Thread, useItemNotes } from "./task.jsx";
 import { LS } from "./core.jsx";
-import { CREWS, BASE_TEAM, crewOf, mateOf, boardOf, brandL, servesL, mateBrands, fmtMetric, metricPct, metricOk } from "../../marketing-hub/crew.js";
+import { CREWS, GONE, crewOf, mateOf, boardOf, brandL, servesL, mateBrands, ownerKeys, fmtMetric, metricPct, metricOk } from "../../marketing-hub/crew.js";
 import { ASK_STATE_L, canAct, canBack, canRet, isProxy, pickOk, planPass, chainOf, mateOwner, mateStats, repeatNotes, itemLine, bossOf, bossRec, bossLoop } from "./aiask.js";
 
 export const HUB_CREW_URL = "../marketing-hub/crew.html";   // Aside 결과 올리기 (허브)
@@ -136,14 +136,14 @@ function crewFocus(D, crewId) { const s = (D.settings || []).find((x) => (x.id |
 export function AiTeamBody({ D, cu, A, open, admin }) {
   const master = isMaster(cu), mates = (D.ai && D.ai.mates) || {}, asks = (D.ai && D.ai.asks) || [];
   const ownsAny = (id) => { const o = (mates[id] && mates[id].owners) || {}; return Object.values(o).includes(cu.id); };
-  const mineIds = [...BASE_TEAM, ...CREWS.flatMap((c) => c.members)].map((x) => x.id).filter(ownsAny);
+  const mineIds = CREWS.flatMap((c) => c.members).map((x) => x.id).filter(ownsAny);   // AI 팀원 = 크루 (2026-10-14 "포리, 하루, 에코는 없어야지" → 기본 AI 팀원(원형) 칸 없앰 · 아침 루틴 = 여름)
   const [scope0, setScope] = useLocal(LS("ai-scope-" + cu.id), "");
   const scope = scope0 || (mineIds.length && !master ? "mine" : "all");
   const [bulk, setBulk] = useState(false);
   const since = new Date(Date.now() - 7 * 864e5).toISOString();
   const myTurn = asks.filter((x) => x.state === "wait" && (x.to === cu.id || (!x.to && master))).length;
   const ownerL = (id, brand) => { const o = mateOwner(mates[id], brand, D.users); return o ? nameOf(D.users, o) : "담당 미정"; };
-  const ownersL = (id) => { const bs = mateBrands(id); if (bs.length < 2) return ownerL(id, bs[0] || ""); const names = [...new Set(bs.map((x) => ownerL(id, x)))]; return names.length === 1 ? names[0] : bs.map((x) => `${brandL(x)} ${ownerL(id, x)}`).join(" · "); };
+  const ownersL = (id) => { const ks = ownerKeys(id); if (ks.length < 2) return ownerL(id, ks[0] || ""); const names = [...new Set(ks.map((x) => ownerL(id, x)))]; return names.length === 1 ? names[0] : ks.map((x) => `${x ? brandL(x) : "기본"} ${ownerL(id, x)}`).join(" · "); };
   const show = (id) => scope === "all" || mineIds.includes(id);
   const stat = (id) => { const s = mateStats(asks, id, since); return [s.wait ? `대기 ${s.wait}` : "", s.back ? `고치는 중 ${s.back}` : "", s.ok ? `이번 주 승인 ${s.ok}` : "", s.redo ? `다시 ${s.redo}` : ""].filter(Boolean).join(" · "); };
   const setFocus = async (crewId, slot) => { try { await fb.merge("settings", "aicrew", { focus: { [crewId]: slot }, at: new Date().toISOString(), by: cu.id, byName: cu.name }); } catch (e) { console.error("[v2] 이번 주 집중 저장 실패:", e); A.toast("저장 실패 · 인터넷 연결을 확인해 주세요"); } };
@@ -152,9 +152,9 @@ export function AiTeamBody({ D, cu, A, open, admin }) {
     return <select value={cur} onClick={(e) => e.stopPropagation()} onChange={(e) => A.mateOwnerSet(id, brand || "_", e.target.value)} aria-label={`${(mateOf(id) || {}).name} 담당${brand ? " " + brandL(brand) : ""}`} style={{ ...inp, width: "auto", maxWidth: 150, padding: "6px 8px", fontSize: 13 }}>
       <option value="">담당 미정</option>{users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select>; };
   const mateRow = (x, last, color) => { const ms = mates[x.id] || {}, rules = (ms.rules || []).filter((r) => !r.off).length;
-    const picks = bulk && master && !x.admin ? <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }} onClick={(e) => e.stopPropagation()}>{(mateBrands(x.id).length ? mateBrands(x.id) : [""]).map((bb) =>
-      <label key={bb || "_"} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, color: C.sub, fontWeight: 700 }}>{bb ? brandL(bb) : "담당"}<OwnerPick id={x.id} brand={bb} /></label>)}</div> : null;
-    return <div key={x.id} style={{ borderLeft: color ? `4px solid ${color}` : "none" }}><Row title={`${x.name} · ${x.role}`} tag={x.admin ? "관리자 자리" : null} sub={[x.admin ? "원가·제조사 일이라 업무OS 승인에 안 올림" : ownersL(x.id), rules ? `규칙 ${rules}` : ""].filter(Boolean).join(" · ")} sub2={stat(x.id) || null} onClick={() => open({ type: "aiMate", id: x.id })} right={picks ? null : <span style={{ color: C.navy, fontWeight: 800 }}>›</span>} below={picks} last={last} /></div>; };
+    const picks = bulk && master && !x.admin ? <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }} onClick={(e) => e.stopPropagation()}>{ownerKeys(x.id).map((bb) =>
+      <label key={bb || "_"} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, color: C.sub, fontWeight: 700 }}>{bb ? brandL(bb) : mateBrands(x.id).length ? "기본" : "담당"}<OwnerPick id={x.id} brand={bb} /></label>)}</div> : null;
+    return <div key={x.id} style={{ borderLeft: color ? `4px solid ${color}` : "none" }}><Row title={`${x.name} · ${x.role}`} tag={x.admin ? "관리자 자리" : x.routine ? "아침 루틴" : null} sub={[x.admin ? "원가·제조사 일이라 업무OS 승인에 안 올림" : ownersL(x.id), x.routine ? "평일 06:50 블로그·재배포" : "", rules ? `규칙 ${rules}` : ""].filter(Boolean).join(" · ")} sub2={stat(x.id) || null} onClick={() => open({ type: "aiMate", id: x.id })} right={picks ? null : <span style={{ color: C.navy, fontWeight: 800 }}>›</span>} below={picks} last={last} /></div>; };
   return <>
     <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
       <div style={{ flex: "1 1 220px", maxWidth: 320 }}><Seg items={[["mine", `내가 맡은 AI ${mineIds.length}`], ["all", "모두"]]} value={scope} onChange={setScope} /></div>
@@ -172,9 +172,7 @@ export function AiTeamBody({ D, cu, A, open, admin }) {
         {f && <div style={{ fontSize: 12.5, color: C.navy, fontWeight: 800, margin: "0 2px 8px" }}>이번 주 집중 · {f} — 가장 약한 칸 하나만 올려도 매출이 달라져요</div>}
         <Card>{list.map((x, i) => mateRow(x, i === list.length - 1, f && x.slot === f ? C.navy : x.color))}</Card>
       </section>; })}
-    {BASE_TEAM.some((x) => show(x.id)) && <section><Head>기본 AI 팀원 (원형)</Head>
-      <div style={{ fontSize: 12.5, color: C.sub, margin: "-4px 2px 8px", lineHeight: 1.6 }}>크루는 이 팀원들에서 파생해 브랜드·고객에 맞춘 거예요 · 블로그·지식인 같은 결과도 같은 승인 길로 와요</div>
-      <Card>{BASE_TEAM.filter((x) => show(x.id)).map((x, i, arr) => mateRow(x, i === arr.length - 1))}</Card></section>}
+    {/* 기본 AI 팀원(원형) 칸은 없앰 (2026-10-14 사장님 "포리, 하루, 에코는 없어야지") — 크루가 AI 팀원 · 블로그·재배포 아침 루틴 = 여름 · 옛 하루·포리·에코 결과는 '확인할 것'·승인 한 장에서 그대로 */}
     {admin && <p className="a-hint">담당 = AI 결과를 먼저 보고 승인하는 사람 · 비어 있으면 관리자 누구나 · 상급자는 [사람] 탭에서 · Aside 결과 올리기 = <a href={HUB_CREW_URL} target="_blank" rel="noopener">마케팅 허브 › AI 크루 결과 올리기</a></p>}
   </>;
 }
@@ -224,7 +222,7 @@ export function AiMateSheet({ D, cu, A, open, onBack, onClose, id }) {
   const [rule, setRule] = useState(""), [offOpen, setOffOpen] = useState(false), [doneN, setDoneN] = useState(6);
   if (!m) return <Sheet title="AI 팀원" kind="AI 팀원" onBack={onBack} onClose={onClose}><Empty>이 AI 팀원을 찾지 못했어요</Empty></Sheet>;
   const c = crewOf(id), b = m.board ? boardOf(m.board) : null, doc = ((D.ai && D.ai.mates) || {})[id] || {}, asks = ((D.ai && D.ai.asks) || []).filter((x) => x.mate === id);
-  const master = isMaster(cu), brands = mateBrands(id), owners = (brands.length ? brands : [""]).map((bb) => ({ bb, uid: mateOwner(doc, bb, D.users) }));
+  const master = isMaster(cu), brands = mateBrands(id), owners = ownerKeys(id).map((bb) => ({ bb, uid: mateOwner(doc, bb, D.users) }));   // 아침 루틴 팀원 = 기본(브랜드 섞인 결과) + 브랜드별
   const canRule = master || owners.some((o) => o.uid === cu.id);
   const since = new Date(Date.now() - 7 * 864e5).toISOString(), st = mateStats(asks, id, since), rep = new Set(repeatNotes(st.notes).map((x) => x.text));
   const open1 = asks.filter((x) => x.state === "wait" || x.state === "back").sort((p, q) => String(q.updatedAt || "").localeCompare(String(p.updatedAt || "")));
@@ -238,13 +236,15 @@ export function AiMateSheet({ D, cu, A, open, onBack, onClose, id }) {
   return <Sheet title={m.name} kind="AI 팀원" head={`${m.name} · ${m.role}`} path={c ? c.name : "기본 AI 팀원 (원형)"} onBack={onBack} onClose={onClose}>
     <div style={{ fontSize: 13.5, color: C.sub, lineHeight: 1.7, marginTop: 12 }}>
       {m.kpi && <div>KPI · <b style={{ color: C.ink }}>{m.kpi}</b></div>}
+      {m.routine && <div>{m.routine}</div>}
+      {GONE[id] && <div style={{ color: C.text }}>2026-10-14부터 쉬어요 · 이 일은 B2C 크루 {(mateOf(GONE[id]) || {}).name} 몫이에요 · 이미 올라온 결과는 그대로 승인·안 함</div>}
       {c && <div>일하는 곳 · {servesL(c)}</div>}
       {m.from && m.from.length > 0 && <div>원형 · {m.from.map((f) => (mateOf(f) || {}).name || f).join(" · ")} <span style={{ color: C.mute }}>(파생 · 짐작)</span></div>}
       {m.admin && <div style={{ color: C.text }}>관리자 자리 일(원가·제조사)이라 업무OS 승인으로 올리지 않아요 · 마진 대시보드에서</div>}
     </div>
     <Head>담당 · 승인 길</Head>
-    <Card>{owners.map((o, i) => <Row key={o.bb || "_"} title={`담당${o.bb ? ` (${brandL(o.bb)})` : ""} · ${o.uid ? nameOf(D.users, o.uid) : "미정"}`}
-      sub={o.uid ? [`${m.name}(AI) → ${nameOf(D.users, o.uid)}`, ...chainFrom(o.uid)].join(" → ") : "정할 때까지 관리자 누구나 승인해요"}
+    <Card>{owners.map((o, i) => <Row key={o.bb || "_"} title={`담당${o.bb ? ` (${brandL(o.bb)})` : brands.length ? " (기본)" : ""} · ${o.uid ? nameOf(D.users, o.uid) : "미정"}`}
+      sub={[!o.bb && brands.length ? "아침 루틴 원고처럼 브랜드가 섞인 결과 · 브랜드 담당을 안 정한 브랜드" : "", o.uid ? [`${m.name}(AI) → ${nameOf(D.users, o.uid)}`, ...chainFrom(o.uid)].join(" → ") : "정할 때까지 관리자 누구나 승인해요"].filter(Boolean).join(" · ")}
       right={master && !m.admin ? <select value={o.uid} onChange={(e) => A.mateOwnerSet(id, o.bb || "_", e.target.value)} aria-label={`담당 바꾸기${o.bb ? " " + brandL(o.bb) : ""}`} style={{ ...inp, width: "auto", maxWidth: 140, padding: "6px 8px", fontSize: 13 }}>
         <option value="">미정</option>{users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select> : null} last={i === owners.length - 1} />)}</Card>
 

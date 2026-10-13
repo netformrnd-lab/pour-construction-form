@@ -207,7 +207,7 @@ const COLL={uploads:'mkt-uploads',status:'mkt-upload-status',sales:'mkt-sales',a
 // 업무OS v2 '확인할 것' 다리 (공개 규칙 pour-os/{doc=**} · CRM 다리와 같은 모양) — AI 팀 검토 대기 · 고객의 소리 급함
 const linksCol=()=>db.collection('pour-os').doc('v2').collection('links');
 // AI 승인(2026-10-12 사장님 'AI → 담당 → 리드 → 본부장'): 결과 검토는 업무OS 에서 — 허브는 진행 상태만 보여 주고 [업무OS에서 승인 ›]
-//   pour-os/v2/aiasks (crew 'base' = 기본 AI 팀원) · 최종 승인(state ok) 뒤에만 [임시저장 맡기기] · 예전 검토 줄(links aiReview)은 그대로 [검토 끝]
+//   pour-os/v2/aiasks (노트로 올린 건 = 기본 AI 팀원 · 크루(아침 루틴 여름 2026-10-14) · 크루 보드 건은 빼고) · 최종 승인(state ok) 뒤에만 [임시저장 맡기기] · 예전 검토 줄(links aiReview)은 그대로 [검토 끝]
 const asksCol=()=>db.collection('pour-os').doc('v2').collection('aiasks'), osUsersCol=()=>db.collection('pour-os').doc('v2').collection('users');
 const OS_URL='../pourstore-renewal/os2.html', ASK_L={wait:'승인 대기',back:'AI가 고치는 중',ok:'최종 승인',no:'안 함'};
 // AI 팀 노트 본문 + 사장님 메모 — 루틴(로그인 없음)이 tools/team_link.py 로 쓰므로 저장 위치와 상관없이 늘 공개 자리(pour-os/marketing-hub/mkt-notes)
@@ -373,7 +373,7 @@ async function loadTeamVoc(){
     // AI 승인: 최근 30일 + 아직 진행 중인 것만 (한 칸 조건 둘 · 복합 색인 없음) → 기본 AI 팀원(crew base)만 · 더 오래된 노트는 열 때 그 건만 읽음
     const [aq,ao]=await Promise.all([asksCol().where('run','>=',C.addDays(todayKST(),-30)).get(),asksCol().where('state','in',['wait','back']).get()]);
     const am=new Map();[...aq.docs,...ao.docs].forEach(d=>am.set(d.id,{id:d.id,...d.data()}));
-    S.asks=[...am.values()].filter(a=>(a.crew||'base')==='base');await loadOsNames(S.asks);
+    S.asks=[...am.values()].filter(a=>(a.crew||'base')==='base'||!a.board);await loadOsNames(S.asks);   // 노트로 올린 건(기본 AI 팀원 · 2026-10-14 아침 루틴 여름 같은 크루) · 크루 보드(Aside) 건은 업무OS·crew.html
     console.log(`[pour-os/v2/aiasks base] ${S.asks.length}건 · 사람 이름 ${S.osUsers.length}명`);
     if(HASH_NOTE&&!S.note){openNote(decodeURIComponent(HASH_NOTE[1]));history.replaceState(null,'',location.pathname+location.search+'#team');}
     await syncVocLinks();
@@ -545,7 +545,7 @@ function askRows(list){
   return `<div class="rows">${list.map(a=>`<div class="row"><div class="tx">${askPill(a)}<b>${esc(a.title)}</b><div class="sub">${esc(a.run?mdw(a.run):'')} · ${esc(askWord(a))}${a.state==='ok'&&a.noteId?' · 이제 [임시저장 맡기기]':''}</div></div>
     <div class="acts wide">${a.noteId?`<button class="btn sm pri" data-note="${esc(a.noteId)}">📄 보기</button>`:''}<a class="btn sm" href="${OS_URL}#a-${encodeURIComponent(a.id)}" target="_blank" rel="noopener">업무OS ›</a></div></div>`).join('')}</div>`;
 }
-function stepPill(m){return m.admin?'<span class="pill m">관리자 전용</span>':m.live?'<span class="pill ok">가동</span>':`<span class="pill m">설정 ${m.step}순위</span>`;}
+function stepPill(m){return m.admin?'<span class="pill m">관리자 전용</span>':m.live?`<span class="pill ok">가동${m.crew?' · B2C 크루':''}</span>`:`<span class="pill m">설정 ${m.step}순위</span>`;}
 function runState(r,now){ // 오늘 한 일 상태
   const ak=S.asks.find(a=>a.mate===r.id&&a.run===now.date); if(ak)return askPill(ak);
   const rv=reviews().find(l=>l.member===r.id&&l.date===now.date), done=(S.team[r.id]||{}).lastDate===now.date;
@@ -596,7 +596,7 @@ document.addEventListener('click',(e)=>{const b=e.target.closest('[data-autocat]
 function vTeam(){
   const now=C.nowKST(), today=C.teamDay(now.date), rv=reviews();
   const week=[];for(let i=0;i<7;i++){const d=C.addDays(now.date,i);week.push({d,runs:C.teamDay(d)});}
-  const live=C.TEAM.filter(m=>m.live).length;
+  const shown=C.teamShown(), live=shown.filter(m=>m.live).length;   // 하루·포리·에코는 2026-10-14부터 쉼 → 여름(B2C 크루)
   const ao=asksOpen();
   return `<div class="card"><h3>✅ AI 승인 진행 ${ao.filter(a=>a.state==='wait').length} <span class="sub">[📄 보기] 미리보기 · 고칠 점 메모 → 승인은 <b>업무OS</b>(담당 → 리드 → 본부장) → 최종 승인 뒤 [임시저장 맡기기]</span></h3>${askRows(ao)}</div>
   ${rv.length?`<div class="card"><h3>📋 예전 검토 줄 ${rv.length} <span class="sub">업무OS 승인 전에 올라온 것 · [검토 끝]으로 닫기</span></h3>${reviewRows(rv)}</div>`:''}
@@ -604,8 +604,8 @@ function vTeam(){
   <div class="card"><h3>🕘 오늘 ${esc(mdw(now.date))} <span class="sub">${today.length}건 · 지금 ${esc(now.time)}</span></h3>
     ${today.length?`<div class="rows">${today.map(r=>`<div class="row"><span class="t">${esc(r.t)}</span><div class="tx"><b>${esc(r.name)}</b> ${esc(r.what)}</div>${runState(r,now)}</div>`).join('')}</div>`:'<div class="empty">오늘은 정해진 일이 없습니다 (주말)</div>'}</div>
   ${autoCard(now)}
-  <div class="card"><h3>👥 팀원 ${C.TEAM.length} <span class="sub">가동 ${live} · 누르면 자세히 · 설정 순서는 볼트 '00 팀 운영 설계' 4절</span></h3><div class="team-grid">
-    ${C.TEAM.map(m=>{const nx=C.nextRun(m,now), t=S.team[m.id]||{}, la=S.asks.filter(a=>a.mate===m.id).sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')))[0];
+  <div class="card"><h3>👥 팀원 ${shown.length} <span class="sub">가동 ${live} · 누르면 자세히 · 설정 순서는 볼트 '00 팀 운영 설계' 4절 · 크루 보드 결과는 <a href="crew.html">AI 크루 결과 올리기 ›</a></span></h3><div class="team-grid">
+    ${shown.map(m=>{const nx=C.nextRun(m,now), t=S.team[m.id]||{}, la=S.asks.filter(a=>a.mate===m.id).sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')))[0];
       return `<details class="tm"><summary><div class="h"><span class="sub">${esc(m.no)}</span><b>${esc(m.name)}</b><span class="sub">${esc(m.role)}</span><span class="sp" style="flex:1"></span>${stepPill(m)}</div>
         <div class="l">다음: ${nx?`${esc(nx.date===now.date?'오늘':mdw(nx.date))} ${esc(nx.t)} · ${esc(nx.what)}`:'요청할 때'}</div></summary>
         <div class="l">${la?`최근 결과: ${esc(la.run?mdw(la.run):'')} · ${esc(la.title||'')} · ${esc(ASK_L[la.state]||la.state||'')}`:`최근 검토: ${t.lastDate?`${esc(mdw(t.lastDate))} · ${esc(t.lastTitle||'')}`:'없음'}`}</div>

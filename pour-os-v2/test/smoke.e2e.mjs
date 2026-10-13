@@ -39,7 +39,7 @@ const aiasks = {
 };
 const ST = { meta: { seededAt: '2026-10-01T00:00:00.000Z', counts: {} }, writes: [],
   v2: { users, projects, tasks, notes, log: {}, events: {}, brands: { grohome: { id: 'grohome', name: '그로홈', active: true, order: '2' }, pourstore: { id: 'pourstore', name: 'POUR스토어', active: true, order: '1' } },
-    workflows: {}, mainKPIs: {}, subKPIs: {}, settings: {}, kpiact: {}, links: {}, lagvals: {}, kpisales: {}, kpidefs: {}, templates: {}, checks: {}, aiasks, aimates: { pori: { id: 'pori', owners: { _: 'yj' }, rules: [{ id: 'r1', text: '근거는 판매 데이터로' }] }, gyeoul: { id: 'gyeoul', owners: { grohome: 'yj' } } }, aiboards: {} } };
+    workflows: {}, mainKPIs: {}, subKPIs: {}, settings: {}, kpiact: {}, links: {}, lagvals: {}, kpisales: {}, kpidefs: {}, templates: {}, checks: {}, aiasks, aimates: { pori: { id: 'pori', owners: { _: 'yj' } }, yeoreum: { id: 'yeoreum', owners: { _: 'yj' }, rules: [{ id: 'r1', text: '근거는 판매 데이터로' }] }, gyeoul: { id: 'gyeoul', owners: { grohome: 'yj' } } }, aiboards: {} } };
 
 const b = await pkg.chromium.launch({ executablePath: '/opt/pw-browsers/chromium', env: { ...process.env, LANG: 'C.UTF-8' } });
 async function session(uid, { admin = false, w = 375, h = 812, store = null, local = null } = {}) {   // store = 다른 기기가 남긴 저장 장치(폰 → PC) · local = 이 기기 localStorage 미리 넣기
@@ -81,7 +81,8 @@ for (const w of [375, 1280]) {
     ok(`팀 ${w} · 프로젝트 탭들 넘침 없음`, !(await over(pg)));
     await closeSheets(pg);
     await tab(pg, '더보기'); await pg.getByText(/^AI 팀원 · 내가 맡은 AI 2/).first().click(); await pg.waitForTimeout(500);
-    ok(`팀 ${w} · 더보기 › AI 팀원 시트 (내가 맡은 AI = 포리 · 겨울)`, (await pg.getByText('기본 AI 팀원 (원형)').count()) > 0 && (await pg.locator('.v2-sheet').last().getByText('겨울', { exact: false }).count()) > 0 && !(await over(pg)));
+    ok(`팀 ${w} · 더보기 › AI 팀원 시트 (내가 맡은 AI = 여름 · 겨울 · 포리 담당이어도 원형 칸 없음 · 여름 아침 루틴)`, (await pg.getByText('기본 AI 팀원 (원형)').count()) === 0 && (await pg.locator('.v2-sheet').last().getByText('겨울', { exact: false }).count()) > 0
+      && (await pg.locator('.v2-sheet').last().getByText('평일 06:50 블로그·재배포', { exact: false }).count()) > 0 && (await pg.locator('.v2-sheet').last().getByText('포리 · 콘텐츠 마케터', { exact: false }).count()) === 0 && !(await over(pg)));
     if (w === 375) await pg.screenshot({ path: path.join(SHOTS, `smoke-team-aiteam-${w}.png`) });
     // 읽은 알림 (2026-10-13 "OS에서 읽음한거 다시보고싶어"): 위에서 '확인할 것' 댓글 줄을 눌러 열었으니(= 읽음) → 더보기 › 읽은 알림에 있음
     //   → [안 읽음으로] → 다시 '확인할 것' → [읽음 표시] → 알림 + 되돌리기 → 다시 [읽음 표시] → 사라짐

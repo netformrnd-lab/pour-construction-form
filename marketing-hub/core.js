@@ -383,16 +383,17 @@
   /* ── AI 팀 (볼트 '00 팀 운영 설계' 2절 리듬과 같게 · 바꾸면 둘 다) ──────────
      runs: dow = 요일(0 일 ~ 6 토, 한국 시간) · dom = 날짜(숫자 또는 'last' 말일) · months = 그 달만 · every+anchor = N일마다
      live = Claude 루틴이 실제로 켜졌는지 (켜면 여기를 true 로 · 설정 순서 step) · 그 팀원 일 중 아직 안 켠 것은 run.off · admin = 관리자 전용(원가)
-     2026-10-10 가동: 하루(매일 배분만) · 포리 · 에코 = 루틴 'AI 콘텐츠팀 아침' 평일 06:50 한 번에(하루 → 포리 → 에코 순서) · 시간도 06:50 (2026-10-12) */
+     2026-10-10 가동: 하루(매일 배분만) · 포리 · 에코 = 루틴 'AI 콘텐츠팀 아침' 평일 06:50 한 번에(하루 → 포리 → 에코 순서) · 시간도 06:50 (2026-10-12)
+     2026-10-14 사장님 "포리, 하루, 에코는 없어야지" → 그 일은 B2C 크루 여름이 이어받음(아래 CREW_LIVE) · 세 팀원은 gone(목록·오늘·7일·자동 작업에서 빠짐 · 옛 결과 이름은 그대로) */
   const WEEKDAYS = [1, 2, 3, 4, 5];
   const TEAM = [
-    { id: 'haru', no: '00', name: '하루', role: '팀장 · 총괄', step: 2, live: true, runs: [
+    { id: 'haru', no: '00', name: '하루', role: '팀장 · 총괄', step: 2, live: false, gone: 'yeoreum', runs: [
       { dow: WEEKDAYS, t: '06:50', what: '오늘 주제 배분 (블로그 3 · 숏폼 1 · 지식인 4)' },
       { dow: [1], t: '09:30', what: '주간 브리핑 · 이번 주 할 일', off: true },
       { dow: [5], t: '17:00', what: '주간 회고', off: true },
       { dom: 'last', t: '17:00', what: '월간 리포트', off: true },
       { dom: 'last', months: [3, 6, 9, 12], t: '17:30', what: '다음 분기 시즌 캘린더', off: true }] },
-    { id: 'pori', no: '01', name: '포리', role: '콘텐츠 마케터', step: 2, live: true, runs: [
+    { id: 'pori', no: '01', name: '포리', role: '콘텐츠 마케터', step: 2, live: false, gone: 'yeoreum', runs: [
       { dow: WEEKDAYS, t: '06:50', what: '공식 블로그 원고 3 · 사진 지정 · 제목 A/B' }] },
     { id: 'luna', no: '02', name: '루나', role: '영상 마케터', step: 4, live: false, runs: [
       { dow: WEEKDAYS, t: '08:00', what: '숏폼 대본 1 → 숏폼 스튜디오' },
@@ -418,7 +419,7 @@
     { id: 'jay', no: '13', name: '제이', role: '프로모션', step: 6, live: false, runs: [
       { dow: [1], t: '10:00', what: '이번 주 행사 점검' },
       { dom: 20, t: '10:00', what: '다음 달 행사 준비' }] },
-    { id: 'eco', no: '14', name: '에코', role: '재배포 편집', step: 2, live: true, runs: [
+    { id: 'eco', no: '14', name: '에코', role: '재배포 편집', step: 2, live: false, gone: 'yeoreum', runs: [
       { dow: WEEKDAYS, t: '06:50', what: '티스토리 1 · 카페 1~2 (다시 쓴 버전)' }] },
     { id: 'nari', no: '15', name: '나리', role: '외주 원고', step: 6, live: false, runs: [
       { dow: [2, 5], t: '10:00', what: '외주 계정 글감·사진·가이드' }] },
@@ -427,7 +428,13 @@
       { every: 14, anchor: '2026-10-12', t: '10:00', what: '리뷰 이벤트 당첨자 선정안' },
       { dom: 25, t: '10:00', what: 'NPS 분석' }] },
   ];
-  const teamMember = (id) => TEAM.find((m) => m.id === id || m.name === id) || null;
+  // 크루 중 Claude 루틴이 실제로 도는 팀원 (2026-10-14 · 이름·역할 = crew.js CREWS · 크루 보드 결과는 crew.html)
+  const CREW_LIVE = [
+    { id: 'yeoreum', no: 'B2C', name: '여름', role: '노출마케터', crew: 'b2c', step: 2, live: true, runs: [
+      { dow: WEEKDAYS, t: '06:50', what: '블로그 주제 3 → 공식 블로그 원고 3 → 티스토리·카페 재배포' }] },
+  ];
+  const teamMember = (id) => TEAM.find((m) => m.id === id || m.name === id) || CREW_LIVE.find((m) => m.id === id || m.name === id) || null;
+  const teamShown = () => [...CREW_LIVE, ...TEAM.filter((m) => !m.gone)];   // 허브 '팀원' 칸 = 도는 크루 + 쉬지 않는 기본 AI 팀원
   const dowOf = (ymd) => new Date(ymd + 'T00:00:00Z').getUTCDay();
   const lastDom = (ymd) => { const d = new Date(ymd.slice(0, 7) + '-01T00:00:00Z'); d.setUTCMonth(d.getUTCMonth() + 1); d.setUTCDate(0); return d.getUTCDate(); };
   function runsOn(r, ymd) {
@@ -441,8 +448,8 @@
   // 그날 도는 일 (시간순)
   function teamDay(ymd) {
     const out = [];
-    TEAM.forEach((m, k) => { for (const r of m.runs) if (runsOn(r, ymd)) out.push({ id: m.id, name: m.name, role: m.role, live: m.live && !r.off, t: r.t, what: r.what, k }); });
-    return out.sort((a, b) => (a.t < b.t ? -1 : a.t > b.t ? 1 : a.k - b.k)); // 같은 시간이면 팀 순서 (06:50 하루 → 포리 → 에코 = 루틴 순서)
+    teamShown().forEach((m, k) => { for (const r of m.runs) if (runsOn(r, ymd)) out.push({ id: m.id, name: m.name, role: m.role, live: m.live && !r.off, t: r.t, what: r.what, k }); });
+    return out.sort((a, b) => (a.t < b.t ? -1 : a.t > b.t ? 1 : a.k - b.k)); // 같은 시간이면 팀 순서 (06:50 여름 = 아침 루틴)
   }
   // 다음 차례 (now = { date:'YYYY-MM-DD', time:'HH:MM' } 한국 시간) — 정해진 일이 없으면 null
   function nextRun(m, now) {
@@ -473,8 +480,8 @@
   const AUTO_STATUS = { on: '동작 중', wait: '준비 중', plan: '계획' };
   const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
   const AUTOMATIONS = [
-    { id: 'ai-morning', name: 'AI 콘텐츠팀 아침', cat: 'content', where: 'routine', run: { dow: WEEKDAYS, t: '06:50' }, members: ['haru', 'pori', 'eco'], status: 'on',
-      what: '오늘 숫자 받기 → 고칠 것(업무OS AI에게 다시 · 확정 규칙) → 하루 주제 3 → 포리 블로그 원고 3(표준 27칸) → 에코 티스토리·카페 → GitHub 저장 → 업무OS AI 승인', ref: 'trig_01CmBYhzb9BGCv8DLX59kuGB' },
+    { id: 'ai-morning', name: 'AI 콘텐츠 아침 (여름 · B2C 크루)', cat: 'content', where: 'routine', run: { dow: WEEKDAYS, t: '06:50' }, members: ['yeoreum'], status: 'on',
+      what: '오늘 숫자 받기 → 고칠 것(업무OS AI에게 다시 · 확정 규칙) → 여름: 주제 3 → 블로그 원고 3(표준 27칸) → 티스토리·카페 재배포 → GitHub 저장 → 업무OS AI 승인', ref: 'trig_01CmBYhzb9BGCv8DLX59kuGB' },   // 2026-10-14 하루·포리·에코 → 여름
     { id: 'numbers', name: '오늘 숫자 만들기', cat: 'data', where: 'actions', run: { dow: ALL_DAYS, t: '06:10' }, status: 'on', trace: 'numbers',
       what: '판매·광고·재고·고객의 소리 → 05 오늘 숫자 (원가 없음 · 대시보드와 같은 계산)', ref: 'mkt-numbers.yml' },
     { id: 'review-alarm', name: 'AI 콘텐츠 검토 알림', cat: 'ops', where: 'calendar', run: { dow: WEEKDAYS, t: '08:30' }, status: 'on',
@@ -496,7 +503,7 @@
   function automations() {
     const out = AUTOMATIONS.map((a) => ({ ...a }));
     for (const m of TEAM) m.runs.forEach((r, i) => {
-      if (m.live && !r.off) return; // 켜진 일은 위 루틴이 함
+      if (m.gone || (m.live && !r.off)) return; // 켜진 일은 위 루틴이 함 · 쉬는 팀원(gone)은 크루가 이어받음
       out.push({ id: `plan-${m.id}-${i}`, name: `${m.name} · ${r.what}`, cat: MEMBER_CAT[m.id] || 'plan', where: 'routine', run: r, members: [m.id], status: 'plan',
         note: m.admin ? '관리자 전용' : `설정 ${m.step}순위`, what: `${m.role} — 아직 안 켬 (켜려면 Claude 에게 "${m.name} 루틴 켜 줘")` });
     });
@@ -668,7 +675,7 @@
     if (/인스타/.test(h)) return 'insta';
     if (/지식인/.test(h)) return 'kin';
     if (/블로그/.test(h)) return 'naver_blog';
-    return member === 'pori' ? 'naver_blog' : 'other';
+    return member === 'pori' || member === 'yeoreum' ? 'naver_blog' : 'other';   // 블로그 원고 노트(예전 포리 → 2026-10-14 여름)는 채널 이름이 없으면 네이버 블로그
   }
   const TITLE_RE = /^\*\*제목(?:\s*([AB])안)?\*\*\s*[:：]\s*(.+)$/;
   function parsePosts(mainMd, member) {
@@ -850,7 +857,7 @@
   const isStaffEmail = (email, roles) => !!email && ((roles && roles.staffs) || []).includes(email); // 직원: 고객의 소리 입력만
 
   const api = { STORE_MODE, OPEN_ROOT, OWNER_EMAILS, storeMode, col, isAdminEmail, isUploaderEmail, isStaffEmail,
-    mdLite, noteParts, parsePosts, postPlain, postBlocks, postHtml, pasteHtml, blogCheck, photoParts, CHANNEL, POST_STATUS, postId, DRAFT_CH, canDraft, TEAM, teamMember, runsOn, teamDay, nextRun, RUN_WORD, nowKST, AUTO_CATS, AUTO_WHERE, AUTO_STATUS, AUTOMATIONS, automations, autoWord, autoNext, autoSummary, VOC_TYPES, VOC_SOURCES, VOC_URGENT_TYPE, VOC_REPEAT, maskPII, vocDoc, vocSummary, vocLinks, HUB_URL, obsidianOpenUri, CHANNELS, obsidianNote, obsidianUri, OBSIDIAN_NOTE, DEFAULT_SETTINGS, stockRows, salesRows, dailyRevenue, numbersNote, OBSIDIAN_HUB, OBSIDIAN_HUB_SECTION, FIELDS, channelOf, parseTable, toNumber, analyze, reducedCsv, buildDocs, hash, stockPlan, keywordAdvice, addDays, yesterdayKST, utf8Bytes, MAX_CSV_BYTES };
+    mdLite, noteParts, parsePosts, postPlain, postBlocks, postHtml, pasteHtml, blogCheck, photoParts, CHANNEL, POST_STATUS, postId, DRAFT_CH, canDraft, TEAM, CREW_LIVE, teamShown, teamMember, runsOn, teamDay, nextRun, RUN_WORD, nowKST, AUTO_CATS, AUTO_WHERE, AUTO_STATUS, AUTOMATIONS, automations, autoWord, autoNext, autoSummary, VOC_TYPES, VOC_SOURCES, VOC_URGENT_TYPE, VOC_REPEAT, maskPII, vocDoc, vocSummary, vocLinks, HUB_URL, obsidianOpenUri, CHANNELS, obsidianNote, obsidianUri, OBSIDIAN_NOTE, DEFAULT_SETTINGS, stockRows, salesRows, dailyRevenue, numbersNote, OBSIDIAN_HUB, OBSIDIAN_HUB_SECTION, FIELDS, channelOf, parseTable, toNumber, analyze, reducedCsv, buildDocs, hash, stockPlan, keywordAdvice, addDays, yesterdayKST, utf8Bytes, MAX_CSV_BYTES };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.MktCore = api;
 })(typeof window !== 'undefined' ? window : globalThis);

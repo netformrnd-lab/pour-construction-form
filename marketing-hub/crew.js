@@ -5,6 +5,7 @@
 //   · "크루 6명은 기존 AI 팀원을 파생해서 그로홈 전용으로 셋팅 · 브랜드+고객에 따라 달라져 · POUR스토어는 B2B·B2C 각각 · 그로홈과 B2C 는 비슷해서 크루를 함께 써도 되고 · 바라스데이는 별도"
 //   · 실행(가격·광고·발송·게시·상세 수정)은 늘 사람 — AI·Aside 는 준비(초안·표·임시저장)까지 (2026-10-11 '실제 게시는 사람이 해야해')
 //   · 원가·마진·제조사·공급 단가는 여기·업무OS·보드에 두지 않음 (2026-10-09 '팀원들은 원가, 제조사정보 몰라야해') → 그 계산은 관리자 마진 대시보드
+//   · 2026-10-14 "포리, 하루, 에코는 없어야지" → 아침 루틴(블로그 주제·원고 3·티스토리·카페 재배포)은 B2C 크루 여름이 이어받음(member.routine) · 하루·포리·에코 = 쉼(GONE · 목록에 안 보임 · 옛 결과 이름은 그대로)
 // 보드 6개 = 그로홈 AI 크루 보드(외부 공개 보드 6개 · 2026-10-12 옮김) — 기준값·목표는 그 보드에 적힌 그대로 · 마진·공급 단가 칸 뺌 · '승인되면 직접 반영' → '승인되면 담당이 반영'
 
 // 업무OS 브랜드 id → 이름 (pour-os/v2/brands)
@@ -32,6 +33,8 @@ export const BASE_TEAM = [
   { id: 'onyu', name: '온유', role: '고객 관리' },
 ];
 
+// 쉬는 기본 AI 팀원 → 이어받은 크루 팀원 (2026-10-14 사장님 "포리, 하루, 에코는 없어야지") — 업무OS·허브 목록에서 빠짐 · team_link.py GONE 과 같게
+export const GONE = { haru: 'yeoreum', pori: 'yeoreum', eco: 'yeoreum' };
 // 크루 = 원형에서 파생해 브랜드+고객(B2B·B2C)에 맞춘 AI 팀원 묶음
 //   serves = [{brand(업무OS 브랜드 id), seg 'B2C'|'B2B'}] · formula = 매출 공식 칸(이번 주 집중 고르기) · draft = 초안(구성·이름·지표는 같이 정해 고침)
 //   member: slot = 공식 칸('채널' = 공식 밖 채널 담당) · kpi · board(보드 id · 없으면 아직) · from = 파생한 원형 id(추정 · 고칠 수 있음) · first = 첫 할 일(초안 크루)
@@ -43,7 +46,8 @@ export const CREWS = [
     formula: ['노출', '유입', '전환', '객단가', '재구매'],
     members: [
       { id: 'bom', name: '봄', role: '오늘의집 MD', slot: '채널', kpi: '오늘의집 매출', board: 'gh-ohou', color: '#3D8BF2', from: ['jay', 'moka'] },
-      { id: 'yeoreum', name: '여름', role: '노출마케터', slot: '노출', kpi: '노출수 · 도달', board: 'gh-exp', color: '#F2C94C', from: ['sora', 'luna', 'kei'] },
+      { id: 'yeoreum', name: '여름', role: '노출마케터', slot: '노출', kpi: '노출수 · 도달', board: 'gh-exp', color: '#F2C94C', from: ['sora', 'luna', 'kei'],
+        routine: '아침 루틴 · 평일 06:50 · 블로그 주제 3 → 공식 블로그 원고 3 → 티스토리·카페 재배포 · 결과는 노트 한 편 = 승인 한 건' },   // 2026-10-14 하루·포리·에코 일을 이어받음
       { id: 'gaeul', name: '가을', role: '유입마케터', slot: '유입', kpi: '클릭률 · 방문수', board: 'gh-traffic', color: '#E5B3EE', from: ['kei'] },
       { id: 'gyeoul', name: '겨울', role: '전환마케터', slot: '전환', kpi: '구매 전환율', board: 'gh-conv', color: '#8FA3EF', from: ['teo', 'ria'] },
       { id: 'haneul', name: '하늘', role: '객단가마케터', slot: '객단가', kpi: '1회 평균 결제액', board: 'gh-aov', color: '#EE7466', from: ['jay'] },
@@ -213,6 +217,8 @@ export const brandL = (b) => BRAND_L[b] || '';
 export const servesL = (crew) => ((crew && crew.serves) || []).map((s) => `${BRAND_L[s.brand] || s.brand} ${s.seg}`).join(' · ');
 // 그 AI 가 일하는 브랜드들 (원형 = 정해진 브랜드 없음 → 모든 브랜드)
 export const mateBrands = (mateId) => { const c = crewOf(mateId); return c ? [...new Set(c.serves.map((s) => s.brand))] : []; };
+// 담당 칸: 크루 = 브랜드별 · 아침 루틴 팀원(여름)은 '기본'('' · 브랜드가 섞인 결과 + 브랜드 담당을 안 정한 브랜드)도 맨 앞에 · 기본 AI 팀원 = 기본 하나 (2026-10-14)
+export const ownerKeys = (mateId) => { const bs = mateBrands(mateId), m = mateOf(mateId); return bs.length ? [...(m && m.routine ? [''] : []), ...bs] : ['']; };
 // 담당 = aimates/{id}.owners[브랜드] → owners._(기본) · 없으면 '' (정할 때까지 관리자 누구나)
 export const ownerFor = (mateDoc, brand) => { const o = (mateDoc && mateDoc.owners) || {}; return (brand && o[brand]) || o._ || ''; };
 

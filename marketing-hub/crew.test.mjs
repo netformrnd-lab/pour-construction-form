@@ -79,4 +79,17 @@ eq('담당 = 브랜드별 → 기본', [K.ownerFor({ owners: { grohome: 'a', _: 
 eq('Aside 지시문에 관리자 자리 행동 없음', /\[E\]/.test(K.asideText(K.boardOf('gh-exp'))), false);
 eq('Aside 지시문에 지표 키', K.asideText(K.boardOf('gh-conv')).includes('cv_mall\t'), true);
 
+// 2026-10-14 하루·포리·에코 쉼 → 여름 (아침 루틴) · team_link.py(볼트 사본도 같은 파일) CREW·GONE 과 같게
+eq('쉬는 팀원 → 여름', Object.entries(K.GONE).map(([g, to]) => [K.mateOf(g).name, K.mateOf(to).name, K.crewOf(to).id]), [['하루', '여름', 'b2c'], ['포리', '여름', 'b2c'], ['에코', '여름', 'b2c']]);
+eq('아침 루틴 = 여름 하나', K.allMates().filter((m) => m.routine).map((m) => m.id), ['yeoreum']);
+eq('담당 칸: 여름 = 기본 + 브랜드 · 겨울 = 브랜드 · 루나 = 기본', [K.ownerKeys('yeoreum'), K.ownerKeys('gyeoul'), K.ownerKeys('luna')], [['', 'grohome', 'pourstore'], ['grohome', 'pourstore'], ['']]);
+eq('허브 가동 크루(core.js CREW_LIVE) = crew.js 이름·역할·크루', C.CREW_LIVE.map((m) => [m.id, m.name, m.role, m.crew]), C.CREW_LIVE.map((m) => { const x = K.mateOf(m.id) || {}; return [x.id, x.name, x.role, x.crew]; }));
+{
+  const { execFileSync } = await import('node:child_process');
+  const py = 'import json,sys; sys.path.insert(0, sys.argv[1]); import team_link as T; print(json.dumps({"crew": {k: list(v) for k, v in T.CREW.items()}, "gone": T.GONE}))';
+  const got = JSON.parse(execFileSync('python3', ['-c', py, new URL('./tools', import.meta.url).pathname], { encoding: 'utf8', env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' } }));
+  eq('team_link.py 크루 = crew.js', got.crew, Object.fromEntries(K.CREWS.flatMap((c) => c.members.map((m) => [m.id, [m.name, c.id]]))));
+  eq('team_link.py GONE = crew.js', got.gone, K.GONE);
+}
+
 console.log(`\n${n - bad}/${n} 통과`); if (bad) process.exit(1);

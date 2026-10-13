@@ -203,6 +203,8 @@ export const taskRemoveFields = (t, cu, at, reason, root, kids) => ({ removed: {
 export const projLeadOrMaster = (p, cu) => !!p && !!cu && (p.assigneeId === cu.id || isMaster(cu));
 export const canRemoveProj = (p, cu) => !!p && !p.locked && !isRemoved(p) && projLeadOrMaster(p, cu);
 export const canRestoreProj = (p, cu) => !!p && !p.locked && isRemoved(p) && projLeadOrMaster(p, cu);
+// 프로젝트 이름 고치기 (사용자 요청 2026-10-13 "프로젝트명 부분 명칭 수정하고싶어") — 책임자·관리자 · 기밀로 잠긴 것·없앤 것·그로홈 KPI 프로젝트(gh_kpi_ · 이름 = 그로홈 KPI 구조) 빼고
+export const canRenameProj = (p, cu) => !!p && !!cu && !p.locked && !isRemoved(p) && !isGhProj(p.id) && projLeadOrMaster(p, cu);
 export const projRemoveFields = (p, cu, at, reason, n) => ({ removed: { at, by: cu.id, byName: cu.name || "", reason: String(reason || "").trim().slice(0, 200), prevStatus: (p && p.status) || "active", n: n || 0 } });
 export const projTaskRemoveFields = (t, cu, at, reason, pid) => ({ removed: { ...taskRemoveFields(t, cu, at, reason, pid).removed, proj: true } });
 export const projTaskBack = (t, p) => isRemoved(t) && !!t.removed.proj && t.removed.root === p.id && !!p.removed && t.removed.at === p.removed.at;
@@ -794,9 +796,10 @@ export function roadStates(road, ts, phOf, key) {
 }
 // 지금 단계(위 추가 칸 기본값): 남은 업무가 있는 첫 단계 → 없으면 첫 단계
 export const curStage = (states) => ((states || []).find((s) => s.left > 0) || (states || [])[0] || {}).k || "";
-// 새로 넣는 업무의 기본 단계 = 그 프로젝트 지금 단계 (로드 있는 일반·흐름 · 신제품·로드 없음 = "") — 할 일 바로 추가 · 프로젝트 옮기기 (할 일 추가 시트도 같은 계산)
+// 새로 넣는 업무의 기본 단계 = 그 프로젝트 지금 단계(남은 업무가 있는 첫 단계 · 비었으면 첫 단계 · 로드 없음 = "") — 할 일 바로 추가 · 프로젝트 옮기기
+//   신제품(lb_)도 7단계 중 지금 단계로 (2026-10-13 "프로젝트 연결했으면 프로젝트에서 보여야하는데 없어" — 단계 없는 '기타'는 맨 아래라 안 보였음) · 할 일 추가 시트는 일반·흐름만 단계 칩
 export function phaseNowOf(D, p, key) {
-  const road = p && !isLaunchProj(p) ? roadOf(p, D) : null; if (!road) return "";
+  const road = p ? roadOf(p, D) : null; if (!road) return "";
   const ts = ((D && D.tasks) || []).filter((t) => t.projectId === p.id && !t.isFixed), by = new Map(ts.map((t) => [t.id, t]));
   return curStage(roadStates(road, ts, (t) => phaseOfTask(t, p, D, by, road), key));
 }

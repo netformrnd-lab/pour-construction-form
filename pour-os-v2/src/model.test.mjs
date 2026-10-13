@@ -701,7 +701,7 @@ ok("업무 프로젝트 연결·바꾸기 (2026-10-13 '내 할일로 업무 등�
     tasks: [{ id: "t1", title: "라벨지", assigneeId: "a", status: "todo", projectId: "" },
       { id: "t2", title: "하위", assigneeId: "a", status: "todo", projectId: "", parentId: "t1" },
       { id: "t3", title: "추석 일", assigneeId: "b", status: "todo", projectId: "p1", phase: "make" },
-      { id: "t4", title: "신제품 항목", assigneeId: "a", status: "todo", projectId: "lb_x", launchItem: "i1" },
+      { id: "t4", title: "신제품 항목", assigneeId: "a", status: "todo", projectId: "lb_x", launchItem: "i1", phase: "sample" },
       { id: "t5", title: "그로스보드 일", assigneeId: "a", status: "todo", projectId: "gh_kpi_1" },
       { id: "t6", title: "끝낸 일", assigneeId: "a", status: "done", projectId: "" }] };
   const T = Object.fromEntries(D.tasks.map((t) => [t.id, t]));
@@ -717,6 +717,12 @@ ok("업무 프로젝트 연결·바꾸기 (2026-10-13 '내 할일로 업무 등�
   assert.deepEqual(M.moveProjTargets(D, T.t3, "b")[0].map((p) => p.id), []);   // 지금 프로젝트(p1)는 빼고
   const road = M.roadOf(D.projects[0], D), k = M.phaseNowOf(D, D.projects[0], "2026-10-13");
   assert.equal(k, "make"); assert.ok(road.some((s) => s.k === k));        // 지금 단계 = 남은 업무가 있는 첫 단계
-  assert.equal(M.phaseNowOf(D, D.projects[5], "2026-10-13"), "");         // 신제품은 단계 비움(기타)
+  assert.equal(M.phaseNowOf(D, D.projects[5], "2026-10-13"), "sample");   // 신제품도 지금 단계(남은 항목이 있는 첫 단계) — 2026-10-13 '기타'(맨 아래 접힘)라 안 보였음
+  assert.equal(M.phaseNowOf(D, { id: "lb_y", title: "빈 신제품", status: "active" }, "2026-10-13"), "plan");   // 남은 게 없으면 첫 단계
+  assert.equal(M.phaseNowOf(D, D.projects[3], "2026-10-13"), "");          // 로드 없음(그로홈 KPI) = 비움
   assert.equal(M.phaseNowOf(D, null, "2026-10-13"), "");
+  // 프로젝트 이름 고치기 (2026-10-13 "프로젝트명 부분 명칭 수정하고싶어"): 책임자·관리자 · 기밀로 잠긴 것·없앤 것·그로홈 KPI 빼고
+  assert.ok(M.canRenameProj(D.projects[0], c)); assert.ok(M.canRenameProj(D.projects[0], m)); assert.ok(!M.canRenameProj(D.projects[0], a));
+  assert.ok(M.canRenameProj(D.projects[5], a));                            // 신제품(lb_)도 (업무OS 이름만)
+  assert.ok(!M.canRenameProj(D.projects[3], a)); assert.ok(!M.canRenameProj(D.projects[4], b)); assert.ok(!M.canRenameProj({ ...D.projects[1], removed: { at: "x" } }, a));
 });

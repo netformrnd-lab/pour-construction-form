@@ -239,15 +239,21 @@ for (const w of [375, 768, 1280]) {
   ok('연결 → 업무·하위 업무 p1 · 지금 단계 · 브랜드 따라감', a.projectId === 'p1' && !!a.phase && a.phaseBy === 'yj' && a.brand === 'pourstore' && k.projectId === 'p1' && k.brand === 'pourstore', { a: [a.projectId, a.phase, a.brand], k: [k.projectId, k.brand] });
   ok('알림 "추석 기획전에 연결했어요 · 하위 1개 같이 · 단계" · 맨 위가 "프로젝트 · 추석 기획전"', /추석 기획전'에 연결했어요 · 하위 1개 같이 · 단계/.test(await pg.locator('.v2-toast').innerText()) && (await sh().locator('button.path', { hasText: '프로젝트 · 추석 기획전' }).count()) === 1);
   ok('기록 1건 (프로젝트 없음 → 추석 기획전)', await pg.evaluate(() => Object.values(window.__V2.v2.log || {}).some((l) => l.targetId === 't6' && /프로젝트 프로젝트 없음 → 추석 기획전 · 하위 1개 같이/.test(l.label || '') && l.prev && l.prev.projectId === '' && l.next.projectId === 'p1')));
+  ok('연결 뒤 그 자리: "추석 기획전에 연결했어요 · 단계 …" · 단계 칩(지금 단계 켜짐) · [프로젝트에서 보기 ›]', /추석 기획전에 연결했어요 · 단계/.test(await sh().locator('.v2-pmove').innerText()) && (await sh().locator('.v2-pmove button[aria-pressed=true]').count()) === 1 && (await sh().locator('.v2-pmove').getByRole('button', { name: '프로젝트에서 보기 ›' }).count()) === 1);
   await pg.locator('.v2-toast').getByRole('button', { name: '되돌리기' }).click(); await pg.waitForTimeout(600);
   a = await T('t6'); k = await T('t7');
-  ok('되돌리기 → 둘 다 프로젝트 없음 · 단계 비움', a.projectId === '' && !a.phase && k.projectId === '', { a: [a.projectId, a.phase], k: k.projectId });
-  // 더 하기 › [프로젝트 연결] → 연결 → 더 하기 › [프로젝트 바꾸기] › [프로젝트 빼기]
-  await sh().getByRole('button', { name: '더 하기 ▾' }).click(); await sh().getByRole('button', { name: '프로젝트 연결', exact: true }).click(); await pg.waitForTimeout(300);
+  ok('되돌리기 → 둘 다 프로젝트 없음 · 단계 비움 · 다시 고르기', a.projectId === '' && !a.phase && k.projectId === '' && (await sh().locator('.v2-pmove').getByRole('button', { name: '추석 기획전' }).count()) === 1, { a: [a.projectId, a.phase], k: k.projectId });
+  // 다시 연결 → 단계 칩으로 '집행' → [프로젝트에서 보기 ›] = 그 단계 펼쳐서 그 자리 · 이 업무가 보임
   await sh().locator('.v2-pmove').getByRole('button', { name: '추석 기획전' }).click(); await pg.waitForTimeout(600);
-  ok('더 하기 › 프로젝트 연결 → p1', (await T('t6')).projectId === 'p1');
+  await sh().locator('.v2-pmove').getByRole('button', { name: '집행', exact: true }).click(); await pg.waitForTimeout(600);
+  ok('연결 뒤 단계 칩 [집행] → 업무 단계 run', (await T('t6')).phase === 'run' && (await T('t6')).projectId === 'p1');
+  await sh().locator('.v2-pmove').getByRole('button', { name: '프로젝트에서 보기 ›' }).click(); await pg.waitForTimeout(900);
+  ok('프로젝트에서 보기 › → 프로젝트 · 집행 단계 펼침 · 이 업무가 보임', /2in1 라벨지 디자인 보고 자료 작성/.test(await pg.locator('.v2-sheet').last().locator('#v2-ph-run').innerText().catch(() => '')));
+  await pg.screenshot({ path: path.join(SHOTS, 'smoke-projmove-proj-375.png') });
+  await pg.keyboard.press('Escape'); await pg.waitForTimeout(400);
+  // 더 하기 › [프로젝트 바꾸기] (연결 뒤 단계 칸이 떠 있어도 고르기부터) › [프로젝트 빼기]
   await sh().getByRole('button', { name: '더 하기 ▾' }).click(); await sh().getByRole('button', { name: '프로젝트 바꾸기', exact: true }).click(); await pg.waitForTimeout(300);
-  ok('프로젝트 바꾸기: 지금 프로젝트는 목록에 없음 · [프로젝트 빼기]', (await sh().locator('.v2-pmove').getByRole('button', { name: '추석 기획전' }).count()) === 0 && (await sh().locator('.v2-pmove').getByRole('button', { name: '프로젝트 빼기' }).count()) === 1);
+  ok('프로젝트 바꾸기: 고르기부터 · 지금 프로젝트는 목록에 없음 · [프로젝트 빼기]', (await sh().locator('.v2-pmove').getByRole('button', { name: '추석 기획전' }).count()) === 0 && (await sh().locator('.v2-pmove').getByRole('button', { name: '프로젝트 빼기' }).count()) === 1);
   await sh().locator('.v2-pmove').getByRole('button', { name: '프로젝트 빼기' }).click(); await pg.waitForTimeout(600);
   a = await T('t6'); k = await T('t7');
   ok('프로젝트 빼기 → 둘 다 프로젝트 없음 · 단계 비움 · 알림', a.projectId === '' && a.phase == null && k.projectId === '' && /프로젝트에서 뺐어요 · 하위 1개 같이/.test(await pg.locator('.v2-toast').innerText()));
@@ -255,11 +261,44 @@ for (const w of [375, 768, 1280]) {
   await openT('t7');
   await sh().locator('button.path').click(); await pg.waitForTimeout(300);
   ok('하위 업무: "위 업무에서 연결해 주세요" · [위 업무 열기 ›] · 더 하기에 버튼 없음', /위 업무에서 연결해 주세요/.test(await sh().locator('.v2-pmove').innerText()) && (await sh().locator('.v2-pmove').getByRole('button', { name: /위 업무 열기/ }).count()) === 1);
+  await openT('t6');
+  // 더 하기 › [프로젝트 연결] → 연결 (다시 p1 에 두고 아래 시험)
+  await sh().getByRole('button', { name: '더 하기 ▾' }).click(); await sh().getByRole('button', { name: '프로젝트 연결', exact: true }).click(); await pg.waitForTimeout(300);
+  await sh().locator('.v2-pmove').getByRole('button', { name: '추석 기획전' }).click(); await pg.waitForTimeout(600);
+  ok('더 하기 › 프로젝트 연결 → p1', (await T('t6')).projectId === 'p1');
+  // 프로젝트 이름 고치기: 책임자·관리자만 버튼 (남윤정은 p1 책임자 아님 → 이름만 보임)
+  await pg.evaluate(() => { location.hash = '#p-p1'; }); await pg.waitForTimeout(700);
+  await pg.locator('.v2-sheet').last().getByText('정보 · 더 하기 ▾').click(); await pg.waitForTimeout(300);
+  ok('프로젝트 정보 맨 위 "이름 추석 기획전" · 책임자 아니면 [이름 고치기] 없음', /이름 추석 기획전/.test(await pg.locator('.v2-sheet').last().innerText()) && (await pg.locator('.v2-sheet').last().getByRole('button', { name: '이름 고치기' }).count()) === 0);
   // 남이 맡은 남의 업무(배너 소재? = 내 것) → 김송희 업무 t4 는 yj 가 맡긴 사람 → 바꿀 수 있음 · 프로젝트 있음 = 맨 위는 프로젝트 열기
   await openT('t4');
   ok('프로젝트 있는 업무: 맨 위 = 프로젝트 열기(예전처럼) · 바꾸기는 더 하기 ›', (await sh().locator('button.path', { hasText: '프로젝트 · 추석 기획전' }).count()) === 1);
   await closeSheets(pg);
   ok('프로젝트 연결 · 화면 오류 없음', errs.length === before, errs.slice(before));
+  await s.close(); }
+// 프로젝트 이름 고치기 (2026-10-13 "프로젝트명 부분 명칭 수정하고싶어") — 관리자(김소연)
+{ const s = await session('sy', { w: 375 }), pg = s.pg, before = errs.length;
+  const P1 = () => pg.evaluate(() => window.__V2.v2.projects.p1);
+  await pg.evaluate(() => { location.hash = '#p-p1'; }); await pg.waitForTimeout(700);
+  const ps = pg.locator('.v2-sheet').last();
+  await ps.getByText('정보 · 더 하기 ▾').click(); await pg.waitForTimeout(300);
+  await ps.getByRole('button', { name: '이름 고치기' }).click(); await pg.waitForTimeout(200);
+  const inp = ps.getByLabel('프로젝트 새 이름', { exact: true });
+  ok('이름 고치기 → 지금 이름이 칸에 · 같은 이름이면 [저장] 잠김', (await inp.inputValue()) === '추석 기획전' && await ps.getByRole('button', { name: '저장', exact: true }).isDisabled());
+  await inp.fill('추석 기획전 (온라인)'); await ps.getByRole('button', { name: '저장', exact: true }).click(); await pg.waitForTimeout(500);
+  ok('저장 → 프로젝트 이름 바뀜 · 머리도 새 이름 · 알림 · 기록', (await P1()).title === '추석 기획전 (온라인)' && /추석 기획전 \(온라인\)/.test(await ps.locator('.v2-sheet-head, header, h1, h2').first().innerText().catch(() => '') + await ps.innerText()) && /프로젝트 이름을 고쳤어요/.test(await pg.locator('.v2-toast').innerText())
+    && await pg.evaluate(() => Object.values(window.__V2.v2.log || {}).some((l) => l.targetId === 'p1' && /프로젝트 이름 추석 기획전 → 추석 기획전 \(온라인\)/.test(l.label || ''))));
+  await pg.screenshot({ path: path.join(SHOTS, 'smoke-projrename-375.png') });
+  await pg.locator('.v2-toast').getByRole('button', { name: '되돌리기' }).click(); await pg.waitForTimeout(500);
+  ok('되돌리기 → 원래 이름', (await P1()).title === '추석 기획전');
+  // 그사이 다른 사람이 바꿈 → 안 씀 · 알림 · 지금 이름 보여 주고 다시 [저장]하면 내 이름
+  await ps.getByRole('button', { name: '이름 고치기' }).click(); await inp.fill('추석 기획전 B');
+  await pg.evaluate(() => window.__OTHER('projects', 'p1', { title: '추석 행사' }));
+  await ps.getByRole('button', { name: '저장', exact: true }).click(); await pg.waitForTimeout(500);
+  ok('그사이 다른 사람이 바꿈 → 안 씀 · "추석 행사(으)로 바꿨어요" 안내', (await P1()).title === '추석 행사' && /'추석 행사'\(으\)로 바꿨어요/.test(await ps.innerText()));
+  await ps.getByRole('button', { name: '저장', exact: true }).click(); await pg.waitForTimeout(500);
+  ok('다시 [저장] → 내 이름으로', (await P1()).title === '추석 기획전 B');
+  ok('프로젝트 이름 고치기 · 375 넘침 없음 · 화면 오류 없음', !(await over(pg)) && errs.length === before, errs.slice(before));
   await s.close(); }
 for (const w of [768, 1280]) { const s = await session('yj', { w, h: 900 }), pg = s.pg, before = errs.length;
   await pg.evaluate(() => { location.hash = '#t-t6'; }); await pg.waitForTimeout(600);

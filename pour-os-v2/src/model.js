@@ -419,6 +419,16 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
   return { key, fixed, routine, ranked, todo: ranked, focus, late, doing, inbox, userName, left: fixed.left.length + routine.left.length + focus.length, doneToday, oneOffOpen, freshN: ranked.filter((x) => x.fresh).length };
 }
 
+// ── 읽은 알림 다시 보기 (사용자 요청 2026-10-13 "OS에서 읽음한거 다시보고싶어") ──
+// '확인할 것'에서 읽음 표시한 줄 = 읽음을 빼고 다시 센 todayView 줄 중 이 기기에서 읽은 것 (최근 7일 = todayView 와 같은 기간)
+//   처리해야 사라지는 줄(keep · 확인 요청·맡김·수정 요청…)은 늘 '확인할 것'에 있으므로 뺌 · 최근 것 먼저 · 묶은 줄(id1|id2)은 모두 읽었을 때만
+export const seenAll = (seen, id) => !!(seen || {})[id] || String(id).split("|").every((k) => !!(seen || {})[k]);
+export function readInbox(D, uid, now = new Date(), seen = {}, Tall = null) {
+  return todayView(D, uid, now, {}, Tall).inbox.filter((x) => !x.keep && seenAll(seen, x.id)).sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
+}
+// [안 읽음으로] = 그 줄의 읽음 표시만 뺌 (묶은 줄은 하나씩 읽은 표시도) → 다시 '확인할 것'에
+export const unseePatch = (seen, ids) => { const out = { ...(seen || {}) }; (ids || []).forEach((id) => [id, ...String(id).split("|")].forEach((k) => { delete out[k]; })); return out; };
+
 // ── 맡긴 일 (지시자) ──
 export function assignedByMe(D, uid, now = new Date()) {
   const key = ymd(now), wk = new Date(now - 7 * 86400000).toISOString();

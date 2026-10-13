@@ -8,7 +8,7 @@ import {
   todayView, projOpen, projMine, projStat, projGroups, personStat, ownerIssues, feedOf, threads, taskNoteId, projNoteId, newId, planSeed, COUNT_L, LOG_L,
   reqOf, needsReview, dueApprover,
 } from "./model.js";
-import { TodayTab, TurnSheet, MyTidySheet, UpTurnsSheet } from "./today.jsx";
+import { TodayTab, TurnSheet, MyTidySheet, UpTurnsSheet, ReadInboxSheet } from "./today.jsx";
 import { MoreTab, AssignedSheet, MyFixedSheet, AddFixedSheet, MyNotesSheet } from "./more.jsx";
 import { turnIndex, turnsOf } from "./turn.js";
 import { SheetRouter } from "./sheets.jsx";
@@ -77,6 +77,7 @@ function Main({ D, cu, meta, setMeta, logout }) {
     myFixed: (p) => <MyFixedSheet {...p} />,
     addFixed: (p) => <AddFixedSheet {...p} />,
     myNotes: (p) => <MyNotesSheet {...p} />,
+    readInbox: (p) => <ReadInboxSheet {...p} />,   // 읽은 알림 (2026-10-13 · 더보기 › 내 일)
     myKpi: (p) => <MyKpiSheet {...p} goToday={() => { setTab("today"); closeAll(); window.scrollTo(0, 0); }} />,
     lagInput: (p, s) => <LagSheet {...p} s={s} />,
     kpiEdit: (p, s) => <KpiEditSheet {...p} s={s} />,

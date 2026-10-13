@@ -37,7 +37,7 @@ export function MoreTab({ D, cu, A, meta, logout, open, BUILD, setToast }) {
       <Row title="내 할 일 모두" sub="할 일 · 진행 · 확인 대기 · 보류 · 끝남" onClick={() => open({ type: "mine" })} right={arrow} last={false} />
       <Row title={`내 고정업무 ${myFx}`} sub="매일 · 매주 · 매월" onClick={() => open({ type: "myFixed" })} right={arrow} last={false} />
       <Row title={`내가 쓴 댓글${myN.today ? ` · 오늘 ${myN.today}` : ""}`} sub="오늘 · 7일 · 30일 · 누르면 그 댓글로" onClick={() => open({ type: "myNotes" })} right={arrow} last={false} />
-      <Row title="읽은 알림" sub="확인할 것에서 읽은 것 · 최근 7일 · 안 읽음으로 되돌리기" onClick={() => open({ type: "readInbox" })} right={arrow} last={false} />
+      <Row title="읽은 알림" sub="확인할 것에서 읽은 것 · 폰·PC 같이 · 최근 7일 · 안 읽음으로 되돌리기" onClick={() => open({ type: "readInbox" })} right={arrow} last={false} />
       <Row title="내 KPI" sub="내 반복·내 프로젝트가 움직이는 KPI" onClick={() => open({ type: "myKpi" })} right={arrow} last />
     </Card>
     {/* 없앤 프로젝트(2026-10-07): 관리자는 전부 · 팀원은 내가 책임자·함께 하는 사람이거나 내가 없앤 것 · 되살리기는 책임자·관리자 */}

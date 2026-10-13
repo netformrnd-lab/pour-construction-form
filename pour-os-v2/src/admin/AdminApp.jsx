@@ -2,7 +2,7 @@
 // 탭 7개: 한눈에 · 사람 · 협업 맵 · 반복 실행 · KPI · 프로젝트 · 정리 / 머리 [설정] · 내 화면으로 ›
 // 상세 시트는 sheets.jsx 공용 + 관리자 시트(사람 관리자판 · 설정 · 고르기 목록 · 순서 꼬임)를 덧붙임
 import { useMemo, useState } from "react";
-import { useBoot, Gate, useActs, LS } from "../core.jsx";
+import { useBoot, Gate, useActs, useSeen, LS } from "../core.jsx";
 import { isMaster, todayView } from "../model.js";
 import { turnIndex, turnsOf } from "../turn.js";
 import { InboxSheet, ReadInboxSheet } from "../today.jsx";
@@ -57,8 +57,8 @@ function AdminMain({ B }) {
   const idx = useMemo(() => turnIndex(D), [D]);
   const A = useActs(D, cu, setToast, idx);
   useGhRefresh(D, cu);   // 그로홈 매출 합계 (3시간에 한 번)
-  // 나에게 온 것: 팀원 '확인할 것'과 같은 계산 (읽음 표시도 팀원 화면과 같은 기기 저장)
-  const [seen, setSeen] = useLocal(LS("seen-" + cu.id), {});
+  // 나에게 온 것: 팀원 '확인할 것'과 같은 계산 (읽음 표시도 팀원 화면과 같은 서버 seen/{나} · 폰·PC 같이 · 2026-10-13)
+  const [seen, setSeen] = useSeen(cu.id);
   const T = useMemo(() => turnsOf(D, idx, cu.id, new Date(), seen, (B.meta || {}).seededAt || ""), [D, idx, cu.id, seen]);
   const TV = useMemo(() => todayView(D, cu.id, new Date(), seen, T), [D, cu.id, seen, T]);
   const open = (s) => setStack((st) => [...st, s]);

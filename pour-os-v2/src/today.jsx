@@ -84,15 +84,15 @@ export function InboxSheet({ D, A, open, TV, setSeen, setToast, onBack, onClose 
       <TBtn tone="mute" onClick={() => open({ type: "readInbox" })}>읽은 알림 ›</TBtn></div>
   </Sheet>;
 }
-// 읽은 알림 (사용자 요청 2026-10-13 "OS에서 읽음한거 다시보고싶어") — '확인할 것'에서 읽음 표시한 줄 · 최근 7일 · 이 기기(폰·PC 따로)
+// 읽은 알림 (사용자 요청 2026-10-13 "OS에서 읽음한거 다시보고싶어") — '확인할 것'에서 읽음 표시한 줄 · 최근 7일 · 폰·PC 같이 (core.useSeen · 서버 seen/{나})
 //   계산 = model.readInbox (읽음을 빼고 다시 센 todayView 줄 중 읽은 것 · 처리해야 사라지는 줄은 늘 '확인할 것'에 있어서 뺌) · 최근 것 먼저
-//   줄 누르면 '확인할 것'과 같은 길(그 업무·대화·프로젝트…) · [안 읽음으로] = 읽음 표시만 빼서 다시 '확인할 것'에 · 쓰기 없음(이 기기 저장만)
+//   줄 누르면 '확인할 것'과 같은 길(그 업무·대화·프로젝트…) · [안 읽음으로] = 읽음 표시만 빼서 다시 '확인할 것'에 (내 읽음 문서의 그 키만 지움 · 다른 기기에도 바로)
 export function ReadInboxSheet({ D, A, cu, open, idx, meta, seen, setSeen, onBack, onClose }) {
   const now = new Date();
   const list = useMemo(() => { const T0 = turnsOf(D, idx || turnIndex(D), cu.id, now, {}, (meta || {}).seededAt || ""); return readInbox(D, cu.id, now, seen || {}, T0); }, [D, idx, cu.id, seen]);
   const { openInbox } = inboxFns(D, A, open, setSeen);
   return <Sheet title={`읽은 알림 ${list.length}`} onBack={onBack} onClose={onClose}>
-    <div style={{ fontSize: 13, color: C.sub, margin: "12px 2px 8px", lineHeight: 1.6 }}>'확인할 것'에서 눌러 보거나 [읽음 표시]한 것이에요 · 최근 7일 · 이 기기에서 읽은 것만 보여요(폰·PC 따로) · [안 읽음으로]를 누르면 다시 '확인할 것'에 떠요</div>
+    <div style={{ fontSize: 13, color: C.sub, margin: "12px 2px 8px", lineHeight: 1.6 }}>'확인할 것'에서 눌러 보거나 [읽음 표시]한 것이에요 · 최근 7일 · 폰·PC 어디서 읽어도 같이 사라지고 여기에 모여요 · [안 읽음으로]를 누르면 다시 '확인할 것'에 떠요</div>
     {list.length === 0 ? <Card><Empty>최근 7일에 읽음 표시한 알림이 없어요</Empty></Card>
       : <Card>{list.map((x, i) => <Row key={x.id} tag={x.tag} tagTone={x.red ? "red" : null} title={x.title} sub={`${x.whoName || nameOf(D.users, x.who) || ""}${x.at ? (x.whoName || nameOf(D.users, x.who) ? " · " : "") + ago(x.at, now) : ""}${x.text ? " · " + x.text : ""}`}
           onClick={() => openInbox(x)} right={<Act onClick={() => setSeen((s) => unseePatch(s, [x.id]))}>안 읽음으로</Act>} last={i === list.length - 1} />)}</Card>}
@@ -162,6 +162,7 @@ export function TodayTab({ D, cu, A, open, TV, T, seen, setSeen, setToast }) {
   const [showFxDone, setShowFxDone] = useState(false), [allInbox, setAllInbox] = useState(false), [soonOpen, setSoonOpen] = useState(false);
   const pName = (pid) => projLabelOf(D, pid);
   const [listAll, setListAll] = useState(false);
+  const qa = useRef(null);   // 할 일 바로 추가 칸에 쓰던 것 → [+ 맡기기] 시트로 (2026-10-13)
   const inbox = allInbox ? TV.inbox : TV.inbox.slice(0, 3);
   const readable = TV.inbox.filter((x) => !x.keep);
   const tOf = (id) => D.tasks.find((y) => y.id === id);
@@ -222,11 +223,12 @@ export function TodayTab({ D, cu, A, open, TV, T, seen, setSeen, setToast }) {
         <div className="v2-ts tod">
         <div className="v2-todohead">
           <h3>할 일</h3>
-          <TBtn className="add" onClick={() => open({ type: "add" })} aria-label="할 일 추가">+ 추가</TBtn>
+          <TBtn className="add" onClick={() => { const q = qa.current || {}; open({ type: "add", preset: { ...(q.title ? { title: q.title } : {}), dueDate: q.due, ...(q.pid ? { projectId: q.pid } : {}), onSaved: () => q.clear && q.clear() } }); }} aria-label="할 일 맡기기 · 자세히 추가">+ 맡기기</TBtn>
           <div className="v2-trange" role="group" aria-label="할 일 날짜">{[["today", "오늘"], ["tomorrow", "내일"], ["week", "이번 주"]].map(([k, l]) => <Chip key={k} on={rk === k} onClick={() => { setRange(k); setListAll(false); }} style={{ padding: "6px 11px" }}>{l} {rangeN[k]}</Chip>)}</div>
           <TBtn className="all" onClick={() => open({ type: "mine" })}>내 할 일 모두 ›</TBtn>
         </div>
         <Card>
+          <QuickAdd D={D} cu={cu} A={A} setToast={setToast} dflt={rk === "tomorrow" ? "tomorrow" : "today"} hold={qa} />
           {showFx && TV.fixed.total > 0 && (fxOpen
             ? <>{openShown(fxRows, fxMore).map((x) => { const t = x.t, dn = !!x.asking;
                 return <Row key={t.id} dim={dn} tag={dn ? null : x.miss ? `밀림 ${md(x.miss)}` : x.late ? "시간 지남" : "고정"} tagTone={x.late ? "red" : null} title={<FxTitle t={t} uid={cu.id} keyd={key} />} sub={fxLine(D, t, cu.id, key)}
@@ -266,13 +268,26 @@ function OneRow({ x, D, A, T, keyd, open, setSeen, pName, last }) {
   const t = x.t, b = turnBits(t, T, D, keyd), info = x.fresh && T && T.byTask ? T.byTask.get(t.id) : null, pred = info && info.last, word = pred ? lastWord(pred, D.notes) : null;
   const seenTurn = () => { if (pred) markTurn(setSeen, t.id, info, D.notes); };
   const sub = pred ? `${nameOf(D.users, ownersOf(pred)[0]) || "앞사람"}님이 "${pred.title}"${eulReul(pred.title)} 끝냄${info.readyAt ? " · " + ago(info.readyAt) : ""}`
-    : [pName(t.projectId), dueOf(t) ? ddayLabel(x.n) : "", b.sub].filter(Boolean).join(" · ") || null;
+    : [pName(t.projectId), dueOf(t) ? ddayLabel(x.n) : "", startedL(t, keyd), b.sub].filter(Boolean).join(" · ") || null;
   const sub2 = word ? `${word.handoff ? `${word.byName || "앞사람"}님이 남긴 말` : "앞 일 마지막 말"} · ${word.text}` : t.feedback && t.feedback.text ? `수정 요청 · ${t.feedback.text}` : null;
-  const start = x.fresh && t.status !== "inprogress";
   return <Row tag={x.fresh ? "내 차례" : b.tag} tagTone={x.fresh ? "turn" : b.tone} title={t.title} sub={sub} sub2={sub2} last={last}
     onClick={() => { seenTurn(); open({ type: "task", id: t.id }); }}
-    right={start ? <Act onClick={() => { seenTurn(); A.setStatus(t, "inprogress"); }} style={BTN_ON}>시작</Act> : <Act onClick={() => A.finish(t)}>끝냄</Act>} />;
+    right={<StartFinish t={t} A={A} onStart={seenTurn} />} />;
 }
+// 줄 오른쪽 [시작] [끝냄] (사용자 2026-10-13 "시작버튼은 os버전2는 없는거 맞아?" → 버전1 '▶ 진행 시작'처럼 할 일 줄마다)
+//   할 일 = [시작](진행 중으로 · 시작한 때 기록) + [끝냄] · 진행 중·보류 = [끝냄] (진행 중이면 줄 아래에 '시작 14:05') · 확인 대기·끝남 = 없음
+export function StartFinish({ t, A, onStart }) {
+  if (isDone(t) || t.status === "review") return null;
+  if ((t.status || "todo") !== "todo") return <Act onClick={() => A.finish(t)}>끝냄</Act>;
+  return <span className="v2-sf" onClick={(e) => e.stopPropagation()}>
+    <Act onClick={() => { if (onStart) onStart(); A.setStatus(t, "inprogress"); }} style={{ ...BTN_ON, minWidth: 48, padding: "0 10px" }}>시작</Act>
+    <Act onClick={() => A.finish(t)} style={{ minWidth: 48, padding: "0 10px" }}>끝냄</Act></span>;
+}
+// 시작한 때 (버전1 '시작 hh:mm'처럼): 상태 기록의 마지막 '진행 중' → 오늘이면 시각 · 아니면 날짜
+export const startedL = (t, key) => { if (!t || t.status !== "inprogress") return "";
+  const l = (t.statusLog || []).filter((x) => x && x.status === "inprogress" && x.at).pop(), at = l ? l.at : "";
+  if (!at) return t.startedAt ? `시작 ${md(t.startedAt)}` : "";
+  const d = ymd(new Date(at)); return d === key ? `시작 ${hm(at)}` : `시작 ${md(d)}`; };
 
 // 이제 내 차례 모두 (앞 일이 방금 끝난 내 일)
 export function TurnSheet({ D, cu, A, open, TV, T, setSeen, onBack, onClose }) {
@@ -367,11 +382,55 @@ export function FocusTriage({ D, cu, A, open, TV, onBack, onClose, st, save, set
   </Sheet>;
 }
 
+// ───────────────── 할 일 바로 추가 (사용자 요청 2026-10-13 "팀원들이 예전 업무os쓰는게 편한가봐 · 할일추가를 기존 os처럼 바로 쉽게") ─────────────────
+// 버전1 '빠른 업무 추가'처럼 입력칸 하나 → Enter(또는 [추가]) = 바로 내 할 일 · 칸은 비우고 커서 그대로(연달아 넣기) · 5초 되돌리기(= 없애기 · 휴지통)
+//   날짜 [오늘 · 내일(쉬는 날이면 다음 평일) · 미정 · 날짜] · 프로젝트(선택 · 고르면 그 프로젝트 지금 단계) — 고른 것은 다음 것에도 그대로
+//   dflt = 처음 날짜(오늘 화면 [내일] 보기 → 내일 · 내 할 일 모두 [날짜 없음] → 미정) · hold = 머리 [+ 맡기기]가 쓰던 제목·날짜·프로젝트를 들고 가게
+const phaseNow = (D, pid, key) => { const p = pid && D.projects.find((x) => x.id === pid), road = p && !isLaunchProj(p) ? roadOf(p, D) : null; if (!road) return "";
+  const ts = D.tasks.filter((t) => t.projectId === p.id && !t.isFixed), by = new Map(ts.map((t) => [t.id, t]));
+  return curStage(roadStates(road, ts, (t) => phaseOfTask(t, p, D, by, road), key)); };
+const dayL = (d, key) => (!d ? "날짜 미정" : d === key ? "오늘" : d === addDays(key, 1) ? "내일" : `${md(d)}(${WD[new Date(d + "T00:00:00").getDay()]})`);
+export function QuickAdd({ D, cu, A, setToast, dflt = "today", hold }) {
+  const key = ymd(new Date()), tmr = nextWorkday(addDays(key, 1));
+  const [title, setTitle] = useState(""), [dk, setDk] = useState(dflt), [pick, setPick] = useState(""), [pid, setPid] = useState("");
+  useEffect(() => { setDk(dflt); }, [dflt]);
+  const ref = useRef(null);
+  const due = dk === "today" ? key : dk === "tomorrow" ? tmr : dk === "pick" ? pick : "";
+  if (hold) hold.current = { title: title.trim(), due, pid, clear: () => setTitle("") };
+  const [mine, others] = useMemo(() => { const by = (a, b) => String(a.title).localeCompare(String(b.title), "ko"), op = D.projects.filter(projOpen);   // 글자 칠 때마다 다시 세지 않게
+    const my = new Set([...op.filter((p) => p.assigneeId === cu.id || (p.collaboratorIds || []).includes(cu.id)).map((p) => p.id), ...D.tasks.filter((t) => t.projectId && !t.isFixed && isMine(t, cu.id)).map((t) => t.projectId)]);
+    return [op.filter((p) => my.has(p.id)).sort(by), op.filter((p) => !my.has(p.id)).sort(by)]; }, [D.projects, D.tasks, cu.id]);
+  const add = (e) => { if (e) e.preventDefault(); const s = title.trim(); if (ref.current) ref.current.focus(); if (!s) return;
+    setTitle("");   // 바로 비움 → 다음 것을 이어서 씀 (저장 실패면 되돌려 놓음)
+    const ph = phaseNow(D, pid, key);
+    A.addTask({ title: s, assigneeId: cu.id, dueDate: due, projectId: pid, noReview: true, ...(ph ? { phase: ph } : {}) }).then((t) => {
+      if (!t) { setTitle((c) => c || s); return; }
+      setToast({ text: `추가했어요 · ${dayL(due, key)}${due ? "" : " · 아래 '날짜 없는 일'"}${pid ? " · " + projLabelOf(D, pid) : ""}`, undo: () => A.taskRemove(t, "방금 추가한 것 되돌리기") }); }); };
+  const tmrL = tmr === addDays(key, 1) ? "내일" : dayL(tmr, key);
+  return <form className="v2-qadd" onSubmit={add}>
+    <div className="in">
+      <input ref={ref} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="할 일 바로 추가 (Enter)" aria-label="할 일 바로 추가" enterKeyHint="enter" autoComplete="off" />
+      <button type="submit" disabled={!title.trim()} onMouseDown={(e) => e.preventDefault()}>추가</button>
+    </div>
+    <div className="op" role="group" aria-label="추가할 날짜 · 프로젝트">
+      {[["today", "오늘"], ["tomorrow", tmrL], ["none", "미정"]].map(([k, l]) => <button key={k} type="button" className={"c" + (dk === k ? " on" : "")} aria-pressed={dk === k} onMouseDown={(e) => e.preventDefault()} onClick={() => setDk(k)}>{l}</button>)}
+      <label className={"c dt" + (dk === "pick" ? " on" : "")}>{dk === "pick" && pick ? dayL(pick, key) : "날짜"}
+        <input type="date" aria-label="다른 날짜" value={pick} onChange={(e) => { setPick(e.target.value); setDk(e.target.value ? "pick" : "today"); }} onClick={(e) => { try { e.currentTarget.showPicker(); } catch (_) { /* 폰은 눌러서 바로 열림 */ } }} /></label>
+      <label className={"c pj" + (pid ? " on" : "")}><span>{pid ? projLabelOf(D, pid) : "프로젝트 ▾"}</span>
+        <select aria-label="프로젝트" value={pid} onChange={(e) => setPid(e.target.value)}>
+          <option value="">프로젝트 없음</option>
+          {mine.length > 0 && <optgroup label="내 프로젝트">{mine.map((p) => <option key={p.id} value={p.id}>{projLabel(p, D)}</option>)}</optgroup>}
+          {others.length > 0 && <optgroup label="다른 프로젝트">{others.map((p) => <option key={p.id} value={p.id}>{projLabel(p, D)}</option>)}</optgroup>}
+        </select></label>
+    </div>
+  </form>;
+}
+
 // 할 일 추가 · 맡기기 — 사람을 고르면 그 사람의 2주 일정을 보고 기한을 바로 고른다
 export function AddSheet({ D, cu, A, onBack, onClose, preset, setToast }) {
   // 기본 기한: 오늘 (다른 사람에게 맡길 때 오늘이 쉬는 날이면 다음 평일)
   const t0 = ymd(new Date()), w0 = preset.assigneeId || cu.id;
-  const [title, setTitle] = useState(""), [who, setWho] = useState(w0), [due, setDue] = useState(preset.dueDate || (w0 !== cu.id && isOffDay(t0) ? nextWorkday(t0) : t0));
+  const [title, setTitle] = useState(preset.title || ""), [who, setWho] = useState(w0), [due, setDue] = useState(preset.dueDate != null ? preset.dueDate : (w0 !== cu.id && isOffDay(t0) ? nextWorkday(t0) : t0));   // title·dueDate "" = 할 일 바로 추가에서 쓰던 것 (2026-10-13)
   const [pid, setPid] = useState(preset.projectId || ""), [keep, setKeep] = useState(false), [busy, setBusy] = useState(false), [step, setStep] = useState(""), [review, setReview] = useState(true);
   const [phk, setPhk] = useState(preset.phase || null);   // 넣을 단계(로드 · 2026-10-07) — null = 그 프로젝트 지금 단계
   const ref = useAutoFocus();
@@ -394,6 +453,7 @@ export function AddSheet({ D, cu, A, onBack, onClose, preset, setToast }) {
   const save = async () => { if (!ok) return; setBusy(true);
     const t = await A.addTask({ title, assigneeId: who, dueDate: due, projectId: pid, firstStep: step, noReview: other ? !review : true, ...(preset.deps ? { deps: preset.deps } : {}), ...(stK ? { phase: stK } : {}) });
     setBusy(false); if (!t) return;
+    if (preset.onSaved) preset.onSaved(t);   // 할 일 바로 추가 칸 비우기
     setToast({ text: other ? `${nameOf(D.users, who)}님에게 맡겼어요 · 받으면 '받음'으로 보여요` : "추가했어요" });
     if (keep) { setTitle(""); setStep(""); } else (onBack || onClose)(); };
   const heavy = (n) => n >= 5;
@@ -463,9 +523,10 @@ export function MineSheet({ D, cu, A, open, onBack, onClose, setToast }) {
   const pName = (pid) => projLabelOf(D, pid);
   const setK = (k) => setDf({ k, from: k === "pick" ? from || key : from, to });
   const row = (t, i, a) => { const r = riskOf(t, key);
-    return <Row key={t.id} dim={isDone(t)} title={t.title} sub={[dueOf(t) ? (isDone(t) ? md(dueOf(t)) : ddayLabel(ddays(dueOf(t), key))) : "날짜 없음", pName(t.projectId)].filter(Boolean).join(" · ")} tag={r ? r.label : null} tagTone={r && r.red ? "red" : null} onClick={() => open({ type: "task", id: t.id })}
-      right={isDone(t) || t.status === "review" ? null : !dueOf(t) ? (t.dueReq ? null : dayAct(t)) : <Act onClick={() => A.finish(t)}>끝냄</Act>} last={i === a.length - 1} />; };
+    return <Row key={t.id} dim={isDone(t)} title={t.title} sub={[dueOf(t) ? (isDone(t) ? md(dueOf(t)) : ddayLabel(ddays(dueOf(t), key))) : "날짜 없음", pName(t.projectId), startedL(t, key)].filter(Boolean).join(" · ")} tag={r ? r.label : null} tagTone={r && r.red ? "red" : null} onClick={() => open({ type: "task", id: t.id })}
+      right={isDone(t) || t.status === "review" ? null : !dueOf(t) ? (t.dueReq ? null : dayAct(t)) : <StartFinish t={t} A={A} />} last={i === a.length - 1} />; };
   return <Sheet title="내 할 일 모두" onBack={onBack} onClose={onClose}>
+    <Card style={{ marginTop: 12 }}><QuickAdd D={D} cu={cu} A={A} setToast={setToast} dflt={dk === "tomorrow" ? "tomorrow" : dk === "none" ? "none" : "today"} /></Card>
     <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 12 }}>
       <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="내 업무 찾기" aria-label="내 업무 찾기" style={inp} />
       {!qq && <div className="v2-filterrow" role="group" aria-label="상태"><div className="v2-chips">{[["todo", "할 일"], ["inprogress", "진행"], ["review", "확인 대기"], ["hold", "보류"], ["done", "끝남"]].map(([k, l]) => <Chip key={k} on={st === k} onClick={() => setSt(k)}>{l} {by[k].length}</Chip>)}</div></div>}

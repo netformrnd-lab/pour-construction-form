@@ -41,6 +41,13 @@ export function listen(key, w, cb, onErr) {
   return onSnapshot(q, (snap) => { const items = toItems(snap); console.log(`[v2 ${key}${w ? " " + wTxt(w) : ""}] ${items.length}건${snap.metadata.fromCache ? " (기기 저장)" : ""}`); cb(items, snap.metadata.fromCache); },
     (e) => { console.error(`[v2 ${key}] 구독 실패:`, e); onErr && onErr(e); });
 }
+// 문서 하나 실시간 (읽음 표시 seen/{나} · 폰·PC 같이 · 2026-10-13) — cb(문서 또는 null, 기기 저장에서 온 것인지)
+//   includeMetadataChanges: 기기 저장 값과 서버 값이 같아도 '서버 확인'(fromCache false)을 한 번 받음 (처음 한 번 올리기를 서버 확인 뒤에 하려고)
+export function listenOne(key, id, cb, onErr) {
+  return onSnapshot(v2doc(key, id), { includeMetadataChanges: true }, (s) => { const d = s.exists() ? { ...s.data(), id: s.data().id || s.id } : null;
+      console.log(`[v2 ${key}/${id}] ${d ? "있음" : "없음"}${s.metadata.fromCache ? " (기기 저장)" : ""}`); cb(d, s.metadata.fromCache); },
+    (e) => { console.error(`[v2 ${key}/${id}] 구독 실패:`, e); onErr && onErr(e); });
+}
 // 문서 하나 읽기 (공유 보고서 페이지 · 읽기만)
 export async function getOne(key, id) { const s = await getDoc(v2doc(key, id)); console.log(`[v2 ${key}/${id}] ${s.exists() ? "있음" : "없음"}`); return s.exists() ? { ...s.data(), id: s.data().id || s.id } : null; }
 export async function fetchWhere(key, w) {

@@ -312,7 +312,8 @@ export function focusRank(t, key, fresh) {
 }
 
 // ── 오늘 화면 ──
-// seen: {id:true} 이 기기에서 이미 본 것 (댓글·결과 알림만. 할 일이 남은 알림은 처리해야 사라짐)
+// seen: {id: 읽은 때} 이미 본 것 — 폰·PC 같이 (core.useSeen · 서버 seen/{나}) · 댓글·결과 알림만. 할 일이 남은 알림은 처리해야 사라짐
+//   결과 알림은 모두 최근 7일만(since) → 60일 지난 읽음 키를 정리해도 다시 뜨지 않음 (seensync.js)
 // T (turn.js turnsOf 결과, 없어도 됨): {temp:Set 임시 담당, fresh:Set 이제 내 차례, inbox:[차례 알림], shownNotes:Set 카드에 보이는 앞 일 마지막 말, predIds:Set 내 일의 앞 일}
 export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
   const temp = (T && T.temp) || new Set(), fresh = (T && T.fresh) || new Set();
@@ -365,7 +366,7 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
     if (t.ask && t.ask.kind === "help" && t.ask.to === uid) inbox.push({ kind: "help", tag: "도움 요청", id: "hp:" + t.id + t.ask.at, taskId: t.id, title: t.title, who: t.ask.by, whoName: t.ask.byName, at: t.ask.at, text: t.ask.text || "", keep: true });
     if (t.handoff && t.handoff.by !== uid && t.handoff.at >= since && !seen["ho:" + t.id + t.handoff.at] && ((t.handoff.from || []).includes(uid) || reqOf(t) === uid) && t.handoff.to !== uid) inbox.push({ kind: "handed", tag: "담당 바뀜", id: "ho:" + t.id + t.handoff.at, taskId: t.id, title: t.title, who: t.handoff.by, whoName: t.handoff.byName, at: t.handoff.at, text: `${(t.handoff.from || []).map((x) => nameOf(users, x)).filter(Boolean).join("·") || "담당 없음"} → ${nameOf(users, t.handoff.to) || "?"}${t.handoff.note ? " · " + t.handoff.note : ""}` });
     if (mine && t.status === "hold" && t.holdUntil && t.holdUntil <= key && !t.holdBy) inbox.push({ kind: "holdDue", tag: "다시 볼 날", id: "hd:" + t.id + ":" + t.holdUntil, taskId: t.id, title: t.title, who: t.heldBy, at: t.holdUntil + "T00:00:00", text: `보류${t.holdReason ? " · " + t.holdReason : ""} · ${md(t.holdUntil)}에 다시 보기로 함`, keep: true });
-    if (mine && t.dueReqResult && !seen["dr:" + t.id + t.dueReqResult.at]) inbox.push({ kind: "dueRes", tag: t.dueReqResult.ok ? "기한 바뀜" : "기한 유지", id: "dr:" + t.id + t.dueReqResult.at, taskId: t.id, title: t.title, who: t.dueReqResult.by, whoName: t.dueReqResult.byName, at: t.dueReqResult.at, text: t.dueReqResult.ok ? `새 기한 ${md(dueOf(t))}` : t.dueReqResult.reason || "기한은 그대로예요" });
+    if (mine && t.dueReqResult && (t.dueReqResult.at || "") >= since && !seen["dr:" + t.id + t.dueReqResult.at]) inbox.push({ kind: "dueRes", tag: t.dueReqResult.ok ? "기한 바뀜" : "기한 유지", id: "dr:" + t.id + t.dueReqResult.at, taskId: t.id, title: t.title, who: t.dueReqResult.by, whoName: t.dueReqResult.byName, at: t.dueReqResult.at, text: t.dueReqResult.ok ? `새 기한 ${md(dueOf(t))}` : t.dueReqResult.reason || "기한은 그대로예요" });
   });
   // 업무 없앰(누구나 없애기 · 2026-10-07): 없앤 사람이 내가 아니고 내가 담당·맡긴 사람이면 한 줄(읽음 = 사라짐) — 하위 업무는 상위 줄에서 이미 알린 사람에겐 따로 안 띄움
   const rmTo = (t) => [...ownersOf(t), reqOf(t) || t.requestedBy || ""].filter(Boolean);
@@ -420,7 +421,7 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
 }
 
 // ── 읽은 알림 다시 보기 (사용자 요청 2026-10-13 "OS에서 읽음한거 다시보고싶어") ──
-// '확인할 것'에서 읽음 표시한 줄 = 읽음을 빼고 다시 센 todayView 줄 중 이 기기에서 읽은 것 (최근 7일 = todayView 와 같은 기간)
+// '확인할 것'에서 읽음 표시한 줄 = 읽음을 빼고 다시 센 todayView 줄 중 읽은 것 (폰·PC 같이 · 최근 7일 = todayView 와 같은 기간)
 //   처리해야 사라지는 줄(keep · 확인 요청·맡김·수정 요청…)은 늘 '확인할 것'에 있으므로 뺌 · 최근 것 먼저 · 묶은 줄(id1|id2)은 모두 읽었을 때만
 export const seenAll = (seen, id) => !!(seen || {})[id] || String(id).split("|").every((k) => !!(seen || {})[k]);
 export function readInbox(D, uid, now = new Date(), seen = {}, Tall = null) {

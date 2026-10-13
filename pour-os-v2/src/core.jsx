@@ -28,6 +28,7 @@ import { mateOf, brandL } from "../../marketing-hub/crew.js";
 import { lagInbox, applyKpiOv, kpiEditWrite, newKpiId } from "./kpi2.js";
 import { dayIdFx, dayIdAk, openIdAk, dayBase, dayAdd, dayFix, roundTap, qtyToGoal, akSubsOf } from "./rec.js";
 import { akQidOfWeek, akWeekKey } from "../../pour-os/src/actionKpi.js";
+import { seenPatch, applySeen, seenUpload } from "./seensync.js";   // 읽음 표시 폰·PC 같이 (2026-10-13)
 import { C, Big, TBtn, inp, useLocal } from "./ui.jsx";
 
 export const V1_URL = "./os.html";
@@ -170,6 +171,47 @@ export function useBoot() {
   const V = useMemo(() => redact(D, authed ? cu : null), [D, authed, cu]);
   return { launchNew, holJ, meta, setMeta, metaErr, checkMeta, D: V, rawD: D, err, cu, authed, signIn: (u, h) => { setMe(u.id); setKey(h); }, logout: () => { setKey(""); setMe(""); } };
 }
+// ───────────────── 읽음 표시 — 폰·PC 같이 (사용자 결정 2026-10-13 "폰, pc 둘중 하나만봐도 연동되어 없어지게해") ─────────────────
+// 서버 pour-os/v2/seen/{나} = {id, ids: {키: 읽은 때}, at} (계산 seensync.js) + 기기 사본 pour-os2-seen-<나> (바로 보이게 · 끊겨도 그대로)
+//   쓰기는 바뀐 키만 합치기(merge) → 폰과 PC가 동시에 읽어도 서로 안 지움 · [안 읽음으로] = 그 키만 deleteField
+//   이 기기 처음 한 번: 서버 답을 받은 뒤 예전 방식(이 기기에만 저장)으로 읽은 것을 서버에 올림 (pour-os2-seen-up-<나> = 올린 때)
+//   서버를 못 읽어도(구독 실패) 이 기기 사본으로 예전처럼 동작
+export function useSeen(uid) {
+  const KEY = LS("seen-" + uid), UP = LS("seen-up-" + uid);
+  const lsGet = (k) => { try { return localStorage.getItem(k); } catch (_) { return null; } };
+  const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (_) { /* 저장소 막힘 → 이번 화면만 */ } };
+  const readLocal = () => { try { const v = JSON.parse(lsGet(KEY) || "{}"); return v && typeof v === "object" ? v : {}; } catch (_) { return {}; } };
+  const [view, setView] = useState(readLocal);
+  const cur = useRef(view), mig = useRef(""), sig = useRef("");   // mig: "" 아직 · "busy" 올리는 중 · "ok" 올림(이 기기) · "fail" 이번엔 못 올림(다음에 열 때 다시)
+  const show = (v) => { const j = JSON.stringify(v); cur.current = v; if (j === sig.current) return; sig.current = j; setView(v); lsSet(KEY, j); };   // 같은 값(서버 확인 알림 등)이면 다시 그리지 않음
+  useEffect(() => {
+    let alive = true; cur.current = readLocal(); sig.current = JSON.stringify(cur.current); setView(cur.current); mig.current = lsGet(UP) ? "ok" : "";
+    const un = fb.listenOne("seen", uid, (d, fromCache) => {
+      if (!alive) return;
+      const ids = (d && d.ids && typeof d.ids === "object") ? d.ids : {};
+      if (mig.current === "ok") { if (fromCache && !d) return; show(ids); return; }   // 기기 저장에 문서가 없으면 서버 답까지 이 기기 사본
+      if (mig.current === "busy" || mig.current === "fail") { show({ ...cur.current, ...ids }); return; }   // 올리는 중엔 이 기기 것을 지우지 않음
+      if (fromCache) return;   // 처음 한 번은 서버 답을 받고 나서 (이 기기에만 있는 읽음을 먼저 올려야 해서)
+      mig.current = "busy";
+      const at = nowIso(), chunks = seenUpload(readLocal(), ids, at), n = chunks.reduce((s, c) => s + Object.keys(c).length, 0);
+      show(Object.assign({}, cur.current, ids, ...chunks));
+      Promise.all(chunks.map((c) => fb.merge("seen", uid, { id: uid, ids: c, at })))
+        .then(() => { if (!alive) return; lsSet(UP, at); mig.current = "ok"; console.log(`[v2 읽음] 이 기기에서 읽은 것 ${n}개 서버로 · 이제 폰·PC 같이`); })
+        .catch((e) => { console.error("[v2 읽음] 이 기기 읽음 서버로 올리기 실패 · 다음에 열 때 다시:", e); mig.current = "fail"; });
+    }, (e) => console.warn("[v2 읽음] 서버 읽음 못 읽음 · 이 기기 것만:", e));
+    return () => { alive = false; un(); };
+  }, [uid]);
+  // setSeen(새 값 또는 (지금 값) => 새 값) — 예전 useLocal 과 같은 모양 · 바뀐 키만 서버로
+  const setSeen = (upd) => {
+    const c = cur.current, next = typeof upd === "function" ? upd(c) : upd;
+    const at = nowIso(), DEL = fb.deleteField(), ids = seenPatch(c, next, at, DEL);
+    if (!ids) return;
+    show(applySeen(c, ids, (v) => v === DEL));
+    fb.merge("seen", uid, { id: uid, ids, at }).catch((e) => console.error("[v2 읽음] 서버 저장 실패 · 이 기기엔 남음:", e));
+  };
+  return [view, setSeen];
+}
+
 // 프로젝트 진척(%) 하루 한 번 다시 계산: 열린 일반 프로젝트(신제품·직접 정한 % 빼고)의 전체 업무를 프로젝트별로 읽어 % 가 다르면 그 칸만 저장
 //  (앱은 열린 업무 + 최근 30일 끝낸 업무만 불러오므로 오래전에 끝낸 업무까지 세려면 서버에서 따로 읽어야 함)
 export async function syncProgress(D) {

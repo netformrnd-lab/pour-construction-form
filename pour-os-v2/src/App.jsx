@@ -23,7 +23,7 @@ import { planLaunchImport, relaunch } from "./launch.js";
 import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, Toast, inp, useLocal, useAutoFocus, Linked, useBackClose, parseAppHash } from "./ui.jsx";
 
 export const BUILD = "v2-3단계 1003 실사용·관리자";
-import { useBoot, Gate, useActs, V1_URL, LS, nowIso } from "./core.jsx";
+import { useBoot, Gate, useActs, useSeen, V1_URL, LS, nowIso } from "./core.jsx";
 
 // ───────────────── 앱 (실사용) ─────────────────
 export default function App() {
@@ -39,7 +39,7 @@ function Main({ D, cu, meta, setMeta, logout }) {
   const [tab, setTab] = useState(start === "calendar" ? "calendar" : "today");
   const [stack, setStack] = useState([]);   // 열린 시트들 [{type, id, ...}]
   const [toast, setToast] = useState(null);
-  const [seen, setSeen] = useLocal(LS("seen-" + cu.id), {});
+  const [seen, setSeen] = useSeen(cu.id);   // 읽음 표시 — 폰·PC 같이 (서버 seen/{나} · 2026-10-13)
   // '이제 내 차례' 알림 기준 시각: 버전1 데이터를 처음 복사한 때 (복사해 온 예전 끝냄으로는 알림을 띄우지 않음 · 14일 지난 것도 안 띄움)
   // 앱을 처음 여는 사람도 그 사이 v2 에서 앞사람이 끝낸 일은 '이제 내 차례'로 바로 보임
   const since = meta.seededAt || "";

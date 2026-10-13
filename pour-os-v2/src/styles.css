@@ -680,6 +680,25 @@ input[type="date"].v2-sel::-webkit-date-and-time-value { text-align: left; min-h
   .v2-trange { order: 2; flex: 1 1 auto; }
   .v2-todohead .all { order: 3; }
 }
+/* 할 일 바로 추가 (2026-10-13 · 버전1 '빠른 업무 추가'처럼 입력칸 + Enter) — 입력 글자 16px = 아이폰이 눌렀을 때 확대하지 않게 */
+.v2-qadd { padding: 10px 12px; border-bottom: 1px solid #E3E7F0; background: #F8F9FC; }
+.v2-qadd .in { display: flex; gap: 6px; align-items: center; min-width: 0; }
+.v2-qadd .in input { flex: 1 1 auto; min-width: 0; height: 44px; padding: 0 12px; border-radius: 10px; border: 1.5px solid #D5DCEC; font: inherit; font-size: 16px; color: #1B2333; background: #fff; outline: none; box-sizing: border-box; }
+.v2-qadd .in input:focus { border-color: #24386B; }
+.v2-qadd .in button { flex: 0 0 auto; height: 44px; padding: 0 16px; border-radius: 10px; border: none; background: #24386B; color: #fff; font: inherit; font-size: 14px; font-weight: 800; cursor: pointer; }
+.v2-qadd .in button:disabled { background: #C9D0DE; cursor: default; }
+.v2-qadd .op { display: flex; gap: 6px; align-items: center; margin-top: 8px; min-width: 0; }
+.v2-qadd .op .c { position: relative; flex: 0 0 auto; display: inline-flex; align-items: center; height: 32px; padding: 0 10px; border-radius: 999px; border: 1.5px solid #E3E7F0; background: #fff; color: #5B6475; font: inherit; font-size: 12.5px; font-weight: 700; white-space: nowrap; cursor: pointer; box-sizing: border-box; }
+.v2-qadd .op .c.on { background: #24386B; border-color: #24386B; color: #fff; }
+/* [날짜] · [프로젝트 ▾] = 칩 전체가 진짜 날짜 칸·고르기 칸(투명 · 16px = 아이폰 확대 없음) → 폰은 눌러서 바로 달력·목록 · PC 날짜는 showPicker */
+.v2-qadd .op .dt, .v2-qadd .op .pj { overflow: hidden; }
+.v2-qadd .op .dt input, .v2-qadd .op .pj select { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; border: 0; opacity: 0; cursor: pointer; font-size: 16px; }
+.v2-qadd .op .pj { flex: 0 1 auto; min-width: 0; max-width: 260px; }
+.v2-qadd .op .pj span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v2-qadd .op .pj.on { background: #fff; border-color: #24386B; color: #24386B; }
+/* 줄 오른쪽 [시작] [끝냄] */
+.v2-sf { flex: 0 0 auto; display: inline-flex; gap: 6px; }
+
 /* 신제품 단계별 '+ 이 단계에 추가' (project.jsx) */
 .v2-phadd { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 10px; }
 .v2-phadd > input { max-width: 100%; }

@@ -46,8 +46,12 @@ const items = (key, w) => Object.entries(col(key)).map(([id, d]) => ({ ...clone(
 
 // 구독
 const subs = new Set();
-const notify = () => { save(); subs.forEach((s) => { const x = items(s.key, s.w); const sig = JSON.stringify(x); if (sig !== s.last) { s.last = sig; s.cb(x, false); } }); };
+const notify = () => { save(); subs.forEach((s) => { const x = s.one != null ? oneOf(s.key, s.one) : items(s.key, s.w); const sig = JSON.stringify(x); if (sig !== s.last) { s.last = sig; s.cb(x, false); } }); };
 let pend = false; const kick = () => { if (pend) return; pend = true; setTimeout(() => { pend = false; notify(); }, 0); };
+const oneOf = (key, id) => { const d = col(key)[id]; return d ? { ...clone(d), id: d.id || id } : null; };
+// 문서 하나 (읽음 표시 seen/{나}) · window.__LISTEN_FAIL(정규식) = 구독 실패 시험
+export function listenOne(key, id, cb, onErr) { const f = W.__LISTEN_FAIL; if (f && f.test(key)) { setTimeout(() => onErr && onErr(new Error("시험: 구독 실패 " + key)), 0); return () => {}; }
+  const s = { key, one: String(id), cb, last: null }; subs.add(s); setTimeout(() => { if (!subs.has(s)) return; const x = oneOf(key, s.one); s.last = JSON.stringify(x); cb(x, false); }, 0); return () => subs.delete(s); }
 export function listen(key, w, cb) { const s = { key, w, cb, last: null }; subs.add(s); setTimeout(() => { if (!subs.has(s)) return; const x = items(key, w); s.last = JSON.stringify(x); cb(x, false); }, 0); return () => subs.delete(s); }
 const rec = (op, key, id, data) => { ST().writes.push({ op, key, id, data: clone(data), at: Date.now() }); };
 
@@ -85,5 +89,7 @@ export async function upload(target, file, onProg) {
 }
 export const NO_NET = true;
 // 다른 사람이 지금 바꿈 (겹침 시험)
+// 다른 기기가 지금 씀 (합치기 쓰기 · 읽음 표시 폰·PC 시험) — 문서가 없으면 만듦
+W.__MERGE = (key, id, data) => { col(key)[id] = mergeDeep(col(key)[id], data); kick(); return true; };
 W.__OTHER = (key, id, fields) => { const d = col(key)[id]; if (!d) return false; Object.entries(fields).forEach(([k, v]) => setPath(d, k, v)); kick(); return true; };
 W.__FB_FAKE = true;

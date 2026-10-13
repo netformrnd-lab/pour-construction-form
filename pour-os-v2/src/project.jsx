@@ -1,12 +1,12 @@
 // 업무OS v2 — 프로젝트 (신제품·일반·흐름을 한 목록 · 한 모양으로)
 // 목록 줄: 출시/마감 D-n · '지금: 누가 · 무슨 일' · '다음: 누가 · 무슨 일' → 앞사람이 끝나면 누구 차례인지 바로 보임
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as fb from "./fb.js";
 import {
   ymd, addDays, ddays, ddayLabel, md, ago, hm, isMaster, activeUsers, nameOf, isDone, isMine, ownersOf, dueOf,
   projOpen, projMine, projStat, projGroups, projWhen, feedOf, taskNoteId, projNoteId, LOG_L, reqOf, riskOf, workloadOf, PROJ_CATS, catName, projCat, guessCat,
   IMP, impOf, impName, isHoldP, projStLabel, projForecast, projPct, isOneOff, TEAMS, projTeam, projTeamAuto, isGhProj, ghDashUrl, isRemoved, taskTrashRows, canRemoveProj, canRestoreProj, canFinish,
-  roadOf, roadStates, phaseOfTask, curStage, noStageL, catRoad, sameRoad, roadProblem, projLabel, projLabelOf, canEditRoad, roadOwn,
+  roadOf, roadStates, phaseOfTask, curStage, noStageL, catRoad, sameRoad, roadProblem, projLabel, projLabelOf, canEditRoad, roadOwn, canRenameProj,
 } from "./model.js";
 import { RoadEdit, RoadBox, StageSortCard, CatRoadAsk } from "./roadui.jsx";
 import { TrashList, ProjRemoveAsk, RemovedNote } from "./trash.jsx";
@@ -220,6 +220,25 @@ export function NewProjectSheet({ D, cu, A, open, back, onBack, onClose, setToas
   </Sheet>;
 }
 
+// 프로젝트 이름 고치기 (사용자 요청 2026-10-13 "2in1목재용페인트 이 프로젝트명 부분 명칭 수정하고싶어") — [정보 · 더 하기 ▾] 맨 위 '이름'
+//   책임자·관리자(model.canRenameProj) · core A.renameProject = 연 때 본 이름 그대로일 때만 · 그사이 바뀌었으면 알림 + 지금 이름을 보여 주고 다시 [저장]하면 내 이름으로 · 5초 되돌리기
+//   신제품(대시보드에서 온 lb_)은 업무OS → 신제품 대시보드 반영(lbpush · 이름 3-way)이 제품 이름도 같이 바꿈 · 차수(리페어 2차 등)는 그대로
+function ProjNameRow({ p, cu, A, launch }) {
+  const [on, setOn] = useState(false), [nm, setNm] = useState(""), [base, setBase] = useState(""), [busy, setBusy] = useState(false), [clash, setClash] = useState("");
+  const can = canRenameProj(p, cu), v = nm.trim(), ok = !!v && v !== String(base || "").trim();
+  const start = () => { setNm(p.title || ""); setBase(p.title || ""); setClash(""); setOn(true); };
+  const save = async () => { if (!ok || busy) return; setBusy(true); const r = await A.renameProject(p, v, base); setBusy(false);
+    if (r && r.ok) setOn(false); else if (r && r.conflict) { setBase(r.cur); setClash(r.cur); } };
+  const board = launch && !String(p.id || "").startsWith("lb_v2");
+  if (!on) return <div>이름 <b>{p.title}</b>{p.batch ? <span style={{ color: C.mute }}> · 차수 {p.batch}</span> : null}{can && <TBtn onClick={start} style={{ marginLeft: 6, fontSize: 13 }}>이름 고치기</TBtn>}</div>;
+  return <div className="v2-rename" style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: "4px 0 8px" }}>
+    <input value={nm} onChange={(e) => setNm(e.target.value)} autoFocus aria-label="프로젝트 새 이름" onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) save(); if (e.key === "Escape") setOn(false); }} style={{ ...inp, flex: "1 1 220px", fontSize: 16 }} />
+    <div style={{ display: "flex", gap: 8 }}><TBtn v="solid" onClick={save} disabled={!ok || busy}>저장</TBtn><TBtn onClick={() => setOn(false)}>취소</TBtn></div>
+    {clash ? <div style={{ flexBasis: "100%", fontSize: 12.5, color: C.red, lineHeight: 1.6 }}>그사이 다른 사람이 '{clash}'(으)로 바꿨어요 · 그래도 [저장]하면 내 이름으로 바꿔요</div>
+      : !v ? <div style={{ flexBasis: "100%", fontSize: 12.5, color: C.sub }}>이름을 비울 수는 없어요</div> : null}
+    <div style={{ flexBasis: "100%", fontSize: 12.5, color: C.mute, lineHeight: 1.6 }}>{board ? "신제품 대시보드의 제품 이름도 같이 바뀌어요" : "업무 · 목록 · 찾기 어디서나 새 이름으로 보여요"}{p.batch ? ` · 차수(${p.batch})는 그대로` : ""}</div>
+  </div>;
+}
 // 프로젝트 한 장 (실사용·관리자 공용). projectExtra: 관리자 앱 덧붙임 (출시일 옮기기 미리 보기 · 기한 다시 나누기) — (p) => element
 // st/save: 시트 칸에 적어 둔 탭·펼친 단계·정보 → 업무를 열었다가 '뒤로' 오면 그대로
 export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, note, projectExtra, idx: idx0, st, save }) {
@@ -235,6 +254,10 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, note,
   const [old, setOld] = useState(null), [doneErr, setDoneErr] = useState(false), [nowBase, setNowBase] = useState(null), [nowClash, setNowClash] = useState(null);   // 30일보다 이전 소식·자료: null 안 불러옴 · "loading" · "fail" · {notes, logs}
   useEffect(() => { if (!isLaunch(p)) A.recalc(id); }, [id]);   // 열 때 진척(%)을 실제 업무 수로 다시 계산 (다르면만 저장) · 신제품은 launchPct 로 그때그때 계산하므로 저장 안 함
   useEffect(() => { if (save) save({ tab, openPh, info }); }, [tab, openPh, info]);
+  // 열 때 그 단계로 (2026-10-13 · 업무 머리 '프로젝트 · 이름 ›' · 프로젝트 연결 뒤 '프로젝트에서 보기 ›' = st.ph) — 업무 탭 · 그 단계 펼침 · 그 자리로 · 한 번만(뒤로 와도 다시 안 끌어감)
+  const focusPh = useRef(st && st.ph);
+  useEffect(() => { const k = focusPh.current; if (!k || !p) return; focusPh.current = null; setTab("work"); setOpenPh((o) => ({ ...o, [k]: true })); if (save) save({ ph: null });
+    const h = setTimeout(() => { const el = document.getElementById("v2-ph-" + k); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 150); return () => clearTimeout(h); }, [!!p]);
   if (!p) { const rp = (D.removedProjects || []).find((x) => x.id === id);   // 없앤 프로젝트(휴지통·링크): 읽기만 + [되살리기]
     if (rp) return <RemovedProjView D={D} cu={cu} A={A} p={rp} note={note} onBack={onBack} onClose={onClose} />;
     return <Sheet title="프로젝트" kind="프로젝트" onBack={onBack} onClose={onClose}><Empty>이 프로젝트를 찾지 못했어요</Empty></Sheet>; }
@@ -380,7 +403,7 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, note,
         const tops = top(a).sort(roadMode ? (x, y) => (ST_RANK[x.status] ?? 1) - (ST_RANK[y.status] ?? 1) || String(dueOf(x) || "9").localeCompare(String(dueOf(y) || "9")) : (x, y) => (x.wfStage ?? 99) - (y.wfStage ?? 99) || String(dueOf(x) || "9").localeCompare(String(dueOf(y) || "9")));
         // 신제품: 지금 단계(처음 남은 단계)와 급한 항목이 있는 단계만 펼침 — 한 번에 볼 것만 · 일반·흐름 단계는 처음부터 펼침
         const hot = a.some((t) => { const r = riskOf(t, key); return r && (r.red || r.k === "start" || r.k === "today"); });
-        const shown = openPh[k] != null && road ? openPh[k] : launch ? firstOpen || hot : true; firstOpen = false;
+        const shown = openPh[k] != null && road ? openPh[k] : launch ? firstOpen || hot || k === "etc" : true; firstOpen = false;   // 신제품 '기타'(단계 없는 직접 업무)는 맨 아래라 처음부터 펼침 (2026-10-13)
         const redH = !!road && a.some((t) => { const r = riskOf(t, key); return r && r.red; });   // 빨강은 지남·막힘이 있을 때만 ('급함'은 오늘 마감·시작 전 포함)
         return <div key={k} id={"v2-ph-" + k} style={{ scrollMarginTop: 12 }}><Head red={redH} right={road && <TBtn onClick={() => setOpenPh({ ...openPh, [k]: !shown })}>{shown ? "접기 ▴" : "펼치기 ▾"}</TBtn>}>{l} {a.length}{launch && hot ? " · 급함" : ""}</Head>
           {shown && <Card>{tops.map((t, i) => <div key={t.id}><TRow t={t} last={(!road || (k === "etc" && !launch)) && i === tops.length - 1 && !kidsOf(t.id, a).length} />{kidsOf(t.id, a).map((kk) => <TRow key={kk.id} t={kk} indent />)}</div>)}
@@ -400,6 +423,7 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, note,
 
     <Card style={{ marginTop: 18 }}><More onClick={() => setInfo(!info)}>{info ? "정보 · 더 하기 접기 ▴" : "정보 · 더 하기 ▾"}</More>
       {info && <div style={{ padding: "4px 14px 14px", fontSize: 14, color: C.text, lineHeight: 1.9 }}>
+        <ProjNameRow p={p} cu={cu} A={A} launch={launch} />
         <div>책임자 {!lead ? <b>{nameOf(D.users, p.assigneeId) || "없음"}</b> : <select aria-label="책임자 바꾸기" className="v2-sel" value={p.assigneeId || ""} onChange={(e) => A.patchProject(p, { assigneeId: e.target.value }, `책임자 → ${nameOf(D.users, e.target.value)}`, p.assigneeId || "")}><option value="">없음</option>{activeUsers(D.users).map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select>}</div>
         <div>함께 하는 사람 {(p.collaboratorIds || []).map((u) => nameOf(D.users, u)).filter(Boolean).join(", ") || "없음"}</div>
         <div>팀 {lead ? <>{[["", `자동 (${projTeamAuto(p, D.users) || "없음"})`], ...TEAMS.map((t) => [t, t])].map(([k, l]) => <Chip key={k || "auto"} on={(p.team || "") === k} onClick={() => (p.team || "") !== k && A.patchProject(p, { team: k || null }, `팀 → ${k || "자동"}`, p.team || "")}>{l}</Chip>)}</> : <b>{projTeam(p, D.users) || "없음"}</b>}

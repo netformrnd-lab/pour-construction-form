@@ -11,7 +11,7 @@ import {
   scopeFields, brandLabel, cycleFields, FX_WD, isRemoved, fxRemoveFields, fxRestoreFields, canRemoveFx, canRemoveAk, canRenameFx, canRenameTask, canRemoveNote, canRestoreNote, scopeOf,
   canFinish, canRemoveTask, canRestoreTask, taskKids, taskRemoveFields, canRemoveProj, canRestoreProj, projRemoveFields, projTaskRemoveFields, projTaskBack,
   roadOf, catRoad, builtinRoad, cleanRoad, sameRoad, roadToStore, roadProblem, roadSwitchPlan, phaseOfTask, stageName, noStageL, canSetPhase, canEditRoad, isFlowProj, isLaunchProj, catName, projCat, roadOwn,
-  canSetEst, EST_MAX, canMoveProj, phaseNowOf, isGhProj, projLabel,
+  canSetEst, EST_MAX, canMoveProj, phaseNowOf, isGhProj, projLabel, canRenameProj,
 } from "./model.js";
 import { canEditTpl, canSaveTpl, TPL_MAX, TPL_NAME_MAX } from "./tpl.js";
 import { planLaunchImport, relaunch, isTempOwner, LAUNCH_ITEMS } from "./launch.js";
@@ -1151,6 +1151,17 @@ export function useActs(D, cu, setToast, idx = null) {
         if (r && r.conflict && !noUndo) setToast({ text: "그사이 다른 사람이 바꿨어요 · 지금 이름을 확인해 주세요" });
         if (r && r.ok) { log("edit", { col: "tasks", targetId: t.id, projectId: t.projectId || "", label: `이름 ${base} → ${v}`, prev: { title: base }, next: { title: v } });
           if (!noUndo) setToast({ text: "이름을 고쳤어요", undo: async () => { const b = await A.renameTask(t, base, v, true); if (b && b.conflict) setToast({ text: "그사이 다른 사람이 바꿔서 그대로 뒀어요" }); else if (b && b.ok) setToast({ text: "되돌렸어요" }); } }); }
+        return r; }
+      catch (e) { fail("이름")(e); return { error: true }; } },
+    // 프로젝트 이름 고치기 (사용자 요청 2026-10-13) — renameTask 와 같은 모양: 서버 이름이 화면에서 본 이름(base)일 때만 · 기록 '프로젝트 이름 A → B' · 5초 되돌리기
+    //   신제품(lb_)은 업무OS 이름만 (신제품 대시보드 제품 이름은 그대로 · lbsync 3-way 가 업무OS 이름을 지킴 → 대시보드에서 이름을 새로 바꾸면 그때 그 이름으로)
+    renameProject: async (p, title, base, noUndo) => { const v = String(title || "").trim(); if (!v || v === String(base || "").trim()) return { error: true };
+      if (!noUndo && !canRenameProj(p, cu)) { setToast({ text: "책임자·관리자만 프로젝트 이름을 고칠 수 있어요" }); return { error: true }; }
+      try { const r = await fb.txDoc("projects", p._doc || p.id, (c) => { if (!c || isRemoved(c)) return { ret: { error: true } }; if ((c.title || "") !== (base || "")) return { ret: { conflict: true, cur: c.title || "" } };
+          const at = nowIso(); return { write: { title: v, updatedAt: at, updatedBy: cu.id, v2At: at }, ret: { ok: true } }; });
+        if (r && r.conflict && !noUndo) setToast({ text: "그사이 다른 사람이 바꿨어요 · 지금 이름을 확인해 주세요" });
+        if (r && r.ok) { log("edit", { col: "projects", targetId: p.id, projectId: p.id, label: `프로젝트 이름 ${base} → ${v}`, prev: { title: base }, next: { title: v } });
+          if (!noUndo) setToast({ text: "프로젝트 이름을 고쳤어요", undo: async () => { const b = await A.renameProject(p, base, v, true); if (b && b.conflict) setToast({ text: "그사이 다른 사람이 바꿔서 그대로 뒀어요" }); else if (b && b.ok) setToast({ text: "되돌렸어요" }); } }); }
         return r; }
       catch (e) { fail("이름")(e); return { error: true }; } },
     // 횟수 목표 이름 = 덧칠 fields.name (버전1 문서 그대로 · 관리자) — 지금 보이는 이름(덧칠 → 버전1)이 base 와 같을 때만

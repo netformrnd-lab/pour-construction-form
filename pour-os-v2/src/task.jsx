@@ -64,11 +64,19 @@ export function useItemNotes(D, itemId) {
 //   고르면 바로 옮김(core A.moveProject · 하위 업무 같이 · 새 프로젝트 지금 단계 · 브랜드 따라감 · 5초 되돌리기) · 내 프로젝트 칩 + 다른 프로젝트 고르기 · 많으면 찾기 · [프로젝트 빼기]
 //   하위 업무는 위 업무를 따라가서 여기서 못 바꿈 → '위 업무 열기 ›'
 function ProjMoveBox({ t, D, cu, A, parent, open, onDone }) {
-  const [busy, setBusy] = useState(false), [q, setQ] = useState("");
+  const [busy, setBusy] = useState(false), [q, setQ] = useState(""), [moved, setMoved] = useState("");   // moved = 방금 연결한 프로젝트 → 단계 고르기 · 프로젝트에서 보기
   const [mine, others] = useMemo(() => moveProjTargets(D, t, cu.id), [D.projects, D.tasks, t.projectId, cu.id]);
   if (t.parentId) return <div className="v2-pmove"><div className="h">하위 업무는 위 업무와 같은 프로젝트로 가요 · 위 업무에서 연결해 주세요</div>
     {parent && <TBtn onClick={() => open({ type: "task", id: parent.id })}>위 업무 열기 · {parent.title} ›</TBtn>}</div>;
-  const go = async (pid) => { if (busy) return; setBusy(true); const ok = await A.moveProject(t, pid); setBusy(false); if (ok) onDone(); };
+  // 연결 뒤 (2026-10-13 "프로젝트 연결했으면 프로젝트에서 보여야하는데 없어"): 들어간 단계를 보여 주고 바로 바꿀 수 있게 · [프로젝트에서 보기 ›] = 그 단계 펼쳐서
+  const mp = moved && t.projectId === moved ? D.projects.find((x) => x.id === moved) : null;
+  if (mp) { const road = roadOf(mp, D), phK = road ? phaseOfTask(t, mp, D, null, road) : "", canPh = !!road && canSetPhase(t, mp, cu);
+    return <div className="v2-pmove" role="group" aria-label="연결한 프로젝트 단계">
+      <div className="h"><b>{projLabel(mp, D)}</b>에 연결했어요{road ? <> · 단계 <b>{stageName(road, phK) || noStageL(mp)}</b></> : ""}</div>
+      {canPh && <><div className="l">단계 바꾸기 (누르면 바로)</div>
+        <div className="v2-chips" role="group" aria-label="단계 고르기">{[...road.map((x) => [x.k, x.name]), ["", noStageL(mp)]].map(([k, l]) => <Chip key={k || "etc"} on={phK === k} onClick={() => { if (phK !== k) A.setPhase(t, k); }}>{l}</Chip>)}</div></>}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><TBtn v="soft" onClick={() => open({ type: "project", id: mp.id, ...(road ? { ph: phK || "etc" } : {}) })}>프로젝트에서 보기 ›</TBtn><TBtn onClick={onDone}>닫기</TBtn></div></div>; }
+  const go = async (pid) => { if (busy) return; setBusy(true); const ok = await A.moveProject(t, pid); setBusy(false); if (!ok) return; if (pid) setMoved(pid); else onDone(); };
   const qq = q.trim().toLowerCase(), hit = (p) => !qq || String(projLabel(p, D) || p.title || "").toLowerCase().includes(qq);
   const kidsN = taskKids(t, D.tasks).length, many = mine.length + others.length > 8;
   const oth = others.filter(hit);
@@ -94,6 +102,7 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, id
   const [mode, setMode] = useState(""), [memo, setMemo] = useState(""), [memoBase, setMemoBase] = useState(null), [clash, setClash] = useState(null), [showLog, setShowLog] = useState(false), [tab2, setTab2] = useState("talk"), [logs, setLogs] = useState(null), [sub, setSub] = useState("");
   const [txt, setTxt] = useState(""), [handTo, setHandTo] = useState(""), [reqDate, setReqDate] = useState(""), [handoff, setHandoff] = useState(""), [depSel, setDepSel] = useState(null), [allOrder, setAllOrder] = useState(false);
   const [rmBusy, setRmBusy] = useState(false), [nm, setNm] = useState(""), [nmBase, setNmBase] = useState(""), [nmBusy, setNmBusy] = useState(false);   // 이름 고치기
+  const [pmk, setPmk] = useState(0);   // 프로젝트 고르기 새로 열기(연결한 뒤 단계 칸이 떠 있어도 [프로젝트 바꾸기]는 고르기부터)
   const U = useUploads(A, "task-" + id, (metas) => A.addFiles(t, metas));
   useEffect(() => { if (!focus || !t) return; const h = setTimeout(() => { const el = document.getElementById("v2-t-" + focus); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 120); return () => clearTimeout(h); }, [focus, !!t]);
   if (t === undefined || t === null) return <Sheet title="업무" kind="업무" onBack={onBack} onClose={onClose}><Empty>불러오는 중…</Empty></Sheet>;
@@ -150,7 +159,8 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, id
   const ORD = 3;
   const projT = projLabel((D.projects || []).find((x) => x.id === t.projectId), D);
   // 맨 위 '프로젝트 없음' = 누르면 프로젝트 연결 (2026-10-13 "내 할일로 업무 등록한거 프로젝트 연결하고싶은데") · 하위 업무면 '위 업무에서' 안내 · 프로젝트가 있으면 예전처럼 그 프로젝트 열기(바꾸기는 더 하기 ›)
-  const projPath = projT ? () => open({ type: "project", id: t.projectId }) : (canMove || (t.parentId && !t.isFixed)) && !t.locked ? () => setMode(mode === "proj" ? "" : "proj") : null;
+  const openProj = () => { setPmk((x) => x + 1); setMode("proj"); };
+  const projPath = projT ? () => open({ type: "project", id: t.projectId, ...(road ? { ph: phK || "etc" } : {}) }) : (canMove || (t.parentId && !t.isFixed)) && !t.locked ? () => (mode === "proj" ? setMode("") : openProj()) : null;   // 프로젝트를 열면 이 업무 단계로(펼침 · 그 자리) 2026-10-13
   return <Sheet title="업무" kind="업무" head={t.title} path={projT ? `프로젝트 · ${projT}` : canMove ? "프로젝트 없음 · 연결하기" : "프로젝트 없음"} onPath={projPath} onBack={onBack} onClose={onClose} foot={foot}>
     {risk && <div style={{ margin: "12px 0 0" }}><span style={{ display: "inline-block", fontSize: 12.5, fontWeight: 800, padding: "3px 9px", borderRadius: 6, color: risk.red ? C.red : C.navy, background: risk.red ? "#F8E9EA" : C.soft }}>{risk.label}</span></div>}
     <div style={{ height: risk ? 6 : 12 }} />
@@ -209,7 +219,7 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, id
       {!done && !review && t.status !== "hold" && <TBtn v="soft" onClick={() => { setMore(false); setMode("hold"); }}>보류</TBtn>}
       {!done && <TBtn v="soft" onClick={() => { setMore(false); setMode(mode === "cc" ? "" : "cc"); }}>참조{(t.ccIds || []).length ? ` ${(t.ccIds || []).length}` : ""}</TBtn>}
       {!done && !t.parentId && !t.decision && (mine || req === cu.id || master) && <TBtn v="soft" onClick={() => { setMore(false); A.setDecision(t, true); }}>결정 업무로 쓰기</TBtn>}
-      {canMove && <TBtn v="soft" onClick={() => { setMore(false); setMode(mode === "proj" ? "" : "proj"); }}>{t.projectId ? "프로젝트 바꾸기" : "프로젝트 연결"}</TBtn>}
+      {canMove && <TBtn v="soft" onClick={() => { setMore(false); openProj(); }}>{t.projectId ? "프로젝트 바꾸기" : "프로젝트 연결"}</TBtn>}
       {canPhase && <TBtn v="soft" onClick={() => { setMore(false); setMode(mode === "phase" ? "" : "phase"); }}>단계 바꾸기</TBtn>}
       {canRenameTask(t, cu, D) && <TBtn v="soft" onClick={() => { setMore(false); setNm(t.title || ""); setNmBase(t.title || ""); setMode("rename"); }}>이름 고치기</TBtn>}
       {canSetEst(t, p, cu) && <EstEdit t={t} A={A} />}
@@ -235,7 +245,7 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, id
         {!v ? <div style={{ flexBasis: "100%", fontSize: 12.5, color: C.sub }}>이름을 비울 수는 없어요</div> : !ok ? <div style={{ flexBasis: "100%", fontSize: 12.5, color: C.sub }}>지금 이름과 같아요</div> : null}</div>; })()}
     {mode === "phase" && canPhase && <div style={{ padding: "8px 0" }}><div style={{ fontSize: 12.5, color: C.sub, marginBottom: 6 }}>지금 단계 {stageName(road, phK) || noSt} · 고르면 바로 옮겨요 (5초 안에 되돌릴 수 있어요)</div>
       <div className="v2-chips" role="group" aria-label="단계 고르기">{[...road.map((x) => [x.k, x.name]), ["", noSt]].map(([k, l]) => <Chip key={k || "etc"} on={phK === k} onClick={async () => { if (phK === k) { setMode(""); return; } if (await A.setPhase(t, k)) setMode(""); }}>{l}</Chip>)}</div></div>}
-    {mode === "proj" && <ProjMoveBox t={t} D={D} cu={cu} A={A} parent={parent} open={open} onDone={() => setMode("")} />}
+    {mode === "proj" && <ProjMoveBox key={pmk} t={t} D={D} cu={cu} A={A} parent={parent} open={open} onDone={() => setMode("")} />}
     {mode === "ask" && <RequestAsk t={t} D={D} cu={cu} A={A} mine={mine} onNo={() => setMode("")} />}
     <SecretBox kind="task" x={t} D={D} cu={cu} A={A} only="status" />
     {mode === "due" && <div className="v2-chips" style={{ padding: "8px 0" }}>{dateChips.map(([l, d]) => <Chip key={d} onClick={() => { moveDue(A, setToast, t, d, true); setMode(""); }}>{l}</Chip>)}<Chip onClick={() => { moveDue(A, setToast, t, "", true); setMode(""); }}>미정</Chip><input type="date" aria-label="날짜 고르기" defaultValue={dueOf(t)} onChange={(e) => { if (e.target.value) { moveDue(A, setToast, t, e.target.value, true); setMode(""); } }} className="v2-sel" /></div>}

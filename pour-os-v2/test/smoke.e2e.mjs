@@ -25,6 +25,8 @@ const tasks = {
   t2: task({ id: 't2', title: '배너 소재 3종', assigneeId: 'yj', status: 'inprogress', dueDate: '2026-10-13', deps: ['t1'], phase: 'make' }),
   t3: task({ id: 't3', title: '배너 사이즈 정리', assigneeId: 'yj', parentId: 't2', dueDate: '2026-10-13' }),
   t4: task({ id: 't4', title: '광고 집행', assigneeId: 'sh', dueDate: '2026-10-09', deps: ['t2'], phase: 'run', requestedBy: 'yj' }),
+  t6: task({ id: 't6', title: '2in1 라벨지 디자인 보고 자료 작성', assigneeId: 'yj', projectId: '', dueDate: '2026-10-20', createdBy: 'yj' }),   // 프로젝트 연결 시험 (2026-10-13)
+  t7: task({ id: 't7', title: '라벨지 인쇄소 문의', assigneeId: 'yj', projectId: '', parentId: 't6', dueDate: '2026-10-20', createdBy: 'yj' }),
   f1: { id: 'f1', title: 'CS 문의 확인', isFixed: true, recurType: 'daily', assigneeId: 'yj', assigneeIds: ['yj'], status: 'todo', brand: 'pourstore', scope: 'brand', subs: [{ id: 's1', text: '네이버' }, { id: 's2', text: '쿠팡' }], doneDates: {}, createdAt: D0, statusLog: [] },
 };
 const projects = { p1: { id: 'p1', title: '추석 기획전', category: 'marketing', ownerId: 'yj', memberIds: ['sh'], status: 'active', startDate: '2026-10-01', dueDate: '2026-10-20', brand: 'pourstore', progress: 25, createdAt: D0 } };
@@ -220,5 +222,50 @@ for (const w of [375, 768, 1280]) {
   ok(`바로 추가 ${w} · 화면 오류 없음`, errs.length === before, errs.slice(before));
   await s.close();
 }
+
+// ── 업무 프로젝트 연결·바꾸기 (2026-10-13 "내 할일로 업무 등록한거 프로젝트 연결하고싶은데 어떻게해?") ──
+{ const s = await session('yj', { w: 375 }), pg = s.pg, before = errs.length;
+  const T = (id) => pg.evaluate((i) => window.__V2.v2.tasks[i], id);
+  const openT = async (id) => { await closeSheets(pg); await pg.evaluate((i) => { location.hash = '#t-' + i; }, id); await pg.waitForTimeout(600); };
+  const sh = () => pg.locator('.v2-sheet').last();
+  await openT('t6');
+  ok('업무 맨 위 "프로젝트 없음 · 연결하기 ›" (누를 수 있음)', (await sh().locator('button.path', { hasText: '프로젝트 없음 · 연결하기' }).count()) === 1);
+  await sh().locator('button.path').click(); await pg.waitForTimeout(300);
+  const box = sh().locator('.v2-pmove');
+  ok('누르면 프로젝트 고르기 · 내 프로젝트 칩(추석 기획전) · 하위 업무 1개도 같이', (await box.count()) === 1 && (await box.getByRole('button', { name: '추석 기획전' }).count()) === 1 && /하위 업무 1개도 같이/.test(await box.innerText()));
+  ok('프로젝트 고르기 375 넘침 없음', !(await over(pg))); await pg.screenshot({ path: path.join(SHOTS, 'smoke-projmove-375.png') });
+  await box.getByRole('button', { name: '추석 기획전' }).click(); await pg.waitForTimeout(600);
+  let a = await T('t6'), k = await T('t7');
+  ok('연결 → 업무·하위 업무 p1 · 지금 단계 · 브랜드 따라감', a.projectId === 'p1' && !!a.phase && a.phaseBy === 'yj' && a.brand === 'pourstore' && k.projectId === 'p1' && k.brand === 'pourstore', { a: [a.projectId, a.phase, a.brand], k: [k.projectId, k.brand] });
+  ok('알림 "추석 기획전에 연결했어요 · 하위 1개 같이 · 단계" · 맨 위가 "프로젝트 · 추석 기획전"', /추석 기획전'에 연결했어요 · 하위 1개 같이 · 단계/.test(await pg.locator('.v2-toast').innerText()) && (await sh().locator('button.path', { hasText: '프로젝트 · 추석 기획전' }).count()) === 1);
+  ok('기록 1건 (프로젝트 없음 → 추석 기획전)', await pg.evaluate(() => Object.values(window.__V2.v2.log || {}).some((l) => l.targetId === 't6' && /프로젝트 프로젝트 없음 → 추석 기획전 · 하위 1개 같이/.test(l.label || '') && l.prev && l.prev.projectId === '' && l.next.projectId === 'p1')));
+  await pg.locator('.v2-toast').getByRole('button', { name: '되돌리기' }).click(); await pg.waitForTimeout(600);
+  a = await T('t6'); k = await T('t7');
+  ok('되돌리기 → 둘 다 프로젝트 없음 · 단계 비움', a.projectId === '' && !a.phase && k.projectId === '', { a: [a.projectId, a.phase], k: k.projectId });
+  // 더 하기 › [프로젝트 연결] → 연결 → 더 하기 › [프로젝트 바꾸기] › [프로젝트 빼기]
+  await sh().getByRole('button', { name: '더 하기 ▾' }).click(); await sh().getByRole('button', { name: '프로젝트 연결', exact: true }).click(); await pg.waitForTimeout(300);
+  await sh().locator('.v2-pmove').getByRole('button', { name: '추석 기획전' }).click(); await pg.waitForTimeout(600);
+  ok('더 하기 › 프로젝트 연결 → p1', (await T('t6')).projectId === 'p1');
+  await sh().getByRole('button', { name: '더 하기 ▾' }).click(); await sh().getByRole('button', { name: '프로젝트 바꾸기', exact: true }).click(); await pg.waitForTimeout(300);
+  ok('프로젝트 바꾸기: 지금 프로젝트는 목록에 없음 · [프로젝트 빼기]', (await sh().locator('.v2-pmove').getByRole('button', { name: '추석 기획전' }).count()) === 0 && (await sh().locator('.v2-pmove').getByRole('button', { name: '프로젝트 빼기' }).count()) === 1);
+  await sh().locator('.v2-pmove').getByRole('button', { name: '프로젝트 빼기' }).click(); await pg.waitForTimeout(600);
+  a = await T('t6'); k = await T('t7');
+  ok('프로젝트 빼기 → 둘 다 프로젝트 없음 · 단계 비움 · 알림', a.projectId === '' && a.phase == null && k.projectId === '' && /프로젝트에서 뺐어요 · 하위 1개 같이/.test(await pg.locator('.v2-toast').innerText()));
+  // 하위 업무는 위 업무를 따라감
+  await openT('t7');
+  await sh().locator('button.path').click(); await pg.waitForTimeout(300);
+  ok('하위 업무: "위 업무에서 연결해 주세요" · [위 업무 열기 ›] · 더 하기에 버튼 없음', /위 업무에서 연결해 주세요/.test(await sh().locator('.v2-pmove').innerText()) && (await sh().locator('.v2-pmove').getByRole('button', { name: /위 업무 열기/ }).count()) === 1);
+  // 남이 맡은 남의 업무(배너 소재? = 내 것) → 김송희 업무 t4 는 yj 가 맡긴 사람 → 바꿀 수 있음 · 프로젝트 있음 = 맨 위는 프로젝트 열기
+  await openT('t4');
+  ok('프로젝트 있는 업무: 맨 위 = 프로젝트 열기(예전처럼) · 바꾸기는 더 하기 ›', (await sh().locator('button.path', { hasText: '프로젝트 · 추석 기획전' }).count()) === 1);
+  await closeSheets(pg);
+  ok('프로젝트 연결 · 화면 오류 없음', errs.length === before, errs.slice(before));
+  await s.close(); }
+for (const w of [768, 1280]) { const s = await session('yj', { w, h: 900 }), pg = s.pg, before = errs.length;
+  await pg.evaluate(() => { location.hash = '#t-t6'; }); await pg.waitForTimeout(600);
+  await pg.locator('.v2-sheet').last().locator('button.path').click(); await pg.waitForTimeout(300);
+  ok(`프로젝트 고르기 ${w} · 보임 · 넘침 없음 · 화면 오류 없음`, (await pg.locator('.v2-sheet').last().locator('.v2-pmove').count()) === 1 && !(await over(pg)) && errs.length === before, errs.slice(before));
+  await pg.screenshot({ path: path.join(SHOTS, `smoke-projmove-${w}.png`) });
+  await s.close(); }
 await b.close();
 console.log(`\n${n - bad}/${n} 통과 · 그림 ${SHOTS}`); if (bad) process.exit(1);

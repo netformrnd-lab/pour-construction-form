@@ -6,7 +6,7 @@ import {
   fxIsMine, fxDueOn, fxMeDone, fxCount, fxTime, fxLabel, fxSubs, fxRecurL, fxDoneWord, fxCheckPatch, fxPeople, fxHit, fxSubCount,
   todayView, projOpen, projMine, projStat, projGroups, personStat, ownerIssues, feedOf, threads, taskNoteId, projNoteId, newId, COUNT_L, LOG_L,
   reqOf, needsReview, dueApprover, canSetDue, riskOf, assignedByMe, workloadOf, onTimeOf, weekStart, nextWorkday, isOffDay, weekMine, brandLabel, brandKey, COMMON_BRAND,
-  roadOf, roadStates, phaseOfTask, curStage, isLaunchProj, projLabel, projLabelOf, readInbox, unseePatch,
+  roadOf, roadStates, phaseOfTask, curStage, isLaunchProj, projLabel, projLabelOf, readInbox, unseePatch, phaseNowOf,
 } from "./model.js";
 import { LAUNCH_PHASES, LAUNCH_BRANDS, planNewLaunch, userByName, phaseOf } from "./launch.js";
 import { predLine, lastWord, predsOf, upcomingTurns, upLine, turnIndex, turnsOf } from "./turn.js";
@@ -386,9 +386,6 @@ export function FocusTriage({ D, cu, A, open, TV, onBack, onClose, st, save, set
 // 버전1 '빠른 업무 추가'처럼 입력칸 하나 → Enter(또는 [추가]) = 바로 내 할 일 · 칸은 비우고 커서 그대로(연달아 넣기) · 5초 되돌리기(= 없애기 · 휴지통)
 //   날짜 [오늘 · 내일(쉬는 날이면 다음 평일) · 미정 · 날짜] · 프로젝트(선택 · 고르면 그 프로젝트 지금 단계) — 고른 것은 다음 것에도 그대로
 //   dflt = 처음 날짜(오늘 화면 [내일] 보기 → 내일 · 내 할 일 모두 [날짜 없음] → 미정) · hold = 머리 [+ 맡기기]가 쓰던 제목·날짜·프로젝트를 들고 가게
-const phaseNow = (D, pid, key) => { const p = pid && D.projects.find((x) => x.id === pid), road = p && !isLaunchProj(p) ? roadOf(p, D) : null; if (!road) return "";
-  const ts = D.tasks.filter((t) => t.projectId === p.id && !t.isFixed), by = new Map(ts.map((t) => [t.id, t]));
-  return curStage(roadStates(road, ts, (t) => phaseOfTask(t, p, D, by, road), key)); };
 const dayL = (d, key) => (!d ? "날짜 미정" : d === key ? "오늘" : d === addDays(key, 1) ? "내일" : `${md(d)}(${WD[new Date(d + "T00:00:00").getDay()]})`);
 export function QuickAdd({ D, cu, A, setToast, dflt = "today", hold }) {
   const key = ymd(new Date()), tmr = nextWorkday(addDays(key, 1));
@@ -402,7 +399,7 @@ export function QuickAdd({ D, cu, A, setToast, dflt = "today", hold }) {
     return [op.filter((p) => my.has(p.id)).sort(by), op.filter((p) => !my.has(p.id)).sort(by)]; }, [D.projects, D.tasks, cu.id]);
   const add = (e) => { if (e) e.preventDefault(); const s = title.trim(); if (ref.current) ref.current.focus(); if (!s) return;
     setTitle("");   // 바로 비움 → 다음 것을 이어서 씀 (저장 실패면 되돌려 놓음)
-    const ph = phaseNow(D, pid, key);
+    const ph = pid ? phaseNowOf(D, D.projects.find((x) => x.id === pid), key) : "";
     A.addTask({ title: s, assigneeId: cu.id, dueDate: due, projectId: pid, noReview: true, ...(ph ? { phase: ph } : {}) }).then((t) => {
       if (!t) { setTitle((c) => c || s); return; }
       setToast({ text: `추가했어요 · ${dayL(due, key)}${due ? "" : " · 아래 '날짜 없는 일'"}${pid ? " · " + projLabelOf(D, pid) : ""}`, undo: () => A.taskRemove(t, "방금 추가한 것 되돌리기") }); }); };

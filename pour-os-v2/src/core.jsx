@@ -11,7 +11,7 @@ import {
   scopeFields, brandLabel, cycleFields, FX_WD, isRemoved, fxRemoveFields, fxRestoreFields, canRemoveFx, canRemoveAk, canRenameFx, canRenameTask, canRemoveNote, canRestoreNote, scopeOf,
   canFinish, canRemoveTask, canRestoreTask, taskKids, taskRemoveFields, canRemoveProj, canRestoreProj, projRemoveFields, projTaskRemoveFields, projTaskBack,
   roadOf, catRoad, builtinRoad, cleanRoad, sameRoad, roadToStore, roadProblem, roadSwitchPlan, phaseOfTask, stageName, noStageL, canSetPhase, canEditRoad, isFlowProj, isLaunchProj, catName, projCat, roadOwn,
-  canSetEst, EST_MAX,
+  canSetEst, EST_MAX, canMoveProj, phaseNowOf, isGhProj, projLabel,
 } from "./model.js";
 import { canEditTpl, canSaveTpl, TPL_MAX, TPL_NAME_MAX } from "./tpl.js";
 import { planLaunchImport, relaunch, isTempOwner, LAUNCH_ITEMS } from "./launch.js";
@@ -1360,6 +1360,40 @@ export function useActs(D, cu, setToast, idx = null) {
       log("restore", { col: "tasks", targetId: t.id, projectId: t.projectId || "", label: `${t.title} · 되살림${r.n ? ` · 하위 ${r.n}개 같이` : ""}${viaUndo ? " (되돌리기)" : ""}`, prev: { removed: rm }, next: { removed: null }, ids: [t.id, ...ids] });
       [...new Set(r.pids)].forEach((pid) => recalc(pid));
       setToast({ text: viaUndo ? "되돌렸어요" : `되살렸어요 · ${t.title}${r.n ? ` · 하위 ${r.n}개 같이` : ""}` });
+      return true; },
+    // ── 업무 프로젝트 연결·바꾸기 (사용자 요청 2026-10-13 "내 할일로 업무 등록한거 프로젝트 연결하고싶은데") ──
+    //   model.canMoveProj · pid "" = 프로젝트 빼기 · 하위 업무(불러오지 않은 오래된 것도 서버에서 한 층씩)도 같이 · 지우는 것 없음
+    //   새 프로젝트 브랜드를 따라감(있을 때) · 단계 = 새 프로젝트 지금 단계(model.phaseNowOf · 없으면 비움 · 흐름 업무는 '' 로 단계 미정) · 하위 업무는 위 업무 단계를 따름
+    //   한 transaction: 서버 업무가 화면에서 본 프로젝트 그대로·안 없앤 것일 때만(아니면 '그사이…' 알림 · 안 씀) · 하위 업무는 같은 프로젝트였던 것만 · 기록 1건 · 진척 다시 계산(전·후) · 5초 되돌리기
+    moveProject: async (t, pid) => {
+      if (!canMoveProj(t, cu, D)) { setToast({ text: t && t.parentId ? "하위 업무는 위 업무를 따라가요 · 위 업무에서 바꿔 주세요" : "이 업무는 프로젝트를 바꿀 수 없어요" }); return false; }
+      const from = t.projectId || "", to = pid || ""; if (from === to) return true;
+      const np = to ? (D.projects || []).find((x) => x.id === to) : null;
+      if (to && (!np || !projOpen(np) || np.locked || isRemoved(np) || isGhProj(to))) { setToast({ text: "고를 수 없는 프로젝트예요" }); return false; }
+      const at = nowIso(), kids = taskKids(t, D.tasks), seen = new Set([t.id, ...kids.map((x) => x.id)]);
+      try { let q = [...seen];
+        for (let k = 0; k < 10 && q.length; k++) { const nx = [];
+          for (const id of q) (await fb.fetchWhere("tasks", ["parentId", "==", id])).forEach((x) => { if (x && !seen.has(x.id) && !x.isFixed && !isRemoved(x)) { seen.add(x.id); kids.push(x); nx.push(x.id); } });
+          q = nx; } }
+      catch (e) { fail("하위 업무 불러오기")(e); return false; }
+      const ph = np ? phaseNowOf(D, np, ymd(new Date())) : "", br = np && np.brand ? { brand: np.brand } : {};
+      const rootF = { projectId: to, phase: ph || (Number.isInteger(t.wfStage) ? "" : null), ...(ph ? { phaseBy: cu.id, phaseAt: at } : {}), ...br }, kidF = { projectId: to, ...br };
+      const stamp = { updatedAt: at, updatedBy: cu.id, v2At: at };
+      let r;
+      try { r = await fb.txDocs([t, ...kids].map((x) => ({ key: "tasks", id: tdoc(x) })), (curs) => {
+          const c0 = curs[0]; if (!c0 || isRemoved(c0) || (c0.projectId || "") !== from || c0.parentId) return { ret: null };
+          const ok = kids.filter((x, i) => curs[i + 1] && !isRemoved(curs[i + 1]) && (curs[i + 1].projectId || "") === from);
+          return { writes: [{ ...rootF, ...stamp }, ...kids.map((x, i) => (ok.includes(x) ? { ...kidF, ...stamp } : null))],
+            ret: { root: c0, kids: ok.map((x) => ({ x, cur: curs[kids.indexOf(x) + 1] })) } }; }); }
+      catch (e) { fail("프로젝트 바꾸기")(e); return false; }
+      if (!r) { setToast({ text: "그사이 다른 사람이 이 업무를 바꿨어요 · 지금 프로젝트를 확인해 주세요" }); return false; }
+      const nm = (x) => (x ? projLabel(x, D) || "프로젝트" : "프로젝트 없음"), op = from ? (D.projects || []).find((x) => x.id === from) : null, n = r.kids.length;
+      const label = `${t.title} · 프로젝트 ${nm(op)} → ${nm(np)}${n ? ` · 하위 ${n}개 같이` : ""}`;
+      log("edit", { col: "tasks", targetId: t.id, projectId: to || from, label, prev: { projectId: from }, next: { projectId: to }, ids: [t.id, ...r.kids.map((k) => k.x.id)] });
+      [from, to].filter(Boolean).forEach((x) => recalc(x));
+      const ops = [{ key: "tasks", id: tdoc(t), wrote: rootF, prev: prevOf(r.root, rootF) }, ...r.kids.map((k) => ({ key: "tasks", id: tdoc(k.x), wrote: kidF, prev: prevOf(k.cur, kidF) }))];
+      setToast({ text: to ? `'${nm(np)}'에 연결했어요${n ? ` · 하위 ${n}개 같이` : ""}${ph ? ` · 단계 ${stageName(roadOf(np, D), ph) || ph}` : ""}` : `프로젝트에서 뺐어요${n ? ` · 하위 ${n}개 같이` : ""}`,
+        undo: () => undoMany(ops, label, "edit").then((u) => { if (u && u.done) [from, to].filter(Boolean).forEach((x) => recalc(x)); }) });
       return true; },
     // 횟수 목표: v2 덧칠 hidden true + removed (버전1 문서는 그대로 · 관리자만)
     // ── 프로젝트 없애기 (사용자 확정 2026-10-07 · 책임자·관리자만 · 지우지 않음) ──

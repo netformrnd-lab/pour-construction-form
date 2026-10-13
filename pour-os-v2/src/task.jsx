@@ -7,7 +7,7 @@ import {
   todayView, projOpen, projMine, projStat, projGroups, personStat, ownerIssues, feedOf, threads, taskNoteId, projNoteId, newId, COUNT_L, LOG_L,
   reqOf, needsReview, dueApprover, canSetDue, riskOf, assignedByMe, workloadOf, onTimeOf,
   scopeOf, brandLabel, brandsWithCommon, brandKey, cyclePending, cycleGuess, isRemoved, canRemoveFx, canRenameFx, canRenameTask, canRemoveNote, canFinish, canRemoveTask, canRestoreTask, taskKids,
-  roadOf, phaseOfTask, stageName, noStageL, canSetPhase, projLabel,
+  roadOf, phaseOfTask, stageName, noStageL, canSetPhase, projLabel, projLabelOf, canMoveProj, moveProjTargets,
 } from "./model.js";
 import { RemoveAsk, RemovedNote, TaskRemoveAsk } from "./trash.jsx";
 import { LAUNCH_PHASES, LAUNCH_BRANDS, planNewLaunch, userByName, phaseOf } from "./launch.js";
@@ -60,6 +60,30 @@ export function useItemNotes(D, itemId) {
   // 삭제한 댓글(removed)은 빼고 줌 → 댓글 수·파일·대화 어디에도 안 보임 (구독 값이 따로 읽은 옛 값보다 먼저)
   return useMemo(() => { if (locked) return Object.assign([], { ready: true }); const m = new Map(); (old || []).forEach((n) => m.set(n.id, n)); [...D.notes, ...(D.removedNotes || [])].forEach((n) => { if (n.itemId === itemId) m.set(n.id, n); }); return Object.assign(liveNotes([...m.values()], D), { ready: old != null }); }, [old, D.notes, D.removedNotes, itemId, locked, ov]);
 }
+// 프로젝트 연결·바꾸기 (사용자 요청 2026-10-13 "내 할일로 업무 등록한거 프로젝트 연결하고싶은데 어떻게해?") — 업무 맨 위 '프로젝트 없음 · 연결하기' · 더 하기 › [프로젝트 연결/바꾸기]
+//   고르면 바로 옮김(core A.moveProject · 하위 업무 같이 · 새 프로젝트 지금 단계 · 브랜드 따라감 · 5초 되돌리기) · 내 프로젝트 칩 + 다른 프로젝트 고르기 · 많으면 찾기 · [프로젝트 빼기]
+//   하위 업무는 위 업무를 따라가서 여기서 못 바꿈 → '위 업무 열기 ›'
+function ProjMoveBox({ t, D, cu, A, parent, open, onDone }) {
+  const [busy, setBusy] = useState(false), [q, setQ] = useState("");
+  const [mine, others] = useMemo(() => moveProjTargets(D, t, cu.id), [D.projects, D.tasks, t.projectId, cu.id]);
+  if (t.parentId) return <div className="v2-pmove"><div className="h">하위 업무는 위 업무와 같은 프로젝트로 가요 · 위 업무에서 연결해 주세요</div>
+    {parent && <TBtn onClick={() => open({ type: "task", id: parent.id })}>위 업무 열기 · {parent.title} ›</TBtn>}</div>;
+  const go = async (pid) => { if (busy) return; setBusy(true); const ok = await A.moveProject(t, pid); setBusy(false); if (ok) onDone(); };
+  const qq = q.trim().toLowerCase(), hit = (p) => !qq || String(projLabel(p, D) || p.title || "").toLowerCase().includes(qq);
+  const kidsN = taskKids(t, D.tasks).length, many = mine.length + others.length > 8;
+  const oth = others.filter(hit);
+  return <div className="v2-pmove" role="group" aria-label="프로젝트 고르기">
+    <div className="h">지금 <b>{t.projectId ? projLabelOf(D, t.projectId) || "프로젝트" : "프로젝트 없음"}</b> · 고르면 바로 옮겨요 (5초 안에 되돌릴 수 있어요){kidsN ? ` · 하위 업무 ${kidsN}개도 같이` : ""}</div>
+    {many && <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="프로젝트 찾기" aria-label="프로젝트 찾기" style={{ ...inp, height: 40, padding: "0 12px", fontSize: 16 }} />}
+    {mine.filter(hit).length > 0 && <><div className="l">내 프로젝트</div>
+      <div className="v2-chips">{mine.filter(hit).map((p) => <Chip key={p.id} onClick={() => go(p.id)} style={{ maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", opacity: busy ? 0.5 : 1 }}>{projLabel(p, D)}</Chip>)}</div></>}
+    {oth.length > 0 && (qq ? <><div className="l">다른 프로젝트</div><div className="v2-chips">{oth.slice(0, 12).map((p) => <Chip key={p.id} onClick={() => go(p.id)} style={{ maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", opacity: busy ? 0.5 : 1 }}>{projLabel(p, D)}</Chip>)}{oth.length > 12 && <span className="m">외 {oth.length - 12}개 · 더 찾아 주세요</span>}</div></>
+      : <select aria-label="다른 프로젝트" value="" disabled={busy} onChange={(e) => e.target.value && go(e.target.value)} className="v2-sel"><option value="">다른 프로젝트 ▾</option>{oth.map((p) => <option key={p.id} value={p.id}>{projLabel(p, D)}</option>)}</select>)}
+    {qq && !mine.filter(hit).length && !oth.length && <div className="m">'{q.trim()}' 프로젝트가 없어요</div>}
+    {!mine.length && !others.length && <div className="m">옮길 수 있는 열린 프로젝트가 없어요</div>}
+    {t.projectId && <div><TBtn tone="red" onClick={() => go("")} disabled={busy}>프로젝트 빼기</TBtn></div>}
+  </div>;
+}
 // 업무 보기 — 맨 위에 '지금 해야 할 일'(받았어요·확인·기한 조정·막힘)을 띄우고, 그 아래 대화(가장 자주 씀) → 순서(앞 일·다음 일) → 메모 → 하위 업무 → 파일
 // focus: "talk" | "files" — 열자마자 그 칸으로 (앞 일 '자료 n ›', 앞사람에게 묻기)
 export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, idx: idx0, setToast }) {
@@ -85,12 +109,13 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, id
   // 단계 바꾸기(로드 · 2026-10-07): 로드 있는 모든 프로젝트(신제품·일반·흐름) · 직접 넣은 업무만(신제품 항목·하위 업무 빼고 — 하위 업무는 위 업무 단계를 따름) · 책임자·관리자·담당 · 끝낸 업무 빼고
   const road = p ? roadOf(p, D) : null, phK = road ? phaseOfTask(t, p, D, null, road) : "", noSt = p ? noStageL(p) : "기타";
   const canPhase = !!road && !done && canSetPhase(t, p, cu);
+  const canMove = canMoveProj(t, cu, D);   // 프로젝트 연결·바꾸기 (2026-10-13)
   // 메모 저장 — 고치는 사이 다른 사람이 먼저 저장했으면 겹친 글을 보여 주고 고르게 (내 글은 그대로 남음)
   const saveMemo = async (force) => { const r = await A.setMemo(t, memo, memoBase, force === true); if (r && r.conflict) setClash(r.cur); else if (r && r.ok) { setClash(null); setMode(""); } };
   const files = [...(t.attachments || []).map((f) => ({ ...f, where: "업무" })), ...notes.filter((nn) => !nn.deleted).flatMap((nn) => (nn.files || []).map((f) => ({ ...f, by: nn.by, byName: nn.byName, uploadedAt: f.uploadedAt || nn.at, where: "댓글" })))];
   const loadLogs = () => { if (logs == null) fb.fetchWhere("log", ["targetId", "==", t.id]).then(setLogs).catch((e) => { console.error(e); setLogs([]); }); };
   // 기록 한 줄의 '이전 → 이후' (담당 · 기한 · 시작 · 상태 · 참조 · 보류 다시 볼 날)
-  const CH = { assigneeId: ["담당", (v) => nameOf(D.users, v) || "없음"], assigneeIds: null, dueDate: ["기한", (v) => md(v) || "미정"], startDate: ["시작", (v) => md(v) || "없음"], status: ["상태", (v) => STATUS_L[v] || (v === "review" ? "확인 대기" : v || "-")],
+  const CH = { assigneeId: ["담당", (v) => nameOf(D.users, v) || "없음"], assigneeIds: null, projectId: ["프로젝트", (v) => (v ? projLabelOf(D, v) || "프로젝트" : "없음")], dueDate: ["기한", (v) => md(v) || "미정"], startDate: ["시작", (v) => md(v) || "없음"], status: ["상태", (v) => STATUS_L[v] || (v === "review" ? "확인 대기" : v || "-")],
     ccIds: ["참조", (v) => (v || []).map((x) => nameOf(D.users, x)).filter(Boolean).join("·") || "없음"], holdUntil: ["다시 볼 날", (v) => md(v) || "미정"], phase: ["단계", (v) => stageName(road, v) || noSt], title: ["이름", (v) => v || "-"], estDays: ["예상 소요", (v) => (v ? `${v}일` : "미정")], priority: ["중요도", (v) => ({ high: "높음", mid: "보통", low: "낮음" })[v] || "보통"] };
   const chOf = (l) => (l.prev && l.next && typeof l.prev === "object" && !Array.isArray(l.prev) ? Object.keys(l.next).filter((k) => CH[k] && JSON.stringify(l.prev[k] ?? null) !== JSON.stringify(l.next[k] ?? null)).map((k) => ({ k, l: CH[k][0], a: CH[k][1](l.prev[k]), b: CH[k][1](l.next[k]) })) : []);
   const hist = [...(t.statusLog || []).map((s, i) => ({ id: "s" + i, at: s.at, who: s.byName || nameOf(D.users, s.by), text: s.reopen ? "다시 엶" : STATUS_L[s.status] || (s.status === "review" ? "확인 요청" : s.status) })),
@@ -124,7 +149,9 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, id
     const nn = ddays(dueOf(x), key); return `${w} · ${x.blocked ? "막힘" : x.status === "inprogress" ? "진행 중" : x.status === "hold" ? "보류" : "할 일"}${dueOf(x) ? nn < 0 ? ` · ${-nn}일 지남` : ` · ${md(dueOf(x))} 예정` : ""}`; };
   const ORD = 3;
   const projT = projLabel((D.projects || []).find((x) => x.id === t.projectId), D);
-  return <Sheet title="업무" kind="업무" head={t.title} path={projT ? `프로젝트 · ${projT}` : "프로젝트 없음"} onPath={projT ? () => open({ type: "project", id: t.projectId }) : null} onBack={onBack} onClose={onClose} foot={foot}>
+  // 맨 위 '프로젝트 없음' = 누르면 프로젝트 연결 (2026-10-13 "내 할일로 업무 등록한거 프로젝트 연결하고싶은데") · 하위 업무면 '위 업무에서' 안내 · 프로젝트가 있으면 예전처럼 그 프로젝트 열기(바꾸기는 더 하기 ›)
+  const projPath = projT ? () => open({ type: "project", id: t.projectId }) : (canMove || (t.parentId && !t.isFixed)) && !t.locked ? () => setMode(mode === "proj" ? "" : "proj") : null;
+  return <Sheet title="업무" kind="업무" head={t.title} path={projT ? `프로젝트 · ${projT}` : canMove ? "프로젝트 없음 · 연결하기" : "프로젝트 없음"} onPath={projPath} onBack={onBack} onClose={onClose} foot={foot}>
     {risk && <div style={{ margin: "12px 0 0" }}><span style={{ display: "inline-block", fontSize: 12.5, fontWeight: 800, padding: "3px 9px", borderRadius: 6, color: risk.red ? C.red : C.navy, background: risk.red ? "#F8E9EA" : C.soft }}>{risk.label}</span></div>}
     <div style={{ height: risk ? 6 : 12 }} />
     <div style={{ fontSize: 13.5, color: C.sub, lineHeight: 1.7 }}>
@@ -182,6 +209,7 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, id
       {!done && !review && t.status !== "hold" && <TBtn v="soft" onClick={() => { setMore(false); setMode("hold"); }}>보류</TBtn>}
       {!done && <TBtn v="soft" onClick={() => { setMore(false); setMode(mode === "cc" ? "" : "cc"); }}>참조{(t.ccIds || []).length ? ` ${(t.ccIds || []).length}` : ""}</TBtn>}
       {!done && !t.parentId && !t.decision && (mine || req === cu.id || master) && <TBtn v="soft" onClick={() => { setMore(false); A.setDecision(t, true); }}>결정 업무로 쓰기</TBtn>}
+      {canMove && <TBtn v="soft" onClick={() => { setMore(false); setMode(mode === "proj" ? "" : "proj"); }}>{t.projectId ? "프로젝트 바꾸기" : "프로젝트 연결"}</TBtn>}
       {canPhase && <TBtn v="soft" onClick={() => { setMore(false); setMode(mode === "phase" ? "" : "phase"); }}>단계 바꾸기</TBtn>}
       {canRenameTask(t, cu, D) && <TBtn v="soft" onClick={() => { setMore(false); setNm(t.title || ""); setNmBase(t.title || ""); setMode("rename"); }}>이름 고치기</TBtn>}
       {canSetEst(t, p, cu) && <EstEdit t={t} A={A} />}
@@ -207,6 +235,7 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, id
         {!v ? <div style={{ flexBasis: "100%", fontSize: 12.5, color: C.sub }}>이름을 비울 수는 없어요</div> : !ok ? <div style={{ flexBasis: "100%", fontSize: 12.5, color: C.sub }}>지금 이름과 같아요</div> : null}</div>; })()}
     {mode === "phase" && canPhase && <div style={{ padding: "8px 0" }}><div style={{ fontSize: 12.5, color: C.sub, marginBottom: 6 }}>지금 단계 {stageName(road, phK) || noSt} · 고르면 바로 옮겨요 (5초 안에 되돌릴 수 있어요)</div>
       <div className="v2-chips" role="group" aria-label="단계 고르기">{[...road.map((x) => [x.k, x.name]), ["", noSt]].map(([k, l]) => <Chip key={k || "etc"} on={phK === k} onClick={async () => { if (phK === k) { setMode(""); return; } if (await A.setPhase(t, k)) setMode(""); }}>{l}</Chip>)}</div></div>}
+    {mode === "proj" && <ProjMoveBox t={t} D={D} cu={cu} A={A} parent={parent} open={open} onDone={() => setMode("")} />}
     {mode === "ask" && <RequestAsk t={t} D={D} cu={cu} A={A} mine={mine} onNo={() => setMode("")} />}
     <SecretBox kind="task" x={t} D={D} cu={cu} A={A} only="status" />
     {mode === "due" && <div className="v2-chips" style={{ padding: "8px 0" }}>{dateChips.map(([l, d]) => <Chip key={d} onClick={() => { moveDue(A, setToast, t, d, true); setMode(""); }}>{l}</Chip>)}<Chip onClick={() => { moveDue(A, setToast, t, "", true); setMode(""); }}>미정</Chip><input type="date" aria-label="날짜 고르기" defaultValue={dueOf(t)} onChange={(e) => { if (e.target.value) { moveDue(A, setToast, t, e.target.value, true); setMode(""); } }} className="v2-sel" /></div>}

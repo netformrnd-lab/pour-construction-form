@@ -689,3 +689,34 @@ ok("견본 권한 · 휴지통 줄", () => {
   const rows = T_.tplTrashRows([{ ...tpl, title: "견본", removed: { at: "2026-10-07", by: "b", byName: "나" } }, { id: "u", createdBy: "c", title: "다른", removed: { at: "2026-10-06", by: "c" }, tasks: [] }], "a");
   assert.equal(rows.length, 1); assert.equal(rows[0].kind, "tpl"); assert.equal(rows[0].sub, "견본 · 업무 1개");
 });
+ok("업무 프로젝트 연결·바꾸기 (2026-10-13 '내 할일로 업무 등록한거 프로젝트 연결'): 누가 · 못 옮기는 것 · 고를 수 있는 프로젝트 · 기본 단계", () => {
+  const a = { id: "a", name: "가", master: false }, b = { id: "b", name: "나", master: false }, m = { id: "m", name: "관", master: true }, c = { id: "c", name: "다", master: false };
+  const D = { users: [a, b, m, c], projects: [
+      { id: "p1", title: "추석 기획전", category: "marketing", assigneeId: "c", status: "active" },
+      { id: "p2", title: "가을 행사", category: "marketing", assigneeId: "a", status: "active" },
+      { id: "p3", title: "끝난 것", assigneeId: "a", status: "completed" },
+      { id: "gh_kpi_1", title: "그로홈 KPI", assigneeId: "a", status: "active" },
+      { id: "p4", title: "기밀 프로젝트", assigneeId: "b", status: "active", locked: true },
+      { id: "lb_x", title: "신제품", assigneeId: "a", status: "active" }],
+    tasks: [{ id: "t1", title: "라벨지", assigneeId: "a", status: "todo", projectId: "" },
+      { id: "t2", title: "하위", assigneeId: "a", status: "todo", projectId: "", parentId: "t1" },
+      { id: "t3", title: "추석 일", assigneeId: "b", status: "todo", projectId: "p1", phase: "make" },
+      { id: "t4", title: "신제품 항목", assigneeId: "a", status: "todo", projectId: "lb_x", launchItem: "i1" },
+      { id: "t5", title: "그로스보드 일", assigneeId: "a", status: "todo", projectId: "gh_kpi_1" },
+      { id: "t6", title: "끝낸 일", assigneeId: "a", status: "done", projectId: "" }] };
+  const T = Object.fromEntries(D.tasks.map((t) => [t.id, t]));
+  assert.ok(M.canMoveProj(T.t1, a, D)); assert.ok(!M.canMoveProj(T.t1, b, D)); assert.ok(M.canMoveProj(T.t1, m, D));   // 담당 · 남은 안 됨 · 관리자
+  assert.ok(M.canMoveProj(T.t3, c, D));                                    // 지금 프로젝트 책임자
+  assert.ok(M.canMoveProj({ ...T.t1, assigneeId: "b", requestedBy: "a" }, a, D));   // 맡긴 사람
+  assert.ok(M.canMoveProj(T.t6, a, D));                                    // 끝낸 업무도
+  assert.ok(!M.canMoveProj(T.t2, a, D)); assert.ok(!M.canMoveProj(T.t4, a, D)); assert.ok(!M.canMoveProj(T.t5, a, D));   // 하위 업무 · 신제품 항목 · 그로스보드 업무
+  assert.ok(!M.canMoveProj({ ...T.t1, locked: true }, a, D)); assert.ok(!M.canMoveProj({ ...T.t1, isFixed: true }, a, D)); assert.ok(!M.canMoveProj({ ...T.t1, removed: { at: "x" } }, a, D));
+  const [mine, others] = M.moveProjTargets(D, T.t1, "a");
+  assert.deepEqual(mine.map((p) => p.id), ["p2", "lb_x"]);                 // 내 프로젝트(책임자 · 내 업무가 있는 것) 이름순 — 신제품 lb_ 도(신제품 항목이 아닌 직접 업무로)
+  assert.deepEqual(others.map((p) => p.id), ["p1"]);                       // 끝난 것 · 그로스보드 · 기밀로 잠긴 것 빼고
+  assert.deepEqual(M.moveProjTargets(D, T.t3, "b")[0].map((p) => p.id), []);   // 지금 프로젝트(p1)는 빼고
+  const road = M.roadOf(D.projects[0], D), k = M.phaseNowOf(D, D.projects[0], "2026-10-13");
+  assert.equal(k, "make"); assert.ok(road.some((s) => s.k === k));        // 지금 단계 = 남은 업무가 있는 첫 단계
+  assert.equal(M.phaseNowOf(D, D.projects[5], "2026-10-13"), "");         // 신제품은 단계 비움(기타)
+  assert.equal(M.phaseNowOf(D, null, "2026-10-13"), "");
+});

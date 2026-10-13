@@ -167,6 +167,17 @@ export const canFinish = (t, cu) => !!t && !!cu && !t.isFixed && !t.locked && !i
 // 한 번짜리 업무 이름 고치기(사용자 확정 2026-10-07): 담당 · 만든 사람(createdBy·requestedBy) · 프로젝트 책임자 · 관리자 — 신제품 항목(이름 = 신제품 대시보드)·고정업무(renameFx)·없앤·끝낸 업무는 안 됨
 export const canRenameTask = (t, cu, D) => !!t && !!cu && !t.isFixed && !t.launchItem && !t.locked && !isRemoved(t) && !isDone(t)
   && (isMine(t, cu.id) || t.createdBy === cu.id || t.requestedBy === cu.id || isMaster(cu) || (!!t.projectId && ((D && D.projects) || []).some((p) => p.id === t.projectId && p.assigneeId === cu.id)));
+// 업무 프로젝트 연결·바꾸기 (사용자 요청 2026-10-13 "내 할일로 업무 등록한거 프로젝트 연결하고싶은데") — 담당 · 만든 사람 · 맡긴 사람 · 지금 프로젝트 책임자 · 관리자 (끝낸 업무도)
+//   안 되는 것: 고정업무 · 신제품 항목(신제품 대시보드 단계) · 하위 업무(위 업무를 따라감 → 위 업무에서) · 기밀로 잠긴 것 · 없앤 것 · 그로홈 그로스보드 업무(KR 은 그로홈 대시보드)
+export const canMoveProj = (t, cu, D) => !!t && !!cu && !t.isFixed && !t.launchItem && !t.parentId && !t.locked && !isRemoved(t) && !isGhProj(t.projectId)
+  && (isMine(t, cu.id) || t.createdBy === cu.id || t.requestedBy === cu.id || reqOf(t) === cu.id || isMaster(cu) || (!!t.projectId && ((D && D.projects) || []).some((p) => p.id === t.projectId && p.assigneeId === cu.id)));
+// 옮길 수 있는 프로젝트: 열린 것 · 기밀로 잠기지 않은 것 · 그로홈 그로스보드(gh_kpi_) 빼고 · 지금 프로젝트 빼고 → [내 프로젝트(이름순), 다른 프로젝트(이름순)]
+export function moveProjTargets(D, t, uid) {
+  const by = (a, b) => String(a.title || "").localeCompare(String(b.title || ""), "ko");
+  const ps = ((D && D.projects) || []).filter((p) => p && projOpen(p) && !p.locked && !isRemoved(p) && !isGhProj(p.id) && p.id !== ((t && t.projectId) || ""));
+  const mine = ps.filter((p) => projMine(p, uid, D.tasks)).sort(by);
+  return [mine, ps.filter((p) => !mine.includes(p)).sort(by)];
+}
 // 댓글 삭제(사용자 확정 2026-10-07 '흔적 없이 숨김'): 쓴 사람·관리자만 · removed{at,by,byName} (지우지 않음 · 파일은 Storage 그대로) · 되살리기 = 관리자(되돌리기는 지운 사람도)
 export const canRemoveNote = (n, cu) => !!n && !!cu && !n.deleted && !isRemoved(n) && (n.by === cu.id || isMaster(cu));
 export const canRestoreNote = (n, cu, undo) => !!n && !!cu && isRemoved(n) && (isMaster(cu) || (!!undo && n.removed.by === cu.id));
@@ -783,6 +794,12 @@ export function roadStates(road, ts, phOf, key) {
 }
 // 지금 단계(위 추가 칸 기본값): 남은 업무가 있는 첫 단계 → 없으면 첫 단계
 export const curStage = (states) => ((states || []).find((s) => s.left > 0) || (states || [])[0] || {}).k || "";
+// 새로 넣는 업무의 기본 단계 = 그 프로젝트 지금 단계 (로드 있는 일반·흐름 · 신제품·로드 없음 = "") — 할 일 바로 추가 · 프로젝트 옮기기 (할 일 추가 시트도 같은 계산)
+export function phaseNowOf(D, p, key) {
+  const road = p && !isLaunchProj(p) ? roadOf(p, D) : null; if (!road) return "";
+  const ts = ((D && D.tasks) || []).filter((t) => t.projectId === p.id && !t.isFixed), by = new Map(ts.map((t) => [t.id, t]));
+  return curStage(roadStates(road, ts, (t) => phaseOfTask(t, p, D, by, road), key));
+}
 // 새 단계 열쇠 (이름이 아니라 바뀌지 않는 id)
 export const newStageKey = (road) => { const has = new Set((road || []).map((s) => s.k)); let k = ""; for (let i = 0; i < 20 && (!k || has.has(k)); i++) k = "s" + Math.random().toString(36).slice(2, 7); return k; };
 // 로드 고치기 확인: 이름 비었나 · 같은 이름 · 너무 많음 → '' 이면 저장 가능

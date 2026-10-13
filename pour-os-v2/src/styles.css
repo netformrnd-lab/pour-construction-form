@@ -698,6 +698,13 @@ input[type="date"].v2-sel::-webkit-date-and-time-value { text-align: left; min-h
 .v2-qadd .op .pj.on { background: #fff; border-color: #24386B; color: #24386B; }
 /* 줄 오른쪽 [시작] [끝냄] */
 .v2-sf { flex: 0 0 auto; display: inline-flex; gap: 6px; }
+/* 업무 프로젝트 연결·바꾸기 (task.jsx ProjMoveBox · 2026-10-13) */
+.v2-pmove { display: flex; flex-direction: column; gap: 8px; padding: 10px 0 4px; min-width: 0; }
+.v2-pmove .h { font-size: 12.5px; color: #5B6475; line-height: 1.6; }
+.v2-pmove .h b { color: #0F1F5C; }
+.v2-pmove .l { font-size: 12px; font-weight: 800; color: #0F1F5C; margin-top: 2px; }
+.v2-pmove .m { font-size: 12.5px; color: #8A92A3; }
+.v2-pmove > .v2-sel { align-self: flex-start; }
 
 /* 신제품 단계별 '+ 이 단계에 추가' (project.jsx) */
 .v2-phadd { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 10px; }

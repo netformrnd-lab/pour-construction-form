@@ -26,7 +26,8 @@ const tl = (...args) => { try { return { out: execFileSync('python3', [join(TOOL
 // 씨앗: 업무OS 사람 · 여름(B2C 크루 · 2026-10-14 아침 루틴) 담당 = 남윤정(POUR스토어) · 쉬는 포리의 옛 규칙
 await put('pour-os/v2/users/yj', { id: 'yj', name: '남윤정' });
 await put('pour-os/v2/users/old', { id: 'old', name: '퇴사', active: false });
-await put('pour-os/v2/aimates/yeoreum', { id: 'yeoreum', owners: { pourstore: 'yj', _: 'old' }, rules: [{ id: 'r1', text: '근거는 쿠팡 판매 데이터로', at: '2026-10-12T00:00:00Z', byName: '남윤정' }, { id: 'r2', text: '끈 규칙', off: { at: 'x' } }] });
+await put('pour-os/v2/aimates/yeoreum', { id: 'yeoreum', owners: { pourstore: 'yj', _: 'old' }, rules: [{ id: 'r1', text: '근거는 쿠팡 판매 데이터로', at: '2026-10-12T00:00:00Z', byName: '남윤정' }, { id: 'r2', text: '끈 규칙', off: { at: 'x' } }],
+  qty: { blog: { n: 5, byName: '남윤정', at: '2026-10-15T01:00:00Z' }, cafe: { n: null, byName: '남윤정', at: '2026-10-15T01:00:00Z' } } });   // 2026-10-15 횟수 (담당이 정함 · null = 기본)
 await put('pour-os/v2/aimates/pori', { id: 'pori', rules: [{ id: 'p1', text: '포리 때 규칙: 제목에 지역명', at: '2026-10-11T00:00:00Z', byName: '남윤정' }] });
 
 // ① 처음 올림 → 승인 한 건 (크루 b2c · 담당 = 브랜드 담당) + 노트 본문
@@ -47,7 +48,7 @@ await put('pour-os/v2/aiasks/' + id, { ...a, state: 'back', to: '', back: { text
 const OLD = '03 작업/2026-10-13 블로그 원고 3.md', oldId = 'ai_pori_20261013_0a1b2c3d';
 writeFileSync(join(vault, OLD), '# 블로그 원고 3 (10/13)\n\n## 결과물\n\n## 1. 곰팡이 — 그로홈\n\n**제목**: 옛 판\n');
 await put('pour-os/v2/aiasks/' + oldId, { id: oldId, crew: 'base', mate: 'pori', mateName: '포리', brand: 'pourstore', board: '', act: '', run: '2026-10-13', title: '포리 · 블로그 원고 3', note: OLD, noteId: 'mkt-ai-pori-2026-10-13-0a1b2c3d',
-  owner: '', to: '', step: 0, state: 'back', ver: 1, back: { text: '옛 포리 건 고칠 것', byName: '남윤정', at: '2026-10-13T02:00:00Z' }, log: [{ at: '2026-10-13T00:00:00Z', by: 'ai:pori', byName: '포리 (AI)', act: 'ask' }], createdAt: '2026-10-13T00:00:00Z', updatedAt: '2026-10-13T02:00:00Z', src: 'tool' });
+  owner: '', to: '', step: 0, state: 'back', ver: 1, back: { text: '옛 포리 건 고칠 것', byName: '남윤정', at: '2026-10-13T02:00:00Z', more: 2 }, log: [{ at: '2026-10-13T00:00:00Z', by: 'ai:pori', byName: '포리 (AI)', act: 'ask' }], createdAt: '2026-10-13T00:00:00Z', updatedAt: '2026-10-13T02:00:00Z', src: 'tool' });
 // 크루(Aside 보드) 건·크루 보드 규칙은 아침 루틴 feedback 에 안 나옴 (crew.html 에서 다시)
 await put('pour-os/v2/aiasks/ai_gyeoul_20261012_C', { id: 'ai_gyeoul_20261012_C', crew: 'b2c', mate: 'gyeoul', mateName: '겨울', board: 'gh-conv', act: 'C', title: '겨울 · C', state: 'back', back: { text: '크루 고칠 것' }, run: '2026-10-12', updatedAt: '2026-10-12T01:00:00Z' });
 await put('pour-os/v2/aimates/gyeoul', { id: 'gyeoul', rules: [{ id: 'g1', text: '크루 규칙' }] });
@@ -56,10 +57,15 @@ ok('feedback: 고칠 것(여름 + 쉬는 포리 옛 건) · 규칙(켠 것만)',
 ok('feedback: 크루 보드 건·크루 보드 규칙 빠짐', !r.out.includes('크루 고칠 것') && !r.out.includes('크루 규칙'), r.out);
 r = tl('feedback', '14', '여름');
 ok('feedback 여름 = 하루·포리·에코 옛 것도', /팀원: 여름 · 하루 · 포리 · 에코/.test(r.out) && /고쳐서 다시 올릴 것 2건/.test(r.out) && r.out.includes('근거는 쿠팡') && r.out.includes('포리 때 규칙') && !r.out.includes('크루 고칠 것'), r.out);
+ok('feedback 여름: ■ 횟수(담당이 정한 블로그 원고 5편 · 나머지 기본) · 더 만들기 2개 (2026-10-15)', r.out.includes('■ 횟수') && r.out.includes('여름: 블로그 원고 5편 (담당 남윤정 · 10/15 · 기본 3편)') && r.out.includes('여름: 티스토리 글 1편 (기본)') && r.out.includes('여름: 카페 글 2편 (기본)') && /→ 더 만들기 2개: 지금 노트의 글은 그대로/.test(r.out) && r.out.indexOf('■ 횟수') < r.out.indexOf('■ 확정 규칙'), r.out);
+r = tl('backs', '여름');
+ok('backs 여름 = 고쳐서 다시 수만 짧게 (한 시간마다 확인 · 더 만들기 표시 · 보드 건 빠짐)', /^고쳐서 다시 2건 — 자세히/.test(r.out) && r.out.includes('더 만들기 2개') && !r.out.includes('크루 고칠 것') && !r.out.includes('■'), r.out);
+r = tl('backs', '하루', '에코');
+ok('backs 하루·에코 = 0건 · 할 일 없음', /^고쳐서 다시 0건 — 할 일 없음/.test(r.out.trim()), r.out);
 r = tl('feedback', '14', '하루', '에코');
 ok('feedback 팀원만: 하루·에코 = 고칠 것 0', /팀원: 하루 · 에코/.test(r.out) && /고쳐서 다시 올릴 것 0건/.test(r.out) && !r.out.includes('근거는 쿠팡'), r.out);
 r = tl('feedback', '겨울');
-ok('feedback 겨울: 보드 건은 crew.html 에서 (0) · 규칙은 보임', /고쳐서 다시 올릴 것 0건/.test(r.out) && r.out.includes('크루 규칙'), r.out);
+ok('feedback 겨울: 보드 건은 crew.html 에서 (0) · 규칙은 보임 · 횟수 칸 없음(보드 횟수는 crew.html 지시문)', /고쳐서 다시 올릴 것 0건/.test(r.out) && r.out.includes('크루 규칙') && !r.out.includes('■ 횟수'), r.out);
 r = tl('open', '여름', '블로그 원고 3', NOTE, '2026-10-13', '--brand', 'pourstore');
 ok('다시 올림 = 같은 건', r.code === 0 && r.out.includes(id) && /2번째 판/.test(r.out), r.out);
 a = await getDoc('pour-os/v2/aiasks/' + id);

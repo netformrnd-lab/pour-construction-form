@@ -87,4 +87,32 @@ eq("같은 지적 두 번 → 규칙 권유", X.repeatNotes([{ text: "근거를 
 const R = X.bossRec([{ id: "hj", name: "허지은" }, { id: "sy", name: "김소연" }, { id: "sh", name: "김송희" }, { id: "cw", name: "김채원" }, { id: "yr", name: "변유림" }, { id: "yj", name: "남윤정" }, { id: "mj", name: "김민지" }, { id: "mn", name: "윤미니" }, { id: "x", name: "새사람" }, { id: "o", name: "쉼", active: false }]);
 eq("상급자 추천", R, { hj: "", sy: "hj", sh: "hj", cw: "hj", yr: "cw", yj: "sy", mj: "sh", mn: "hj", x: "hj" });
 
+// 더 만들기 n개 (2026-10-15 · 담당이 횟수를 늘려 다시)
+const bm = X.planBack(a0, me("yj"), X.moreText(2, "리뷰 많은 제품"), T1, 2);
+eq("더 만들기 = back.more · 기록에도", [bm.fields.state, bm.fields.back.more, bm.entry.more, bm.fields.back.text], ["back", 2, 2, "지금 것은 그대로 두고 2개 더 만들어 주세요 · 리뷰 많은 제품"]);
+eq("더 만들기 없음 · 상한 · 음수", ["more" in b.fields.back, "more" in b.entry, X.planBack(a0, me("yj"), "x", T1, 999).fields.back.more, "more" in X.planBack(a0, me("yj"), "x", T1, -3).fields.back], [false, false, X.MORE_MAX, false]);
+
+eq("더 만들기는 고칠 점이 아님 · 따로 셈", (() => { const S2 = X.mateStats([{ ...a0, ...bm.fields, updatedAt: T1, log: [...a0.log, bm.entry] }, { ...a0, id: "y", ...b.fields, updatedAt: T1, log: [b.entry] }], "gyeoul", "2026-10-11"); return [S2.redo, S2.more, S2.notes.map((x) => x.text)]; })(), [2, 1, ["경쟁사 3곳 더"]]);
+
+// Aside 담당 PC — '확인할 것' (기기 시각 = 한국 · 10/14 수 · 10/17 토 · 10/9 한글날)
+const DA = (boards, mates) => ({ users: U, ai: { ready: true, mates: mates || { gyeoul: { owners: { grohome: "yj" } }, uju: { owners: { _: "yj" } } }, boards: boards || {} } });
+const at = (s) => new Date(s).toISOString();
+const W11 = new Date("2026-10-14T11:00:00");
+eq("담당 묶음 = 같은 PC 한 시간씩 · 미정은 맨 뒤", X.asidePlanOf(DA()).map((g) => [g.owner, g.runs.map((r) => r.board.id + " " + r.t)]),
+  [["yj", ["gh-conv 09:00", "gh-rep 10:00"]], ["", ["gh-traffic 09:00", "gh-ohou 10:00", "gh-exp 11:00", "gh-aov 12:00"]]]);
+const s0 = X.asideInbox(DA(), "yj", W11);
+eq("처음 = 내 PC 세팅 한 줄 (안 돎 알림은 아직)", s0.map((x) => [x.kind, x.title, x.keep]), [["aiSetup", "내 PC Aside 세팅 · 겨울 09:00 · 우주 10:00", true]]);
+eq("한 보드만 올라오면 남은 것만 세팅", X.asideInbox(DA({ "gh-conv": { at: at("2026-10-14T09:05:00") } }), "yj", W11).map((x) => [x.kind, x.id]), [["aiSetup", "as:yj:gh-rep"]]);
+const yb = { "gh-conv": { at: at("2026-10-13T09:04:00") }, "gh-rep": { at: at("2026-10-13T10:06:00") } };
+eq("어제까지 돌았는데 오늘 안 올림 = 예약 + 90분 지난 것만", X.asideInbox(DA(yb), "yj", W11).map((x) => [x.kind, x.board, !!x.red, x.id]), [["aiMiss", "gh-conv", true, "am:gh-conv:2026-10-14"]]);
+eq("오후엔 둘 다", X.asideInbox(DA(yb), "yj", new Date("2026-10-14T15:00:00")).map((x) => x.board), ["gh-conv", "gh-rep"]);
+eq("오늘 올렸으면 없음", X.asideInbox(DA({ ...yb, "gh-conv": { at: at("2026-10-14T09:10:00") } }), "yj", W11), []);
+eq("주말·공휴일은 안 돎 알림 없음", [X.asideInbox(DA(yb), "yj", new Date("2026-10-17T15:00:00")), X.asideInbox(DA(yb), "yj", new Date("2026-10-09T15:00:00"))], [[], []]);
+eq("관리자 = 담당 미정 한 줄", X.asideInbox(DA(yb), "ran", W11).map((x) => [x.kind, x.title, x.text.split(" · 담당")[0]]), [["aiOwnerless", "AI 크루 담당 미정 4명", "가을 · 봄 · 여름 · 하늘"]]);
+eq("담당 아님·준비 전·없는 사람 = 없음", [X.asideInbox(DA(yb), "yr", W11), X.asideInbox({ users: U, ai: { ready: false } }, "yj", W11), X.asideInbox(DA(), "nobody", W11)], [[], [], []]);
+eq("모두 담당 있으면 미정 줄 없음", X.asideInbox(DA(yb, Object.fromEntries(["bom", "yeoreum", "gaeul", "gyeoul", "haneul", "uju"].map((m) => [m, { owners: { _: "cw" } }]))), "ran", W11), []);
+eq("쉬는 사람이 담당이면 미정으로", X.asidePlanOf(DA({}, { gyeoul: { owners: { _: "old" } } })).map((g) => g.owner), [""]);
+eq("안 돎 판단 = 세팅 시트와 같은 계산", [X.missedOn(yb["gh-conv"], "09:00", W11), X.missedOn(yb["gh-rep"], "10:00", W11), X.missedOn(null, "09:00", W11), X.missedOn(yb["gh-conv"], "09:00", new Date("2026-10-17T15:00:00"))], [true, false, false, false]);
+eq("그날 올렸나", [X.ranOn({ at: at("2026-10-14T00:10:00") }, "2026-10-14"), X.ranOn({ at: at("2026-10-13T23:50:00") }, "2026-10-14"), X.ranOn(null, "2026-10-14")], [true, false, false]);
+
 console.log(`\n${n - bad}/${n} 통과`); if (bad) process.exit(1);

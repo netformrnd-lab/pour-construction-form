@@ -8,7 +8,7 @@ import { AddSheet, MineSheet, FocusTriage } from "./today.jsx";
 import { useTask } from "./task.jsx";
 import { LockSheet } from "./secretui.jsx";
 import { TplSaveSheet, TplBoxSheet, TplSheet, TplNewSheet } from "./tplui.jsx";
-import { AiAskSheet, AiMateSheet, AiTeamSheet } from "./aiui.jsx";
+import { AiAskSheet, AiMateSheet, AiTeamSheet, AiSetupSheet } from "./aiui.jsx";
 import { Sheet, Empty } from "./ui.jsx";
 
 // extra: { [type]: (props, s) => element } — 관리자 앱 등에서 시트 종류를 덧붙일 때
@@ -43,6 +43,7 @@ function route(s, p, extra) {
   if (s.type === "aiask") return <AiAskSheet {...p} id={s.id} focus={s.focus} note={s.note} />;
   if (s.type === "aiMate") return <AiMateSheet {...p} id={s.id} />;
   if (s.type === "aiTeam") return <AiTeamSheet {...p} />;
+  if (s.type === "aiSetup") return <AiSetupSheet {...p} owner={s.owner} />;   // 내 PC Aside 세팅 (2026-10-15)
   return null;
 }
 

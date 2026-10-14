@@ -21,8 +21,8 @@ export function TBtn({ children, onClick, tone, disabled, style, v = "line", ...
   return <button type="button" onClick={onClick} disabled={disabled} {...rest} style={{ padding: "6px 12px", minHeight: 34, borderRadius: 10, fontSize: 13.5, fontWeight: 800, fontFamily: F, color: tone === "red" ? C.red : tone === "mute" ? C.sub : C.navy, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.45 : 1, whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4, ...TB_V[v], ...style }}>{children}</button>;
 }
 // 줄 오른쪽 작은 실행 버튼 ('완료' 등)
-export function Act({ children, onClick, on, style }) {
-  return <button type="button" onClick={(e) => { e.stopPropagation(); onClick && onClick(e); }} style={{ flex: "0 0 auto", minWidth: 56, height: 34, padding: "0 12px", borderRadius: 10, border: `1.5px solid ${on ? C.green : C.line}`, background: on ? "#EAF4EE" : "#fff", color: on ? C.green : C.ink, fontSize: 13, fontWeight: 800, fontFamily: F, cursor: "pointer", ...style }}>{children}</button>;
+export function Act({ children, onClick, on, style, ...rest }) {   // rest = aria-label 등 (화면 읽기·시험)
+  return <button type="button" {...rest} onClick={(e) => { e.stopPropagation(); onClick && onClick(e); }} style={{ flex: "0 0 auto", minWidth: 56, height: 34, padding: "0 12px", borderRadius: 10, border: `1.5px solid ${on ? C.green : C.line}`, background: on ? "#EAF4EE" : "#fff", color: on ? C.green : C.ink, fontSize: 13, fontWeight: 800, fontFamily: F, cursor: "pointer", ...style }}>{children}</button>;
 }
 export function Chip({ children, on, onClick, style }) {
   return <button type="button" onClick={onClick} aria-pressed={!!on} style={{ padding: "8px 12px", borderRadius: 999, border: `1.5px solid ${on ? C.navy : C.line}`, background: on ? C.navy : "#fff", color: on ? "#fff" : C.sub, fontSize: 13, fontWeight: 700, fontFamily: F, cursor: "pointer", whiteSpace: "nowrap", ...style }}>{children}</button>;

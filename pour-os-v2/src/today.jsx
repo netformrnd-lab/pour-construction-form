@@ -51,6 +51,8 @@ export function inboxFns(D, A, open, setSeen) {
     if (x.kind === "lagDue") return open({ type: "lagInput", ym: x.ym });   // 월말 결과 KPI 넣기 (kpiui.jsx)
     if (x.kind === "turnLate") return open({ type: "task", id: x.taskId, focus: "talk" });
     if (x.kind === "aiGroup") return open({ type: "aiMate", id: x.mate });   // AI 승인 (2026-10-12): 같은 AI 여러 건 → 그 AI 한 장
+    if (x.kind === "aiSetup" || x.kind === "aiMiss") return open({ type: "aiSetup" });   // 내 PC Aside 세팅 · 오늘 안 돎 (2026-10-15)
+    if (x.kind === "aiOwnerless") return open({ type: "aiTeam" });   // AI 크루 담당 미정 → AI 팀원(관리자 [담당 한꺼번에 정하기])
     if (x.aiId) return open({ type: "aiask", id: x.aiId, ...(x.kind === "note" || x.kind === "mention" ? { focus: "talk" } : {}) });   // AI 승인 한 장 (확인할 것 · 최종 승인 · 대화)
     if (x.akId) return open({ type: "routine", id: x.akId, focus: "talk" });   // 반복 실행 대화 (@ 나를 부름 · 내가 말한 대화의 답)
     if (x.kind === "mention") return x.taskId ? open({ type: "task", id: x.taskId, focus: "talk" }) : open({ type: "project", id: x.projectId, first: "news" });   // @ 나를 부른 댓글 → 바로 대화 칸
@@ -69,6 +71,9 @@ export function inboxFns(D, A, open, setSeen) {
     if (x.kind === "turnOrder") return <Act onClick={() => openInbox(x)}>조정 요청</Act>;
     if (x.kind === "nextNoOwner") return <Act onClick={() => openInbox(x)}>정하기</Act>;
     if (x.kind === "ai" || x.kind === "aiGroup") return <Act onClick={() => openInbox(x)} style={BTN_ON}>{x.tag === "수정 요청" ? "고치기" : "승인하기"}</Act>;
+    if (x.kind === "aiSetup") return <Act onClick={() => openInbox(x)} style={BTN_ON}>세팅</Act>;
+    if (x.kind === "aiMiss") return <Act onClick={() => openInbox(x)} style={BTN_ON}>지금 돌리기</Act>;
+    if (x.kind === "aiOwnerless") return <Act onClick={() => openInbox(x)}>정하기</Act>;
     return <Act onClick={() => openInbox(x)}>보기</Act>; };
   return { openInbox, inboxAct };
 }

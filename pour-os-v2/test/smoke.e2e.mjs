@@ -74,7 +74,10 @@ for (const w of [375, 1280]) {
     for (const t of ['오늘', '달력', '프로젝트', '더보기']) { await tab(pg, t); ok(`팀 ${w} · ${t} 넘침 없음`, !(await over(pg))); if (w === 375) await pg.screenshot({ path: path.join(SHOTS, `smoke-team-${t}-${w}.png`) }); }
     await tab(pg, '오늘');
     ok(`팀 ${w} · 오늘: 확인할 것에 AI 승인 요청 · 할 일 · 고정업무`, (await pg.getByText('AI 승인 요청').count()) > 0 && (await pg.getByText('배너 소재 3종').count()) > 0 && (await pg.getByText('CS 문의 확인').count()) > 0);
-    await pg.getByText('배너 소재 3종').first().click(); await pg.waitForTimeout(500);
+    // '확인할 것' 댓글 줄로 열기 (= 읽음) — 줄이 3개 넘으면 [n개 모두 보기]로 펼침 (2026-10-15 Aside 세팅 안내 줄이 댓글보다 위)
+    { const more = pg.locator('.v2-ts.in').getByText(/개 모두 보기/); if (await more.count()) { await more.first().click(); await pg.waitForTimeout(300); } }
+    ok(`팀 ${w} · 확인할 것: Aside 세팅 안내 (겨울·여름 담당 = 내 PC)`, (await pg.locator('.v2-ts.in').getByText('내 PC Aside 세팅', { exact: false }).count()) === 1);
+    await pg.locator('.v2-ts.in').getByText('배너 소재 3종').first().click(); await pg.waitForTimeout(500);
     ok(`팀 ${w} · 업무 시트 열림 · 대화`, (await pg.locator('.v2-sheet').count()) > 0 && (await pg.getByText('소재 확인 부탁드려요').count()) > 0);
     ok(`팀 ${w} · 업무 시트 넘침 없음`, !(await over(pg)));
     await closeSheets(pg);
@@ -91,7 +94,7 @@ for (const w of [375, 1280]) {
     //   → [안 읽음으로] → 다시 '확인할 것' → [읽음 표시] → 알림 + 되돌리기 → 다시 [읽음 표시] → 사라짐
     if (w === 375) {
       await closeSheets(pg);
-      const inCard = () => pg.locator('.v2-ts.in').getByText('확인했어요 · 내일 올릴게요', { exact: false }).count();
+      const inCard = async () => { const more = pg.locator('.v2-ts.in').getByText(/개 모두 보기/); if (await more.count()) { await more.first().click(); await pg.waitForTimeout(200); } return pg.locator('.v2-ts.in').getByText('확인했어요 · 내일 올릴게요', { exact: false }).count(); };   // 3줄 넘으면 펼쳐서 셈
       await tab(pg, '오늘');
       ok('읽은 알림: 눌러 본 댓글은 확인할 것에서 빠짐', (await inCard()) === 0);
       await tab(pg, '더보기'); await pg.getByText('읽은 알림', { exact: true }).first().click(); await pg.waitForTimeout(400);
@@ -127,7 +130,7 @@ for (const w of [375, 1280]) {
   if (w === 1280 && phoneStore) { const s = await session('yj', { w, h: 900, store: phoneStore }), pg = s.pg;
     const before = errs.length;
     await tab(pg, '오늘');
-    const inCard = () => pg.locator('.v2-ts.in').getByText('확인했어요 · 내일 올릴게요', { exact: false }).count();
+    const inCard = async () => { const more = pg.locator('.v2-ts.in').getByText(/개 모두 보기/); if (await more.count()) { await more.first().click(); await pg.waitForTimeout(200); } return pg.locator('.v2-ts.in').getByText('확인했어요 · 내일 올릴게요', { exact: false }).count(); };   // 3줄 넘으면 펼쳐서 셈
     ok('PC 1280 · 폰에서 읽은 댓글은 확인할 것에 없음', (await inCard()) === 0 && (await pg.getByText('AI 승인 요청').count()) > 0);
     await tab(pg, '더보기'); await pg.getByText('읽은 알림', { exact: true }).first().click(); await pg.waitForTimeout(400);
     const sh = pg.locator('.v2-sheet').last();

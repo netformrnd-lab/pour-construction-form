@@ -8,6 +8,7 @@
 #   python3 team_link.py feedback [일수=14] [팀원…] — 고칠 것 (팀원이 다음 작업 전에 반드시 읽음 · 팀원을 적으면 그 팀원 것만)
 #       · 업무OS 'AI에게 다시'(돌려받은 말) · 상급자가 돌려보낸 말 · 안 하기로 한 이유 · 확정 규칙(담당이 정함)
 #       · 사장님이 대시보드 [보기]에서 남긴 메모 (예전 방식 그대로)
+#   python3 team_link.py backs [팀원]     — 고쳐서 다시 올릴 것(AI에게 다시·더 만들기) 수만 짧게 (2026-10-15 평일 한 시간마다 '고칠 것 확인' · 0건이면 그대로 끝)
 #   python3 team_link.py rules [팀원]     — 확정 규칙만 (업무OS AI 팀원 화면에서 담당이 더함)
 #   python3 team_link.py asks [팀원]      — 업무OS 승인 진행 (누구 차례 · AI가 고치는 중)
 #   python3 team_link.py list             — 예전 검토 줄(links aiReview · 업무OS 승인 전 방식)
@@ -41,6 +42,9 @@ CREW = {'bom': ('봄', 'b2c'), 'yeoreum': ('여름', 'b2c'), 'gaeul': ('가을',
 # 쉬는 기본 AI 팀원 → 이어받은 크루 (2026-10-14 사장님 "포리, 하루, 에코는 없어야지" · 아침 루틴 = B2C 크루 여름) — 새로 올리기 막음 · 옛 결과·기록은 그대로 · 돌려받은 옛 건은 이어받은 팀원이 고쳐 다음 판
 GONE = {'haru': 'yeoreum', 'pori': 'yeoreum', 'eco': 'yeoreum'}
 NAMES = {**TEAM, **{k: v[0] for k, v in CREW.items()}}
+# 아침 루틴 횟수 (2026-10-15 사장님 "횟수 조절을 사람팀원이하면 더 추가해서 생성가능하게") — 기본 = crew.js member.routineQty (crew.test.mjs 가 같은지 봄)
+#   담당이 업무OS AI 팀원 한 장에서 바꾸면 aimates/{AI}.qty.<열쇠>.n → feedback '■ 횟수' 로 알려 줌(루틴은 그 수만큼)
+ROUTINE_QTY = {'yeoreum': [('blog', '블로그 원고', 3, '편'), ('tistory', '티스토리 글', 1, '편'), ('cafe', '카페 글', 2, '편')]}
 TOOL = set(TEAM) | set(GONE.values())  # 노트로 올리는 팀원(기본 AI 팀원 + 아침 루틴을 이어받은 여름) — feedback 에 팀원을 안 적으면 이 팀원들 규칙만 (크루 보드 규칙은 crew.html)
 def crew_of(mid): return CREW[mid][1] if mid in CREW else 'base'
 BRANDS = {'grohome': '그로홈', 'pourstore': 'POUR스토어', 'bmupq52c0': '바라스데이'}
@@ -184,13 +188,25 @@ def list_open():
         f = {k: dec(v) for k, v in d['fields'].items()}
         print('-', f.get('date', ''), f.get('kind', ''), f.get('title', ''), '·', f.get('sub', ''))
 
-def mates_rules(only=None):
+def mates_docs():
+    return {(d.get('id') or d['_id']): d for d in fdocs(run_query(DOCS + '/pour-os/v2', 'aimates', None))}
+
+def mates_rules(only=None, docs=None):
     out = {}
-    for d in fdocs(run_query(DOCS + '/pour-os/v2', 'aimates', None)):
-        mid = d.get('id') or d['_id']
+    for mid, d in (docs if docs is not None else mates_docs()).items():
         if only and mid != only: continue
         r = [x for x in (d.get('rules') or []) if not x.get('off')]
         if r: out[mid] = r
+    return out
+
+def qty_lines(mid, doc):
+    # 아침 루틴 횟수: 담당이 정한 수(qty.<열쇠>.n) → 없으면 기본
+    out = []
+    for k, l, n, u in ROUTINE_QTY.get(mid, []):
+        x = ((doc or {}).get('qty') or {}).get(k) or {}
+        try: v = int(x.get('n') or 0)
+        except (TypeError, ValueError): v = 0
+        out.append(f"{l} {v}{u} (담당 {x.get('byName', '')} · {str(x.get('at', ''))[5:10].replace('-', '/')} · 기본 {n}{u})" if v > 0 and v != n else f'{l} {n}{u} (기본)')
     return out
 
 def rules(who=None):
@@ -210,6 +226,15 @@ def asks(who=None):
     print(f'업무OS AI 승인 진행 {len(rows)}건')
     for x in rows: print('-', x.get('run', ''), STATE_L.get(x.get('state'), x.get('state')), f"{x.get('step', 0) + 1}단계" if x.get('state') == 'wait' else '', x.get('title', ''), '·', x['_id'])
 
+# 고쳐서 다시 올릴 것만 짧게 (2026-10-15 사장님 "수정요청하면 바로 ai크루가 반영하게해" → 평일 한 시간마다 '고칠 것 확인' 세션이 먼저 부름 · 있을 때만 feedback 으로 자세히)
+def backs(who=None):
+    if who: who = list(dict.fromkeys(who + [g for g, to in GONE.items() if to in who]))
+    rows = [a for a in fdocs(run_query(DOCS + '/pour-os/v2', 'aiasks', eqf('state', 'back'))) if not a.get('board') and (not who or a.get('mate') in who)]
+    print(f'고쳐서 다시 {len(rows)}건' + (' — 자세히: feedback 14 <팀원>' if rows else ' — 할 일 없음'))
+    for a in sorted(rows, key=lambda x: x.get('run', '')):
+        more = (a.get('back') or {}).get('more') or 0
+        print('-', a.get('run', ''), a.get('title', ''), f'· 더 만들기 {more}개' if more else '', '·', a.get('note', ''))
+
 def feedback(days=14, who=None):
     since = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=9) - datetime.timedelta(days=days)).strftime('%Y-%m-%d')
     if who: who = list(dict.fromkeys(who + [g for g, to in GONE.items() if to in who]))   # 이어받은 팀원 = 쉬는 팀원의 옛 건도 (돌려받은 것 · 돌려보낸 말 · 규칙 · 메모)
@@ -217,10 +242,12 @@ def feedback(days=14, who=None):
     if who: print('팀원: ' + ' · '.join(NAMES.get(m, m) for m in who))
     # 업무OS: AI 에게 다시(지금 고칠 것) · 돌려보낸 말 · 안 함 이유 (최근 일수)
     back = [a for a in fdocs(run_query(DOCS + '/pour-os/v2', 'aiasks', eqf('state', 'back'))) if mine(a)]
-    print(f'■ 고쳐서 다시 올릴 것 {len(back)}건 (업무OS AI에게 다시 · 같은 노트 경로로 고쳐 저장 → open 다시 = 다음 판)')
+    print(f'■ 고쳐서 다시 올릴 것 {len(back)}건 (업무OS AI에게 다시·더 만들기 · 같은 노트 경로로 고쳐 저장 → open 다시 = 다음 판)')
     for a in sorted(back, key=lambda x: x.get('run', '')):
         b = a.get('back') or {}
+        more = b.get('more') or 0
         print(f"\n### {a.get('run', '')} {a.get('mateName', NAMES.get(a.get('mate'), ''))} · {a.get('title', '')}\n노트: {a.get('note', '')}\n({b.get('byName', '')} · {str(b.get('at', ''))[:16]})\n{b.get('text', '')}")
+        if more: print(f"→ 더 만들기 {more}개: 지금 노트의 글은 그대로 두고 같은 노트에 이어서 {more}개 더 쓴다 (블로그 원고면 다음 번호 ## 칸으로) → open 다시 = 같은 건의 다음 판")
     recent = [x for x in fdocs(run_query(DOCS + '/pour-os/v2', 'aiasks', {'fieldFilter': {'field': {'fieldPath': 'updatedAt'}, 'op': 'GREATER_THAN_OR_EQUAL', 'value': enc(since)}})) if mine(x)]
     notes = []
     for a in recent:
@@ -230,7 +257,12 @@ def feedback(days=14, who=None):
     print(f'\n■ 상급자가 돌려보낸 말 · 안 하기로 한 이유 {len(notes)}건 (최근 {days}일 · 같은 실수 반복 금지)')
     for at, a, l in notes:
         print(f"- {at[:10]} {a.get('mateName', '')} · {a.get('title', '')} — {'돌려보냄' if l.get('act') == 'ret' else '안 함'}: {l.get('text', '')} ({l.get('byName', '')})")
-    rs = {m: r for m, r in mates_rules().items() if m in (who or TOOL)}
+    docs = mates_docs()
+    qs = [(m, x) for m in sorted(who or TOOL) if m in ROUTINE_QTY for x in qty_lines(m, docs.get(m))]
+    if qs:
+        print(f'\n■ 횟수 (담당이 업무OS AI 팀원 한 장에서 정함 · 오늘 이 수만큼 · 꼭 지킴)')
+        for m, x in qs: print(f'- {NAMES.get(m, m)}: {x}')
+    rs = {m: r for m, r in mates_rules(docs=docs).items() if m in (who or TOOL)}
     print(f'\n■ 확정 규칙 {sum(len(v) for v in rs.values())}개 (업무OS AI 팀원 화면 · 꼭 지킴)')
     for m, r in rs.items():
         for x in r: print(f'- {NAMES.get(m, m)}: {x.get("text", "")}')
@@ -269,6 +301,7 @@ if __name__ == '__main__':
     elif a and a[0] == 'feedback':
         n = next((int(x) for x in a[1:] if x.isdigit()), 14)
         feedback(n, [member(x)[0] for x in a[1:] if not x.isdigit()] or None)
+    elif a and a[0] == 'backs': backs([member(x)[0] for x in a[1:]] or None)
     elif a and a[0] == 'rules': rules(a[1] if len(a) > 1 else None)
     elif a and a[0] == 'asks': asks(a[1] if len(a) > 1 else None)
     elif a and a[0] == 'numbers': numbers()

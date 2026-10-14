@@ -23,8 +23,8 @@ import { parseMentions, smsTarget, smsOpen, smsDue, smsText } from "./mention.js
 import { flowOwners } from "./flow.js";
 import { sumAk, akWrite, countFields, countOf, baseTitle } from "./routine.js";
 import { linkInbox } from "./links.js";
-import { askInbox, planPass, planBack, planRet, planDrop, planExec, canAct, canBack, canRet, pickOk, bossLoop } from "./aiask.js";   // AI 승인 (2026-10-12)
-import { mateOf, brandL } from "../../marketing-hub/crew.js";
+import { askInbox, asideInbox, planPass, planBack, planRet, planDrop, planExec, canAct, canBack, canRet, pickOk, bossLoop, moreText, MORE_MAX } from "./aiask.js";   // AI 승인 (2026-10-12) · Aside 담당 PC (2026-10-15)
+import { mateOf, brandL, qtyDefs } from "../../marketing-hub/crew.js";
 import { lagInbox, applyKpiOv, kpiEditWrite, newKpiId } from "./kpi2.js";
 import { dayIdFx, dayIdAk, openIdAk, dayBase, dayAdd, dayFix, roundTap, qtyToGoal, akSubsOf } from "./rec.js";
 import { akQidOfWeek, akWeekKey } from "../../pour-os/src/actionKpi.js";
@@ -47,7 +47,7 @@ export const liveNotes = (arr, D) => { const live = new Set(((D && D.notes) || [
 // ───────────────── 데이터 구독 ─────────────────
 // on: 사람 목록만(로그인 화면) · full: 로그인 뒤 나머지 전부 (로그인 전엔 업무·기록을 읽지 않음 — 정밀 검토 2026-10-06 · 읽기 비용)
 export function useData(on, full = true) {
-  const [S, setS] = useState({ users: null, projects: null, openT: null, doneT: [], notes: [], log: [], events: [], brands: [], workflows: [], mainKPIs: [], subKPIs: [], settings: [], akDef: undefined, akV1: undefined, akV2: [], links: [], lagDef: undefined, lagV2: [], kpisales: undefined, kpiOv: [], templates: undefined, aiOpen: [], aiRecent: [], aimates: undefined });
+  const [S, setS] = useState({ users: null, projects: null, openT: null, doneT: [], notes: [], log: [], events: [], brands: [], workflows: [], mainKPIs: [], subKPIs: [], settings: [], akDef: undefined, akV1: undefined, akV2: [], links: [], lagDef: undefined, lagV2: [], kpisales: undefined, kpiOv: [], templates: undefined, aiOpen: [], aiRecent: [], aimates: undefined, aiboards: [] });
   // 이번 분기 — 켜 둔 채 날이 바뀌어도 따라감(1분마다 · 화면 다시 볼 때)
   const [akQ, setAkQ] = useState(() => akQidOfWeek(akWeekKey(new Date())));
   const [dayK, setDayK] = useState(() => ymd(new Date()));   // 오늘 (하루 기록 구독 · 날이 바뀌면 따라감)
@@ -95,6 +95,8 @@ export function useData(on, full = true) {
       fb.listen("aiasks", ["state", "in", ["wait", "back"]], put("aiOpen"), (e) => console.warn("[v2] AI 승인 못 읽음:", e)),
       fb.listen("aiasks", ["updatedAt", ">=", since14], put("aiRecent"), (e) => console.warn("[v2] AI 승인(최근) 못 읽음:", e)),
       fb.listen("aimates", null, put("aimates"), (e) => { console.warn("[v2] AI 팀원 설정 못 읽음:", e); setS((s) => ({ ...s, aimates: [] })); }),
+      // 크루 보드 값(aiboards · 보드 6개 · 허브 crew.html 이 씀) — 마지막 올린 때 → '내 PC Aside 세팅' · '오늘 안 돎' (2026-10-15)
+      fb.listen("aiboards", null, put("aiboards"), (e) => console.warn("[v2] AI 크루 보드 값 못 읽음:", e)),
     ];
     return () => subs.forEach((u) => u && u());
   }, [on, full]);
@@ -132,7 +134,7 @@ export function useData(on, full = true) {
       loaded: !!S.users && S.openT !== null && S.projects !== null, salesReady: S.kpisales !== undefined,
       // AI 승인(2026-10-12): asks = 열린 것 + 최근 7일(같은 id 는 열린 쪽) · mates = AI 팀원 덧칠 {id: 문서} · aiInbox = '확인할 것' 줄(model.todayView 가 부름 · 순환 import 피하려고 D 로)
       ai: (() => { const m = new Map(); (S.aiRecent || []).forEach((x) => m.set(x.id, x)); (S.aiOpen || []).forEach((x) => m.set(x.id, x));
-        return { asks: [...m.values()], mates: Object.fromEntries((S.aimates || []).map((x) => [x.id || x._doc, x])), ready: S.aimates !== undefined }; })(), aiInbox: askInbox };
+        return { asks: [...m.values()], mates: Object.fromEntries((S.aimates || []).map((x) => [x.id || x._doc, x])), boards: Object.fromEntries((S.aiboards || []).map((x) => [x.id || x._doc, x])), ready: S.aimates !== undefined }; })(), aiInbox: askInbox, asideInbox };
   }, [S, akQ, dayK]);
   return [D, err];
 }
@@ -601,10 +603,14 @@ export function useActs(D, cu, setToast, idx = null) {
       }
       return r;
     },
-    aiBack: async (a, text) => {
-      const t = String(text || "").trim(); if (!t) { setToast({ text: "무엇을 고치면 될지 한 줄 써 주세요" }); return false; }
+    // more = 더 만들기 n개(2026-10-15 · 지금 것 그대로 + n개 · 글은 없어도 됨) · 알림: Aside 크루 = 내 PC Aside 에 '바로 고치기' 글 · 여름 노트 = 한 시간 안에(평일 10~17시 확인 루틴)
+    aiBack: async (a, text, more) => {
+      const n = Math.max(0, Math.min(MORE_MAX, Math.round(Number(more) || 0))), t0 = String(text || "").trim(), t = n ? moreText(n, t0) : t0;
+      if (!t) { setToast({ text: "무엇을 고치면 될지 한 줄 써 주세요" }); return false; }
       if (!canBack(a, cu)) { setToast({ text: "AI에게 다시 보내기는 담당 단계에서만 해요" }); return false; }
-      return aiWrite(a, planBack(a, cu, t, nowIso()), "aiBack", `${a.mateName || "AI"}에게 다시 · ${t.slice(0, 40)}`, `${a.mateName || "AI"}에게 다시 보냈어요 · 다음 실행 때 고쳐서 올려요`);
+      const nm = a.mateName || "AI", what = n ? `${nm}에게 ${n}개 더 만들어 달라고 했어요` : `${nm}에게 다시 보냈어요`;
+      const done = a.board ? `${what} · 내 PC Aside 에 [바로 고치기] 글을 붙여 넣으면 바로 고쳐 올려요` : `${what} · 평일 10~17시엔 한 시간 안에 고쳐 올려요`;
+      return aiWrite(a, planBack(a, cu, t, nowIso(), n), "aiBack", `${nm}에게 ${n ? `더 만들기 ${n}개` : "다시"} · ${t.slice(0, 40)}`, done);
     },
     aiRet: async (a, text) => {
       const t = String(text || "").trim(); if (!t) { setToast({ text: "무엇을 고치면 될지 한 줄 써 주세요" }); return false; }
@@ -631,6 +637,22 @@ export function useActs(D, cu, setToast, idx = null) {
       if (moves.length) { try { moved = (await fb.patchManyIf(moves.map((x) => ({ key: "aiasks", id: x.id, expect: { state: x.state, to: x.to || "", step: x.step || 0 }, fields: { ...(x.state === "wait" ? { to: uid || "" } : {}), owner: uid || "", updatedAt: at } })))).done; } catch (e) { console.error("[v2] 열린 승인 옮기기 실패:", e); } }
       log("aiOwner", { col: "aimates", targetId: mateId, label: `${m.name} · 담당${k === "_" ? "" : ` (${brandL(k)})`} ${nameOf(D.users, was) || "미정"} → ${nameOf(D.users, uid) || "미정"}${moved ? ` · 열린 승인 ${moved}건 같이` : ""}` });
       setToast({ text: `${m.name} 담당${k === "_" ? "" : `(${brandL(k)})`} = ${nameOf(D.users, uid) || "미정(관리자 누구나)"}${moved ? ` · 열린 승인 ${moved}건도 넘겼어요` : ""}` });
+      return true;
+    },
+    // 횟수(2026-10-15 사장님 "횟수 조절을 사람팀원이하면 더 추가해서 생성가능하게") — 담당·관리자 · aimates.qty.<열쇠> = {n, at, by, byName} (기본과 같으면 n null)
+    //   AI 가 다음 실행부터 읽음: Aside 크루 = crew.html 오늘 지시문 '이번 몫' · 여름 아침 루틴 = team_link.py feedback '■ 횟수' · 5초 되돌리기
+    mateQty: async (mateId, key, n) => {
+      const doc = D.ai.mates[mateId] || {}, m = mateOf(mateId) || { name: mateId };
+      if (!isMaster(cu) && !Object.values(doc.owners || {}).includes(cu.id)) { setToast({ text: "횟수는 그 AI 담당·관리자가 정해요" }); return false; }
+      const q = qtyDefs(mateId).find((x) => x.key === key); if (!q) return false;
+      const want = Math.max(1, Math.min(200, Math.round(Number(n) || q.n))), v = want === q.n ? null : want, at = nowIso(); let was = null;
+      try { await fb.txDoc("aimates", mateId, (cur) => { was = ((cur && cur.qty) || {})[key] || null; if (((was && was.n) || null) === v) return {};
+          const val = { n: v, at, by: cu.id, byName: cu.name }, h = { at, by: cu.id, byName: cu.name, ch: { ["qty." + key]: [(was && was.n) || null, v] } };
+          return { write: cur ? { ["qty." + key]: val, updatedAt: at, hist: fb.arrayUnion(h) } : { owners: {}, rules: [], qty: { [key]: val }, updatedAt: at, hist: [h] } }; }); }
+      catch (e) { fail("횟수")(e); return false; }
+      const before = (was && was.n) || q.n;
+      log("aiQty", { col: "aimates", targetId: mateId, label: `${m.name} · ${q.l} ${before} → ${want}${q.u}` });
+      setToast({ text: `${m.name} · ${q.l} ${want}${q.u} · 다음 실행부터`, undo: () => A.mateQty(mateId, key, before) });
       return true;
     },
     // 확정 규칙(고도화): 담당·관리자가 더함 → AI 가 실행 전마다 읽음(team_link.py rules) · 지우지 않고 끄기만

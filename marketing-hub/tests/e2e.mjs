@@ -184,7 +184,7 @@ for(const w of [1280,768,375]){
     check('AI 팀: 팀원 15(여름 + 14 · 하루·포리·에코 없음) · 여름 승인 대기(남윤정 차례) · 예전 검토 줄 1',tm.includes('팀원 15')&&tm.includes('가동 1')&&JSON.stringify((await p.$$eval('.team-grid details.tm summary .h > b',x=>x.map(y=>y.textContent))).filter(n=>['여름','하루','포리','에코'].includes(n)))==='["여름"]'&&(await p.$eval('.team-grid details.tm summary .h > b',x=>x.textContent))==='여름'&&tm.includes('여름 · 블로그 원고 3')&&tm.includes('남윤정 차례')&&!tm.includes('9999')&&tm.includes('예전 검토 줄 1')&&!!(await p.$(`main a[href$="os2.html#a-${AID}"]`)));
     // ⏰ 자동 작업 — 카테고리 · 걸어 둔 것/계획 (2026-10-12)
     const ac=await p.textContent('#auto-card');
-    check('자동 작업: 동작 중·준비 중·계획 · AI 콘텐츠 아침(여름) · 크루 Aside 6 (2026-10-14)',/동작 중 4 · 준비 중 10 · 계획 \d+/.test(ac)&&ac.includes('AI 콘텐츠 아침 (여름 · B2C 크루)')&&ac.includes('평일 06:50')&&ac.includes('AI 크루 · 가을 (유입 보드)')&&ac.includes('평일 15:00')&&/Aside \(회사 PC\)\s*하늘/.test(ac));
+    check('자동 작업: 동작 중·준비 중·계획 · AI 콘텐츠 아침(여름) · 크루 Aside 6 = 담당 PC 평일 09:00 (2026-10-15)',/동작 중 4 · 준비 중 10 · 계획 \d+/.test(ac)&&ac.includes('AI 콘텐츠 아침 (여름 · B2C 크루)')&&ac.includes('평일 06:50')&&ac.includes('AI 크루 · 가을 (유입 보드)')&&ac.includes('평일 09:00')&&!ac.includes('평일 15:00')&&/Aside \(담당 PC\)\s*하늘/.test(ac)&&/Aside \(회사 PC\)/.test(ac));   // 크루 = 담당 PC · 리포트 올리기·임시저장 = 회사 PC 그대로
     await p.click('#auto-card [data-autocat="data"]');await p.waitForTimeout(100);
     const dn=await p.$$eval('#auto-card .row.auto b',a=>a.map(x=>x.textContent));
     check('자동 작업: 숫자·데이터만 (오늘 숫자 · 사용량 · 리포트 올리기)',dn.length===3&&dn.includes('오늘 숫자 만들기')&&dn.includes('광고·판매·재고 리포트 올리기'));
@@ -291,7 +291,8 @@ for(const w of [1280,768,375]){
 
 // 5-4) Aside: AI 크루 결과 올리기 (crew.html) → 업무OS AI 승인 + 보드 지표 (2026-10-12) — 원가·마진 칸·번호는 안 올라감
 await putDoc('pour-os/v2/users/u_sy',{id:'u_sy',name:'김송희'});
-await putDoc('pour-os/v2/aimates/gyeoul',{id:'gyeoul',owners:{grohome:'u_sy'},rules:[{id:'r1',text:'쿠폰은 15%를 넘기지 않는다'},{id:'r2',text:'끈 규칙',off:{at:'x'}}]});
+await putDoc('pour-os/v2/aimates/gyeoul',{id:'gyeoul',owners:{grohome:'u_sy'},rules:[{id:'r1',text:'쿠폰은 15%를 넘기지 않는다'},{id:'r2',text:'끈 규칙',off:{at:'x'}}],qty:{B:{n:5,at:'2026-10-15T00:00:00.000Z',by:'u_sy',byName:'김송희'}}});
+await putDoc('pour-os/v2/aimates/uju',{id:'uju',owners:{_:'u_sy'}});   // 김송희 PC = 겨울 09:00 · 우주 10:00 (2026-10-15 담당마다 자기 PC)
 const CT='[지표]\ncv_mall\t7.4\nsoldout\t2\n모르는키\t5\n[상태]\nA: 롤러일체형 재입고 확인 중\n[A]\n요약: 품절 2개 — 재입고 알림 준비\n상품\t채널\t가용재고\t7일 판매\t소진 예상일\t할 일\t마진\n롤러일체형\t자사몰\t0\t12\t-\t재입고 알림 010-1234-5678 문의 고객\t30%\n페인트 1L\t쿠팡\t3\t20\t10/14\t상세 품절 안내\t25%\n';
 const CAID=`ai_gyeoul_${today.replace(/-/g,'')}_ghconvA`; // crew.js askId(mate, run, 보드id+행동)
 for(const cw of [375,768,1280]){
@@ -299,15 +300,21 @@ for(const cw of [375,768,1280]){
   await q.fill('#login-email','aside-upload@example.com');await q.fill('#login-password',pw);await q.click('#login-button');
   await q.waitForFunction(()=>/김송희/.test(document.querySelector('#crew-who').textContent));
   if(cw===375){
-    await q.waitForFunction(()=>document.querySelectorAll('#setup-list .srow').length===6);
-    check('크루 세팅 카드: 닫힘 · 6줄 시각 순(가을 09:00 → 하늘 15:00) · 겨울 담당 김송희 · 나머지 미정 · 로그인 11곳',!(await q.$eval('#crew-setup',e=>e.open))&&
-      JSON.stringify(await q.$$eval('#setup-list .srow .t',a=>a.map(x=>x.textContent)))==='["09:00","10:00","11:00","13:00","14:00","15:00"]'&&(await q.textContent('#setup-list .srow:nth-child(1)')).includes('가을')&&
-      (await q.textContent('#setup-list .srow:nth-child(2)')).includes('담당 김송희')&&(await q.textContent('#setup-list .srow:nth-child(1)')).includes('담당 미정')&&(await q.$$('#setup-logins .li')).length===13&&(await q.textContent('#setup-sum')).includes('담당 미정 5'));
-    await q.click('#crew-setup summary');await q.context().grantPermissions(['clipboard-read','clipboard-write'],{origin:BASE});await q.click('#copy-launch-gh-traffic');
-    const lt=await q.evaluate(()=>navigator.clipboard.readText().catch(()=>''))||await q.$eval('textarea.copybox',e=>e.value).catch(()=>'');
-    check('크루 세팅: 가을 예약 글 = 짧게 · 화면 지시문을 그대로 · 주소',lt.startsWith('[AI 크루 · 가을 (유입마케터)')&&lt.includes('crew.html#gh-traffic')&&lt.includes("'오늘 지시문'")&&lt.length<700);
+    await q.waitForFunction(()=>document.querySelectorAll('#setup-groups .grp .srow').length===6);
+    const gs=await q.$$eval('#setup-groups .grp',a=>a.map(g=>({o:g.dataset.owner,h:g.querySelector('h3').textContent,t:[...g.querySelectorAll('.srow .t')].map(x=>x.textContent),n:[...g.querySelectorAll('.srow .m > b')].map(x=>x.textContent),fix:!!g.querySelector('[data-fix]'),login:/로그인해 둘 곳 \d+곳/.test(g.textContent)})));
+    if(process.env.DBG)log('   groups',JSON.stringify(gs));
+    check('크루 세팅 카드: 닫힘 · 담당 PC 묶음 = 김송희 PC(겨울 09:00 · 우주 10:00) + 담당 미정 관리자 PC(가을·봄·여름·하늘 09~12시) · 묶음마다 로그인·고칠 것 확인',
+      !(await q.$eval('#crew-setup',e=>e.open))&&gs.length===2&&gs[0].o==='u_sy'&&gs[0].h.includes('김송희 PC · 2명')&&gs[0].h.includes('평일 09:00~10:00')&&JSON.stringify(gs[0].t)==='["09:00","10:00"]'&&JSON.stringify(gs[0].n)==='["겨울","우주"]'&&
+      gs[1].o==='-'&&gs[1].h.includes('담당 미정 · 관리자 PC 한 곳 · 4명')&&JSON.stringify(gs[1].t)==='["09:00","10:00","11:00","12:00"]'&&JSON.stringify(gs[1].n)==='["가을","봄","여름","하늘"]'&&gs.every(g=>g.fix&&g.login)&&
+      (await q.textContent('#setup-sum')).includes('담당 1명 PC 에서 동시에')&&(await q.textContent('#setup-sum')).includes('담당 미정 4'));
+    await q.click('#crew-setup summary');await q.context().grantPermissions(['clipboard-read','clipboard-write'],{origin:BASE});
+    const clip=async(sel)=>{await q.click(sel);await q.waitForTimeout(100);return await q.evaluate(()=>navigator.clipboard.readText().catch(()=>''))||await q.$eval(sel,b=>{const x=b.closest('.srow,.btns'),n=x&&x.nextElementSibling;return n&&n.classList.contains('copybox')?n.value:'';});};
+    const lt=await clip('#copy-launch-gh-traffic'), lr=await clip('#copy-launch-gh-rep'), lf=await clip('#copy-fix-0');
+    check('크루 세팅: 예약 글 = 짧게 · 화면 지시문 그대로 · 그 PC 시각(가을 09:00 · 우주 10:00)',lt.startsWith('[AI 크루 · 가을 (유입마케터)')&&lt.split('\n')[0].endsWith('평일 09:00')&&lt.includes('crew.html#gh-traffic')&&lt.includes("'오늘 지시문'")&&lt.length<700&&lr.split('\n')[0].endsWith('평일 10:00'));
+    check('크루 세팅: 고칠 것 확인 글 = 김송희 PC 보드만',lf.startsWith('[AI 크루 · 고칠 것만 확인 — 겨울 · 우주]')&&lf.includes('crew.html#gh-conv')&&lf.includes('crew.html#gh-rep')&&!lf.includes('#gh-traffic'));
     await q.screenshot({path:`${OUT}/crew-setup-375.png`,fullPage:true});
-    check('크루 오늘 지시문: 펼침 · 겨울 · 평일 10:00 · 판 · 먼저 할 것',await q.$eval('#crew-guide-box',e=>e.open)&&(await q.textContent('#crew-guide-head')).includes('겨울 · 전환 보드 · 평일 10:00 · 판 2026-10-14')&&(await q.textContent('#crew-guide')).includes('■ 0. 먼저')&&(await q.textContent('#crew-last')).includes('없음'));
+    const gd=await q.textContent('#crew-guide');
+    check('크루 오늘 지시문: 펼침 · 겨울 · 판 · 먼저 할 것 · 이번 몫 = 담당이 정한 수',await q.$eval('#crew-guide-box',e=>e.open)&&(await q.textContent('#crew-guide-head')).includes('겨울 · 전환 보드 · 판 2026-10-15')&&gd.includes('■ 0. 먼저')&&gd.includes('이번 몫: 옵션안 5개 (담당이 정함 · 기본 3개)')&&gd.includes('이번 몫: 진단할 히어로 상품 4개 —')&&(await q.textContent('#crew-last')).includes('없음'));
     check('크루: 겨울 보드 · 담당 김송희 · 켠 규칙만',(await q.inputValue('#crew-board'))==='gh-conv'&&(await q.textContent('#crew-rules')).includes('쿠폰은 15%')&&!(await q.textContent('#crew-rules')).includes('끈 규칙'));
     await q.fill('#crew-date',today);await q.fill('#crew-text',CT);await q.click('#preview-button');
     const pv=await q.textContent('#preview'), ths=await q.$$eval('#preview th',a=>a.map(x=>x.textContent));
@@ -317,23 +324,28 @@ for(const cw of [375,768,1280]){
     const ca=await getDoc('pour-os/v2/aiasks/'+CAID), cb=await getDoc('pour-os/v2/aiboards/gh-conv');
     if(process.env.DBG)log('   ask',JSON.stringify(ca).slice(0,1500),'\n   board',JSON.stringify(cb).slice(0,600),'\n   msg',await q.textContent('#status-message'));
     check('크루 올리기 → 승인 1건(김송희 차례 · b2c · 번호 2 · 실행 한 줄) · 보드 지표',!!ca&&ca.crew.stringValue==='b2c'&&ca.to.stringValue==='u_sy'&&ca.state.stringValue==='wait'&&ca.items.arrayValue.values.length===2&&!JSON.stringify(ca).includes('1234-5678')&&!JSON.stringify(ca.cols).includes('마진')&&!JSON.stringify(ca).includes('30%')&&/담당이/.test(ca.exec.stringValue)&&!!cb&&Number(cb.metrics.mapValue.fields.cv_mall.mapValue.fields.v.doubleValue)===7.4);
-    // 담당이 'AI 에게 다시' → Aside 화면에 고칠 것 → 같은 날짜로 다시 붙여 넣으면 2번째 판
-    await putDoc('pour-os/v2/aiasks/'+CAID,{state:'back',to:'',back:{text:'소진 예상일을 날짜로',byName:'김송희'}},['state','to','back']);
+    // 담당이 'AI 에게 다시' + 더 만들기 1개 → Aside 화면에 고칠 것 → [이전 판 불러오기] = 날짜 + 그 판의 표 → 줄을 더해 다시 올리면 2번째 판(번호 이어서)
+    await putDoc('pour-os/v2/aiasks/'+CAID,{state:'back',to:'',back:{text:'지금 것은 그대로 두고 1개 더 만들어 주세요 · 소진 예상일을 날짜로',byName:'김송희',more:1}},['state','to','back']);
     await q.reload();await q.waitForFunction(()=>/고쳐서 다시 올릴 것 1건/.test(document.querySelector('#crew-redo').textContent));
-    check('크루: 고쳐서 다시 올릴 것 · 돌려받은 말',(await q.textContent('#crew-redo')).includes('소진 예상일을 날짜로'));
+    check('크루: 고쳐서 다시 올릴 것 · 돌려받은 말 · 더 만들기 1개',(await q.textContent('#crew-redo')).includes('소진 예상일을 날짜로')&&(await q.textContent('#crew-redo')).includes('더 만들기 1개'));
     check('크루: 할 일별 최근 올림 = A 오늘 · AI에게 다시',(await q.textContent('#crew-last')).includes(`A ${today.slice(5).replace('-','/')} · AI에게 다시`));
-    await q.fill('#crew-date','2026-01-02');await q.click('#redo-date-0');
-    check('크루: [날짜 맞추기] → 그 건의 날짜',(await q.inputValue('#crew-date'))===today);await q.fill('#crew-text',CT.replace('\t-\t','\t10/20\t'));await q.click('#save-button');
+    await q.fill('#crew-date','2026-01-02');await q.fill('#crew-text','');await q.click('#redo-load-0');
+    const lv=await q.inputValue('#crew-text');
+    check('크루: [이전 판 불러오기] → 그 건의 날짜 + 그 판의 표(번호 그대로 · 가린 번호 그대로 · 마진 칸 없음)',(await q.inputValue('#crew-date'))===today&&lv.startsWith('[A]\n요약: 품절 2개')&&lv.includes('\nA1\t롤러일체형')&&lv.includes('\nA2\t페인트 1L')&&lv.includes('010-****-****')&&!lv.includes('마진')&&!lv.includes('30%')&&(await q.textContent('#redo-load-0'))==='✓ 불러옴');
+    await q.screenshot({path:`${OUT}/crew-redo-375.png`,fullPage:true});
+    await q.fill('#crew-text',lv.replace('\t-\t','\t10/20\t')+'\n\t붓 세트\t쿠팡\t5\t8\t10/30\t상세 확인');await q.click('#save-button');
     await q.waitForFunction(()=>/고쳐서 다시 1건/.test(document.querySelector('#status-message').textContent));
-    const c2=await getDoc('pour-os/v2/aiasks/'+CAID);
-    check('크루 다시 올림 → 2번째 판 · 김송희 차례 · 기록 ask→redo',c2.ver.integerValue==='2'&&c2.state.stringValue==='wait'&&c2.to.stringValue==='u_sy'&&c2.log.arrayValue.values.map(v=>v.mapValue.fields.act.stringValue).join()==='ask,redo'&&JSON.stringify(c2.items).includes('10/20'));
+    const c2=await getDoc('pour-os/v2/aiasks/'+CAID), n2=c2.items.arrayValue.values.map(v=>v.mapValue.fields.n.stringValue);
+    if(process.env.DBG)log('   redo',JSON.stringify(n2),JSON.stringify(c2.items).slice(0,600));
+    check('크루 다시 올림 → 2번째 판 · 김송희 차례 · 기록 ask→redo · 번호 이어서(A1·A2 그대로 + A3)',c2.ver.integerValue==='2'&&c2.state.stringValue==='wait'&&c2.to.stringValue==='u_sy'&&c2.log.arrayValue.values.map(v=>v.mapValue.fields.act.stringValue).join()==='ask,redo'&&JSON.stringify(c2.items).includes('10/20')&&JSON.stringify(n2)==='["A1","A2","A3"]'&&JSON.stringify(c2.items).includes('붓 세트'));
     // 위로 올라간 뒤엔 그대로
     await putDoc('pour-os/v2/aiasks/'+CAID,{to:'u_x',step:1},['to','step']);
     await q.click('#save-button');await q.waitForFunction(()=>/그대로 둔 것/.test(document.querySelector('#status-message').textContent));
     check('크루: 위로 올라간 건 그대로 (날짜 바꾸라는 안내)',(await getDoc('pour-os/v2/aiasks/'+CAID)).ver.integerValue==='2'&&(await q.textContent('#status-message')).includes('위로 올라감'));
     // 세팅 카드 '마지막 올림' · 보드 › = 주소 #보드 → 그 보드 지시문
-    await q.reload();await q.waitForFunction(()=>/마지막 올림/.test((document.querySelector('#setup-list .srow:nth-child(2)')||{}).textContent||''));
-    await q.click('#crew-setup summary');await q.click('#setup-list .srow:nth-child(1) a');
+    await q.reload();await q.waitForFunction(()=>/마지막 올림/.test((document.querySelector('#setup-groups .grp:nth-child(1) .srow:nth-child(1)')||{}).textContent||''));
+    check('크루 세팅: 올린 보드만 마지막 올림 (겨울) · 나머지 아직',(await q.textContent('#setup-groups .grp:nth-child(1) .srow:nth-child(2)')).includes('아직 안 올림'));
+    await q.click('#crew-setup summary');await q.click('#setup-groups .grp:nth-child(2) .srow:nth-child(1) a');
     await q.waitForFunction(()=>/가을 · 유입 보드/.test(document.querySelector('#crew-guide-head').textContent));
     check('크루 세팅: [보드 ›] → 가을 보드 · 지시문 · 고칠 것 없음',(await q.inputValue('#crew-board'))==='gh-traffic'&&(await q.textContent('#crew-guide')).includes('너는 그로홈 · POUR스토어 B2C 크루의 유입마케터 AI \'가을\'')&&(await q.textContent('#crew-redo'))==='');
   }

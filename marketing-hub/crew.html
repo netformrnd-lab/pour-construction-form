@@ -18,7 +18,10 @@
   · Aside 루틴 (2026-10-14 사장님 "모든 크루들의 행위들 모두 가능하게 세팅해줘"):
       보드 하나 = Aside 예약 작업 하나 (평일 · 시각 = crew.js BOARDS run) · 예약 글(asideLaunch)은 짧게 '이 화면 지시문을 그대로' →
       '오늘 지시문'(asideText · 판 ASIDE_VER)을 고쳐도 예약은 다시 안 넣어도 됨 · 맨 위 'Aside 예약 6개 세팅'(#crew-setup) = 시각·담당·마지막 올림·[예약 글 복사]·로그인해 둘 곳
-      '할 일별 최근 올림'(#crew-last) = 월 1회·1회 같은 할 일을 이미 했는지 보는 곳 · '고쳐서 다시 올릴 것' 줄마다 [날짜 맞추기]
+      '할 일별 최근 올림'(#crew-last) = 월 1회·1회 같은 할 일을 이미 했는지 보는 곳 · '고쳐서 다시 올릴 것' 줄마다 [이전 판 불러오기](#redo-load-n · 날짜 + 그 판의 표)
+  · 담당마다 자기 PC (2026-10-15 사장님 "사람 담당자들 모두 어사이드 돌릴 수 있어. 각각 돌려서 빨리"): 세팅 카드 = 담당별 묶음(crew.asidePlan · 담당이 다르면 동시에 09:00 · 같은 PC 여럿이면 한 시간씩)
+      묶음마다 크루 줄([예약 글 복사] · 시각) · 그 PC 로그인해 둘 곳 · [고칠 것 확인 글 복사](#copy-fix-<n> · 평일 한 시간마다 걸면 업무OS [AI에게 다시]·[더 만들기]가 한 시간 안에 반영)
+  · 횟수(2026-10-15 "횟수 조절을 사람팀원이하면 더 추가해서 생성가능하게"): 오늘 지시문 '이번 몫' = aimates.qty(업무OS AI 팀원 한 장에서 담당이 정함) · 더 만들기 = 고쳐서 다시 올릴 것(back.more)
 -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -82,6 +85,10 @@ details.card>summary::-webkit-details-marker,#crew-guide-box>summary::-webkit-de
 .lastrow{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px}
 .lastrow span{font-size:12.5px;background:#F3F4F6;border-radius:6px;padding:4px 8px;color:var(--text-md)}
 .lastrow span b{color:var(--navy)}
+.grp{border:1px solid var(--border);border-radius:var(--r-sm);padding:12px;margin:0 0 12px}
+.grp h3{font-size:14px;margin:0 0 8px;color:var(--navy)}
+.grp .list{margin-bottom:8px}
+.grp.none{background:#FAFAFB}
 textarea.copybox{min-height:120px;margin-top:8px}
 @media (max-width:700px){main{padding:12px}.row2{grid-template-columns:1fr}.card{padding:14px}}
 @media (max-width:420px){header .who{display:none}}
@@ -104,17 +111,15 @@ textarea.copybox{min-height:120px;margin-top:8px}
 
   <section id="crew-section" hidden>
     <p id="status-message" role="status" aria-live="polite"></p>
-    <details class="card" id="crew-setup"><summary><h2 style="margin:0">Aside 예약 6개 세팅 (사람용 · 처음 한 번 · Aside 는 건너뜀) <span class="hint" id="setup-sum" style="font-weight:600"></span></h2></summary>
+    <details class="card" id="crew-setup"><summary><h2 style="margin:0">Aside 세팅 — 담당마다 자기 PC (사람용 · 처음 한 번 · Aside 는 건너뜀) <span class="hint" id="setup-sum" style="font-weight:600"></span></h2></summary>
       <ol class="steps">
-        <li>회사 PC Aside 브라우저에서 아래 <b>로그인해 둘 곳</b>에 한 번씩 로그인해 두기 (로그인 유지 · 비밀번호는 Aside 에게 알려 주지 않아요)</li>
-        <li>Aside 에서 예약 작업 6개 만들기 — 줄마다 [예약 글 복사] → 새 예약 작업에 붙여 넣기 · 반복 <b>평일(월~금)</b> · 시각은 줄에 적힌 대로</li>
-        <li>업무OS 관리자 › AI 팀원 › [담당 한꺼번에 정하기]에서 크루마다 담당 정하기 (안 정하면 관리자 누구나 승인)</li>
-        <li>다음 날 업무OS '확인할 것'에 'AI 승인 요청'이 오면 끝 · 지시문을 고쳐도 예약은 다시 안 넣어도 돼요 (예약 글이 이 화면 지시문을 읽어요)</li>
+        <li>업무OS 관리자 › AI 팀원 › [담당 한꺼번에 정하기]에서 크루마다 담당 정하기 → 아래가 담당별 PC 로 나뉘고, 담당 업무OS '확인할 것'에 세팅 안내가 가요</li>
+        <li>담당은 자기 PC Aside 브라우저에서 이 화면에 로그인(업로더 계정 · 없으면 관리자에게) + 내 묶음의 <b>로그인해 둘 곳</b>에 로그인 (로그인 유지 · 비밀번호는 Aside 에게 알려 주지 않아요)</li>
+        <li>내 크루마다 [예약 글 복사] → Aside 새 예약 작업에 붙여 넣기 · 반복 <b>평일(월~금)</b> · 시각은 줄에 적힌 대로 — 담당이 다르면 모두 동시에 돌아서 빨라요 · 지금 바로 돌리려면 Aside 에 그냥 붙여 넣기</li>
+        <li>(권장) [고칠 것 확인 글 복사] → Aside 예약 <b>평일 한 시간마다</b> — 업무OS에서 [AI에게 다시]·[더 만들기]를 누르면 한 시간 안에 고쳐 올려요 (바로 하려면 그 글을 지금 붙여 넣기)</li>
       </ol>
-      <div class="list" id="setup-list"></div>
-      <h2 style="margin:14px 0 8px">로그인해 둘 곳</h2>
-      <div class="list" id="setup-logins"></div>
-      <div class="hint">실행(가격·광고·쿠폰·발송·게시·상세·등록)은 Aside 가 하지 않아요 — 업무OS 승인 뒤 담당이 해요</div>
+      <div id="setup-groups"></div>
+      <div class="hint">실행(가격·광고·쿠폰·발송·게시·상세·등록)은 Aside 가 하지 않아요 — 업무OS 승인 뒤 담당이 해요 · 지시문을 고쳐도 예약은 다시 안 넣어도 돼요 (예약 글이 이 화면 지시문을 읽어요)</div>
     </details>
     <div class="card">
       <div class="row2">
@@ -180,55 +185,66 @@ function setMsg(kind,html){const m=$('status-message');m.className=kind;m.innerH
 
 // 이 AI 의 담당 · 확정 규칙 · 'AI 에게 다시' 돌려받은 것 (Aside 가 올리기 전에 읽음)
 async function loadMate(){
-  const b=board(), m=mate(); $('crew-guide').textContent=K.asideText(b);
-  $('crew-guide-head').textContent=`오늘 지시문 — ${m.name} · ${b.title}${b.run?' · '+K.runWord(b.run):''} · 판 ${K.ASIDE_VER}`; $('crew-last').innerHTML='';
+  const b=board(), m=mate(); mateDoc=null; $('crew-guide').textContent=K.asideText(b);
+  $('crew-guide-head').textContent=`오늘 지시문 — ${m.name} · ${b.title} · 판 ${K.ASIDE_VER}`; $('crew-last').innerHTML='';
   try{
     const [md,back]=await Promise.all([V2().collection('aimates').doc(m.id).get(),V2().collection('aiasks').where('mate','==',m.id).get()]);
-    mateDoc=md.exists?md.data():null;
+    mateDoc=md.exists?md.data():null; $('crew-guide').textContent=K.asideText(b,{qty:mateDoc&&mateDoc.qty});   // 이번 몫 = 담당이 정한 횟수
     const oid=K.ownerFor(mateDoc,b.brand); if(oid&&!users[oid]){const ud=await V2().collection('users').doc(oid).get();users[oid]=ud.exists?{name:ud.data().name||'',active:ud.data().active}:null;}
     const owner=ownerId(), on=(mateDoc&&mateDoc.rules||[]).filter(r=>!r.off);
-    const mine=back.docs.map(d=>d.data()).filter(a=>a.board===b.id), backs=mine.filter(a=>a.state==='back');
+    const mine=back.docs.map(d=>d.data()).filter(a=>a.board===b.id), backs=mine.filter(a=>a.state==='back'); BACKS=backs;
     $('crew-last').innerHTML=`<div class="hint" style="margin:0 0 4px">할 일별 최근 올림 (월 1회·1회 같은 할 일은 이걸 보고 이미 했는지 판단)</div><div class="lastrow">${b.actions.filter(a=>!a.admin).map(a=>{const l=mine.filter(x=>x.act===a.c).sort((p,q)=>String(q.createdAt||'').localeCompare(String(p.createdAt||'')))[0];
       return `<span><b>${esc(a.c)}</b> ${l?`${esc(String(l.run||'').slice(5).replace('-','/'))} · ${esc(stateL(l))}`:'없음'}</span>`;}).join('')}</div>`;
     console.log(`[aimates/${m.id}] ${mateDoc?'있음':'없음'} · 규칙 ${on.length} · 돌려받은 것 ${backs.length}`);
     $('crew-who').innerHTML=`승인 길: <b>${esc(m.name)}(AI)</b> → ${owner?`<b>${esc(nameOf(owner))}</b>(담당)`:'<b>담당 미정</b> — 관리자 누구나'} → 상급자 순서 · ${esc(K.brandL(b.brand))}`;
     $('crew-rules').innerHTML=on.length?`<div class="warn">확정 규칙 ${on.length}개 — 꼭 지켜 주세요<br>${on.map(r=>'· '+esc(r.text)).join('<br>')}</div>`:'';
-    $('crew-redo').innerHTML=backs.length?`<div class="warn">고쳐서 다시 올릴 것 ${backs.length}건 — [날짜 맞추기] 뒤 같은 할 일만 고쳐서 다시 붙여 넣으면 다음 판이 돼요${backs.map((a,i)=>`<div style="margin-top:6px">· ${esc(a.run)} ${esc(a.act)} · ${esc(a.title)} — <b>${esc(a.back&&a.back.text||'')}</b> (${esc(a.back&&a.back.byName||'')}) <button type="button" class="btn sm" id="redo-date-${i}" data-run="${esc(a.run)}" aria-label="날짜 맞추기 ${esc(a.run)} ${esc(a.act)}">날짜 맞추기</button></div>`).join('')}</div>`:'';
+    $('crew-redo').innerHTML=backs.length?`<div class="warn">고쳐서 다시 올릴 것 ${backs.length}건 — [이전 판 불러오기] → 적힌 말대로 고치거나 줄을 더해 다시 올리면 같은 건의 다음 판이 돼요${backs.map((a,i)=>{const more=a.back&&Number(a.back.more)>0?Number(a.back.more):0;
+      return `<div style="margin-top:6px">· ${esc(a.run)} ${esc(a.act)} · ${esc(a.title)}${more?` · <span class="pill">더 만들기 ${more}개</span>`:''} — <b>${esc(a.back&&a.back.text||'')}</b> (${esc(a.back&&a.back.byName||'')}) <button type="button" class="btn sm" id="redo-load-${i}" data-i="${i}" aria-label="이전 판 불러오기 ${esc(a.run)} ${esc(a.act)}">이전 판 불러오기</button></div>`;}).join('')}</div>`:'';
   }catch(e){console.error('[AI 크루] 담당·규칙 불러오기 실패',e);$('crew-who').textContent='담당·규칙을 못 불러왔어요 · 인터넷 연결을 확인해 주세요';}
 }
 const nameOf=(id)=>(users[id]||{}).name||id;
 const stateL=(a)=>a.state==='wait'?(a.step>0?'위로 올라감':'승인 대기'):a.state==='back'?'AI에게 다시':a.state==='ok'?'최종 승인':a.state==='no'?'안 함':a.state||'';
 const kst=(iso)=>{if(!iso)return '';const k=new Date(new Date(iso).getTime()+9*3600e3).toISOString();return `${Number(k.slice(5,7))}/${Number(k.slice(8,10))} ${k.slice(11,16)}`;};
-$('crew-redo').addEventListener('click',(e)=>{const t=e.target.closest('[data-run]');if(!t)return;$('crew-date').value=t.dataset.run;t.textContent='✓ 날짜 맞춤';});
+// 이전 판 불러오기 = 그 건의 날짜 + 그 판의 표(번호 그대로)를 결과 칸에 → 고치거나 맨 아래 줄을 더해 다시 올림
+let BACKS=[], PLAN=[];
+$('crew-redo').addEventListener('click',(e)=>{const t=e.target.closest('[data-i]');if(!t)return;const a=BACKS[Number(t.dataset.i)];if(!a)return;
+  $('crew-date').value=a.run;$('crew-text').value=K.askToPaste(a);t.textContent='✓ 불러옴';$('crew-text').focus();});
 
-// Aside 예약 6개 세팅 — 시각 · 담당 · 마지막 올림 · [예약 글 복사] · 로그인해 둘 곳
+// Aside 세팅 — 담당마다 자기 PC (2026-10-15) · 묶음 = crew.asidePlan(담당) · 줄 = 시각 · 크루 · 마지막 올림 · [예약 글 복사] · 그 PC 로그인해 둘 곳 · [고칠 것 확인 글 복사]
 async function loadSetup(){
-  const AB=K.asideBoards(); let boards={}, mates={};
+  let boards={}, mates={};
   try{
     const [bd,md]=await Promise.all([V2().collection('aiboards').get(),V2().collection('aimates').get()]);
     bd.docs.forEach(d=>{boards[d.id]=d.data();}); md.docs.forEach(d=>{mates[d.id]=d.data();});
-    const need=[...new Set(AB.map(b=>K.ownerFor(mates[b.mate],b.brand)).filter(id=>id&&!(id in users)))];
+    const need=[...new Set(K.asideBoards().map(b=>K.ownerFor(mates[b.mate],b.brand)).filter(id=>id&&!(id in users)))];
     await Promise.all(need.map(async id=>{const ud=await V2().collection('users').doc(id).get();users[id]=ud.exists?{name:ud.data().name||'',active:ud.data().active}:null;}));
     console.log(`[AI 크루 세팅] 보드 값 ${bd.size} · 담당 문서 ${md.size}`);
   }catch(e){console.error('[AI 크루 세팅] 불러오기 실패',e);}
-  let noOwner=0;
-  $('setup-list').innerHTML=AB.map(b=>{const m=K.mateOf(b.mate), oid=K.ownerFor(mates[b.mate],b.brand), u=users[oid], ok=u&&u.active!==false, last=(boards[b.id]||{}).at; if(!ok)noOwner++;
-    return `<div class="li srow"><div class="m"><span class="t">${esc(b.run.t)}</span> <b>${esc(m.name)}</b> · ${esc(m.role)} — ${esc(b.title)}<div class="s">담당 ${ok?esc(u.name):'미정 (관리자 누구나)'} · ${last?'마지막 올림 '+esc(kst(last)):'아직 안 올림'}</div></div>
-      <div class="b"><button type="button" class="btn sm" id="copy-launch-${b.id}" data-launch="${b.id}" aria-label="${esc(m.name)} 예약 글 복사">예약 글 복사</button><a class="btn sm link" href="#${b.id}" aria-label="${esc(m.name)} 보드 열기">보드 ›</a></div></div>`;}).join('');
-  const L=K.loginSites();
-  $('setup-logins').innerHTML=L.map(x=>`<div class="li"><b>${esc(x.s)}</b> <span class="s">· ${esc([...new Set(x.uses.map(u=>u.mate))].join(' · '))} — ${esc([...new Set(x.uses.map(u=>u.w))].join(' / '))}</span></div>`).join('')+
-    '<div class="li"><b>마케팅 허브 (이 화면)</b> <span class="s">· 모두 — 업로더 계정 · 결과 올리기</span></div><div class="li"><b>그로홈 대시보드</b> <span class="s">· 봄 · 여름 — 로그인 없음 (grohome-dashboard.web.app)</span></div>';
-  $('setup-sum').textContent=`· 평일 ${AB[0].run.t}~${AB[AB.length-1].run.t} · 로그인 ${L.length}곳${noOwner?` · 담당 미정 ${noOwner}`:''}`;
+  const act=(id)=>{const u=users[id];return u&&u.active!==false?id:'';};
+  PLAN=K.asidePlan(b=>act(K.ownerFor(mates[b.mate],b.brand)));
+  const pcs=PLAN.filter(g=>g.owner).length, none=(PLAN.find(g=>!g.owner)||{runs:[]}).runs.length;
+  $('setup-groups').innerHTML=PLAN.map((g,gi)=>{const bs=g.runs.map(r=>r.board), L=K.loginSites(bs), last=g.runs[g.runs.length-1].t;
+    return `<div class="grp${g.owner?'':' none'}" data-owner="${esc(g.owner||'-')}"><h3>${g.owner?`${esc(nameOf(g.owner))} PC`:'담당 미정 · 관리자 PC 한 곳'} · ${g.runs.length}명 <span class="hint" style="font-weight:600">· 평일 ${esc(g.runs[0].t)}${g.runs.length>1?'~'+esc(last):''}</span></h3>
+      ${g.owner?'':'<div class="hint" style="margin:-4px 0 8px">업무OS에서 담당을 정하면 그 사람 PC 묶음으로 옮겨가요</div>'}
+      <div class="list">${g.runs.map(r=>{const b=r.board,m=K.mateOf(b.mate),at=(boards[b.id]||{}).at;
+        return `<div class="li srow"><div class="m"><span class="t">${esc(r.t)}</span> <b>${esc(m.name)}</b> · ${esc(m.role)} — ${esc(b.title)}<div class="s">${at?'마지막 올림 '+esc(kst(at)):'아직 안 올림'}</div></div>
+          <div class="b"><button type="button" class="btn sm" id="copy-launch-${b.id}" data-launch="${b.id}" data-t="${esc(r.t)}" aria-label="${esc(m.name)} 예약 글 복사">예약 글 복사</button><a class="btn sm link" href="#${b.id}" aria-label="${esc(m.name)} 보드 열기">보드 ›</a></div></div>`;}).join('')}</div>
+      <div class="hint">로그인해 둘 곳 ${L.length+1}곳: 마케팅 허브(업로더 계정) · ${esc(L.map(x=>x.s).join(' · '))}</div>
+      <div class="btns" style="margin-top:8px"><button type="button" class="btn sm" id="copy-fix-${gi}" data-fix="${esc(bs.map(b=>b.id).join(','))}" aria-label="${g.owner?esc(nameOf(g.owner))+' PC':'담당 미정'} 고칠 것 확인 글 복사">고칠 것 확인 글 복사</button></div></div>`;}).join('');
+  $('setup-sum').textContent=`· ${pcs?`담당 ${pcs}명 PC 에서 동시에`:'담당 아직 없음'} · 평일 09:00부터${none?` · 담당 미정 ${none}`:''}`;
 }
 // 복사 — 클립보드가 막히면 버튼 아래 글 칸을 펼쳐 골라 둠(길게 눌러 복사)
-const copyText=async(btn,text,label)=>{const box=btn.closest('.srow,.btns');const old=box&&box.nextElementSibling&&box.nextElementSibling.classList.contains('copybox')?box.nextElementSibling:null;
+const copyText=async(btn,text,label)=>{const box=btn.closest('.srow,.btns');   // 줄·버튼 묶음 바로 아래
+  const old=box&&box.nextElementSibling&&box.nextElementSibling.classList.contains('copybox')?box.nextElementSibling:null;
   try{await navigator.clipboard.writeText(text);if(old)old.remove();btn.textContent='✓ 복사했어요';setTimeout(()=>{btn.textContent=label;},1500);}
   catch(e){console.error('[복사] 실패',e);const ta=old||document.createElement('textarea');ta.className='copybox';ta.readOnly=true;ta.value=text;ta.setAttribute('aria-label',label+' 글');if(!old&&box)box.after(ta);ta.focus();ta.select();btn.textContent='아래 글을 복사해 주세요';}};
-$('setup-list').addEventListener('click',(e)=>{const t=e.target.closest('[data-launch]');if(!t)return;copyText(t,K.asideLaunch(K.boardOf(t.dataset.launch)),'예약 글 복사');});
+$('setup-groups').addEventListener('click',(e)=>{const t=e.target.closest('[data-launch],[data-fix]');if(!t)return;
+  if(t.dataset.launch)copyText(t,K.asideLaunch(K.boardOf(t.dataset.launch),t.dataset.t),'예약 글 복사');
+  else copyText(t,K.asideFixLaunch(t.dataset.fix.split(',').map(K.boardOf)),'고칠 것 확인 글 복사');});
 function ownerId(){const id=K.ownerFor(mateDoc,board().brand); const u=users[id]; return u&&u.active!==false?id:'';}
 $('crew-board').onchange=()=>{history.replaceState(null,'','#'+$('crew-board').value);$('preview-section').hidden=true;loadMate();};
-$('copy-guide').onclick=()=>copyText($('copy-guide'),K.asideText(board()),'지시문 복사');
-$('copy-launch').onclick=()=>copyText($('copy-launch'),K.asideLaunch(board()),'예약 글 복사');
+$('copy-guide').onclick=()=>copyText($('copy-guide'),K.asideText(board(),{qty:mateDoc&&mateDoc.qty}),'지시문 복사');
+$('copy-launch').onclick=()=>copyText($('copy-launch'),K.asideLaunch(board(),(K.planOf(PLAN,board().id)||{}).t),'예약 글 복사');
 
 // 미리 보기
 function parse(){const p=K.parseCrew($('crew-text').value,board());return p;}

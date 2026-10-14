@@ -9,8 +9,8 @@
 //   pour-os/v2/aimates/{AI id}  담당·규칙 덧칠 {owners:{_ 기본, 브랜드 id: 사람}, rules[], paused, hist[]}
 //   users.bossId  상급자 (관리자 › 사람)
 //   최종 승인 + 실행 한 줄(exec) → 담당에게 '실행' 업무(tasks · aiAsk = 승인 id) — 실제 반영은 늘 사람 (2026-10-11)
-import { isMaster, nameOf, teamOf } from "./model.js";
-import { mateOf, crewOf, brandL } from "../../marketing-hub/crew.js";
+import { isMaster, nameOf, teamOf, isOffDay, ymd } from "./model.js";
+import { mateOf, crewOf, brandL, asidePlan, loginSites } from "../../marketing-hub/crew.js";
 
 export const ASK_STATE_L = { wait: "승인 대기", back: "AI가 고치는 중", ok: "최종 승인", no: "안 함" };
 export const MAX_UP = 5;   // 길이 이보다 길게 이어지지 않게 (상급자 고리·잘못 넣은 값 막기)
@@ -42,9 +42,13 @@ export function planPass(a, cu, users, pick, at) {
   return { next, final: !next, fields, entry, expect: expectOf(a) };
 }
 // AI 에게 다시 (담당 단계) — AI 가 다음 실행 전에 읽고 고쳐 다시 올림(team_link.py feedback · crew.html)
-export function planBack(a, cu, text, at) {
-  const back = { text, by: cu.id, byName: cu.name, at };
-  return { fields: { state: "back", to: "", back, pick: null, path: [], ret: null, updatedAt: at, owner: a.owner || cu.id }, entry: { at, by: cu.id, byName: cu.name, act: "back", step: 0, text }, expect: expectOf(a) };
+//   more = 더 만들기 n개 (2026-10-15 사장님 "횟수 조절을 사람팀원이하면 더 추가해서 생성가능하게") — 지금 것 그대로 + n개 · 같은 건의 다음 판으로
+export const MORE_MAX = 50;
+export const moreText = (n, note) => `지금 것은 그대로 두고 ${n}개 더 만들어 주세요${note ? " · " + note : ""}`;
+export function planBack(a, cu, text, at, more) {
+  const n = Math.max(0, Math.min(MORE_MAX, Math.round(Number(more) || 0)));
+  const back = { text, by: cu.id, byName: cu.name, at, ...(n ? { more: n } : {}) };
+  return { fields: { state: "back", to: "", back, pick: null, path: [], ret: null, updatedAt: at, owner: a.owner || cu.id }, entry: { at, by: cu.id, byName: cu.name, act: "back", step: 0, text, ...(n ? { more: n } : {}) }, expect: expectOf(a) };
 }
 // 담당에게 돌려보내기 (상급자 단계) — 담당이 번호를 다시 고르거나 AI 에게 다시
 export function planRet(a, cu, text, at) {
@@ -122,9 +126,10 @@ export function mateStats(asks, mateId, since) {
   const ok = recent.filter((x) => x.state === "ok").length, no = recent.filter((x) => x.state === "no").length;
   return { wait: a.filter((x) => x.state === "wait").length, back: a.filter((x) => x.state === "back").length, ok, no,
     redo: logs.filter((l) => l.act === "back").length, ret: logs.filter((l) => l.act === "ret").length,
+    more: logs.filter((l) => l.act === "back" && l.more > 0).length,   // 더 만들기 (2026-10-15) — 자주 나오면 '횟수'를 늘리라고 알림
     rate: ok + no ? Math.round((ok / (ok + no)) * 100) : null,
-    // 최근 '고칠 점'(AI 에게 다시 · 돌려받은 말 · 안 한 이유) — 같은 말이 또 나오면 [규칙으로]
-    notes: logs.filter((l) => (l.act === "back" || l.act === "ret" || l.act === "no") && l.text).sort((x, y) => String(y.at).localeCompare(String(x.at))).slice(0, 8) };
+    // 최근 '고칠 점'(AI 에게 다시 · 돌려받은 말 · 안 한 이유) — 같은 말이 또 나오면 [규칙으로] · 더 만들기는 고칠 점이 아니라 빼고 (횟수로)
+    notes: logs.filter((l) => (l.act === "back" || l.act === "ret" || l.act === "no") && l.text && !(l.more > 0)).sort((x, y) => String(y.at).localeCompare(String(x.at))).slice(0, 8) };
 }
 // 같은 지적이 두 번 넘게 나왔나 (규칙 권유) — 띄어쓰기·문장부호 빼고 앞 12글자 같음
 export const repeatNotes = (notes) => { const k = (s) => String(s || "").replace(/[\s.,!?·~]/g, "").slice(0, 12), c = {}; (notes || []).forEach((n) => { const x = k(n.text); if (x) c[x] = (c[x] || 0) + 1; });
@@ -148,6 +153,37 @@ export function bossRec(users) {
 export function bossLoop(users, uid, bossId) { if (!bossId) return false; if (bossId === uid) return true;
   const m = new Map((users || []).map((u) => [u.id, u.bossId || ""])); m.set(uid, bossId); let cur = bossId;
   for (let k = 0; k < 20 && cur; k++) { if (cur === uid) return true; cur = m.get(cur) || ""; } return false; }
+
+// ── Aside 담당 PC (2026-10-15 사장님 "사람 담당자들 모두 어사이드 돌릴 수 있어. 각각 돌려서 빨리" · "각 담당자들에게 세팅방안 업무 os로 알려줘") ──
+//   계획 = crew.asidePlan(보드 → 담당) — 허브 crew.html 세팅 카드와 같은 계산(담당이 다르면 동시에 09:00 · 같은 PC 여럿이면 한 시간씩 · 담당 미정 = 관리자 PC 한 곳)
+//   '확인할 것'(keep = 처리되면 사라짐): 담당 = '내 PC Aside 세팅'(내 보드가 한 번도 안 올라옴) · 'Aside 안 돎'(평일 · 예약 + 90분 · 예전엔 올렸는데 오늘 안 올라옴)
+//   관리자 = 'AI 크루 담당 미정 n명' · 보드 값 D.ai.boards = aiboards {보드 id: {at …}} (허브 crew.html 이 올릴 때 씀)
+export const asidePlanOf = (D) => asidePlan((b) => mateOwner(((D.ai && D.ai.mates) || {})[b.mate], b.brand, D.users));
+export const MISS_AFTER = 90;
+const addMin = (t, n) => { const x = Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5)) + n; return `${String(Math.floor(x / 60)).padStart(2, "0")}:${String(x % 60).padStart(2, "0")}`; };
+const hmOf = (d) => `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+export const ranOn = (v, key) => !!(v && v.at) && ymd(new Date(v.at)) === key;   // 그날 올렸나 (기기 시각 = 한국)
+// 오늘 안 돎: 평일 · 예전엔 올렸는데(처음 세팅 전은 아님) 오늘은 아직 · 예약 시각 + 90분 지남 ('확인할 것' · 세팅 시트가 같이 씀)
+export const missedOn = (v, t, now = new Date()) => { const key = ymd(now); return !isOffDay(key) && !!(v && v.at) && !ranOn(v, key) && hmOf(now) >= addMin(t, MISS_AFTER); };
+export function asideInbox(D, uid, now = new Date()) {
+  const me = actU(D.users, uid); if (!me || !D.ai || !D.ai.ready) return [];
+  const plan = asidePlanOf(D), bv = D.ai.boards || {}, key = ymd(now), out = [];
+  const nm = (b) => (mateOf(b.mate) || {}).name || b.mate;
+  const g = plan.find((x) => x.owner === uid);
+  if (g) {
+    const fresh = g.runs.filter((r) => !(bv[r.board.id] || {}).at);
+    if (fresh.length) out.push({ kind: "aiSetup", tag: "AI 크루 세팅", id: `as:${uid}:${fresh.map((r) => r.board.id).join(",")}`, whoName: "AI 크루", at: key + "T00:00:00", keep: true,
+      title: `내 PC Aside 세팅 · ${g.runs.map((r) => `${nm(r.board)} ${r.t}`).join(" · ")}`,
+      text: `처음 한 번 · 예약 ${g.runs.length}개 · 로그인 ${loginSites(g.runs.map((r) => r.board)).length + 1}곳 · 세팅하면 평일마다 내 PC 에서 돌아요` });
+    g.runs.forEach((r) => { if (!missedOn(bv[r.board.id], r.t, now)) return;
+      out.push({ kind: "aiMiss", tag: "Aside 안 돎", red: true, id: `am:${r.board.id}:${key}`, board: r.board.id, whoName: `${nm(r.board)} (AI)`, at: `${key}T${r.t}:00`, keep: true,
+        title: `오늘 ${nm(r.board)}(AI)가 아직 안 올렸어요`, text: `${r.t} 예약 · PC·Aside 가 켜져 있는지 확인 · [지금 돌리기]로 바로` }); });
+  }
+  if (isMaster(me)) { const un = plan.find((x) => !x.owner);
+    if (un) out.push({ kind: "aiOwnerless", tag: "AI 크루 담당", id: `ao:${un.runs.map((r) => r.board.id).join(",")}`, whoName: "AI 크루", at: key + "T00:00:00", keep: true,
+      title: `AI 크루 담당 미정 ${un.runs.length}명`, text: `${un.runs.map((r) => nm(r.board)).join(" · ")} · 담당을 정하면 그 사람 PC 에서 돌고 세팅 안내가 가요` }); }
+  return out;
+}
 
 // AI 팀원 한 명이 지금 어디서 일하나 (화면 머리)
 export const mateWhere = (mateId) => { const c = crewOf(mateId); return c ? c.name : "기본 AI 팀원 (원형)"; };

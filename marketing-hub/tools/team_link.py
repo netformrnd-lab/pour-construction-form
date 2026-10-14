@@ -1,7 +1,7 @@
 # AI 팀원 결과 → 업무OS 'AI 승인' (AI → 담당 → 리드 → 본부장) + 마케팅 허브 노트 보기 (Claude 루틴용)
 # 사용:
 #   python3 team_link.py open <팀원 id|이름> "<한 일>" "<볼트 노트 경로>" [YYYY-MM-DD] [--brand pourstore|grohome]
-#       예) python3 team_link.py open 포리 "블로그 원고 3" "03 작업/2026-10-12 블로그 원고 3.md"
+#       예) python3 team_link.py open 여름 "블로그 원고 3" "03 작업/2026-10-15 여름 블로그 원고 3.md"   (팀원 = 기본 AI 팀원 또는 크루 · 하루·포리·에코는 2026-10-14부터 쉼 → 여름)
 #       → ① 볼트에 그 노트가 있으면 본문을 마케팅 허브에 올림(대시보드 [📄 보기] · 채널 미리보기)
 #         ② 업무OS 'AI 승인' 한 건(pour-os/v2/aiasks) → 담당 '확인할 것' → 리드 → 본부장 (2026-10-12 사장님)
 #            같은 노트를 'AI에게 다시'로 돌려받았으면 → 새 건이 아니라 같은 건의 다음 판(2번째…)으로 고침
@@ -34,6 +34,15 @@ MAX_BODY = 800000  # Firestore 문서 1MB 한도 안
 TEAM = {'haru': '하루', 'pori': '포리', 'luna': '루나', 'teo': '테오', 'noa': '노아', 'tobi': '토비', 'moka': '모카', 'leo': '레오', 'kei': '케이',
         'daon': '다온', 'sora': '소라', 'roy': '로이', 'ria': '리아', 'jay': '제이', 'eco': '에코', 'nari': '나리', 'onyu': '온유'}  # core.js TEAM · crew.js BASE_TEAM 과 같게
 ADMIN_ONLY = {'noa'}  # 원가·제조사 일 → 업무OS 승인에 안 올림 (관리자 마진 대시보드)
+# 크루 = crew.js CREWS 팀원 (id: (이름, 크루 id) · crew.test.mjs 가 같은지 봄) — 루틴이 노트로 올리는 크루 일은 이 도구로 (보드 결과 지표·할 일 A~E 는 허브 crew.html)
+CREW = {'bom': ('봄', 'b2c'), 'yeoreum': ('여름', 'b2c'), 'gaeul': ('가을', 'b2c'), 'gyeoul': ('겨울', 'b2c'), 'haneul': ('하늘', 'b2c'), 'uju': ('우주', 'b2c'),
+        'dandan': ('단단', 'b2b'), 'cheokcheok': ('척척', 'b2b'), 'kkomkkom': ('꼼꼼', 'b2b'), 'deundeun': ('든든', 'b2b'), 'teunteun': ('튼튼', 'b2b'),
+        'saessak': ('새싹', 'bd'), 'malgeum': ('맑음', 'bd'), 'santteut': ('산뜻', 'bd'), 'bosong': ('보송', 'bd'), 'pogeun': ('포근', 'bd'), 'hyanggeut': ('향긋', 'bd')}
+# 쉬는 기본 AI 팀원 → 이어받은 크루 (2026-10-14 사장님 "포리, 하루, 에코는 없어야지" · 아침 루틴 = B2C 크루 여름) — 새로 올리기 막음 · 옛 결과·기록은 그대로 · 돌려받은 옛 건은 이어받은 팀원이 고쳐 다음 판
+GONE = {'haru': 'yeoreum', 'pori': 'yeoreum', 'eco': 'yeoreum'}
+NAMES = {**TEAM, **{k: v[0] for k, v in CREW.items()}}
+TOOL = set(TEAM) | set(GONE.values())  # 노트로 올리는 팀원(기본 AI 팀원 + 아침 루틴을 이어받은 여름) — feedback 에 팀원을 안 적으면 이 팀원들 규칙만 (크루 보드 규칙은 crew.html)
+def crew_of(mid): return CREW[mid][1] if mid in CREW else 'base'
 BRANDS = {'grohome': '그로홈', 'pourstore': 'POUR스토어', 'bmupq52c0': '바라스데이'}
 EXEC_POST = '최종 승인되면 담당이 마케팅 허브 [📄 보기]에서 [임시저장 맡기기] → 앱에서 사진 넣고 발행한다 (발행은 사람)'
 STATE_L = {'wait': '승인 대기', 'back': 'AI가 고치는 중', 'ok': '최종 승인', 'no': '안 함'}
@@ -56,7 +65,7 @@ def dec(v):
     return x
 
 def member(x):
-    for k, n in TEAM.items():
+    for k, n in NAMES.items():
         if x in (k, n): return k, n
     sys.exit(f'모르는 팀원: {x}')
 
@@ -124,6 +133,7 @@ def commit(url, fields, pre, mask=True):
 def open_link(who, what, note, date=None, brand=''):
     mid, name = member(who)
     if mid in ADMIN_ONLY: sys.exit(f'{name}(관리자 전용 · 원가·제조사)는 업무OS 승인에 올리지 않아요 — 관리자 마진 대시보드에서')
+    if mid in GONE: sys.exit(f'{name}: 2026-10-14부터 쉬어요 — 이 일은 B2C 크루 {NAMES[GONE[mid]]} 몫이에요: open {NAMES[GONE[mid]]} …')
     date = date or kst_today()
     if not re.match(r'^\d{4}-\d{2}-\d{2}$', date): sys.exit('날짜는 YYYY-MM-DD')
     if brand and brand not in BRANDS: sys.exit('브랜드는 ' + ' · '.join(BRANDS))
@@ -137,7 +147,7 @@ def open_link(who, what, note, date=None, brand=''):
     # ① 어느 승인 건인지 먼저 정함 (본문을 쓰기 전에 — 위로 올라간 건의 본문을 바꾸지 않게)
     #    같은 노트를 돌려받은 건(AI에게 다시 · 아직 담당 차례)이 있으면 그 건의 다음 판 · 아니면 새 건
     at = now_iso(); owner, owner_name = owner_of(mid, brand)
-    olds = [x for x in fdocs(run_query(DOCS + '/pour-os/v2', 'aiasks', eqf('note', note))) if x.get('mate') == mid]
+    olds = [x for x in fdocs(run_query(DOCS + '/pour-os/v2', 'aiasks', eqf('note', note))) if x.get('mate') == mid or GONE.get(x.get('mate')) == mid]   # 쉬는 팀원의 돌려받은 옛 건도 이어받아 다음 판
     redo = next((x for x in sorted(olds, key=lambda x: x.get('createdAt', ''), reverse=True) if can_redo(x)), None)
     if redo:
         aid = redo['_id']; cur, ut = get(f'{ASKS}/{aid}')
@@ -154,13 +164,13 @@ def open_link(who, what, note, date=None, brand=''):
     url = HUB + '#note-' + urllib.parse.quote(lid)
     # ③ 업무OS AI 승인 (pour-os/v2/aiasks) — 조건부: 다시 = 읽은 때 그대로일 때만 · 새로 = 없을 때만
     if redo:
-        nf = {'title': title, 'sum': '', 'note': note, 'noteId': lid, 'url': url, 'owner': owner or cur.get('owner') or '', 'to': owner or cur.get('owner') or '', 'step': 0, 'state': 'wait',
+        nf = {'title': title, 'mate': mid, 'mateName': name, 'crew': crew_of(mid), 'sum': '', 'note': note, 'noteId': lid, 'url': url, 'owner': owner or cur.get('owner') or '', 'to': owner or cur.get('owner') or '', 'step': 0, 'state': 'wait',
               'path': [], 'pick': None, 'ver': int(cur.get('ver') or 1) + 1, 'back': None, 'ret': None, 'updatedAt': at,
               'log': (cur.get('log') or []) + [{'at': at, 'by': 'ai:' + mid, 'byName': f'{name} (AI)', 'act': 'redo'}]}
         if commit(f'{ASKS}/{aid}', nf, {'updateTime': ut}) is None: sys.exit('그사이 업무OS에서 이 건이 바뀌었어요 — 한 번 더 실행해 주세요')
         print(f'업무OS 승인 고쳐서 다시: {aid} · {nf["ver"]}번째 판 · 차례 {owner_name or "관리자 누구나"}')
         return
-    doc = {'id': aid, 'crew': 'base', 'mate': mid, 'mateName': name, 'brand': brand, 'board': '', 'act': '', 'run': date, 'title': title, 'sum': '', 'body': '', 'cols': [], 'items': [],
+    doc = {'id': aid, 'crew': crew_of(mid), 'mate': mid, 'mateName': name, 'brand': brand, 'board': '', 'act': '', 'run': date, 'title': title, 'sum': '', 'body': '', 'cols': [], 'items': [],
            'exec': EXEC_POST, 'url': url, 'note': note, 'noteId': lid, 'metrics': [], 'owner': owner, 'to': owner, 'step': 0, 'state': 'wait', 'path': [], 'pick': None, 'ver': 1,
            'back': None, 'ret': None, 'log': [{'at': at, 'by': 'ai:' + mid, 'byName': f'{name} (AI)', 'act': 'ask'}], 'createdAt': at, 'updatedAt': at,
            'by': 'ai:' + mid, 'byName': f'{name} (AI)', 'src': 'tool'}
@@ -186,10 +196,10 @@ def mates_rules(only=None):
 def rules(who=None):
     mid = member(who)[0] if who else None
     rs = mates_rules(mid)
-    print(f'확정 규칙 (업무OS AI 팀원 화면 · 담당이 더함){" · " + TEAM.get(mid, mid) if mid else ""}')
+    print(f'확정 규칙 (업무OS AI 팀원 화면 · 담당이 더함){" · " + NAMES.get(mid, mid) if mid else ""}')
     if not rs: print('없음'); return
     for m, r in rs.items():
-        print(f'\n## {TEAM.get(m, m)}')
+        print(f'\n## {NAMES.get(m, m)}')
         for x in r: print(f'- {x.get("text", "")} ({x.get("byName", "")} · {str(x.get("at", ""))[:10]})')
 
 def asks(who=None):
@@ -202,14 +212,15 @@ def asks(who=None):
 
 def feedback(days=14, who=None):
     since = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=9) - datetime.timedelta(days=days)).strftime('%Y-%m-%d')
-    mine = lambda a: (a.get('crew') or 'base') == 'base' and (not who or a.get('mate') in who)  # 크루(Aside 보드) 건은 crew.html 에서 다시
-    if who: print('팀원: ' + ' · '.join(TEAM[m] for m in who))
+    if who: who = list(dict.fromkeys(who + [g for g, to in GONE.items() if to in who]))   # 이어받은 팀원 = 쉬는 팀원의 옛 건도 (돌려받은 것 · 돌려보낸 말 · 규칙 · 메모)
+    mine = lambda a: not a.get('board') and (not who or a.get('mate') in who)  # 노트로 올린 건(이 도구 · 기본 AI 팀원·크루) · 크루 보드(Aside) 건은 crew.html 에서 다시
+    if who: print('팀원: ' + ' · '.join(NAMES.get(m, m) for m in who))
     # 업무OS: AI 에게 다시(지금 고칠 것) · 돌려보낸 말 · 안 함 이유 (최근 일수)
     back = [a for a in fdocs(run_query(DOCS + '/pour-os/v2', 'aiasks', eqf('state', 'back'))) if mine(a)]
     print(f'■ 고쳐서 다시 올릴 것 {len(back)}건 (업무OS AI에게 다시 · 같은 노트 경로로 고쳐 저장 → open 다시 = 다음 판)')
     for a in sorted(back, key=lambda x: x.get('run', '')):
         b = a.get('back') or {}
-        print(f"\n### {a.get('run', '')} {a.get('mateName', TEAM.get(a.get('mate'), ''))} · {a.get('title', '')}\n노트: {a.get('note', '')}\n({b.get('byName', '')} · {str(b.get('at', ''))[:16]})\n{b.get('text', '')}")
+        print(f"\n### {a.get('run', '')} {a.get('mateName', NAMES.get(a.get('mate'), ''))} · {a.get('title', '')}\n노트: {a.get('note', '')}\n({b.get('byName', '')} · {str(b.get('at', ''))[:16]})\n{b.get('text', '')}")
     recent = [x for x in fdocs(run_query(DOCS + '/pour-os/v2', 'aiasks', {'fieldFilter': {'field': {'fieldPath': 'updatedAt'}, 'op': 'GREATER_THAN_OR_EQUAL', 'value': enc(since)}})) if mine(x)]
     notes = []
     for a in recent:
@@ -219,10 +230,10 @@ def feedback(days=14, who=None):
     print(f'\n■ 상급자가 돌려보낸 말 · 안 하기로 한 이유 {len(notes)}건 (최근 {days}일 · 같은 실수 반복 금지)')
     for at, a, l in notes:
         print(f"- {at[:10]} {a.get('mateName', '')} · {a.get('title', '')} — {'돌려보냄' if l.get('act') == 'ret' else '안 함'}: {l.get('text', '')} ({l.get('byName', '')})")
-    rs = {m: r for m, r in mates_rules().items() if m in TEAM and (not who or m in who)}
+    rs = {m: r for m, r in mates_rules().items() if m in (who or TOOL)}
     print(f'\n■ 확정 규칙 {sum(len(v) for v in rs.values())}개 (업무OS AI 팀원 화면 · 꼭 지킴)')
     for m, r in rs.items():
-        for x in r: print(f'- {TEAM.get(m, m)}: {x.get("text", "")}')
+        for x in r: print(f'- {NAMES.get(m, m)}: {x.get("text", "")}')
     # 사장님 대시보드 메모 (예전 방식 그대로)
     rows = run_query(DOCS + '/pour-os/marketing-hub', 'mkt-notes', {'fieldFilter': {'field': {'fieldPath': 'date'}, 'op': 'GREATER_THAN_OR_EQUAL', 'value': enc(since)}})
     rows = [{k: dec(v) for k, v in d['fields'].items()} for d in rows]
@@ -230,7 +241,7 @@ def feedback(days=14, who=None):
     rows.sort(key=lambda r: (r.get('date', ''), str(r.get('memoAt', ''))))
     print(f'\n■ 사장님 메모 {len(rows)}건 (최근 {days}일 · 대시보드 [보기]에서 남김)')
     for r in rows:
-        print(f"\n### {r.get('date', '')} {TEAM.get(r.get('member', ''), r.get('member', ''))} · {r.get('note', '')}")
+        print(f"\n### {r.get('date', '')} {NAMES.get(r.get('member', ''), r.get('member', ''))} · {r.get('note', '')}")
         print(f"({r.get('memoBy', '')} · {r.get('memoAt', '')})")
         print(r.get('memo', '').strip())
 

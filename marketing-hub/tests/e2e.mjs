@@ -158,8 +158,8 @@ await putDoc('pour-os/marketing-hub/mkt-notes/'+LEG,{member:'pori',title:'검토
 const VAULT=mkdtempSync(join(tmpdir(),'vault-'));mkdirSync(join(VAULT,'03 작업'));
 writeFileSync(join(VAULT,'03 작업',`${today} 블로그 원고 3.md`),'---\n유형: 작업\n상태: 검토대기\n---\n# 시험 원고\n> 사진 자리는 유형 번호\n\n## 요청 내용\n- 주제 2\n\n## 결과물\n\n## 1. 겨울 전 옥상 균열 보수 — POUR스토어 · [[PS-S011 크랙 방수 세트]]\n**제목 A안**: 옥상 균열 보수 이유\n**제목 B안**: 균열 보수 순서\n\n[썸네일: 메인 「옥상 균열, 겨울 전에」 / 서브 「셀프 보수 순서」 / 구도: 금 간 옥상 바닥]\n> \"비 오면 천장에 얼룩이 생겨요.\"\n> \"작은 금도 막아야 하나요?\"\n\n[사진: 유형 02 시공전 — 금이 간 옥상]\n[링크: 크랙 방수 세트 구매하기 → https://www.pourstore.net]\n\n### 이렇게 합니다\n| 제품 | 정가 |\n|---|--:|\n| [[PS-S011 크랙 방수 세트|크랙 세트]] | 226,000 |\n\n- 바탕 정리\n- 균열 메우기 <b>굵게아님</b>\n\n**해시태그**: #옥상균열 #POUR스토어\n\n**썸네일 문구 3안**\n1. 겨울 전 필수\n\n## 2. 카페 — [[GH-P004 미끄럼방지 페인트]]\n> **카페 규정 확인 후 게시**\n**제목**: [정보] 현관 미끄럼 체크\n카페 본문\n> ⚠️ 검토 메모: 광고 표기\n\n## 3. 지식인 — 옥상 균열 질문 답변\n**제목**: 옥상 균열 셀프 보수 가능한가요?\n작은 균열은 셀프로 가능합니다.\n\n## 체크\n- [ ] 확인\n');
 const TL=(...a)=>execFileSync('python3',[process.env.TOOLS+'/team_link.py',...a],{env:{...process.env,MKT_VAULT:VAULT}}).toString().trim();
-const tlo=TL('open','포리','블로그 원고 3',`03 작업/${today} 블로그 원고 3.md`);log('  ',tlo);
-const AID=(/(ai_pori_\d{8}_[0-9a-f]{8})/.exec(tlo)||[])[1], nid=AID&&(await getDoc('pour-os/v2/aiasks/'+AID)).noteId.stringValue;
+const tlo=TL('open','여름','블로그 원고 3',`03 작업/${today} 블로그 원고 3.md`);log('  ',tlo);   // 2026-10-14 아침 루틴 = B2C 크루 여름 (하루·포리·에코 쉼)
+const AID=(/(ai_yeoreum_\d{8}_[0-9a-f]{8})/.exec(tlo)||[])[1], nid=AID&&(await getDoc('pour-os/v2/aiasks/'+AID)).noteId.stringValue;
 check('도구: 업무OS 승인 한 건(담당 미정 · 관리자 누구나) · 검토 줄은 안 만듦',!!nid&&(await getDoc('pour-os/v2/aiasks/'+AID)).to.stringValue===''&&!(await getDoc('pour-os/v2/links/'+nid)));
 // 업무OS 에서 담당을 정함(남윤정) → 허브엔 '남윤정 차례' (사람 문서는 그 한 명만 읽음)
 await putDoc('pour-os/v2/users/u_yj',{id:'u_yj',name:'남윤정',phone:'010-9999-8888'});
@@ -180,10 +180,10 @@ for(const w of [1280,768,375]){
   for(const t of ['team','voc']){await p.click(`nav button[data-tab="${t}"]`);await p.waitForTimeout(200);check(`${t} ${w} 넘침 없음`,await overflow(p)<=0);await p.screenshot({path:`${OUT}/${t}-${w}.png`,fullPage:true});}
   if(w===375){
     await p.click('nav button[data-tab="team"]');const tm=await p.textContent('main');
-    check('AI 팀: 팀원 17 · 포리 승인 대기(남윤정 차례) · 예전 검토 줄 1',tm.includes('팀원 17')&&tm.includes('포리 · 블로그 원고 3')&&tm.includes('남윤정 차례')&&!tm.includes('9999')&&tm.includes('예전 검토 줄 1')&&!!(await p.$(`main a[href$="os2.html#a-${AID}"]`)));
+    check('AI 팀: 팀원 15(여름 + 14 · 하루·포리·에코 없음) · 여름 승인 대기(남윤정 차례) · 예전 검토 줄 1',tm.includes('팀원 15')&&tm.includes('가동 1')&&JSON.stringify((await p.$$eval('.team-grid details.tm summary .h > b',x=>x.map(y=>y.textContent))).filter(n=>['여름','하루','포리','에코'].includes(n)))==='["여름"]'&&(await p.$eval('.team-grid details.tm summary .h > b',x=>x.textContent))==='여름'&&tm.includes('여름 · 블로그 원고 3')&&tm.includes('남윤정 차례')&&!tm.includes('9999')&&tm.includes('예전 검토 줄 1')&&!!(await p.$(`main a[href$="os2.html#a-${AID}"]`)));
     // ⏰ 자동 작업 — 카테고리 · 걸어 둔 것/계획 (2026-10-12)
     const ac=await p.textContent('#auto-card');
-    check('자동 작업: 동작 중·준비 중·계획 · AI 콘텐츠팀 아침 · AI 크루 결과 올리기',/동작 중 4 · 준비 중 5 · 계획 \d+/.test(ac)&&ac.includes('AI 콘텐츠팀 아침')&&ac.includes('평일 06:50')&&ac.includes('AI 크루 결과 올리기'));
+    check('자동 작업: 동작 중·준비 중·계획 · AI 콘텐츠 아침(여름) · AI 크루 결과 올리기',/동작 중 4 · 준비 중 5 · 계획 \d+/.test(ac)&&ac.includes('AI 콘텐츠 아침 (여름 · B2C 크루)')&&ac.includes('평일 06:50')&&ac.includes('AI 크루 결과 올리기'));
     await p.click('#auto-card [data-autocat="data"]');await p.waitForTimeout(100);
     const dn=await p.$$eval('#auto-card .row.auto b',a=>a.map(x=>x.textContent));
     check('자동 작업: 숫자·데이터만 (오늘 숫자 · 사용량 · 리포트 올리기)',dn.length===3&&dn.includes('오늘 숫자 만들기')&&dn.includes('광고·판매·재고 리포트 올리기'));
@@ -223,8 +223,8 @@ for(const w of [1280,768,375]){
     await p.fill('#note-memo','제목은 질문형으로 · 가격은 끝에 한 번만');await p.click('#note-memo-save');
     await p.waitForFunction(()=>/저장됨/.test(document.querySelector('#sheet .sf').textContent));
     check('메모 저장 → 노트 문서',(await getDoc('pour-os/marketing-hub/mkt-notes/'+nid)).memo.stringValue==='제목은 질문형으로 · 가격은 끝에 한 번만');
-    const fb=TL('feedback','14');log('   feedback:',fb.split('\n')[0]);
-    check('루틴이 메모를 읽음 (team_link.py feedback)',fb.includes('제목은 질문형으로 · 가격은 끝에 한 번만')&&fb.includes('포리'));
+    const fb=TL('feedback','14','여름');log('   feedback:',fb.split('\n')[0]);
+    check('루틴이 메모를 읽음 (team_link.py feedback 여름)',fb.includes('제목은 질문형으로 · 가격은 끝에 한 번만')&&fb.includes('여름'));
     check('시트: 검토 끝 대신 업무OS에서 승인 ›',!(await p.$('#sheet [data-review]'))&&(await p.textContent('#sheet .sf')).includes('업무OS에서 승인'));
     await p.click('#note-close');
     // 예전 검토 줄은 그대로: 보기 → [검토 끝] → 줄 닫힘 · 팀원 최근 검토
@@ -272,7 +272,7 @@ for(const w of [1280,768,375]){
     await p.click('#note-close');
     const ln=(await list('pour-os/v2/links',true)).filter(d=>d.fields.kind&&d.fields.kind.stringValue==='aiReview');
     check('업무OS 검토 줄은 예전 것 1개뿐(닫힘) · 포리 최근 검토 기록',ln.length===1&&ln[0].fields.open.booleanValue===false&&(await getDoc('pour-os/marketing-hub/mkt-team/pori')).lastTitle.stringValue==='포리 예전 원고');
-    await p.click('details.tm:nth-child(2) summary');check('팀원 카드(펼침): 최근 결과 = 업무OS 승인 상태',(await p.textContent('details.tm[open]')).includes('포리 · 블로그 원고 3 · 최종 승인'));
+    await p.click('details.tm:nth-child(1) summary');check('팀원 카드(펼침): 여름 맨 앞 · 최근 결과 = 업무OS 승인 상태 · 아침 루틴',(await p.textContent('details.tm[open]')).includes('여름 · 블로그 원고 3 · 최종 승인')&&(await p.textContent('details.tm[open]')).includes('평일 06:50 블로그 주제 3'));
     check('펼친 팀원 375 넘침 없음',await overflow(p)<=0);await p.screenshot({path:OUT+'/team-open-375.png',fullPage:true});
     await p.click('nav button[data-tab="voc"]');const vt=await p.textContent('main');
     check('고객의 소리: 급함 하자·안전 · 많이 나온 이야기 3건',vt.includes('바르고 나서 손이 따갑다고 함')&&/3건\s*곰팡이젤/.test(vt));

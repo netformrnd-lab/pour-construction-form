@@ -64,9 +64,12 @@ const inbox = (pg, txt) => pg.locator('.v2-page [role=button]').filter({ hasText
   await s.pg.getByRole('button', { name: '추천대로 정하기' }).click(); await s.pg.waitForTimeout(500);
   await shot(s.pg, 'admin-people-1280');
   await s.pg.locator('.v2-nav').getByRole('button', { name: 'AI 팀원', exact: true }).click(); await s.pg.waitForTimeout(500);
-  ok('관리자 AI 팀원 탭: 크루 3 + 원형', (await s.pg.getByText('그로홈 · POUR스토어 B2C 크루').count()) > 0 && (await s.pg.getByText('POUR스토어 B2B 크루').count()) > 0 && (await s.pg.getByText('바라스데이 크루').count()) > 0 && (await s.pg.getByText('기본 AI 팀원 (원형)').count()) > 0);
+  ok('관리자 AI 팀원 탭: 크루 3 · 원형 칸 없음(2026-10-14 하루·포리·에코 쉼) · 여름 = 아침 루틴', (await s.pg.getByText('그로홈 · POUR스토어 B2C 크루').count()) > 0 && (await s.pg.getByText('POUR스토어 B2B 크루').count()) > 0 && (await s.pg.getByText('바라스데이 크루').count()) > 0 && (await s.pg.getByText('기본 AI 팀원 (원형)').count()) === 0 && (await s.pg.getByText('평일 06:50 블로그·재배포').count()) > 0);
   await s.pg.getByRole('button', { name: '담당 한꺼번에 정하기' }).click(); await s.pg.waitForTimeout(300);
   await s.pg.getByLabel('겨울 담당 그로홈').selectOption('yj'); await s.pg.waitForTimeout(600);
+  // 아침 루틴 팀원 여름 = 기본(브랜드 섞인 아침 원고) + 브랜드별 · 다른 크루는 브랜드별만 (2026-10-14)
+  ok('담당 한꺼번에: 여름 = 기본 + 그로홈 + POUR스토어 · 겨울엔 기본 없음', (await s.pg.getByLabel('여름 담당', { exact: true }).count()) === 1 && (await s.pg.getByLabel('여름 담당 그로홈').count()) === 1 && (await s.pg.getByLabel('여름 담당 POUR스토어').count()) === 1 && (await s.pg.getByLabel('겨울 담당', { exact: true }).count()) === 0);
+  await s.pg.getByLabel('여름 담당', { exact: true }).selectOption('cw'); await s.pg.waitForTimeout(600);
   ok('관리자 AI 탭 넘침 없음 1280', !(await over(s.pg)));
   await shot(s.pg, 'admin-ai-1280');
   await s.pg.setViewportSize({ width: 375, height: 812 }); await s.pg.waitForTimeout(400);
@@ -74,6 +77,7 @@ const inbox = (pg, txt) => pg.locator('.v2-page [role=button]').filter({ hasText
   await s.close();
   eq('상급자 추천대로', ['yj', 'sy', 'hj', 'cw', 'yr', 'ran', 'sh', 'mj'].map((id) => doc('users', id).bossId || ''), ['sy', 'hj', '', 'hj', 'cw', 'sh', 'hj', 'sh']);
   eq('겨울 담당(그로홈) 저장', (doc('aimates', 'gyeoul') || {}).owners, { grohome: 'yj' });
+  eq('여름 기본 담당 저장 (아침 루틴 원고 = 브랜드 없음 → 이 사람)', (doc('aimates', 'yeoreum') || {}).owners, { _: 'cw' });
   eq('열린 겨울 승인 2건 → 남윤정 차례로', [doc('aiasks', 'ai_gyeoul_20261012_ghconvB').to, doc('aiasks', 'ai_gyeoul_20261012_ghconvA').to, doc('aiasks', 'ai_pori_20261012_blog3').to], ['yj', 'yj', '']); }
 
 // ② 남윤정(담당 · 폰) — 확인할 것 'AI 승인 요청' → B1·B3 골라 승인 → 김소연 · A 는 AI 에게 다시

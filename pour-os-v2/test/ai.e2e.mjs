@@ -105,12 +105,13 @@ const inbox = (pg, txt) => pg.locator('.v2-page [role=button]').filter({ hasText
   // 더보기 › AI 팀원 → 겨울 한 장(보드) · 규칙 더하기
   await s.pg.locator('.v2-nav').getByRole('button', { name: '더보기' }).click(); await s.pg.waitForTimeout(300);
   await s.pg.getByText(/^AI 팀원 · 내가 맡은 AI 1/).click(); await s.pg.waitForTimeout(500);
-  ok('AI 팀원: 내가 맡은 AI = 겨울', (await s.S().innerText()).includes('겨울 · 전환마케터'));
+  ok('AI 팀원: 내가 맡은 AI = 겨울 · Aside 평일 10:00 (2026-10-14 크루 루틴)', (await s.S().innerText()).includes('겨울 · 전환마케터') && (await s.S().innerText()).includes('Aside 평일 10:00'));
   await shot(s.pg, 'yj-aiteam-375'); ok('AI 팀원 목록 넘침 없음 375', !(await over(s.pg)));
   await s.S().getByText('겨울 · 전환마케터').click(); await s.pg.waitForTimeout(600);
   const tx = await s.S().innerText();
-  ok('AI 한 장: 보드 지표 · 할 일 · 고칠 점', tx.includes('전환 보드') && tx.includes('자사몰 구매전환율') && tx.includes('7.4%') && tx.includes('할 일 A~E') && tx.includes('쿠팡 로켓그로스 재고도'));
+  ok('AI 한 장: 보드 지표 · 할 일 · 고칠 점 · Aside 루틴 줄', tx.includes('전환 보드') && tx.includes('자사몰 구매전환율') && tx.includes('7.4%') && tx.includes('할 일 A~E') && tx.includes('쿠팡 로켓그로스 재고도') && tx.includes('Aside 루틴 · 평일 10:00') && (await s.S().locator('a[href$="crew.html#gh-conv"]').count()) > 0);
   ok('보드에 마진·원가 칸 없음', !/마진 \d|원가|공급 단가/.test(tx));
+  await shot(s.pg, 'yj-mate-top-375');
   await s.S().getByRole('button', { name: '규칙으로' }).first().click(); await s.pg.waitForTimeout(500);
   await shot(s.pg, 'yj-mate-375'); ok('AI 한 장 넘침 없음 375', !(await over(s.pg)));
   await s.pg.setViewportSize({ width: 768, height: 1000 }); await s.pg.waitForTimeout(300); ok('AI 한 장 넘침 없음 768', !(await over(s.pg))); await shot(s.pg, 'yj-mate-768');

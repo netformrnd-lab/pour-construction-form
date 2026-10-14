@@ -582,7 +582,7 @@ function autoCard(now){
   const row=(a)=>{const nx=C.autoNext(a,now), tr=a.trace&&S.autoTrace[a.trace];
     return `<div class="row auto${a.status==='plan'?' plan':''}"><span class="t">${esc(C.autoWord(a))}</span><div class="tx"><b>${esc(a.name)}</b> <span class="pill ${pill[a.status]}">${esc(C.AUTO_STATUS[a.status])}</span>${a.note&&a.status!=='on'?` <span class="sub">${esc(a.note)}</span>`:''}
       <div class="sub">${esc(a.what)}</div>
-      <div class="sub"><span class="w">${esc(C.AUTO_WHERE[a.where]||a.where)}</span>${(a.members||[]).map(id=>esc((C.teamMember(id)||{}).name||id)).join('·')}${a.status==='on'&&nx?` · 다음 ${esc(nx.date===now.date?'오늘':mdw(nx.date))} ${esc(nx.t)}`:''}${tr?` · 최근 ${esc(kstShort(tr))}`:''}</div></div></div>`;};
+      <div class="sub"><span class="w">${esc(C.AUTO_WHERE[a.where]||a.where)}</span>${a.who?esc(a.who):(a.members||[]).map(id=>esc((C.teamMember(id)||{}).name||id)).join('·')}${a.status==='on'&&nx?` · 다음 ${esc(nx.date===now.date?'오늘':mdw(nx.date))} ${esc(nx.t)}`:''}${tr?` · 최근 ${esc(kstShort(tr))}`:''}</div></div></div>`;};
   return `<div class="card" id="auto-card"><h3>⏰ 자동 작업 <span class="sub">동작 중 ${sm.on} · 준비 중 ${sm.wait} · 계획 ${sm.plan}</span></h3>
     <div class="autocats" role="tablist"><button data-autocat="all" class="${cat==='all'?'on':''}">전체<i>${sm.total}</i></button>${sm.cats.map(c=>`<button data-autocat="${c.id}" class="${cat===c.id?'on':''}">${esc(c.label)}<i>${c.n}</i></button>`).join('')}</div>
     <div class="autost"><button data-autost="all" class="${st==='all'?'on':''}">모두</button><button data-autost="set" class="${st==='set'?'on':''}">걸어 둔 것</button><button data-autost="plan" class="${st==='plan'?'on':''}">계획</button><span class="sub">${list.length}개</span></div>

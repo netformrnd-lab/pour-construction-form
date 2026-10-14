@@ -31,7 +31,10 @@ const tasks = {
 };
 const projects = { p1: { id: 'p1', title: '추석 기획전', category: 'marketing', ownerId: 'yj', memberIds: ['sh'], status: 'active', startDate: '2026-10-01', dueDate: '2026-10-20', brand: 'pourstore', progress: 25, createdAt: D0 } };
 const notes = { n1: { id: 'n1', itemId: 'task:t2', text: '@김송희 소재 확인 부탁드려요', by: 'yj', byName: '남윤정', at: '2026-10-12T00:10:00.000Z', mentions: ['sh'], projectId: 'p1' },
-  n2: { id: 'n2', itemId: 'task:t2', text: '확인했어요 · 내일 올릴게요', by: 'sh', byName: '김송희', at: '2026-10-12T00:20:00.000Z', projectId: 'p1' } };
+  n2: { id: 'n2', itemId: 'task:t2', text: '확인했어요 · 내일 올릴게요', by: 'sh', byName: '김송희', at: '2026-10-12T00:20:00.000Z', projectId: 'p1' },
+  // 답글의 답글 시험 (2026-10-14) — 9일 전이라 '확인할 것'엔 안 뜸
+  n0: { id: 'n0', itemId: 'task:t4', text: '시안 2개 올렸어요', by: 'hj', byName: '허지은', at: '2026-10-03T01:00:00.000Z', projectId: 'p1' },
+  n3: { id: 'n3', itemId: 'task:t4', parentId: 'n0', text: '1번 시안이 좋아요', by: 'sh', byName: '김송희', at: '2026-10-03T02:00:00.000Z', projectId: 'p1' } };
 const ask = (o) => askDoc({ at: T0, run: '2026-10-12', ...o });
 const aiasks = {
   ai_pori_20261012_a: ask({ id: 'ai_pori_20261012_a', mate: 'pori', brand: 'pourstore', title: '포리 · 블로그 원고 3', sum: '27칸 표준', url: 'https://example.test/hub#team', owner: 'yj', exec: '승인되면 담당이 [임시저장 맡기기] 뒤 블로그에서 발행한다' }),
@@ -300,6 +303,30 @@ for (const w of [375, 768, 1280]) {
   await ps.getByRole('button', { name: '저장', exact: true }).click(); await pg.waitForTimeout(500);
   ok('다시 [저장] → 내 이름으로', (await P1()).title === '추석 기획전 B');
   ok('프로젝트 이름 고치기 · 375 넘침 없음 · 화면 오류 없음', !(await over(pg)) && errs.length === before, errs.slice(before));
+  await s.close(); }
+// ── 답글의 답글 (2026-10-14 "댓댓글에 댓글도 달 수 있게해줘") — 같은 묶음에 이어 달고 인용 한 줄 · '@이름' 미리 채움 ──
+for (const w of [375, 1280]) { const s = await session('yj', { w, h: w > 700 ? 900 : 812 }), pg = s.pg, before = errs.length;
+  const sh = () => pg.locator('.v2-sheet').last(), ta = () => sh().getByLabel('댓글', { exact: true });
+  await pg.evaluate(() => { location.hash = '#t-t4'; }); await pg.waitForTimeout(700);
+  const rb = sh().locator('#v2-n-n3').getByRole('button', { name: '김송희님 답글에 답글' });
+  ok(`답글 ${w} · 답글마다 [답글] · 맨 위 댓글 [답글]은 그대로 하나`, (await rb.count()) === 1 && (await sh().getByRole('button', { name: '답글', exact: true }).count()) === 1);
+  await rb.click(); await pg.waitForTimeout(250);
+  ok(`답글 ${w} · 답글에 [답글] → 글 칸 '@김송희 ' 미리 채움 · 위에 '김송희님 답글에 답글 · 1번 시안이 좋아요' · 커서는 글 칸`, (await ta().inputValue()) === '@김송희 ' && /김송희님 답글에 답글 · 1번 시안이 좋아요/.test(await sh().locator('.v2-nreply').innerText()) && await ta().evaluate((e) => e === document.activeElement));
+  await ta().fill('@김송희 2번도 같이 볼게요'); await sh().getByRole('button', { name: '남기기' }).click(); await pg.waitForTimeout(600);
+  const nn = await pg.evaluate(() => Object.values(window.__V2.v2.notes).find((x) => x.itemId === 'task:t4' && x.text === '@김송희 2번도 같이 볼게요'));
+  ok(`답글 ${w} · 저장: 같은 묶음(parentId = 맨 위 댓글) · replyTo = 답한 답글 · 김송희 부름`, !!nn && nn.parentId === 'n0' && nn.replyTo === 'n3' && nn.replyToName === '김송희' && nn.replyToBy === 'sh' && (nn.mentions || []).includes('sh'), nn);
+  const q = sh().locator('#v2-n-' + (nn && nn.id)).locator('.v2-nquote');
+  ok(`답글 ${w} · 새 답글은 그 묶음 맨 아래 · 글 위 인용 '↳ 김송희 · 1번 시안이 좋아요' · 글 칸 비움`, (await q.count()) === 1 && /김송희 · 1번 시안이 좋아요/.test(await q.innerText()) && (await ta().inputValue()) === '' && (await sh().locator('.v2-nreply').count()) === 0);
+  await q.click(); await pg.waitForTimeout(400);
+  ok(`답글 ${w} · 인용 누르면 원래 답글로(테두리)`, /\bhl\b/.test(await sh().locator('#v2-n-n3').getAttribute('class')));
+  // 취소: 미리 채운 '@이름' 만 있으면 지움 · 맨 위 댓글 [답글]은 미리 채우지 않음
+  await sh().locator('#v2-n-n3').getByRole('button', { name: '김송희님 답글에 답글' }).click(); await pg.waitForTimeout(200);
+  await sh().locator('.v2-nreply').getByRole('button', { name: '✕ 취소' }).click(); await pg.waitForTimeout(200);
+  ok(`답글 ${w} · [✕ 취소] → 미리 채운 '@김송희 ' 지움`, (await ta().inputValue()) === '' && (await sh().locator('.v2-nreply').count()) === 0);
+  await sh().getByRole('button', { name: '답글', exact: true }).click(); await pg.waitForTimeout(200);
+  ok(`답글 ${w} · 맨 위 댓글 [답글] → '허지은님 글에 답글' · 미리 채움 없음`, /허지은님 글에 답글/.test(await sh().locator('.v2-nreply').innerText()) && (await ta().inputValue()) === '');
+  ok(`답글 ${w} · 넘침 없음 · 화면 오류 없음`, !(await over(pg)) && errs.length === before, errs.slice(before));
+  await pg.screenshot({ path: path.join(SHOTS, `smoke-reply2-${w}.png`) });
   await s.close(); }
 for (const w of [768, 1280]) { const s = await session('yj', { w, h: 900 }), pg = s.pg, before = errs.length;
   await pg.evaluate(() => { location.hash = '#t-t6'; }); await pg.waitForTimeout(600);

@@ -256,6 +256,12 @@
 - 되살리기: 관리자 정리 탭 '삭제한 댓글 n ▾'(model.noteTrashRows · 최근 30일 댓글 · 글 앞부분 · 쓴 사람 · 어느 업무/프로젝트 · 지운 사람) [되살리기] 관리자만 → A.noteRestore(서버 removed.at 이 본 것과 같을 때만 · removed null · 기록 noteRestore) · 되돌리기는 지운 사람도
 - 다시 가져오기: stripV2Only 가 notes.removed 를 뺌(버전1에서 다시 가져와도 되살아나지 않음)
 
+## 답글의 답글 (사용자 요청 2026-10-14 "댓댓글에 댓글도 달 수 있게해줘" · task.Thread · 시험 test/smoke.e2e 375·1280)
+- 대화(업무·프로젝트 한마디·고정업무·반복 실행·AI 승인 — 같은 Thread) 답글마다 [답글 | 링크 복사 | 고치기 | 삭제] · 맨 위 댓글 [답글]은 그대로 묶음 맨 아래 하나
+- 답글의 답글 = 같은 묶음에 이어 닮(parentId = 맨 위 댓글 · 폰에서 들여쓰기가 깊어지지 않게 · model.threads 그대로) + notes 문서에 replyTo(답한 답글 id) · replyToBy · replyToName → 글 위 인용 한 줄 '↳ 김송희 · 1번 시안이 좋아요'(.v2-nquote · 누르면 그 답글로 스크롤 + 테두리 2초 · 그 답글이 지워졌으면 '↳ 이름님 글에 답글'만)
+- [답글]을 누르면 글 칸으로(폰 = 자판) · 남의 답글이면 '@이름 ' 미리 채움(그 사람 '@ 나를 부름' · 문자 설정 그대로 · 지우면 안 부름) · 글 칸 위 '↳ 김송희님 답글에 답글 · …' [✕ 취소](미리 채운 글만 있으면 지움 · 내가 쓴 글은 그대로) · 같은 [답글]을 다시 누르면 취소
+- 알림은 예전 그대로(그 대화에 말한 사람·담당 등 '댓글' · @ 부른 사람 '@ 나를 부름') · 쓰기 = A.addNote 그대로(extra 에 replyTo 칸) · 지우기 없음 · 보안규칙 변경 없음
+
 ## 프로젝트 단계(로드) (사용자 확정 2026-10-07 '카테고리별 로드' · 시험 model.test 로드 · flow.test 흐름 · turn.test 흐름 로드 · os2/t54 · admin t33)
 - 로드 = 프로젝트 단계 목록 [{k, name}] · k = 바뀌지 않는 열쇠(이름을 바꿔도 업무가 안 떨어짐 · 새 단계는 's' + 무작위) · 업무 단계 = 업무 phase(= k) · 계산은 model.js 한 곳: roadOf(p, D) · phaseOfTask(t, p, D, byId?, road?) · roadStates · curStage · suggestStage · stageSortRows · projLabel
   · 신제품(lb_) = 7단계 LAUNCH_ROAD(launch.LAUNCH_PHASES 와 같은 열쇠 · model.test 가 같은지 봄 · 못 고침) · 카테고리 '신제품 출시'인 일반 프로젝트도 같은 7단계(이 경우엔 고칠 수 있음)

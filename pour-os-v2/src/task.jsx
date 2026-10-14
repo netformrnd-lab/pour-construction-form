@@ -1,5 +1,5 @@
 // 업무OS v2 — 업무 보기 · 고정업무 보기 · 대화 · 파일
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import * as fb from "./fb.js";
 import {
   ymd, addDays, ddays, ddayLabel, md, hm, ago, dayTitle, WD, isMaster, activeUsers, nameOf, STATUS_L, isDone, isOneOff, isMine, ownersOf, dueOf,
@@ -376,7 +376,11 @@ export function Thread({ D, cu, A, notes, itemId, ctx, rec, onRec, cfg, link, hl
   const [got, setGot] = useState(null), [miss, setMiss] = useState(false), [hlOn, setHlOn] = useState(""), hlDone = useRef(false);
   const all = got && !notes.some((n) => n.id === got.id) ? [...notes, got] : notes;
   const th = threads(all, itemId);
+  const byIdN = new Map(th.flatMap((x) => [x, ...x.replies]).map((x) => [x.id, x]));   // 맨 위 댓글 + 답글 (답글의 답글 인용 찾기)
   const [text, setText] = useState(""), [reply, setReply] = useState(null), [busy, setBusy] = useState(false), [pend, setPend] = useState(false), [copied, setCopied] = useState(""), [showL, setShowL] = useState(null);
+  // 답글의 답글 (사용자 요청 2026-10-14 "댓댓글에 댓글도 달 수 있게해줘"): 같은 묶음에 이어 달고(parentId = 맨 위 댓글 · 폰에서 들여쓰기가 깊어지지 않게)
+  //   replyTo = 답한 답글 → 글 위 인용 한 줄(누르면 그 답글로) · 남의 답글이면 '@이름 ' 을 미리 채움(지우면 부르지 않음)
+  const [replyTo, setReplyTo] = useState(null), preRef = useRef("");
   const [edit, setEdit] = useState(""), [hist, setHist] = useState("");   // 고치는 댓글 · 이전 판 펼친 댓글
   const canEditN = (n) => !readOnly && !!n && (n.by === cu.id || isMaster(cu));
   const canDelN = (n) => !readOnly && canRemoveNote(n, cu);   // 댓글 삭제: 쓴 사람·관리자 (A.noteRemove 도 막음)
@@ -385,8 +389,22 @@ export function Thread({ D, cu, A, notes, itemId, ctx, rec, onRec, cfg, link, hl
   const fileRef = useRef(null), taRef = useRef(null);
   const pick = mentionPick(text, D.users, cu.id), tagged = parseMentions(text, D.users).filter((id) => id !== cu.id);   // '@' 를 치면 사람 고르기 · 부를 사람 미리 보기
   const post = async () => { const rows = U.cur(); if (rows.some((r) => r.st !== "ok")) { setPend(true); return false; }
-    const ok = await A.addNote(itemId, text || "(파일)", reply, rows.map((r) => r.meta), ctx, rec ? { rec } : undefined);
-    if (ok) { setText(""); U.clear(); setReply(null); setPend(false); if (onRec) onRec(null); } return ok; };
+    const rt = replyTo ? byIdN.get(replyTo) : null;
+    const ex = { ...(rec ? { rec } : {}), ...(rt ? { replyTo: rt.id, replyToBy: rt.by || "", replyToName: rt.byName || nameOf(D.users, rt.by) || "" } : {}) };
+    const ok = await A.addNote(itemId, text || "(파일)", reply, rows.map((r) => r.meta), ctx, Object.keys(ex).length ? ex : undefined);
+    if (ok) { setText(""); U.clear(); setReply(null); setReplyTo(null); preRef.current = ""; setPend(false); if (onRec) onRec(null); } return ok; };
+  // [답글] — t = 답한 답글(없으면 맨 위 댓글에) · 같은 것을 다시 누르면 취소 · 미리 채운 '@이름 ' 만 있으면 지움(내가 쓴 글은 그대로) · 글 칸으로(폰 = 자판)
+  const startReply = (rootId, t) => {
+    const tid = t ? t.id : null, keep = !!text.trim() && text !== preRef.current;
+    if (reply === rootId && replyTo === tid) { if (!keep) setText(""); preRef.current = ""; setReply(null); setReplyTo(null); return; }
+    setReply(rootId); setReplyTo(tid); setEdit("");
+    const nm = t && t.by !== cu.id ? nameOf(D.users, t.by) || t.byName || "" : "", pre = nm ? "@" + nm + " " : "";
+    if (!keep) { setText(pre); preRef.current = pre; } else preRef.current = "";
+    setTimeout(() => { const ta = taRef.current; if (ta) { ta.focus(); try { ta.setSelectionRange(ta.value.length, ta.value.length); } catch (e) { /* 지원 안 하는 칸 */ } } }, 0);
+  };
+  const cancelReply = () => { if (text === preRef.current) setText(""); preRef.current = ""; setReply(null); setReplyTo(null); };
+  const snip = (s) => String(s || "").replace(/\s+/g, " ").trim().slice(0, 80);
+  const jump = (id) => { const el = document.getElementById("v2-n-" + id); if (!el) return; el.scrollIntoView({ behavior: "smooth", block: "center" }); setHlOn(id); setTimeout(() => setHlOn((h) => (h === id ? "" : h)), 2200); };
   const send = async () => { if ((!text.trim() && !U.rows.length) || busy || U.busy) return; setBusy(true);
     try { await U.flow(); await post(); } finally { setBusy(false); } };
   const retry = async (k) => { setBusy(true); try { await U.retry(k); if (pend && U.cur().every((r) => r.st === "ok")) await post(); } finally { setBusy(false); } };
@@ -403,8 +421,9 @@ export function Thread({ D, cu, A, notes, itemId, ctx, rec, onRec, cfg, link, hl
     try { navigator.clipboard.writeText(u).then(ok, () => setShowL({ id: nid, u })); } catch (e) { setShowL({ id: nid, u }); } };
   const LinkBtn = ({ n }) => link ? <TBtn v="plain" onClick={() => copy(n.id)} style={{ padding: "6px 0", fontSize: 12.5 }}>{copied === n.id ? "✓ 복사했어요" : "링크 복사"}</TBtn> : null;
   const LinkBox = ({ n }) => showL && showL.id === n.id ? <input readOnly value={showL.u} autoFocus onFocus={(e) => e.target.select()} aria-label="복사할 링크" style={{ ...inp, marginTop: 4, fontSize: 12.5, padding: "8px 10px" }} /> : null;
-  const EditBtn = ({ n }) => canEditN(n) ? <TBtn v="plain" onClick={() => { setEdit(edit === n.id ? "" : n.id); setReply(null); }} style={{ padding: "6px 0", fontSize: 12.5 }}>고치기</TBtn> : null;
-  const DelBtn = ({ n }) => canDelN(n) ? <><Sep /><TBtn v="plain" tone="mute" disabled={!!delBusy} onClick={async () => { if (delBusy) return; setDelBusy(n.id); try { const r = await A.noteRemove(n); if (r && r.ok && reply === n.id) setReply(null); } finally { setDelBusy(""); } }} aria-label={`${n.byName || "이"} 글 삭제`} style={{ padding: "6px 0", fontSize: 12.5 }}>{delBusy === n.id ? "삭제 중" : "삭제"}</TBtn></> : null;
+  const EditBtn = ({ n }) => canEditN(n) ? <TBtn v="plain" onClick={() => { setEdit(edit === n.id ? "" : n.id); cancelReply(); }} style={{ padding: "6px 0", fontSize: 12.5 }}>고치기</TBtn> : null;
+  const DelCore = ({ n }) => canDelN(n) ? <TBtn v="plain" tone="mute" disabled={!!delBusy} onClick={async () => { if (delBusy) return; setDelBusy(n.id); try { const r = await A.noteRemove(n); if (r && r.ok && (reply === n.id || replyTo === n.id)) cancelReply(); } finally { setDelBusy(""); } }} aria-label={`${n.byName || "이"} 글 삭제`} style={{ padding: "6px 0", fontSize: 12.5 }}>{delBusy === n.id ? "삭제 중" : "삭제"}</TBtn> : null;
+  const DelBtn = ({ n }) => canDelN(n) ? <><Sep /><DelCore n={n} /></> : null;
   const Sep = () => <span style={{ color: C.line }}>|</span>;
   // 이전 판 (읽기만 · 처음엔 접힘) — '(고침)' 누르면
   const Hist = ({ n }) => hist === n.id && (n.edits || []).length > 0 ? <div className="v2-nhist" style={{ margin: "6px 0 2px", padding: "8px 10px", background: C.bg, borderRadius: 10, fontSize: 13 }}>
@@ -412,26 +431,35 @@ export function Thread({ D, cu, A, notes, itemId, ctx, rec, onRec, cfg, link, hl
       <div style={{ fontSize: 12, color: C.mute }}>이전 판 · {e.byName || nameOf(D.users, e.by) || ""}{e.at ? ` · ${ago(e.at)}` : ""}{e.undone ? " · 되돌린 글" : ""}</div>
       <div style={{ color: C.sub, whiteSpace: "pre-wrap", lineHeight: 1.55, wordBreak: "break-word" }}>{e.text || "(비어 있음)"}</div>
       {(e.files || []).length > 0 && <NoteFiles files={e.files} />}</div>)}</div> : null;
-  const Note = ({ n, child }) => <div id={"v2-n-" + n.id} className={"v2-note" + (hlOn === n.id ? " hl" : "")} style={{ padding: child ? "8px 0 0 14px" : "12px 14px", borderLeft: child ? `2px solid ${C.line}` : "none", marginTop: child ? 6 : 0, scrollMarginTop: 60 }}>
+  // 답글의 답글 인용: 그 답글이 있으면 누르면 그리로(테두리 2초) · 지워졌으면 이름만
+  const Quote = ({ n }) => { if (!n.replyTo) return null; const q = byIdN.get(n.replyTo), who = (q && (q.byName || nameOf(D.users, q.by))) || n.replyToName || "";
+    return q ? <button type="button" className="v2-nquote" onClick={() => jump(q.id)} aria-label={`${who}님 답글로 가기`}>↳ <b>{who}</b> · {snip(q.text)}</button>
+      : <div className="v2-nquote off">↳ <b>{who}</b>님 글에 답글</div>; };
+  const ReplyBtn = ({ root, n }) => <TBtn v="plain" onClick={() => startReply(root, n)} aria-label={`${n.byName || ""}님 답글에 답글`} style={{ padding: "6px 0", fontSize: 12.5 }}>{reply === root && replyTo === n.id ? "답글 취소" : "답글"}</TBtn>;
+  const Note = ({ n, child, root }) => <div id={"v2-n-" + n.id} className={"v2-note" + (hlOn === n.id ? " hl" : "")} style={{ padding: child ? "8px 0 0 14px" : "12px 14px", borderLeft: child ? `2px solid ${C.line}` : "none", marginTop: child ? 6 : 0, scrollMarginTop: 60 }}>
     <div style={{ fontSize: 12.5, color: C.mute }}><b style={{ color: C.ink }}>{n.byName || nameOf(D.users, n.by)}</b> · {ago(n.at)}{n.editedAt && <> · <button type="button" className="v2-edited" aria-expanded={hist === n.id} onClick={() => setHist(hist === n.id ? "" : n.id)} title={`${n.editedByName || ""} · ${ago(n.editedAt)} 고침`}>(고침)</button></>}</div>
     <Hist n={n} />
+    <Quote n={n} />
     <div style={{ fontSize: 14.5, color: C.text, whiteSpace: "pre-wrap", lineHeight: 1.6, marginTop: 2, wordBreak: "break-word" }}><Linked text={n.text} /></div>
     <NoteFiles files={n.files} />
     {n.rec && <div><span className="v2-rttag">{recTag(n.rec, cfg)}</span></div>}
-    {child && (link || canEditN(n) || canDelN(n)) && <><div className="v2-nact"><LinkBtn n={n} />{link && canEditN(n) && <Sep />}<EditBtn n={n} /><DelBtn n={n} /></div><LinkBox n={n} /></>}
+    {child && (() => { const acts = [!readOnly && root ? <ReplyBtn root={root} n={n} /> : null, link ? <LinkBtn n={n} /> : null, canEditN(n) ? <EditBtn n={n} /> : null, canDelN(n) ? <DelCore n={n} /> : null].filter(Boolean);
+      return acts.length ? <><div className="v2-nact">{acts.map((x, i) => <Fragment key={i}>{i > 0 && <Sep />}{x}</Fragment>)}</div><LinkBox n={n} /></> : null; })()}
   </div>;
-  const NoteOrEdit = ({ n, child }) => edit === n.id ? <div style={{ padding: child ? "6px 0 0 14px" : "4px 14px 0" }}><NoteEdit D={D} cu={cu} A={A} n={n} itemId={itemId} onDone={() => setEdit("")} /></div> : <Note n={n} child={child} />;
+  const NoteOrEdit = ({ n, child, root }) => edit === n.id ? <div style={{ padding: child ? "6px 0 0 14px" : "4px 14px 0" }}><NoteEdit D={D} cu={cu} A={A} n={n} itemId={itemId} onDone={() => setEdit("")} /></div> : <Note n={n} child={child} root={root} />;
   const canSend = (text.trim() || U.rows.length) && !busy && !U.busy;
   return <Card>
     {miss && <div role="status" style={{ padding: "10px 14px", fontSize: 13, color: C.sub, background: C.soft, borderBottom: `1px solid ${C.line}` }}>{miss === "gone" ? "찾을 수 없는 댓글이에요" : "이 댓글을 찾지 못했어요 · 지워졌거나 다른 곳의 댓글일 수 있어요"}</div>}
     {th.length === 0 && <Empty>아직 대화가 없어요. 진행 상황이나 궁금한 점을 남겨 주세요.</Empty>}
     {th.map((n) => <div key={n.id} style={{ borderBottom: `1px solid ${C.line}` }}>{NoteOrEdit({ n })}
-      <div style={{ padding: "0 14px 10px" }}>{n.replies.map((r) => <div key={r.id}>{NoteOrEdit({ n: r, child: true })}</div>)}
-        {!readOnly ? <div className="v2-nact"><TBtn v="plain" onClick={() => setReply(reply === n.id ? null : n.id)} style={{ padding: "6px 0", fontSize: 12.5 }}>{reply === n.id ? "답글 취소" : "답글"}</TBtn>{link && <Sep />}<LinkBtn n={n} />{canEditN(n) && edit !== n.id && <><Sep /><EditBtn n={n} /></>}{edit !== n.id && <DelBtn n={n} />}</div>
+      <div style={{ padding: "0 14px 10px" }}>{n.replies.map((r) => <div key={r.id}>{NoteOrEdit({ n: r, child: true, root: n.id })}</div>)}
+        {!readOnly ? <div className="v2-nact"><TBtn v="plain" onClick={() => startReply(n.id, null)} style={{ padding: "6px 0", fontSize: 12.5 }}>{reply === n.id && !replyTo ? "답글 취소" : "답글"}</TBtn>{link && <Sep />}<LinkBtn n={n} />{canEditN(n) && edit !== n.id && <><Sep /><EditBtn n={n} /></>}{edit !== n.id && <DelBtn n={n} />}</div>
           : link && <div className="v2-nact"><LinkBtn n={n} /></div>}
         <LinkBox n={n} /></div></div>)}
     {!readOnly && <div style={{ padding: 10, display: "flex", flexDirection: "column", gap: 8 }}>
-      {reply && <div style={{ fontSize: 12.5, color: C.sub }}>{(th.find((x) => x.id === reply) || {}).byName}님 글에 답글</div>}
+      {reply && (() => { const rt = replyTo ? byIdN.get(replyTo) : null, rn = rt || byIdN.get(reply);
+        return <div className="v2-nreply"><span className="w">↳ <b>{(rn && (rn.byName || nameOf(D.users, rn.by))) || ""}</b>님 {rt ? "답글" : "글"}에 답글{rt ? <span className="q"> · {snip(rt.text)}</span> : null}</span>
+          <TBtn v="plain" tone="mute" onClick={cancelReply} style={{ padding: "4px 0", fontSize: 12.5, flex: "0 0 auto" }}>✕ 취소</TBtn></div>; })()}
       {rec && <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: C.sub }}><span className="v2-rttag" style={{ marginTop: 0 }}>{recTag(rec, cfg)}</span>{rec.name ? `${rec.name}님 기록에 붙여요` : "이 기록에 붙여요"}<TBtn v="plain" tone="mute" onClick={() => onRec && onRec(null)}>✕ 빼기</TBtn></div>}
       <textarea ref={taRef} value={text} onChange={(e) => setText(e.target.value)} rows={2} placeholder={reply ? "답글 쓰기 · @이름으로 부르기" : "댓글 쓰기 · 진행 상황, 피드백, 링크 · @이름으로 부르기"} aria-label="댓글" style={{ ...inp, resize: "vertical", fontSize: 14.5 }} />
       {pick.length > 0 && <div className="v2-chips" role="listbox" aria-label="부를 사람">{pick.map((u) => <Chip key={u.id} onClick={() => { setText(insertMention(text, u.name)); setTimeout(() => taRef.current && taRef.current.focus(), 0); }}>@{u.name}</Chip>)}</div>}

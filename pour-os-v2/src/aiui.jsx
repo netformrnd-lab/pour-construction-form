@@ -11,7 +11,7 @@ import { md, hm, ago, ymd, isMaster, nameOf, activeUsers } from "./model.js";
 import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, inp, Linked, useLocal } from "./ui.jsx";
 import { Thread, useItemNotes } from "./task.jsx";
 import { LS } from "./core.jsx";
-import { CREWS, GONE, crewOf, mateOf, boardOf, brandL, servesL, mateBrands, ownerKeys, fmtMetric, metricPct, metricOk } from "../../marketing-hub/crew.js";
+import { CREWS, GONE, crewOf, mateOf, boardOf, brandL, servesL, mateBrands, ownerKeys, fmtMetric, metricPct, metricOk, runWord } from "../../marketing-hub/crew.js";
 import { ASK_STATE_L, canAct, canBack, canRet, isProxy, pickOk, planPass, chainOf, mateOwner, mateStats, repeatNotes, itemLine, bossOf, bossRec, bossLoop } from "./aiask.js";
 
 export const HUB_CREW_URL = "../marketing-hub/crew.html";   // Aside 결과 올리기 (허브)
@@ -151,10 +151,11 @@ export function AiTeamBody({ D, cu, A, open, admin }) {
   const OwnerPick = ({ id, brand }) => { const cur = mateOwner(mates[id], brand, D.users);
     return <select value={cur} onClick={(e) => e.stopPropagation()} onChange={(e) => A.mateOwnerSet(id, brand || "_", e.target.value)} aria-label={`${(mateOf(id) || {}).name} 담당${brand ? " " + brandL(brand) : ""}`} style={{ ...inp, width: "auto", maxWidth: 150, padding: "6px 8px", fontSize: 13 }}>
       <option value="">담당 미정</option>{users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select>; };
+  const asideL = (x) => { const bb = x.board ? boardOf(x.board) : null; return bb && bb.run ? `Aside ${runWord(bb.run)}` : ""; };   // 크루 보드 Aside 루틴 (2026-10-14)
   const mateRow = (x, last, color) => { const ms = mates[x.id] || {}, rules = (ms.rules || []).filter((r) => !r.off).length;
     const picks = bulk && master && !x.admin ? <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }} onClick={(e) => e.stopPropagation()}>{ownerKeys(x.id).map((bb) =>
       <label key={bb || "_"} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, color: C.sub, fontWeight: 700 }}>{bb ? brandL(bb) : mateBrands(x.id).length ? "기본" : "담당"}<OwnerPick id={x.id} brand={bb} /></label>)}</div> : null;
-    return <div key={x.id} style={{ borderLeft: color ? `4px solid ${color}` : "none" }}><Row title={`${x.name} · ${x.role}`} tag={x.admin ? "관리자 자리" : x.routine ? "아침 루틴" : null} sub={[x.admin ? "원가·제조사 일이라 업무OS 승인에 안 올림" : ownersL(x.id), x.routine ? "평일 06:50 블로그·재배포" : "", rules ? `규칙 ${rules}` : ""].filter(Boolean).join(" · ")} sub2={stat(x.id) || null} onClick={() => open({ type: "aiMate", id: x.id })} right={picks ? null : <span style={{ color: C.navy, fontWeight: 800 }}>›</span>} below={picks} last={last} /></div>; };
+    return <div key={x.id} style={{ borderLeft: color ? `4px solid ${color}` : "none" }}><Row title={`${x.name} · ${x.role}`} tag={x.admin ? "관리자 자리" : x.routine ? "아침 루틴" : null} sub={[x.admin ? "원가·제조사 일이라 업무OS 승인에 안 올림" : ownersL(x.id), x.routine ? "평일 06:50 블로그·재배포" : "", rules ? `규칙 ${rules}` : ""].filter(Boolean).join(" · ")} sub2={[asideL(x), stat(x.id)].filter(Boolean).join(" · ") || null} onClick={() => open({ type: "aiMate", id: x.id })} right={picks ? null : <span style={{ color: C.navy, fontWeight: 800 }}>›</span>} below={picks} last={last} /></div>; };
   return <>
     <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
       <div style={{ flex: "1 1 220px", maxWidth: 320 }}><Seg items={[["mine", `내가 맡은 AI ${mineIds.length}`], ["all", "모두"]]} value={scope} onChange={setScope} /></div>
@@ -237,6 +238,7 @@ export function AiMateSheet({ D, cu, A, open, onBack, onClose, id }) {
     <div style={{ fontSize: 13.5, color: C.sub, lineHeight: 1.7, marginTop: 12 }}>
       {m.kpi && <div>KPI · <b style={{ color: C.ink }}>{m.kpi}</b></div>}
       {m.routine && <div>{m.routine}</div>}
+      {b && b.run && <div>Aside 루틴 · {runWord(b.run)} · 보드 지표·할 일 A~E → 이 승인으로 · 예약·로그인은 <a className="v2-lblink" href={`${HUB_CREW_URL}#${b.id}`} target="_blank" rel="noopener">허브 AI 크루 결과 올리기 ›</a></div>}
       {GONE[id] && <div style={{ color: C.text }}>2026-10-14부터 쉬어요 · 이 일은 B2C 크루 {(mateOf(GONE[id]) || {}).name} 몫이에요 · 이미 올라온 결과는 그대로 승인·안 함</div>}
       {c && <div>일하는 곳 · {servesL(c)}</div>}
       {m.from && m.from.length > 0 && <div>원형 · {m.from.map((f) => (mateOf(f) || {}).name || f).join(" · ")} <span style={{ color: C.mute }}>(파생 · 짐작)</span></div>}

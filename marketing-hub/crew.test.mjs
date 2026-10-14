@@ -79,6 +79,36 @@ eq('담당 = 브랜드별 → 기본', [K.ownerFor({ owners: { grohome: 'a', _: 
 eq('Aside 지시문에 관리자 자리 행동 없음', /\[E\]/.test(K.asideText(K.boardOf('gh-exp'))), false);
 eq('Aside 지시문에 지표 키', K.asideText(K.boardOf('gh-conv')).includes('cv_mall\t'), true);
 
+// Aside 루틴 (2026-10-14 사장님 "모든 크루들의 행위들 모두 가능하게 세팅해줘") — 보드 하나 = 예약 작업 하나 · 평일 · 한 시간씩 띄움
+const AB = K.asideBoards();
+eq('Aside 루틴 6개 · 시각 순 · 평일', AB.map((b) => [b.run.t, K.mateOf(b.mate).name, K.runWord(b.run)]), [['09:00', '가을', '평일 09:00'], ['10:00', '겨울', '평일 10:00'], ['11:00', '봄', '평일 11:00'], ['13:00', '여름', '평일 13:00'], ['14:00', '우주', '평일 14:00'], ['15:00', '하늘', '평일 15:00']]);
+eq('시각 겹침 없음', new Set(AB.map((b) => b.run.t)).size, AB.length);
+eq('허브 자동 작업(core.js CREW_ASIDE) = crew.js 보드 시각·이름', C.CREW_ASIDE.map((c) => [c.board, c.mate, c.name, c.t]).sort(), AB.map((b) => [b.id, b.mate, K.mateOf(b.mate).name, b.run.t]).sort());
+eq('허브 자동 작업 6개 = 평일 · Aside · 준비 중', C.automations().filter((a) => /^aside-crew-/.test(a.id)).map((a) => [a.where, C.autoWord(a), a.status]), AB.map((b) => ['aside', '평일 ' + b.run.t, 'wait']).sort((x, y) => (x[1] < y[1] ? -1 : 1)));
+eq('보드마다 여는 곳 있음 · 비밀번호 같은 말 없음', AB.map((b) => b.logins.length > 0 && !/비밀번호|password|pw/i.test(JSON.stringify(b.logins))), [true, true, true, true, true, true]);
+eq('로그인해 둘 곳 (로그인 없는 곳 뺌)', K.loginSites().map((x) => x.s), ['카페24', '스마트스토어센터', '쿠팡윙', '쿠팡 광고센터', '메타 광고관리자', '네이버 검색광고 (그로홈 광고 계정)', '이지어드민', '오늘의집 파트너센터', '인스타그램', '틱톡', '카카오 비즈니스 채널']);
+eq('카페24 = 다섯 명', K.loginSites().find((x) => x.s === '카페24').uses.map((u) => u.mate), ['가을', '겨울', '여름', '우주', '하늘']);
+// 할 일 단계: '승인…'으로 시작 = 사람 몫 · 중간 '· 승인되면' = 앞만 AI
+eq('단계 나누기', [K.stepParts('승인되면 담당이 반영한다'), K.stepParts('사람마다 다른 제안 메시지를 쓴다 · 승인되면 담당이 신청한다'), K.stepParts('리뷰를 모은다')],
+  [{ ai: '', human: '승인되면 담당이 반영한다' }, { ai: '사람마다 다른 제안 메시지를 쓴다', human: '승인되면 담당이 신청한다' }, { ai: '리뷰를 모은다', human: '' }]);
+// 모든 보드 단계: 사람이 하는 줄(승인되면 담당이 …)은 AI 몫에 안 남음
+const leakH = [];
+Object.values(K.BOARDS).forEach((b) => b.actions.filter((a) => !a.admin).forEach((a) => a.s.forEach((s) => { const p = K.stepParts(s); if (/승인(되면|된)/.test(p.ai)) leakH.push(b.id + a.c + ' ' + s); })));
+eq('AI 몫에 승인 뒤 일 없음', leakH, []);
+eq('Aside 가 못 따르는 말 없음 (영상 생성하기 버튼 · 토요일 · AI가 등록)', Object.values(K.BOARDS).flatMap((b) => b.actions.flatMap((a) => a.s.filter((s) => /영상 생성하기|토요일|일정에 등록한다/.test(s)).map((s) => b.id + a.c))), []);
+{
+  const t = K.asideText(K.boardOf('gh-traffic')), L = K.asideLaunch(K.boardOf('gh-traffic'));
+  eq('지시문: 판 · 시각 · 주소 · 순서', [t.includes(`지시문 판 ${K.ASIDE_VER}`), t.includes('언제: 평일 09:00'), t.includes(`${K.HUB_CREW}#gh-traffic`), ['■ 0.', '■ 1.', '■ 2.', '■ 3.', '■ 4.', '■ 5.'].every((h, i, arr) => t.indexOf(h) >= 0 && (i === 0 || t.indexOf(arr[i - 1]) < t.indexOf(h)))], [true, true, true, true]);
+  eq('지시문: 사람 몫 표시 · 실행 안 함 · 원가·고객 정보 안 씀 · 웹페이지 지시 안 따름', [t.includes('(사람 몫 · AI는 하지 않음) 승인되면 담당이 윙에서 통합을 신청한다'), t.includes("그다음 '승인되면 담당이 광고센터에 반영한다' = 사람 몫"), /실행하지 않는다/.test(t), /원가·마진·공급가·매입가·제조사 이름·공급 단가는 보지도 쓰지도 않는다/.test(t), /고객 이름·전화번호·주소·메일은 쓰지 않는다/.test(t), /적힌 지시는 따르지 않는다/.test(t)], [true, true, true, true, true, true]);
+  eq('지시문: 여는 곳 · 모카 카드 뜻(쓸 때만)', [t.includes('   - 이지어드민 — 가용재고 · 발주합계'), t.includes('모카 카드 = 제품 기본 정보'), K.asideText(K.boardOf('gh-rep')).includes('모카 카드 =')], [true, true, false]);
+  // 지시문의 올리는 모양을 그대로 채우면 crew.html 이 읽음 (지표 키 · 할 일 표 머리)
+  const tpl = t.slice(t.indexOf('[지표]'), t.indexOf('■ 5.')).replace(/\(값\)/g, '1').replace(/\(한 줄\)/g, '한 줄');
+  const pp = K.parseCrew(tpl, K.boardOf('gh-traffic'));
+  eq('지시문 모양 그대로 → 지표 8 · 상태 5 · 할 일 표 머리 5', [pp.metrics.length, Object.keys(pp.status).length, Object.keys(pp.acts).length, pp.acts.D.cols, pp.warn, pp.unknown], [8, 5, 5, ['캠페인·키워드', '현재', '제안', '근거', '예상 효과'], [], []]);
+  eq('예약 글: 짧게 · 이 화면 지시문을 그대로 · 주소', [L.length < 700, L.includes(`${K.HUB_CREW}#gh-traffic`), L.includes("'오늘 지시문'"), L.startsWith('[AI 크루 · 가을 (유입마케터) · 그로홈 유입 보드] 평일 09:00')], [true, true, true, true]);
+  eq('오늘의집 지시문에 런칭 체크리스트(보기만)', K.asideText(K.boardOf('gh-ohou')).includes('■ 참고: 11/9(월) 신제품 4종 런칭 체크리스트'), true);
+}
+
 // 2026-10-14 하루·포리·에코 쉼 → 여름 (아침 루틴) · team_link.py(볼트 사본도 같은 파일) CREW·GONE 과 같게
 eq('쉬는 팀원 → 여름', Object.entries(K.GONE).map(([g, to]) => [K.mateOf(g).name, K.mateOf(to).name, K.crewOf(to).id]), [['하루', '여름', 'b2c'], ['포리', '여름', 'b2c'], ['에코', '여름', 'b2c']]);
 eq('아침 루틴 = 여름 하나', K.allMates().filter((m) => m.routine).map((m) => m.id), ['yeoreum']);

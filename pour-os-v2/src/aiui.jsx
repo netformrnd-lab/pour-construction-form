@@ -244,7 +244,7 @@ function BoardView({ D, cu, A, b, open, asks, doc }) {
     <Head>할 일 {b.actions[0].c}~{b.actions[b.actions.length - 1].c}</Head>
     <Card>{b.actions.map((a, i) => { const last = asks.filter((x) => x.board === b.id && x.act === a.c).sort((p, q) => String(q.createdAt || "").localeCompare(String(p.createdAt || "")))[0];
       return <div key={a.c} style={{ borderBottom: i === b.actions.length - 1 ? "none" : `1px solid ${C.line}` }}>
-        <Row title={`${a.c} · ${a.t}`} tag={a.admin ? "관리자 자리" : last ? ASK_STATE_L[last.state] : null} sub={[a.admin ? "" : `담당 ${ownL(a.c)}`, a.admin ? "" : hqL(a) ? `본부장 승인(${hqL(a)})` : "", a.when, akL(a.c) ? `반복 '${akL(a.c)}'` : ""].filter(Boolean).join(" · ")} sub2={last ? `최근 ${last.run ? md(last.run) : ""} · ${last.title}` : null}
+        <Row title={`${a.c} · ${a.t}`} tag={a.admin ? "관리자 자리" : last ? ASK_STATE_L[last.state] : null} sub={[a.admin ? "" : `담당 ${ownL(a.c)}`, a.admin ? "" : hqL(a) ? `본부장 승인(${hqL(a)}${a.hqIf ? ` · ${a.hqIf} 칸이 있을 때` : ""})` : "", a.when, akL(a.c) ? `반복 '${akL(a.c)}'` : ""].filter(Boolean).join(" · ")} sub2={last ? `최근 ${last.run ? md(last.run) : ""} · ${last.title}` : null}
           onClick={() => setOpenA(openA === a.c ? "" : a.c)} right={<span style={{ color: C.navy, fontWeight: 800 }}>{openA === a.c ? "▴" : "▾"}</span>} last />
         {openA === a.c && <div style={{ padding: "0 14px 12px", fontSize: 13, color: C.sub, lineHeight: 1.65 }}>
           {a.admin ? <div style={{ color: C.text }}>{a.admin}</div> : <>

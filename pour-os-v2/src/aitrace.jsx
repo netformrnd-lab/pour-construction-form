@@ -27,7 +27,7 @@ function TraceRow({ t, x, can, A, last }) {
   </div>;
 }
 
-export function AiTraceBox({ t, can, A, open }) {
+export function AiTraceBox({ t, can, A, open, D }) {
   if (!t || !t.aiAsk) return null;
   const list = traceList(t), left = traceLeft(t), done = traceDoneN(t);
   return <div className="v2-trace" style={{ background: "#fff", border: `1.5px solid ${left ? "#C9D3EA" : "#BFE3CF"}`, borderRadius: 14, padding: "12px 14px", marginTop: 12 }}>
@@ -35,7 +35,10 @@ export function AiTraceBox({ t, can, A, open }) {
       <b style={{ fontSize: 14.5, color: C.ink }}>흔적 남기기</b>
       <span style={{ fontSize: 12.5, color: left ? C.navy : C.green, fontWeight: 800 }}>{left ? `${list.length}개 중 ${list.length - left}개 남김` : `다 남김 · 했어요 ${done}개`}</span>
       <span style={{ flex: 1 }} />{open && <TBtn onClick={() => open({ type: "aiask", id: t.aiAsk })}>AI 승인 보기 ›</TBtn>}</div>
-    <div style={{ fontSize: 12.5, color: C.sub, lineHeight: 1.6, marginTop: 4 }}>AI가 준비한 일이에요 · 한 번 할 때마다 [했어요] (링크 남김){t.aiAk ? " · 짝지은 반복 실행에도 +1" : ""} · 다 남겨야 '끝냈어요'</div>
+    <div style={{ fontSize: 12.5, color: C.sub, lineHeight: 1.6, marginTop: 4 }}>AI가 준비한 일이에요 · 한 번 할 때마다 [했어요] (링크 남김){t.aiAk ? " · 짝지은 반복 실행에도 +1" : ""}{t.aiLaunch ? ` · 신제품 '${t.aiProd || "?"}' 개수에도 +1` : ""} · 다 남겨야 '끝냈어요'</div>
+    {t.aiLaunch && (() => { const lt = t.aiLaunchTask ? (D.tasks || []).find((x) => x.id === t.aiLaunchTask) : null;   // 디맨드젠 = 그 신제품 칸 (2026-10-15)
+      return lt ? <div style={{ marginTop: 4 }}><TBtn onClick={() => open && open({ type: "task", id: lt.id })} style={{ padding: "2px 0" }}>신제품 · {t.aiProd} · {lt.title} ›</TBtn></div>
+        : <div style={{ fontSize: 12, color: C.red, marginTop: 4 }}>신제품 '{t.aiProd || "?"}' 칸을 못 찾았어요 · [했어요]는 남지만 신제품 개수는 안 올라가요</div>; })()}
     <div style={{ marginTop: 4 }}>{list.map((x, i) => <TraceRow key={x.n} t={t} x={x} can={can} A={A} last={i === list.length - 1} />)}</div>
   </div>;
 }

@@ -166,4 +166,16 @@ eq("그날 올렸나", [X.ranOn({ at: at("2026-10-14T00:10:00") }, "2026-10-14")
   eq("AI 실행 업무가 아니면 흔적 없음", [X.traceLeft({ id: "t" }), X.traceLeft(null)], [0, 0]);
 }
 
+// 디맨드젠 (2026-10-15) — 승인 건 상품 → 신제품 칸(x_dg) · 실행 업무에 칸 id · 이름 띄어쓰기 무시
+{
+  const D = { tasks: [{ id: "lb_a__x_dg", projectId: "a", launchItem: "x_dg", title: "디맨드젠 광고 (1/5)", status: "inprogress", assigneeId: "sh", brand: "grohome" },
+    { id: "lb_b__x_dg", projectId: "b", launchItem: "x_dg", title: "디맨드젠 광고 (0/5)", status: "todo", assigneeId: "sh", brand: "grohome" }],
+    projects: [{ id: "a", title: "스티커 프라이머", brand: "grohome", launchDate: "2026-10-16" }, { id: "b", title: "스티커프라이머", brand: "grohome", launchDate: "2026-10-16", lbProject: "amazon-jp" }] };
+  eq("상품 → 신제품 칸 (아마존 트랙 빼고)", [X.launchTaskOf(D, { launch: "x_dg", prod: "스티커프라이머" }), X.launchTaskOf(D, { launch: "x_dg", prod: "없음" }), X.launchTaskOf(D, { prod: "스티커 프라이머" })], ["lb_a__x_dg", "", ""]);
+  const dg = { ...a0, act: "F", board: "gh-exp", mate: "yeoreum", launch: "x_dg", prod: "스티커 프라이머", cols: ["상품", "광고", "제목", "초안 링크"], items: [{ n: "F1", c: { 상품: "스티커 프라이머", 광고: "1", 제목: "칠하고 질리면 떼세요", "초안 링크": "https://ads.google.com/aw/c=1" } }] };
+  const ex = X.planExec(dg, ["F1"], me("hj"), U, T1, "2026-10-16", { launchTask: "lb_a__x_dg" });
+  eq("실행 업무 = 신제품 칸 · 상품 · 줄마다 초안 링크(AI 채움)", [ex.aiLaunch, ex.aiProd, ex.aiLaunchTask, ex.aiItems[0].link, ex.aiItems[0].t], ["x_dg", "스티커 프라이머", "lb_a__x_dg", "https://ads.google.com/aw/c=1", "스티커 프라이머 · 1 · 칠하고 질리면 떼세요"]);
+  eq("신제품 칸 아닌 실행 업무엔 없음", X.planExec(a0, ["B1"], me("hj"), U, T1, "").aiLaunch, undefined);
+}
+
 console.log(`\n${n - bad}/${n} 통과`); if (bad) process.exit(1);

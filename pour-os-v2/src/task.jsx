@@ -178,7 +178,7 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, id
       {parent && <div><TBtn onClick={() => open({ type: "task", id: parent.id })} style={{ padding: "2px 0" }}>상위 업무 · {parent.title} ›</TBtn></div>}
       {isGhProj(t.projectId) && <div>그로홈 그로스보드 업무{!owners.length && t.ghAssigneeName ? ` · 그로홈 담당 ${t.ghAssigneeName}` : ""} · <a className="v2-lblink" href={ghDashUrl(t.id)} target="_blank" rel="noopener">그로홈 대시보드에서 보기 ›</a></div>}
     </div>
-    {t.aiAsk && <AiTraceBox t={t} can={(mine || master) && !done} A={A} open={open} />}   {/* AI 승인 → 실행 업무 (2026-10-12) · 번호마다 흔적 → KPI (2026-10-15) */}
+    {t.aiAsk && <AiTraceBox t={t} can={(mine || master) && !done} A={A} open={open} D={D} />}   {/* AI 승인 → 실행 업무 (2026-10-12) · 번호마다 흔적 → KPI (2026-10-15) */}
     {t.firstStep && !done && <Banner><b>첫 걸음</b> · {t.firstStep}</Banner>}
     {/* 신제품 횟수 항목(블로그 포스팅 3회 …): 할 때마다 [+1] → 반복(행동지표) 짝이 있으면 같이 (routineui) */}
     <CountBox t={t} D={D} cu={cu} A={A} can={mine || master || !!(p && p.assigneeId === cu.id)} />

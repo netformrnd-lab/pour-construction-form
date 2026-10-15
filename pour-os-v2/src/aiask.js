@@ -12,7 +12,7 @@
 //   users.bossId  상급자 (관리자 › 사람)
 //   최종 승인 + 실행 한 줄(exec) → 담당에게 '실행' 업무(tasks · aiAsk = 승인 id) — 실제 반영은 늘 사람 (2026-10-11)
 import { isMaster, nameOf, teamOf, isOffDay, ymd } from "./model.js";
-import { mateOf, crewOf, brandL, asidePlan, loginSites, actOf } from "../../marketing-hub/crew.js";
+import { mateOf, crewOf, brandL, asidePlan, loginSites, actOf, launchRows, launchRowOf } from "../../marketing-hub/crew.js";
 
 export const ASK_STATE_L = { wait: "승인 대기", back: "AI가 고치는 중", ok: "최종 승인", no: "안 함" };
 export const MAX_UP = 5;   // 길이 이보다 길게 이어지지 않게 (상급자 고리·잘못 넣은 값 막기)
@@ -91,10 +91,15 @@ export const itemLine = (it, cols) => { const c = (it && it.c) || {}, ks = (cols
 //   aiItems = 승인한 번호마다 {n, t(한 줄), link(표의 링크)} — AI 가 미리 채움 → 사람이 번호마다 [했어요](링크 고침 가능)·[안 함] → aiTrace.<번호>
 //   aiAk = 그 할 일과 짝지은 반복 실행(aimates.actAk) → [했어요] 마다 반복 실행 +1 (흔적이 같이 남음) = KPI 추적
 const URL_RE = /https?:\/\/[^\s<>"')]+/;
-export const firstUrl = (c) => { const v = c || {}; const k = Object.keys(v).find((x) => /링크|URL|주소|게시물|프로필|계정/i.test(x) && URL_RE.test(String(v[x]))) || Object.keys(v).find((x) => URL_RE.test(String(v[x]))); return k ? (String(v[k]).match(URL_RE) || [""])[0] : ""; };
+//   칸 순서: 초안·게시물·링크(사람이 확인할 그것) → URL·주소·프로필·계정(최종 URL 같은 도착 주소) → 아무 칸의 주소 (디맨드젠 '초안 링크' > '최종 URL' · 2026-10-15)
+const URL_KEYS = [/초안|게시|링크|link/i, /URL|주소|프로필|계정/i];
+export const firstUrl = (c) => { const v = c || {}, ks = Object.keys(v), has = (x) => URL_RE.test(String(v[x]));
+  const k = URL_KEYS.map((re) => ks.find((x) => re.test(x) && has(x))).find(Boolean) || ks.find(has); return k ? (String(v[k]).match(URL_RE) || [""])[0] : ""; };
 // 번호 한 줄 + 링크 (한 줄에서는 링크 칸을 빼서 두 번 안 보이게)
 const traceItem = (x) => { const link = firstUrl(x.c), c = link ? Object.fromEntries(Object.entries(x.c || {}).filter(([, v]) => !String(v).includes(link))) : x.c || {};
   return { n: x.n, t: itemLine({ c }, Object.keys(c)) || itemLine(x), link }; };
+// 승인 건의 신제품 칸 (디맨드젠 x_dg · 2026-10-15) — 상품 이름 → 끝나지 않은 그 신제품 업무 id ('' = 못 찾음)
+export const launchTaskOf = (D, a) => { if (!a || !a.launch || !a.prod) return ""; const r = launchRowOf(launchRows((D && D.tasks) || [], (D && D.projects) || [], { item: a.launch }), a.prod); return r ? r.id : ""; };
 export function planExec(a, pick, cu, users, at, due, opt = {}) {
   if (!a || !a.exec) return null;
   const owner = actU(users, a.owner) ? a.owner : cu.id, items = a.items || [], pk = Array.isArray(pick) ? pick : null;
@@ -106,7 +111,8 @@ export function planExec(a, pick, cu, users, at, due, opt = {}) {
   return { id, title, isFixed: false, type: "general", status: "todo", assigneeId: owner, assigneeIds: [owner], projectId: "", parentId: null, dueDate: due || "", workDate: "", memo, attachments: [], weekDay: null, weekSlot: null, priority: "mid",
     ...(a.brand && brandL(a.brand) ? { brand: a.brand } : {}), noReview: true, ...(owner === cu.id ? { ackAt: at } : {}), v2At: at,
     requestedBy: cu.id, requestedAt: at, createdAt: at, createdBy: cu.id, statusLog: [{ by: cu.id, byName: cu.name, at, status: "todo" }], madeIn: "v2", aiAsk: a.id, aiMate: a.mate || "",
-    aiAct: a.act || "", aiBoard: a.board || "", aiAk: opt.ak || "", aiItems: chosen.map(traceItem) };
+    aiAct: a.act || "", aiBoard: a.board || "", aiAk: opt.ak || "", aiItems: chosen.map(traceItem),
+    ...(a.launch ? { aiLaunch: a.launch, aiProd: a.prod || "", aiLaunchTask: opt.launchTask || "" } : {}) };   // 디맨드젠: [했어요] = 그 신제품 칸 +1
 }
 
 // 흔적 (실행 업무) — 번호마다 했어요/안 함이 다 남았나 · 번호가 없으면 한 줄 흔적(_) 하나

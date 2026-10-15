@@ -178,4 +178,14 @@ eq("그날 올렸나", [X.ranOn({ at: at("2026-10-14T00:10:00") }, "2026-10-14")
   eq("신제품 칸 아닌 실행 업무엔 없음", X.planExec(a0, ["B1"], me("hj"), U, T1, "").aiLaunch, undefined);
 }
 
+// 쉬는 AI(하루·포리·에코 · crew.GONE) 담당 미정 승인 — '확인할 것'·내 차례 수에서 빠지고 AI 팀원 화면 정리 목록에만 (2026-10-15 페르소나 시험: 관리자 4명에게 6줄씩)
+{ const gone = [askDoc({ id: "ai_haru_20261014_x", mate: "haru", title: "하루 · 오늘 배분", run: "2026-10-14", at: "2026-10-13T21:53:51.000Z" }), askDoc({ id: "ai_pori_20261013_y", mate: "pori", title: "포리 · 블로그 원고 3", run: "2026-10-13", at: "2026-10-12T21:54:17.000Z" }),
+    { ...askDoc({ id: "ai_eco_20261014_z", mate: "eco", title: "에코 · 재배포", run: "2026-10-14", at: "2026-10-13T21:54:04.000Z" }), to: "sy" }];
+  const live = askDoc({ id: "ai_yeoreum_20261015_w", mate: "yeoreum", title: "여름 · 블로그 원고 3", run: "2026-10-15", at: "2026-10-14T21:53:26.000Z" });
+  const all = [...gone, live].map((a) => ({ ...a, state: "wait", to: a.to || "" }));
+  eq("쉬는 AI 담당 미정 = 관리자 '확인할 것'에 없음 · 사람에게 넘어간 것(to)은 그대로 · 지금 AI 는 그대로", X.askInbox(all, U, "sy", {}, now).map((x) => x.aiId).sort(), ["ai_eco_20261014_z", "ai_yeoreum_20261015_w"]);
+  eq("정리 목록 = 쉬는 AI 담당 미정만 (최근 것 먼저)", X.goneWaits(all).map((a) => a.id), ["ai_haru_20261014_x", "ai_pori_20261013_y"]);
+  eq("내 차례 수도 같게 (관리자 김소연 2 = 에코(내 차례) + 여름(담당 미정))", [X.myTurnN(all, me("sy")), X.myTurnN(all, me("ran")), X.myTurnN(all, me("yj"))], [2, 1, 0]);
+}
+
 console.log(`\n${n - bad}/${n} 통과`); if (bad) process.exit(1);

@@ -28,7 +28,8 @@ const aiasks = {
   ai_gyeoul_20261012_ghconvB: ask({ id: 'ai_gyeoul_20261012_ghconvB', mate: 'gyeoul', brand: 'grohome', board: 'gh-conv', act: 'B', title: '전환 보드 B · 쿠팡 유리블러 가격·구성 재설계', sum: '가격안 3개 · 경쟁 대비 근거', cols: ['항목', '내용', '근거'], items: items3, hq: '판매가 조정', exec: '승인되면 담당이 윙에서 가격·옵션을 바꾸고 모카 카드 갱신을 요청한다' }),
   ai_gyeoul_20261012_ghconvA: ask({ id: 'ai_gyeoul_20261012_ghconvA', mate: 'gyeoul', brand: 'grohome', board: 'gh-conv', act: 'A', title: '전환 보드 A · 품절 0 만들기', cols: ['상품', '채널', '가용재고'], items: [{ n: 'A1', c: { 상품: '롤러일체형', 채널: '스마트스토어', 가용재고: '0' } }, { n: 'A2', c: { 상품: '롤러 미니', 채널: '쿠팡', 가용재고: '340' } }], exec: '승인되면 담당이 상세페이지·재입고 알림에 반영한다' }),
   ai_gyeoul_20261012_ghconvC: ask({ id: 'ai_gyeoul_20261012_ghconvC', mate: 'gyeoul', brand: 'grohome', board: 'gh-conv', act: 'C', title: '전환 보드 C · 히어로 상품 상세 진단', cols: ['상품', '문제', '고칠 점'], items: [{ n: 'C1', c: { 상품: '유리블러', 문제: '첫 화면에 가격 없음', '고칠 점': '가격·구성 첫 화면' } }, { n: 'C2', c: { 상품: '롤러일체형', 문제: '시공 사진 부족', '고칠 점': '전후 사진 3장' } }], exec: '승인되면 담당이 상세페이지를 고친다' }),
-  ai_pori_20261012_blog3: ask({ id: 'ai_pori_20261012_blog3', mate: 'pori', brand: 'pourstore', title: '포리 · 블로그 원고 3 (균열 보수 빠데)', sum: '27칸 표준 · 구조 검사 ✓9', url: 'https://example.test/hub#team', exec: '승인되면 담당이 [임시저장 맡기기] 뒤 블로그에서 발행한다' }),
+  ai_bom_20261012_blog3: ask({ id: 'ai_bom_20261012_blog3', mate: 'bom', brand: 'pourstore', title: '봄 · 블로그 원고 3 (균열 보수 빠데)', sum: '27칸 표준 · 구조 검사 ✓9', url: 'https://example.test/hub#team', exec: '승인되면 담당이 [임시저장 맡기기] 뒤 블로그에서 발행한다' }),
+  ai_pori_20261012_old: ask({ id: 'ai_pori_20261012_old', mate: 'pori', brand: 'pourstore', title: '포리 · 예전 원고 (쉬는 AI)', url: 'https://example.test/hub#team' }),   // 2026-10-14 쉼 → '확인할 것' 아님 · AI 팀원 '쉬는 AI 승인 대기'
 };
 const seed = () => ({ meta: { seededAt: '2026-10-01T00:00:00.000Z', counts: {} }, writes: [],
   v2: { users, projects: {}, tasks: { t1: { id: 't1', title: '추석 이벤트 배너 문구', isFixed: false, status: 'todo', assigneeId: 'yj', assigneeIds: ['yj'], projectId: '', dueDate: '2026-10-13', createdAt: T0, statusLog: [] } },
@@ -84,7 +85,7 @@ const boxOf = (S, label) => S().getByLabel(label + ' 글').inputValue().catch(()
   eq('상급자 추천대로', ['yj', 'sy', 'hj', 'cw', 'yr', 'ran', 'sh', 'mj'].map((id) => doc('users', id).bossId || ''), ['sy', 'hj', '', 'hj', 'cw', 'sh', 'hj', 'sh']);
   eq('겨울 담당(그로홈) 저장', (doc('aimates', 'gyeoul') || {}).owners, { grohome: 'yj' });
   eq('여름 기본 담당 저장 (아침 루틴 원고 = 브랜드 없음 → 이 사람)', (doc('aimates', 'yeoreum') || {}).owners, { _: 'cw' });
-  eq('열린 겨울 승인 3건 → 남윤정 차례로', [doc('aiasks', 'ai_gyeoul_20261012_ghconvB').to, doc('aiasks', 'ai_gyeoul_20261012_ghconvA').to, doc('aiasks', 'ai_gyeoul_20261012_ghconvC').to, doc('aiasks', 'ai_pori_20261012_blog3').to], ['yj', 'yj', 'yj', '']); }
+  eq('열린 겨울 승인 3건 → 남윤정 차례로', [doc('aiasks', 'ai_gyeoul_20261012_ghconvB').to, doc('aiasks', 'ai_gyeoul_20261012_ghconvA').to, doc('aiasks', 'ai_gyeoul_20261012_ghconvC').to, doc('aiasks', 'ai_bom_20261012_blog3').to], ['yj', 'yj', 'yj', '']); }
 
 // ② 남윤정(담당 · 폰) — 확인할 것 'AI 승인 요청' → B1·B3 골라 승인 → 김소연 · A 는 AI 에게 다시
 { const s = await session('yj');
@@ -215,27 +216,41 @@ const boxOf = (S, label) => S().getByLabel(label + ' 글').inputValue().catch(()
   eq('흔적 다 남김 → 끝냄', w.status, 'done');
   await s.close(); }
 
-// ⑥ 이란(관리자) — 담당 미정 포리 원고: 승인 → 이란 담당 칸 · 상급자 김송희에게 / 김송희 돌려보냄 → 이란 '수정 요청'
+// ⑥ 이란(관리자) — 담당 미정 봄 원고: 승인 → 이란 담당 칸 · 상급자 김송희에게 / 김송희 돌려보냄 → 이란 '수정 요청'
 { let s = await session('ran');
-  eq('담당 미정 = 관리자에게 보임', await inbox(s.pg, '담당 미정 · 관리자 누구나').count(), 1);
+  eq('담당 미정 = 관리자에게 보임 (쉬는 AI 포리 것은 안 뜸)', [await inbox(s.pg, '담당 미정 · 관리자 누구나').count(), await inbox(s.pg, '예전 원고').count()], [1, 0]);
   await inbox(s.pg, '블로그 원고 3').first().click(); await s.pg.waitForTimeout(400);
   eq('번호 없는 결과 = 통째 승인', await s.S().getByRole('button', { name: '승인 → 김송희님께' }).count(), 1);
   await s.S().getByRole('button', { name: '승인 → 김송희님께' }).click(); await s.pg.waitForTimeout(600); await s.close();
-  let d = doc('aiasks', 'ai_pori_20261012_blog3');
+  let d = doc('aiasks', 'ai_bom_20261012_blog3');
   eq('누른 관리자 = 담당 칸 → 김송희', [d.owner, d.to, d.step, d.pick], ['ran', 'sh', 1, null]);
   s = await session('sh');
   await inbox(s.pg, '블로그 원고 3').first().click(); await s.pg.waitForTimeout(400);
   await s.S().getByRole('button', { name: '이란님께 돌려보내기' }).click();
   await s.S().getByLabel('고칠 점').fill('CTA 링크 주소 확인'); await s.S().getByRole('button', { name: '보내기', exact: true }).click(); await s.pg.waitForTimeout(600); await s.close();
-  d = doc('aiasks', 'ai_pori_20261012_blog3');
+  d = doc('aiasks', 'ai_bom_20261012_blog3');
   eq('돌려보냄 → 이란 차례 · 수정 요청', [d.to, d.step, d.ret && d.ret.text], ['ran', 0, 'CTA 링크 주소 확인']);
   s = await session('ran');
   eq('이란 오늘: 수정 요청(빨강)', await inbox(s.pg, 'CTA 링크 주소 확인').count(), 1);
   // 그사이 다른 사람이 처리함 → 안 덮음
   await inbox(s.pg, 'CTA 링크 주소 확인').first().click(); await s.pg.waitForTimeout(400);
-  await s.pg.evaluate(() => window.__OTHER('aiasks', 'ai_pori_20261012_blog3', { to: 'sh', step: 1 }));
+  await s.pg.evaluate(() => window.__OTHER('aiasks', 'ai_bom_20261012_blog3', { to: 'sh', step: 1 }));
   await s.S().getByRole('button', { name: /승인 → 김송희님께|최종 승인/ }).click({ trial: false }).catch(() => {}); await s.pg.waitForTimeout(600);
-  ok('겹침 → 안 씀 · 알림', (await s.pg.locator('.v2-toast').innerText().catch(() => '')).includes('그사이') || (await s.pg.evaluate(() => window.__V2.v2.aiasks.ai_pori_20261012_blog3.step)) === 1);
+  ok('겹침 → 안 씀 · 알림', (await s.pg.locator('.v2-toast').innerText().catch(() => '')).includes('그사이') || (await s.pg.evaluate(() => window.__V2.v2.aiasks.ai_bom_20261012_blog3.step)) === 1);
+  await s.close(); }
+
+// ⑥-2 쉬는 AI(포리) 담당 미정 승인 — '확인할 것'엔 없고 · 더보기 › AI 팀원 '쉬는 AI 승인 대기' → [모두 '안 함'으로 정리] (2026-10-15 페르소나 시험)
+{ const s = await session('ran');
+  await s.pg.locator('.v2-nav').getByRole('button', { name: '더보기' }).click(); await s.pg.waitForTimeout(300);
+  ok('더보기 AI 팀원: 쉬는 AI 담당 미정은 승인 차례로 안 셈', !(await s.pg.locator('.v2-page').innerText()).includes('승인 차례'));
+  await s.pg.locator('.v2-page [role=button]').filter({ hasText: '크루(브랜드·고객별)' }).first().click(); await s.pg.waitForTimeout(500);
+  ok('AI 팀원: 쉬는 AI 승인 대기 1건 · 포리 · 예전 원고', (await s.S().innerText()).includes('쉬는 AI 승인 대기 1건') && (await s.S().getByText('포리 · 예전 원고 (쉬는 AI)').count()) === 1);
+  await shot(s.pg, 'ran-gone-375');
+  await s.S().getByRole('button', { name: /모두 '안 함'으로 정리/ }).click(); await s.pg.waitForTimeout(300);
+  await s.pg.getByRole('alertdialog').getByRole('button', { name: '정리', exact: true }).click(); await s.pg.waitForTimeout(800);
+  const d = await s.pg.evaluate(() => window.__V2.v2.aiasks.ai_pori_20261012_old);
+  eq('정리 → 안 함 · 이유 · 누른 관리자 기록', [d.state, /쉬는 AI/.test(d.noReason || ''), d.noBy], ['no', true, 'ran']);
+  ok('정리 뒤 카드 사라짐', (await s.S().getByText('쉬는 AI 승인 대기').count()) === 0);
   await s.close(); }
 
 // ⑦ 다음 날(10/13 화 11:00) — 겨울 보드는 어제 09:10 에 올렸는데 오늘 아직 → 남윤정 '오늘 안 돎'(빨강) → 세팅 시트(마지막 올림) · 김채원 = 여름 세팅 안내(담당이 다르면 같은 09:00)

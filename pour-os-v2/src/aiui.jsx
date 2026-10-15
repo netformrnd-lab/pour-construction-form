@@ -9,12 +9,12 @@
 import { useEffect, useMemo, useState } from "react";
 import * as fb from "./fb.js";
 import { md, hm, ago, ymd, addDays, isMaster, nameOf, activeUsers } from "./model.js";
-import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, inp, Linked, useLocal } from "./ui.jsx";
+import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, inp, Linked, useLocal } from "./ui.jsx";
 import { Thread, useItemNotes } from "./task.jsx";
 import { LS } from "./core.jsx";
 import { CREWS, GONE, crewOf, mateOf, boardOf, brandL, servesL, mateBrands, ownerKeys, fmtMetric, metricPct, metricOk, runWord, asideLaunch, asideRedoLaunch, asideFixLaunch, loginSites, planOf, qtyDefs, qtyNow, canReq, reqMates, REQ_SHAPES, REQ_PRESETS, REQ_STATE_L, reqLine, asideReqLaunch, execOf } from "../../marketing-hub/crew.js";
 import { cycleOf, periodOf, repCrews, repId, repSlots, secState, periodL, dueL, CYCLE_L } from "./aireport.js";   // AI 크루 보고 (2026-10-15)
-import { ASK_STATE_L, canAct, canBack, canRet, isProxy, pickOk, planPass, chainOf, mateOwner, actOwner, hqOf, canUpHQ, mateStats, repeatNotes, itemLine, bossOf, bossRec, bossLoop, asidePlanOf, ranOn, missedOn } from "./aiask.js";
+import { ASK_STATE_L, canAct, canBack, canRet, isProxy, pickOk, planPass, chainOf, mateOwner, actOwner, hqOf, canUpHQ, mateStats, repeatNotes, itemLine, bossOf, bossRec, bossLoop, asidePlanOf, ranOn, missedOn, goneWaits, GONE_DROP, myTurnN } from "./aiask.js";
 
 export const HUB_CREW_URL = "../marketing-hub/crew.html";   // Aside 결과 올리기 (허브)
 export const HUB_MANUAL_URL = "../marketing-hub/ai-manual.html", HUB_ADS_URL = "../marketing-hub/ads.html";   // AI 팀 매뉴얼 · 광고 운영 (2026-10-15 · 읽기 전용 · Aside 가 씀)
@@ -165,7 +165,9 @@ export function AiTeamBody({ D, cu, A, open, admin }) {
   const scope = scope0 || (mineIds.length && !master ? "mine" : "all");
   const [bulk, setBulk] = useState(false);
   const since = new Date(Date.now() - 7 * 864e5).toISOString();
-  const myTurn = asks.filter((x) => x.state === "wait" && (x.to === cu.id || (!x.to && master))).length;
+  const myTurn = myTurnN(asks, cu);
+  const gw = master ? goneWaits(asks) : [], [goneAsk, setGoneAsk] = useState(false);   // 쉬는 AI 승인 대기 정리 (2026-10-15 페르소나 시험)
+  const dropGone = async () => { setGoneAsk(false); let k = 0; for (const a of gw) { if (await A.aiDrop(a, GONE_DROP)) k++; } A.toast(`쉬는 AI 승인 ${k}건을 '안 함'으로 정리했어요`); };
   const ownerL = (id, brand) => { const o = mateOwner(mates[id], brand, D.users); return o ? nameOf(D.users, o) : "담당 미정"; };
   const ownersL = (id) => { const ks = ownerKeys(id); if (ks.length < 2) return ownerL(id, ks[0] || ""); const names = [...new Set(ks.map((x) => ownerL(id, x)))]; return names.length === 1 ? names[0] : ks.map((x) => `${x ? brandL(x) : "기본"} ${ownerL(id, x)}`).join(" · "); };
   const show = (id) => scope === "all" || mineIds.includes(id);
@@ -194,6 +196,12 @@ export function AiTeamBody({ D, cu, A, open, admin }) {
       return <Card style={{ marginTop: 10 }}><Row title="AI에게 업무 맡기기" tag={mine ? `진행 ${mine}` : null} sub="무엇을 · 몇 개 · 언제까지 → 담당 PC Aside 가 한 시간 안에 · 결과는 승인으로 와요" onClick={() => open({ type: "aiReq" })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last={!rc} />
         {rc && <Row title={`AI 크루 보고 · ${CYCLE_L[p.cycle]}`} tag={sn === sl.length ? "보냄" : null} sub={`${periodL(p)} · ${dueL(p)} · 담당 확인 ${dn}/${sl.length} · 보냄 ${sn}/${sl.length}`} onClick={() => open({ type: "aiReport", crew: rc.id })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last />}</Card>; })()}
     <p style={{ fontSize: 12.5, color: C.sub, lineHeight: 1.6, margin: "8px 2px 0" }}>AI가 결과를 올리면 담당 → 리드 순서로 승인해요(광고비 예산·원가·판매가 조정만 본부장까지) · 실제 반영은 늘 사람이 해요 · 실행 업무엔 번호마다 흔적{myTurn ? ` · 지금 내 차례 ${myTurn}건` : ""} · <a className="v2-lblink" href={HUB_MANUAL_URL} target="_blank" rel="noopener">매뉴얼 보기 ›</a> · <a className="v2-lblink" href={HUB_ADS_URL} target="_blank" rel="noopener">광고 운영 ›</a></p>
+    {gw.length > 0 && <Card style={{ marginTop: 10 }}>
+      <Row title={`쉬는 AI 승인 대기 ${gw.length}건`} tag="정리" sub={`${[...new Set(gw.map((a) => (mateOf(a.mate) || {}).name || a.mateName || a.mate))].join("·")} · 2026-10-14부터 쉬어요 · 같은 일은 B2C 크루 여름이 매일 새로 올려요 · '확인할 것'엔 안 떠요`} last={false} />
+      {gw.slice(0, 6).map((a) => <Row key={a.id} title={a.title} sub={`${a.createdAt ? md(ymd(new Date(a.createdAt))) : ""} 올라옴 · 담당 미정 · 열어서 승인할 수도 있어요`} onClick={() => open({ type: "aiask", id: a.id })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last={false} />)}
+      <div style={{ padding: "10px 14px", background: "#fff" }}><TBtn tone="red" onClick={() => setGoneAsk(true)}>모두 '안 함'으로 정리 ({gw.length}건)</TBtn></div>
+    </Card>}
+    {goneAsk && <Ask title="쉬는 AI 승인 정리" body={`${gw.length}건을 '안 함'으로 정리할까요?\n이유: ${GONE_DROP}\n기록이 남고, 한 건씩 열어 보면 무엇이었는지 그대로 있어요.`} yes="정리" onNo={() => setGoneAsk(false)} onYes={dropGone} />}
     {(myG || (master && noneG)) && <Card style={{ marginTop: 10 }}>
       {myG && <Row title={`내 PC Aside · ${myG.runs.map((r) => `${(mateOf(r.board.mate) || {}).name} ${r.t}`).join(" · ")}`} sub="세팅 · 지금 돌리기 · 고칠 것 확인 — 담당마다 자기 PC 에서 동시에 돌아요" onClick={() => open({ type: "aiSetup" })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last={!(master && noneG)} />}
       {master && noneG && <Row title={`담당 미정 크루 ${noneG.runs.length}명 · 관리자 PC 에서`} sub={`${noneG.runs.map((r) => (mateOf(r.board.mate) || {}).name).join(" · ")} · 담당을 정하면 그 사람 PC 로 옮겨가요`} onClick={() => open({ type: "aiSetup", owner: "" })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last />}

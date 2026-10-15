@@ -12,7 +12,7 @@
 //   users.bossId  상급자 (관리자 › 사람)
 //   최종 승인 + 실행 한 줄(exec) → 담당에게 '실행' 업무(tasks · aiAsk = 승인 id) — 실제 반영은 늘 사람 (2026-10-11)
 import { isMaster, nameOf, teamOf, isOffDay, ymd } from "./model.js";
-import { mateOf, crewOf, brandL, asidePlan, loginSites, actOf, launchRows, launchRowOf } from "../../marketing-hub/crew.js";
+import { mateOf, crewOf, brandL, asidePlan, loginSites, actOf, launchRows, launchRowOf, GONE } from "../../marketing-hub/crew.js";
 
 export const ASK_STATE_L = { wait: "승인 대기", back: "AI가 고치는 중", ok: "최종 승인", no: "안 함" };
 export const MAX_UP = 5;   // 길이 이보다 길게 이어지지 않게 (상급자 고리·잘못 넣은 값 막기)
@@ -142,6 +142,9 @@ export function askInbox(asks, users, uid, seen = {}, now = new Date()) {
   (asks || []).forEach((a) => {
     if (!a || !a.id) return;
     const ai = `${a.mateName || "AI"} (AI)`;
+    // 쉬는 AI(하루·포리·에코 · crew.GONE · 2026-10-14)가 올린 담당 미정 승인은 '확인할 것'에 안 띄움 — 관리자 모두에게 같은 줄이 쌓여 할 일이 묻힘(2026-10-15 페르소나 시험)
+    //   → AI 팀원 화면 '쉬는 AI 승인 대기'에서 열어 보거나 [모두 안 함]으로 정리 · 링크(#a-)로는 그대로 열림
+    if (a.state === "wait" && !a.to && GONE[a.mate]) return;
     if (a.state === "wait" && (a.to === uid || (!a.to && master))) {
       const n = (a.items || []).length, pk = Array.isArray(a.pick) ? a.pick.length : 0, prev = a.step > 0 ? nameOf(users, (a.path || [])[(a.path || []).length - 1]) : "";
       const tag = a.ret ? "수정 요청" : a.step > 0 ? "확인 요청" : "AI 승인 요청";
@@ -233,5 +236,10 @@ export function asideInbox(D, uid, now = new Date()) {
   return out;
 }
 
+// 쉬는 AI(crew.GONE)가 올린 담당 미정 승인 대기 — AI 팀원 화면에서 관리자가 정리 ('확인할 것'엔 안 뜸 · askInbox)
+export const goneWaits = (asks) => (asks || []).filter((a) => a && a.state === "wait" && !a.to && GONE[a.mate]).sort((p, q) => String(q.createdAt || "").localeCompare(String(p.createdAt || "")));
+export const GONE_DROP = "쉬는 AI · 같은 일은 B2C 크루 여름이 매일 새로 올려요";
+// 지금 내 차례 승인 수 (더보기 'AI 팀원' 꼬리표 · AI 팀원 화면) — 쉬는 AI 담당 미정은 뺌 (askInbox 와 같게)
+export const myTurnN = (asks, cu) => (asks || []).filter((x) => x && x.state === "wait" && !(!x.to && GONE[x.mate]) && (x.to === cu.id || (!x.to && isMaster(cu)))).length;
 // AI 팀원 한 명이 지금 어디서 일하나 (화면 머리)
 export const mateWhere = (mateId) => { const c = crewOf(mateId); return c ? c.name : "기본 AI 팀원 (원형)"; };

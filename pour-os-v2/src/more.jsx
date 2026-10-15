@@ -10,7 +10,7 @@ import { akWho } from "../../pour-os/src/actionKpi.js";
 import { fileKind } from "./files.jsx";
 import { noteWhere } from "./search.js";
 import { tplTrashRows, canEditTpl } from "./tpl.js";
-import { mateOwner } from "./aiask.js";
+import { mateOwner, myTurnN } from "./aiask.js";
 import { allMates } from "../../marketing-hub/crew.js";
 
 const BTN_ON = { background: C.navy, color: "#fff", borderColor: C.navy };
@@ -56,7 +56,7 @@ export function MoreTab({ D, cu, A, meta, logout, open, BUILD, setToast, view })
     {A && <TrashList rows={tplTrashRows(D.removedTemplates, isMaster(cu) ? null : cu.id)} A={A} open={open} label="없앤 견본" canRestore={(r) => canEditTpl(r.x, cu)} note="되살리면 견본함에 다시 보여요 · 이 견본으로 만든 프로젝트는 처음부터 그대로예요" style={{ marginTop: 10 }} />}
     {/* AI 팀원(2026-10-12): 크루(브랜드+고객별) · 내가 맡은 AI · 내 차례 승인 (2026-10-14 기본 AI 팀원(원형)은 목록에서 뺌 · 아침 루틴 = 여름) */}
     <Head>AI 팀원</Head>
-    {(() => { const asks = (D.ai && D.ai.asks) || [], turn = asks.filter((x) => x.state === "wait" && (x.to === cu.id || (!x.to && isMaster(cu)))).length;
+    {(() => { const asks = (D.ai && D.ai.asks) || [], turn = myTurnN(asks, cu);   // 쉬는 AI 담당 미정은 뺌 (2026-10-15)
       const mine = allMates().filter((m) => m.crew !== "base" && Object.values(((D.ai && D.ai.mates[m.id]) || {}).owners || {}).includes(cu.id)).length;   // 크루만 (2026-10-14 기본 AI 팀원 칸 없앰)
       return <Card><Row title={`AI 팀원${mine ? ` · 내가 맡은 AI ${mine}` : ""}`} tag={turn ? `승인 차례 ${turn}` : null} sub="크루(브랜드·고객별) · 담당 → 리드 승인(광고비 예산·원가·판매가 조정만 본부장까지) · 확정 규칙" onClick={() => open({ type: "aiTeam" })} right={arrow} last={false} />
         {/* 광고 운영 · AI 팀 매뉴얼(2026-10-15) — 허브 화면(읽기 전용 · Aside 가 매일 08:30 올림) */}

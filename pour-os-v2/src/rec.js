@@ -30,7 +30,7 @@ export function dayBase(kind, x, cu, date, extra) {
 // 그날 문서에 더하기 (transaction 안) — runs·qty 더함 · 기록 한 줄 · 없으면 통째로 만듦
 export function dayAdd(cur, base, add, cu, at) {
   const runs = Math.max(0, (+(cur && cur.runs) || 0) + (+add.runs || 0)), qty = Math.max(0, (+(cur && cur.qty) || 0) + (+add.qty || 0));
-  const rec = { at, by: cu.id, byName: cu.name, ...(add.runs ? { run: add.runs } : {}), ...(add.qty ? { d: add.qty } : {}), ...(add.via ? { via: add.via } : {}) };
+  const rec = { at, by: cu.id, byName: cu.name, ...(add.runs ? { run: add.runs } : {}), ...(add.qty ? { d: add.qty } : {}), ...(add.via ? { via: add.via } : {}), ...(add.ai ? { ai: add.ai } : {}) };
   const recs = [...(((cur && cur.recs) || [])), rec].slice(-200);
   return cur ? { runs, qty, recs, at } : { ...base, runs, qty, recs, at };
 }

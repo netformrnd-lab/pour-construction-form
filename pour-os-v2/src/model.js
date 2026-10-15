@@ -405,7 +405,8 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
   if (T && Array.isArray(T.inbox)) T.inbox.forEach((x) => inbox.push(x));
   if (D.links && D.linkInbox) D.linkInbox(D.links, users, uid, key).forEach((x) => { if (!x.keep && seen[x.id]) return; inbox.push(x); });
   if (D.ai && D.aiInbox) D.aiInbox(D.ai.asks, users, uid, seen, now).forEach((x) => inbox.push(x));   // AI 승인 (aiask.js · 2026-10-12): 내 차례 · 담당 미정은 관리자 누구나 · 최종 승인·안 함 알림
-  if (D.ai && D.asideInbox) D.asideInbox(D, uid, now).forEach((x) => inbox.push(x));   // Aside 담당 PC (aiask.js · 2026-10-15): 내 PC 세팅 · 오늘 안 돎 · (관리자) 담당 미정
+  if (D.ai && D.asideInbox) D.asideInbox(D, uid, now).forEach((x) => inbox.push(x));
+  if (D.ai && D.aiRepInbox) D.aiRepInbox(D, uid, now).forEach((x) => inbox.push(x));   // AI 크루 보고서 (aireport.js · 2026-10-15): 칸 쓰기 · 리드 보내기 · 본부장 보고 도착   // Aside 담당 PC (aiask.js · 2026-10-15): 내 PC 세팅 · 오늘 안 돎 · (관리자) 담당 미정
   if (D.kpi && D.lagInbox) D.lagInbox(D.kpi.lagDefs, D.kpi.lagV2, users, uid, key, D.brands).forEach((x) => inbox.push(x));   // 월말 결과 KPI 넣기 (kpi2.js · 마스터·결과 KPI 권한)   // CRM·마진에서 온 한 줄 (links.js · 순환 import 피하려고 D 로 받음)
   const taskById = Object.fromEntries(tasks.map((t) => [t.id, t]));
   const talked = new Set((D.notes || []).filter((n) => n && n.by === uid && !n.deleted).map((n) => n.itemId));   // 내가 말한 대화 → 답이 오면 나에게도
@@ -562,7 +563,7 @@ export function ownerIssues(D) {
 }
 
 // ── 소식 (댓글 + 기록) ──
-export const LOG_L = { aiUp: "AI 승인 · 위로", aiOk: "AI 최종 승인", aiBack: "AI에게 다시", aiQty: "AI 횟수", aiReq: "AI에게 맡김", aiReqX: "맡긴 일 취소", aiRet: "AI 승인 돌려보냄", aiNo: "AI 안 함", aiUndo: "AI 승인 되돌림", aiOwner: "AI 담당 바꿈", aiRule: "AI 확정 규칙", boss: "상급자 바꿈", noteRemove: "댓글 삭제", noteRestore: "댓글 되살림", decide: "결정", add: "새로 만듦", edit: "고침", done: "끝냄", reopen: "다시 엶", assign: "담당 바꿈", handover: "일 넘김", sync: "신제품 대시보드에서", take: "이어받음", comment: "댓글", noteEdit: "댓글 고침", delete: "휴지통으로", remove: "없앰(휴지통)", restore: "되살림",
+export const LOG_L = { aiUp: "AI 승인 · 위로", aiOk: "AI 최종 승인", aiBack: "AI에게 다시", aiQty: "AI 횟수", aiReq: "AI에게 맡김", aiReqX: "맡긴 일 취소", aiAct: "AI 할 일 설정", aiTrace: "흔적", aiRep: "AI 크루 보고", aiRepSend: "보고 보냄", aiRepRead: "보고 읽음", aiRepCycle: "보고 주기", aiRet: "AI 승인 돌려보냄", aiNo: "AI 안 함", aiUndo: "AI 승인 되돌림", aiOwner: "AI 담당 바꿈", aiRule: "AI 확정 규칙", boss: "상급자 바꿈", noteRemove: "댓글 삭제", noteRestore: "댓글 되살림", decide: "결정", add: "새로 만듦", edit: "고침", done: "끝냄", reopen: "다시 엶", assign: "담당 바꿈", handover: "일 넘김", sync: "신제품 대시보드에서", take: "이어받음", comment: "댓글", noteEdit: "댓글 고침", delete: "휴지통으로", remove: "없앰(휴지통)", restore: "되살림",
   ack: "받음", dueReq: "기한 조정 요청", dueOk: "기한 조정 수락", dueNo: "기한 유지", review: "확인 요청", approve: "확인 완료", feedback: "수정 요청", block: "막힘", unblock: "막힘 풀림", launch: "신제품 만듦", bulk: "한꺼번에 바꿈", deps: "앞 일 바꿈", ask: "도움 요청", askDone: "도움 요청 닫음", hold: "보류", unhold: "보류 풀기", projEnd: "프로젝트 끝냄·멈춤", projResume: "프로젝트 다시 시작", moyImport: "모여라딜 OS에서 가져옴" };
 export function feedOf(D, { projectId, taskIds, sinceIso } = {}) {
   const tset = taskIds ? new Set(taskIds) : null;

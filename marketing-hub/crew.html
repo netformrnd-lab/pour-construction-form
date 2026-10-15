@@ -10,7 +10,8 @@
   · 보드 고르기 → 날짜 → 결과 붙여 넣기([지표] [상태] [A]~[E] 표 · 그로홈 보드에서 쓰던 모양) → 미리 보기 → [업무OS에 올리기]
   · 쓰는 곳(pour-app-new · 공개 규칙 pour-os/{doc=**} · 규칙 변경 없음):
       pour-os/v2/aiboards/{보드 id}  지표 값(날짜별) · 상태 한 줄
-      pour-os/v2/aiasks/{id}         행동 A~F 하나 = 승인 한 건 → 업무OS '확인할 것' (AI → 담당 → 리드 → 본부장)
+      pour-os/v2/aiasks/{id}         행동 A~F 하나 = 승인 한 건 → 업무OS '확인할 것' (AI → 할 일 담당 → 리드에서 끝 · 광고비 예산·원가·판매가 조정만 본부장까지 · 2026-10-15)
+      pour-os/v2/aiboards/{보드 id}.next·nextHist  [다음주] AI 피드백 → 업무OS 크루 보고서 '다음 기간'
   · 같은 날 같은 행동을 다시 올리면: 아직 담당 차례이거나 'AI 에게 다시'로 돌려받은 것만 2번째 판으로 고침 · 위로 올라간 뒤엔 그대로(날짜를 바꿔 새로)
   · 빼는 것: 원가·마진·제조사·공급 단가 칸 · 관리자 자리 행동(노출 E) · 휴대폰 번호·메일(가림) — crew.js
   · 실행(가격·광고·발송·게시)은 하지 않음 — 표와 초안까지 · 실제 반영은 승인 뒤 사람이 업무OS '실행' 업무에서
@@ -194,29 +195,39 @@ async function loadMate(){
   const b=board(), m=mate(); mateDoc=null; $('crew-guide').textContent=K.asideText(b);
   $('crew-guide-head').textContent=`오늘 지시문 — ${m.name} · ${b.title} · 판 ${K.ASIDE_VER}`; $('crew-last').innerHTML='';
   try{
-    const [md,back,rq]=await Promise.all([V2().collection('aimates').doc(m.id).get(),V2().collection('aiasks').where('mate','==',m.id).get(),V2().collection('aireqs').where('mate','==',m.id).get()]);
+    const cr=K.crewOf(m.id);
+    const [md,back,rq,rp]=await Promise.all([V2().collection('aimates').doc(m.id).get(),V2().collection('aiasks').where('mate','==',m.id).get(),V2().collection('aireqs').where('mate','==',m.id).get(),
+      cr?V2().collection('aireports').where('crew','==',cr.id).get().catch(e=>{console.error('[aireports] 못 읽음',e);return {docs:[]};}):Promise.resolve({docs:[]})]);
+    PLANNOW=K.planFromReports(rp.docs.map(d=>({id:d.id,...d.data()})),m.id);   // 업무OS AI 크루 보고서 · 사람이 정한 계획 (2026-10-15)
+    console.log(`[aireports/${cr?cr.id:'-'}] ${rp.docs.length}장 · 사람이 정한 계획 ${PLANNOW?PLANNOW.lines.length+'줄':'없음'}`);
     REQS=rq.docs.map(d=>({id:d.id,...d.data()})).filter(r=>r.state==='open'||r.state==='doing').sort((x,y)=>String(x.createdAt||'').localeCompare(String(y.createdAt||'')));
     console.log(`[aireqs/${m.id}] 맡긴 일 ${REQS.length}건 (전체 ${rq.size})`);
     $('crew-reqs').innerHTML=REQS.length?`<div class="reqbox">맡긴 일 ${REQS.length}건 — [이 일 하기]를 누르고 적힌 대로 해서 결과 칸의 <b>[R]</b> 묶음으로 올려요 (하나씩)${REQS.map((r,i)=>`<div class="rq">· <b>${esc(r.title)}</b>${r.state==='doing'?' <span class="pill">하는 중</span>':''} <span class="s">${esc(K.reqLine(r))}</span>
       ${r.body?`<div class="d">${esc(r.body)}</div>`:''}<button type="button" class="btn sm" id="req-load-${i}" data-r="${i}" aria-label="이 일 하기 ${esc(r.title)}" style="margin-top:6px">${REQ&&REQ.id===r.id?'✓ 고름':'이 일 하기'}</button></div>`).join('')}</div>`:'';
-    mateDoc=md.exists?md.data():null; $('crew-guide').textContent=K.asideText(b,{qty:mateDoc&&mateDoc.qty});   // 이번 몫 = 담당이 정한 횟수
-    const oid=K.ownerFor(mateDoc,b.brand); if(oid&&!users[oid]){const ud=await V2().collection('users').doc(oid).get();users[oid]=ud.exists?{name:ud.data().name||'',active:ud.data().active}:null;}
+    mateDoc=md.exists?md.data():null; $('crew-guide').textContent=K.asideText(b,{qty:mateDoc&&mateDoc.qty,plan:PLANNOW});   // 이번 몫 = 담당이 정한 횟수 · 사람이 정한 계획 = 업무OS 보고서
+    const need=[...new Set([K.ownerFor(mateDoc,b.brand),...b.actions.map(a=>K.ownerForAct(mateDoc,b.brand,a.c))])].filter(id=>id&&!(id in users));   // 할 일 담당까지 (2026-10-15)
+    await Promise.all(need.map(async id=>{const ud=await V2().collection('users').doc(id).get();users[id]=ud.exists?{name:ud.data().name||'',active:ud.data().active}:null;}));
     const owner=ownerId(), on=(mateDoc&&mateDoc.rules||[]).filter(r=>!r.off);
     const mine=back.docs.map(d=>d.data()).filter(a=>a.board===b.id), backs=mine.filter(a=>a.state==='back'); BACKS=backs;
     $('crew-last').innerHTML=`<div class="hint" style="margin:0 0 4px">할 일별 최근 올림 (월 1회·1회 같은 할 일은 이걸 보고 이미 했는지 판단)</div><div class="lastrow">${b.actions.filter(a=>!a.admin).map(a=>{const l=mine.filter(x=>x.act===a.c).sort((p,q)=>String(q.createdAt||'').localeCompare(String(p.createdAt||'')))[0];
       return `<span><b>${esc(a.c)}</b> ${l?`${esc(String(l.run||'').slice(5).replace('-','/'))} · ${esc(stateL(l))}`:'없음'}</span>`;}).join('')}</div>`;
     console.log(`[aimates/${m.id}] ${mateDoc?'있음':'없음'} · 규칙 ${on.length} · 돌려받은 것 ${backs.length}`);
-    $('crew-who').innerHTML=`승인 길: <b>${esc(m.name)}(AI)</b> → ${owner?`<b>${esc(nameOf(owner))}</b>(담당)`:'<b>담당 미정</b> — 관리자 누구나'} → 상급자 순서 · ${esc(K.brandL(b.brand))}`;
+    const split=actSplit(b);   // 할 일마다 담당이 다르면 (예: A 윤미니 · B·C 김민지)
+    $('crew-who').innerHTML=`승인 길: <b>${esc(m.name)}(AI)</b> → ${owner?`<b>${esc(nameOf(owner))}</b>(담당)`:'<b>담당 미정</b> — 관리자 누구나'} → 리드에서 끝 (광고비 예산·원가·판매가 조정만 본부장까지) · ${esc(K.brandL(b.brand))}${split?`<br>할 일 담당: ${split}`:''}`;
     $('crew-rules').innerHTML=on.length?`<div class="warn">확정 규칙 ${on.length}개 — 꼭 지켜 주세요<br>${on.map(r=>'· '+esc(r.text)).join('<br>')}</div>`:'';
     $('crew-redo').innerHTML=backs.length?`<div class="warn">고쳐서 다시 올릴 것 ${backs.length}건 — [이전 판 불러오기] → 적힌 말대로 고치거나 줄을 더해 다시 올리면 같은 건의 다음 판이 돼요${backs.map((a,i)=>{const more=a.back&&Number(a.back.more)>0?Number(a.back.more):0;
       return `<div style="margin-top:6px">· ${esc(a.run)} ${esc(a.act)} · ${esc(a.title)}${more?` · <span class="pill">더 만들기 ${more}개</span>`:''} — <b>${esc(a.back&&a.back.text||'')}</b> (${esc(a.back&&a.back.byName||'')}) <button type="button" class="btn sm" id="redo-load-${i}" data-i="${i}" aria-label="이전 판 불러오기 ${esc(a.run)} ${esc(a.act)}">이전 판 불러오기</button></div>`;}).join('')}</div>`:'';
   }catch(e){console.error('[AI 크루] 담당·규칙 불러오기 실패',e);$('crew-who').textContent='담당·규칙을 못 불러왔어요 · 인터넷 연결을 확인해 주세요';}
 }
 const nameOf=(id)=>(users[id]||{}).name||id;
+// 올린 건의 승인 차례 (할 일마다 담당이 다를 수 있음) — '윤미니님(A) · 김민지님(B·C)'
+const whoOf=(asks)=>{const g={};asks.forEach(a=>{(g[a.owner||'']=g[a.owner||'']||[]).push(a.act);});const ks=Object.keys(g);
+  if(!ks.length)return '없음'; if(ks.length===1)return ks[0]?esc(nameOf(ks[0]))+'님':'관리자 누구나';
+  return ks.map(id=>`${id?esc(nameOf(id))+'님':'관리자 누구나'}(${esc(g[id].join('·'))})`).join(' · ');};
 const stateL=(a)=>a.state==='wait'?(a.step>0?'위로 올라감':'승인 대기'):a.state==='back'?'AI에게 다시':a.state==='ok'?'최종 승인':a.state==='no'?'안 함':a.state||'';
 const kst=(iso)=>{if(!iso)return '';const k=new Date(new Date(iso).getTime()+9*3600e3).toISOString();return `${Number(k.slice(5,7))}/${Number(k.slice(8,10))} ${k.slice(11,16)}`;};
 // 이전 판 불러오기 = 그 건의 날짜 + 그 판의 표(번호 그대로)를 결과 칸에 → 고치거나 맨 아래 줄을 더해 다시 올림
-let BACKS=[], PLAN=[];
+let BACKS=[], PLAN=[], PLANNOW=null;   // PLANNOW = 업무OS AI 크루 보고서에서 사람이 정한 계획 (그 칸)
 let REQS=[], REQ=null;   // 맡긴 일 (aireqs) · 지금 고른 것 = 결과 [R] 의 주인
 $('crew-reqs').addEventListener('click',async(e)=>{const t=e.target.closest('[data-r]');if(!t)return;const r=REQS[Number(t.dataset.r)];if(!r)return;
   t.disabled=true;
@@ -263,8 +274,13 @@ $('setup-groups').addEventListener('click',(e)=>{const t=e.target.closest('[data
   if(t.dataset.launch)copyText(t,K.asideLaunch(K.boardOf(t.dataset.launch),t.dataset.t),'예약 글 복사');
   else copyText(t,K.asideFixLaunch(t.dataset.fix.split(',').map(K.boardOf)),'고칠 것 확인 글 복사');});
 function ownerId(){const id=K.ownerFor(mateDoc,board().brand); const u=users[id]; return u&&u.active!==false?id:'';}
+// 할 일 담당 (aimates.actOwners · 업무OS AI 팀원 한 장에서 관리자가 정함) → 없거나 쉬면 위 담당 (업무OS aiask.actOwner 와 같은 규칙)
+function ownerIdAct(c){const id=K.ownerForAct(mateDoc,board().brand,c); const u=users[id]; return u&&u.active!==false?id:ownerId();}
+function actSplit(b){const base=ownerId(), g={};b.actions.filter(a=>!a.admin).forEach(a=>{const id=ownerIdAct(a.c);(g[id]=g[id]||[]).push(a.c);});
+  const ks=Object.keys(g); if(ks.length<2&&ks[0]===base)return '';
+  return ks.map(id=>`<b>${esc(g[id].join('·'))}</b> ${id?esc(nameOf(id)):'관리자 누구나'}`).join(' · ');}
 $('crew-board').onchange=()=>{history.replaceState(null,'','#'+$('crew-board').value);$('preview-section').hidden=true;loadMate();};
-$('copy-guide').onclick=()=>copyText($('copy-guide'),K.asideText(board(),{qty:mateDoc&&mateDoc.qty}),'지시문 복사');
+$('copy-guide').onclick=()=>copyText($('copy-guide'),K.asideText(board(),{qty:mateDoc&&mateDoc.qty,plan:PLANNOW}),'지시문 복사');
 $('copy-launch').onclick=()=>copyText($('copy-launch'),K.asideLaunch(board(),(K.planOf(PLAN,board().id)||{}).t),'예약 글 복사');
 
 // 미리 보기
@@ -275,7 +291,8 @@ function preview(){
   $('preview').innerHTML=`<h2>${esc(mate().name)} · ${esc(b.title)} · ${esc(run)}</h2>
     ${p.warn.map(w=>`<div class="warn">${esc(w)}</div>`).join('')}
     ${p.unknown.length?`<div class="warn">모르는 지표 키(안 올림): ${esc(p.unknown.join(' · '))}</div>`:''}
-    <div class="hint" style="margin:0 0 6px">지표 ${p.metrics.length}개 · 승인 요청 ${n}건</div>
+    <div class="hint" style="margin:0 0 6px">지표 ${p.metrics.length}개 · 승인 요청 ${n}건${p.next?' · 다음 주 계획 있음':''}</div>
+    ${p.next?`<div class="hint" style="white-space:pre-wrap;color:#1F2A44;margin:0 0 6px"><b>다음 주 (AI 피드백 → 크루 보고서)</b>\n${esc(p.next)}</div>`:''}
     ${p.metrics.length?`<div class="list">${p.metrics.map(x=>{const m=b.metrics.find(y=>y.k===x.k);return `<div class="li"><b>${esc(x.l)}</b> ${esc(K.fmtMetric(m,x.v))} <span class="s">· 목표 ${esc(K.fmtMetric(m,m.target))}${K.metricOk(m,x.v)?' ✓':''}</span></div>`;}).join('')}</div>`:''}
     ${acts.map(([c,x])=>{const a=c==='R'?{t:REQ?'맡긴 일 · '+REQ.title:'맡긴 일 — 먼저 [이 일 하기]로 골라 주세요'}:(K.actOf(b.id,c)||{t:''});return `<div style="margin-top:12px"><span class="pill">${esc(c)}</span><b>${esc(a.t)}</b> <span class="s">· 번호 ${x.items.length}개${p.status[c]?' · '+esc(p.status[c]):''}</span>
       ${x.sum?`<div class="hint">요약: ${esc(x.sum)}</div>`:''}
@@ -288,17 +305,18 @@ $('preview-button').onclick=()=>{preview();};
 $('save-button').onclick=async()=>{
   const b=board(), m=mate(), run=$('crew-date').value, u=auth.currentUser;
   if(!/^\d{4}-\d{2}-\d{2}$/.test(run)){setMsg('err','날짜를 골라 주세요');return;}
-  const {p,n}=preview(); if(!p.metrics.length&&!n){setMsg('err','올릴 것이 없어요 · [지표] 또는 [A]~[F] 표(맡긴 일은 [R])를 붙여 넣어 주세요');return;}
+  const {p,n}=preview(); if(!p.metrics.length&&!n&&!p.next){setMsg('err','올릴 것이 없어요 · [지표] 또는 [A]~[F] 표(맡긴 일은 [R])를 붙여 넣어 주세요');return;}
   if(p.acts.R&&!REQ){setMsg('err','[R](맡긴 일) 결과는 위 \'맡긴 일\'에서 [이 일 하기]를 먼저 눌러 주세요');return;}
   $('save-button').disabled=true; setMsg('wait','올리는 중…');
   const at=new Date().toISOString(), owner=ownerId();
   try{
-    if(p.metrics.length||Object.keys(p.status).length){
+    if(p.metrics.length||Object.keys(p.status).length||p.next){
       const metrics={},hist={}; p.metrics.forEach(x=>{metrics[x.k]={v:x.v,date:run,at};hist[x.k]={[run]:x.v};});
-      await V2().collection('aiboards').doc(b.id).set({id:b.id,board:b.id,mate:m.id,brand:b.brand,metrics,hist,status:p.status,at,by:u.email},{merge:true});
-      console.log(`[aiboards/${b.id}] 지표 ${p.metrics.length}개`);
+      const nx=p.next?{next:{text:p.next.slice(0,2000),run,at},nextHist:{[run]:p.next.slice(0,2000)}}:{};   // [다음주] = 크루 보고서 '다음 기간' AI 피드백 (2026-10-15)
+      await V2().collection('aiboards').doc(b.id).set({id:b.id,board:b.id,mate:m.id,brand:b.brand,metrics,hist,status:p.status,...nx,at,by:u.email},{merge:true});
+      console.log(`[aiboards/${b.id}] 지표 ${p.metrics.length}개${p.next?' · 다음 주 계획':''}`);
     }
-    const asks=K.asksFromParse(p,{board:b.id,mate:m.id,brand:b.brand,run,at,owner,src:'crew'}); const res={made:0,redo:0,kept:[]};
+    const asks=K.asksFromParse(p,{board:b.id,mate:m.id,brand:b.brand,run,at,owner:(c)=>ownerIdAct(c),src:'crew'}); const res={made:0,redo:0,kept:[]};
     let reqAsk=null;
     if(p.acts.R&&REQ){const rs=await V2().collection('aireqs').doc(REQ.id).get();   // 취소된 일은 안 올림
       if(rs.exists&&rs.data().state==='cancel'){setMsg('err','이 맡긴 일은 취소됐어요 · [R] 묶음을 지우고 다시 올려 주세요');$('save-button').disabled=false;return;}
@@ -308,12 +326,12 @@ $('save-button').onclick=async()=>{
       await db.runTransaction(async(tx)=>{const s=await tx.get(ref);
         if(!s.exists){tx.set(ref,{...a,log:[...a.log]});res.made++;return;}
         const cur=s.data(); if(!K.canRedo(cur)){res.kept.push(`${a.act} (${cur.state==='ok'?'최종 승인됨':cur.state==='no'?'안 함':'위로 올라감'})`);return;}
-        tx.update(ref,{...K.redoFields(cur,a,owner||cur.owner||''),log:firebase.firestore.FieldValue.arrayUnion({at,by:'ai:'+m.id,byName:`${m.name} (AI)`,act:'redo'})});res.redo++;});
+        tx.update(ref,{...K.redoFields(cur,a,(a.act==='R'?owner:ownerIdAct(a.act))||cur.owner||''),log:firebase.firestore.FieldValue.arrayUnion({at,by:'ai:'+m.id,byName:`${m.name} (AI)`,act:'redo'})});res.redo++;});
     }
     console.log(`[aiasks] 새로 ${res.made} · 다시 ${res.redo} · 그대로 ${res.kept.length}`);
     if(reqAsk&&!res.kept.some(k=>k.startsWith('R '))){await V2().collection('aireqs').doc(REQ.id).set({state:'done',askId:reqAsk.id,doneAt:at,updatedAt:at,log:firebase.firestore.FieldValue.arrayUnion({at,by:'ai:'+m.id,byName:`${m.name} (AI)`,act:'done',askId:reqAsk.id})},{merge:true});
       console.log(`[aireqs/${REQ.id}] 결과 올라감 → ${reqAsk.id}`);REQ=null;}
-    setMsg('ok',`올렸어요 · 승인 요청 새로 ${res.made}건${res.redo?` · 고쳐서 다시 ${res.redo}건`:''}${p.metrics.length?` · 지표 ${p.metrics.length}개`:''}${res.kept.length?`<br>그대로 둔 것: ${esc(res.kept.join(' · '))} — 새로 올리려면 날짜를 바꿔 주세요`:''}<br><a href="${OS_URL}" target="_blank" rel="noopener">업무OS에서 보기 ›</a> · 승인 차례: ${owner?esc(nameOf(owner))+'님':'관리자 누구나'}`);
+    setMsg('ok',`올렸어요 · 승인 요청 새로 ${res.made}건${res.redo?` · 고쳐서 다시 ${res.redo}건`:''}${p.metrics.length?` · 지표 ${p.metrics.length}개`:''}${res.kept.length?`<br>그대로 둔 것: ${esc(res.kept.join(' · '))} — 새로 올리려면 날짜를 바꿔 주세요`:''}<br><a href="${OS_URL}" target="_blank" rel="noopener">업무OS에서 보기 ›</a> · 승인 차례: ${whoOf(asks)}`);
     loadMate();
   }catch(e){console.error('[AI 크루] 올리기 실패',e);setMsg('err','올리지 못했어요: '+esc(e.code||e.message));}
   finally{$('save-button').disabled=false;}

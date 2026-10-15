@@ -1,0 +1,95 @@
+// node src/aireport.test.mjs — AI 크루 보고서 계산 (주기 · 기간 · 칸 · 사람 · 숫자 · '확인할 것' · 글) · 저장 없음
+import * as R from "./aireport.js";
+let n = 0, bad = 0;
+const eq = (name, got, want) => { n++; const ok = JSON.stringify(got) === JSON.stringify(want); if (!ok) { bad++; console.log("✗", name, "\n  got ", JSON.stringify(got), "\n  want", JSON.stringify(want)); } else console.log("✓", name); };
+
+// 사람: 남윤정(1팀) → 김소연(1팀 리드) → 허지은(본부장) · 김민지(2팀) → 김송희(2팀 리드 · 역할 lead) → 허지은 · 김채원(3팀 리드) → 허지은
+const U = [["yj", "남윤정", "sy"], ["sy", "김소연", "hj"], ["hj", "허지은", ""], ["mj", "김민지", "sh"], ["sh", "김송희", "hj"], ["cw", "김채원", "hj"], ["off", "쉬는사람", "sy"]]
+  .map(([id, name, bossId]) => ({ id, name, bossId, role: id === "sh" ? "lead" : "member", active: id !== "off" }));
+
+// ① 주기 · 기간 (마감 = 금요일)
+eq("기본 = 주간 · 2026-10-12 부터", R.cycleOf({ settings: [] }), { cycle: "week", from: "2026-10-12", at: "", byName: "" });
+eq("설정 = 월간 · 바꾼 주 월요일", R.cycleOf({ settings: [{ id: "aicrew", reportCycle: { cycle: "month", from: "2026-11-04", byName: "허지은" } }] }).from, "2026-11-02");
+eq("이상한 주기 = 주간", R.cycleOf({ settings: [{ id: "aicrew", reportCycle: { cycle: "year" } }] }).cycle, "week");
+const W = { cycle: "week", from: "2026-10-12" };
+eq("주간: 월~일 · 금 마감", R.periodOf(W, "2026-10-15"), { cycle: "week", start: "2026-10-12", end: "2026-10-18", due: "2026-10-16" });
+eq("주간: 일요일도 그 주", R.periodOf(W, "2026-10-18").start, "2026-10-12");
+eq("지난·다음 기간", [R.prevPeriod(W, R.periodOf(W, "2026-10-15")).start, R.nextPeriod(W, R.periodOf(W, "2026-10-15")).start], ["2026-10-05", "2026-10-19"]);
+const T2 = { cycle: "2week", from: "2026-10-12" };
+eq("2주: 바꾼 주부터 14일씩 · 둘째 주 금 마감", [R.periodOf(T2, "2026-10-24"), R.periodOf(T2, "2026-10-28").start, R.periodOf(T2, "2026-10-09").start], [{ cycle: "2week", start: "2026-10-12", end: "2026-10-25", due: "2026-10-23" }, "2026-10-26", "2026-09-28"]);
+const M = { cycle: "month", from: "2026-10-12" };
+eq("월간: 그 달 · 마지막 금요일 마감", [R.periodOf(M, "2026-10-15"), R.periodOf(M, "2026-07-02").due, R.periodOf(M, "2027-02-11").end], [{ cycle: "month", start: "2026-10-01", end: "2026-10-31", due: "2026-10-30" }, "2026-07-31", "2027-02-28"]);
+eq("월간 마감은 늘 그 달 마지막 금요일", Array.from({ length: 12 }, (_, i) => { const p = R.periodOf(M, `2026-${String(i + 1).padStart(2, "0")}-10`), d = new Date(p.due + "T00:00:00"); return d.getDay() === 5 && p.due.slice(0, 7) === p.start.slice(0, 7) && new Date(d.getTime() + 7 * 864e5).getMonth() !== d.getMonth(); }).every(Boolean), true);
+eq("저장된 보고서 기간 그대로", [R.periodOfDoc({ cycle: "week", start: "2026-10-12", end: "2026-10-18", due: "2026-10-16" }), R.periodOfDoc({ start: "x" })], [{ cycle: "week", start: "2026-10-12", end: "2026-10-18", due: "2026-10-16" }, null]);
+eq("글: 기간 · 마감", [R.periodL(R.periodOf(W, "2026-10-15")), R.dueL(R.periodOf(W, "2026-10-15"))], ["10/12~10/18", "금 10/16 마감"]);
+
+// ② 크루 칸 — 보드가 있는 칸만 (B2B·바라스데이 크루는 아직 없음 · 2026-10-15 '13번은 냅둬')
+eq("B2C 6칸 · 다른 크루 없음", [R.repSlots("b2c").map((m) => `${m.slot}:${m.name}`), R.repSlots("b2b").length, R.repSlots("bd").length, R.repCrews().map((c) => c.id)], [["채널:봄", "노출:여름", "유입:가을", "전환:겨울", "객단가:하늘", "재구매:우주"], 0, 0, ["b2c"]]);
+eq("보고서 id = 크루-기간 시작", R.repId("b2c", R.periodOf(W, "2026-10-15")), "b2c-2026-10-12");
+
+// ③ 칸 사람 — 담당(AI 담당) · 같이 쓰는 사람(할 일 담당) · 리드(담당 위 첫 리드 · 없으면 담당이 바로)
+const mates = { gyeoul: { owners: { grohome: "yj" }, actOwners: { B: "mj", C: "mj", D: "off" }, actAk: { E: "x_rv" } }, yeoreum: { owners: { _: "cw" } }, haneul: { owners: { grohome: "hj" } } };
+const D0 = { users: U, settings: [], ai: { mates, boards: {}, asks: [], reports: {} }, tasks: [], ak: { items: [{ id: "x_rv", name: "리뷰 신고·답글" }] } };
+const slot = (id) => R.repSlots("b2c").find((m) => m.id === id);
+eq("겨울: 담당 남윤정 · 같이 김민지(쉬는 사람 빼고) · 리드 김소연", R.secPeople(D0, slot("gyeoul")), { owner: "yj", writers: ["yj", "mj"], lead: "sy" });
+eq("여름: 담당이 리드(김채원) = 본인이 보냄", R.secPeople(D0, slot("yeoreum")), { owner: "cw", writers: ["cw"], lead: "cw" });
+eq("하늘: 담당이 본부장 = 위 리드 없음 → 본인", R.secPeople(D0, slot("haneul")).lead, "hj");
+eq("봄: 담당 미정 = 아무도 없음", R.secPeople(D0, slot("bom")), { owner: "", writers: [], lead: "" });
+eq("리드 찾기: 김민지 → 김송희(역할 lead) · 리드 본인 · 본부장", [R.leadOf(U, "mj"), R.leadOf(U, "sy"), R.leadOf(U, "hj")], ["sh", "sy", ""]);
+eq("본부장 = 허지은", R.hqOfUsers(U), "hj");
+eq("쓸 수 있는 사람: 담당·같이·리드·관리자 · 다른 팀 리드는 못 씀", ["yj", "mj", "sy", "sh", "cw"].map((id) => R.canWriteSec(D0, U.find((u) => u.id === id), slot("gyeoul"))), [true, true, true, true, false]);   // 김송희 = 관리자(역할 lead)
+eq("관리자 아닌 다른 팀 사람은 못 씀", R.canWriteSec(D0, { id: "zz", name: "아무개", role: "member" }, slot("gyeoul")), false);
+
+// ④ 칸 숫자 — 실행 업무(이번 기간 끝냄 · 남음) · 흔적(이번 기간 날짜만) · 승인 · 보드 지표(이번 ← 지난) · KPI 짝 · AI 다음
+const P = R.periodOf(W, "2026-10-15"), PV = R.prevPeriod(W, P);
+const tk = (id, o) => ({ id, title: `실행 · 겨울 ${id}`, aiAsk: "ai_" + id, aiMate: "gyeoul", status: "todo", assigneeId: "yj", ...o });
+const D1 = { ...D0, tasks: [
+  tk("e1", { status: "done", doneAt: "2026-10-14T03:00:00.000Z", aiAk: "x_rv", aiTrace: { E1: { done: true, link: "https://coupang.test/1", date: "2026-10-14" }, E2: { skip: true, note: "권한 없음", date: "2026-10-14" } } }),
+  tk("e0", { status: "done", doneAt: "2026-10-08T03:00:00.000Z", aiAk: "x_rv", aiTrace: { E1: { done: true, date: "2026-10-08" } } }),   // 지난주
+  tk("b1", { aiTrace: { B1: { done: true, link: "https://wing.test/9", date: "2026-10-13" } } }),   // 아직 열림 · 흔적 하나
+  tk("x1", { status: "dropped" }), { id: "t9", title: "다른 일", status: "done", doneAt: "2026-10-14T03:00:00.000Z" },
+  tk("p1", { aiMate: "pori", status: "done", doneAt: "2026-10-13T03:00:00.000Z" }) ],
+  ai: { ...D0.ai, boards: { "gh-conv": { hist: { cv_mall: { "2026-10-09": 6.1, "2026-10-13": 7.0, "2026-10-15": 7.4 }, cv_cp: { "2026-10-14": 2.4 } }, nextHist: { "2026-10-09": "- 지난주 계획", "2026-10-16": "- 롤러 재입고 알림\n- 상세 첫 화면" } } } } };
+const asks = [{ mate: "gyeoul", run: "2026-10-13", state: "ok", okAt: "2026-10-14T01:00:00.000Z" }, { mate: "gyeoul", run: "2026-10-14", state: "no", noAt: "2026-10-14T02:00:00.000Z" },
+  { mate: "gyeoul", run: "2026-10-15", state: "wait" }, { mate: "gyeoul", run: "2026-10-15", act: "R", state: "back" }, { mate: "gyeoul", run: "2026-10-08", state: "ok", okAt: "2026-10-09T01:00:00.000Z" }, { mate: "bom", run: "2026-10-14", state: "wait" }];
+const d = R.secData(D1, slot("gyeoul"), P, PV, asks);
+eq("실행: 이번 기간 끝낸 실행 업무 1 · 남은 1 (버린 것·다른 일·지난주 빼고)", [d.doneN, d.done.map((x) => x.id), d.openN], [1, ["e1"], 1]);
+eq("흔적: 이번 기간 했어요 2 · 안 함 1 · 링크", [d.trace.done, d.trace.skip, d.trace.links.map((x) => x.link)], [2, 1, ["https://coupang.test/1", "https://wing.test/9"]]);
+eq("승인: 올라옴 4 · 승인 1 · 안 함 1 · 열린 것 2 · 맡긴 일 1", d.asks, { made: 4, ok: 1, no: 1, open: 2, req: 1 });
+const cv = d.metrics.find((x) => x.k === "cv_mall");
+eq("결과: 자사몰 전환 7.4% ← 6.1% · 목표", [cv.cur, cv.prev, R.metricLine(cv), R.trend(cv)], [{ v: 7.4, date: "2026-10-15" }, { v: 6.1, date: "2026-10-09" }, `7.4% ← 6.1% · 목표 ${cv.target}% ✓`, 1]);
+eq("값 없는 지표 = —", R.metricLine(d.metrics.find((x) => x.k === "soldout")).startsWith("—"), true);
+eq("KPI: 짝지은 반복 실행 = 이번 기간 [했어요] 수", d.ak, [{ id: "x_rv", name: "리뷰 신고·답글", n: 1 }]);
+eq("다음: AI [다음주] = 이번 기간 마지막", [d.aiNext, d.aiNextRun], ["- 롤러 재입고 알림\n- 상세 첫 화면", "2026-10-16"]);
+eq("여름 = 옛 포리 실행 업무도 (쉬는 팀원 → 여름)", R.secData(D1, slot("yeoreum"), P, PV, []).doneN, 1);
+
+// ⑤ 칸 상태 · '확인할 것'
+const rep = (secs, extra) => ({ "b2c-2026-10-12": { id: "b2c-2026-10-12", crew: "b2c", cycle: "week", start: "2026-10-12", end: "2026-10-18", due: "2026-10-16", secs, ...extra } });
+eq("칸 상태", ["none", "draft", "done", "sent"].map((k, i) => R.secState({ secs: { a: [{}, { note: "x" }, { done: { at: "t" } }, { sent: { at: "t" }, done: { at: "t" } }][i] } }, "a")), ["none", "draft", "done", "sent"]);
+const ib = (D, uid, day) => R.repInbox(D, uid, new Date(day + "T10:00:00")).map((x) => [x.tag, x.btn, x.title, !!x.red]);
+eq("마감 전(목) = 줄 없음", ib(D0, "yj", "2026-10-15"), []);
+eq("금요일: 남윤정 = 겨울 칸 쓰기", ib(D0, "yj", "2026-10-16"), [["주간 보고", "쓰기", "겨울 칸 쓰기 · B2C 크루", false]]);
+eq("금요일: 김민지(할 일 담당)도 겨울 칸 쓰기", ib(D0, "mj", "2026-10-16").map((x) => x[2]), ["겨울 칸 쓰기 · B2C 크루"]);
+eq("금요일: 김소연(리드) = 1칸 보내기 · 담당 확인 0/1", R.repInbox(D0, "sy", new Date("2026-10-16T10:00:00")).map((x) => [x.btn, x.title, x.text.split(" · ")[1]]), [["보내기", "B2C 크루 1칸 → 본부장에게 보내기", "담당 확인 0/1칸"]]);
+eq("금요일: 김채원 = 여름 쓰기 + 보내기(본인이 리드)", ib(D0, "cw", "2026-10-16").map((x) => x[1]), ["쓰기", "보내기"]);
+eq("금요일: 본부장 = 보낸 게 없으면 줄 없음 · 하늘 담당이라 쓰기·보내기만", ib(D0, "hj", "2026-10-16").map((x) => x[1]), ["쓰기", "보내기"]);
+const D2 = { ...D0, ai: { ...D0.ai, reports: rep({ gyeoul: { note: "전환 올랐음", done: { at: "2026-10-16T05:00:00.000Z", byName: "남윤정" } } }) } };
+eq("담당 [다 썼어요] → 쓰기 줄 사라짐 · 리드 확인 1/1", [ib(D2, "yj", "2026-10-16").length, R.repInbox(D2, "sy", new Date("2026-10-16T10:00:00"))[0].text.includes("담당 확인 1/1칸")], [0, true]);
+const D3 = { ...D0, ai: { ...D0.ai, reports: rep({ gyeoul: { done: { at: "a" }, sent: { at: "2026-10-16T07:00:00.000Z", by: "sy", byName: "김소연" } } }) } };
+eq("리드가 보냄 → 리드 줄 사라짐 · 본부장 '보고 도착'", [ib(D3, "sy", "2026-10-16").length, R.repInbox(D3, "hj", new Date("2026-10-16T16:00:00")).filter((x) => x.btn === "읽기").map((x) => [x.tag, x.title, x.whoName])], [0, [["보고 도착", "B2C 크루 주간 보고 · 1/6칸", "김소연"]]]);
+const D4 = { ...D0, ai: { ...D0.ai, reports: rep({ gyeoul: { sent: { at: "2026-10-16T07:00:00.000Z", byName: "김소연" } } }, { read: { by: "hj", at: "2026-10-16T08:00:00.000Z" } }) } };
+eq("본부장 [읽었어요] → 사라짐 · 그 뒤 또 보내면 다시", [R.repInbox(D4, "hj", new Date("2026-10-16T16:00:00")).filter((x) => x.btn === "읽기").length,
+  R.repInbox({ ...D4, ai: { ...D4.ai, reports: rep({ gyeoul: { sent: { at: "2026-10-16T07:00:00.000Z" } }, yeoreum: { sent: { at: "2026-10-16T09:00:00.000Z", byName: "김채원" } } }, { read: { by: "hj", at: "2026-10-16T08:00:00.000Z" } }) } }, "hj", new Date("2026-10-16T16:00:00")).filter((x) => x.btn === "읽기").length], [0, 1]);
+eq("다음 주 월요일: 지난 보고 안 보냈으면 빨강 '보고 지남'", ib(D0, "yj", "2026-10-19"), [["보고 지남", "쓰기", "겨울 칸 쓰기 · B2C 크루", true]]);
+eq("주기를 바꾼 주 앞(그 전 기간)은 안 물음", ib({ ...D0, settings: [{ id: "aicrew", reportCycle: { cycle: "week", from: "2026-10-19" } }] }, "yj", "2026-10-19"), []);
+eq("쉬는 사람·없는 사람 = 줄 없음", [R.repInbox(D0, "off", new Date("2026-10-16T10:00:00")).length, R.repInbox(D0, "nobody", new Date("2026-10-16T10:00:00")).length], [0, 0]);
+
+// ⑥ 얼리기 · 글로 복사
+const s0 = { note: "전환 올랐음", plan: "- 리뷰 이벤트", done: { byName: "남윤정" } }, sn = R.snapOf(d, s0);
+eq("얼린 칸 = 숫자 + 담당 글", [sn.doneN, sn.note, sn.plan, sn.doneBy, sn.metrics.length], [1, "전환 올랐음", "- 리뷰 이벤트", "남윤정", d.metrics.length]);
+const crew = { id: "b2c", short: "B2C 크루" }, txt = R.repText(crew, P, [{ m: slot("gyeoul"), d, s: s0 }], { leads: { sy: { note: "가격 실험은 다음 주 결정", byName: "김소연" } } });
+eq("글: 머리 · 칸 · 실행 · 결과 · KPI · 한 줄 · 다음(AI + 사람) · 리드 한마디", [txt.split("\n")[0], txt.includes("■ 전환 · 겨울(AI) 전환마케터 · 담당 확인 남윤정"), txt.includes("- 실행: 실행 업무 끝냄 1건 · 흔적 2건 (안 함 1) · 승인 1건 · 올라옴 4건 · 남은 실행 1건"),
+  txt.includes("- 결과 자사몰 구매전환율: 7.4% ← 6.1%"), txt.includes("- KPI 리뷰 신고·답글: +1"), txt.includes("- 다음: 롤러 재입고 알림 / 상세 첫 화면 / 리뷰 이벤트"), txt.endsWith("리드 한마디 (김소연): 가격 실험은 다음 주 결정")],
+  ["[AI 크루 주간 보고] B2C 크루 · 10/12~10/18 · 금 10/16 마감", true, true, true, true, true, true]);
+
+console.log(`\n${n - bad}/${n} 통과`); if (bad) process.exit(1);

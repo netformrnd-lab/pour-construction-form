@@ -1,16 +1,18 @@
 // 업무OS v2 — AI 승인 (계산만 · 저장 없음 · 사용자 결정 2026-10-12)
 //   "AI팀원이 실행한 것을 사람팀원에게 승인요청하고, 사람팀원은 상급자 사람에게 승인요청" → 길 = AI → 담당 → 리드 → 본부장 (상급자 users.bossId 를 따라 맨 위까지)
 //   "3팀 리드는 김채원, 본부장은 허지은" (상급자 추천 · 관리자 › 사람 [추천대로 정하기] 한 번)
+//   2026-10-15 사장님 "최종승인은 리드 · 본부장은 승인 없이 리드에게 보고받음 · 광고비 예산 조정, 원가조정, 판매가조정만 본부장 승인"
+//     → 리드 다음이 본부장이면 거기서 최종 (hqOf = 본부장 승인 필요 이유 · 승인자가 [본부장에게도 올리기] = hqUp) · 할 일별 담당 aimates.actOwners
 // 저장(core.jsx 가 씀):
 //   pour-os/v2/aiasks/{id}  승인 한 건 (모양 = marketing-hub/crew.js askDoc · 허브 crew.html · team_link.py 가 만듦)
 //     state wait(사람 차례 · to = 그 사람 · '' = 담당 미정 → 관리자 누구나) · back(AI 가 고치는 중) · ok(최종 승인) · no(안 함)
 //     step 0 = 담당 · 1 = 상급자 · 2 = 그 위 … · path = 이번 판에 승인한 사람 · pick = 고른 번호(null = 번호 없음)
 //     log[] (arrayUnion · 더하기만) · ret = 상급자가 담당에게 돌려보낸 말 · back = 담당이 AI 에게 돌려보낸 말
-//   pour-os/v2/aimates/{AI id}  담당·규칙 덧칠 {owners:{_ 기본, 브랜드 id: 사람}, rules[], paused, hist[]}
+//   pour-os/v2/aimates/{AI id}  담당·규칙 덧칠 {owners:{_ 기본, 브랜드 id: 사람}, actOwners:{할 일 글자: 사람}, actHq:{할 일 글자: true|false}, actAk:{할 일 글자: 반복 실행 id}, rules[], paused, hist[]}
 //   users.bossId  상급자 (관리자 › 사람)
 //   최종 승인 + 실행 한 줄(exec) → 담당에게 '실행' 업무(tasks · aiAsk = 승인 id) — 실제 반영은 늘 사람 (2026-10-11)
 import { isMaster, nameOf, teamOf, isOffDay, ymd } from "./model.js";
-import { mateOf, crewOf, brandL, asidePlan, loginSites } from "../../marketing-hub/crew.js";
+import { mateOf, crewOf, brandL, asidePlan, loginSites, actOf } from "../../marketing-hub/crew.js";
 
 export const ASK_STATE_L = { wait: "승인 대기", back: "AI가 고치는 중", ok: "최종 승인", no: "안 함" };
 export const MAX_UP = 5;   // 길이 이보다 길게 이어지지 않게 (상급자 고리·잘못 넣은 값 막기)
@@ -20,6 +22,22 @@ const actU = (users, id) => (users || []).find((u) => u && u.id === id && u.acti
 export const bossOf = (uid, users) => { const u = actU(users, uid), b = u && u.bossId; return b && b !== uid && actU(users, b) ? b : ""; };
 // 담당: aimates 덧칠의 브랜드별 → 기본 · 사용 중인 사람이 아니면 '' (관리자 누구나)
 export const mateOwner = (doc, brand, users) => { const o = (doc && doc.owners) || {}, id = (brand && o[brand]) || o._ || ""; return actU(users, id) ? id : ""; };
+// 할 일 담당 (2026-10-15) — 할 일마다 정한 사람(사용 중) → 없으면 AI 담당
+export const actOwner = (doc, brand, act, users) => { const x = doc && doc.actOwners && act ? doc.actOwners[act] : ""; return x && actU(users, x) ? x : mateOwner(doc, brand, users); };
+// 리드 · 본부장 (상급자 추천과 같은 기준: 역할 lead 또는 팀 리드 이름 · 본부장 이름)
+export const isHQ = (users, uid) => { const u = actU(users, uid); return !!u && clean(u.name) === clean(HQ_HEAD); };
+export const isLeadU = (users, uid) => { const u = actU(users, uid); return !!u && (u.role === "lead" || Object.values(TEAM_LEADS).some((n) => clean(n) === clean(u.name))); };
+// 본부장 승인이 필요한 이유 ('' = 리드에서 끝) — 승인자가 [본부장에게도 올리기](hqUp) → 실행 없는 보고는 늘 '' → 관리자가 할 일마다 정함(actHq) → 보드 할 일 hq
+export function hqOf(a, mateDoc) {
+  if (!a) return "";
+  if (a.hqUp) return "본부장 확인 요청";
+  if (!a.exec) return "";
+  const ov = mateDoc && mateDoc.actHq && a.act ? mateDoc.actHq[a.act] : undefined;
+  const def = a.hq != null ? a.hq : ((a.board && actOf(a.board, a.act)) || {}).hq || "";
+  if (ov === false) return "";
+  if (ov === true) return def || "관리자 지정";
+  return def || "";
+}
 
 // 누를 수 있나: 지금 차례인 사람 · 담당 미정이면 관리자 누구나 · 관리자는 대신(기록에 원래 차례인 사람이 proxy 로 남음)
 export const canAct = (a, cu) => !!a && !!cu && a.state === "wait" && (a.to === cu.id || isMaster(cu));
@@ -30,17 +48,22 @@ export const pickOk = (a, pick) => !(a.items || []).length || (Array.isArray(pic
 const expectOf = (a) => ({ state: a.state, to: a.to || "", step: a.step || 0, ver: a.ver || 1 });
 
 // 승인 → 위로 (상급자가 있으면) 또는 최종 승인
-export function planPass(a, cu, users, pick, at) {
+//   opt.hq = hqOf(본부장 승인 필요 이유) · opt.up = 승인자가 [본부장에게도 올리기] (2026-10-15 최종 승인 = 리드)
+export function planPass(a, cu, users, pick, at, opt = {}) {
   const approver = a.to || cu.id;   // 담당 미정 → 누른 관리자가 담당 칸
   const path = [...(a.path || []), approver];
   let next = bossOf(approver, users); if (next && path.includes(next)) next = ""; if (path.length >= MAX_UP) next = "";
+  const up = !!opt.up, hq = opt.hq !== undefined ? opt.hq || (a.hqUp ? "본부장 확인 요청" : "") : hqOf(a, null);   // 덧칠(actHq)은 부르는 쪽이 넘김
+  if (next && !hq && !up && isLeadU(users, approver) && isHQ(users, next)) next = "";   // 리드 → 본부장 은 본부장 승인 일만
   const items = (a.items || []).length, pk = items ? (Array.isArray(pick) ? pick : []) : null;
   const owner = a.owner || (!(a.step > 0) ? approver : "") || approver;
-  const entry = { at, by: cu.id, byName: cu.name, act: next ? "up" : "ok", step: a.step || 0, ...(next ? { to: next } : {}), ...(pk ? { pick: pk } : {}), ...(cu.id !== approver ? { proxy: approver } : {}) };
-  const base = { path, pick: pk, ret: null, updatedAt: at, owner };
+  const entry = { at, by: cu.id, byName: cu.name, act: next ? "up" : "ok", step: a.step || 0, ...(next ? { to: next } : {}), ...(pk ? { pick: pk } : {}), ...(cu.id !== approver ? { proxy: approver } : {}), ...(up && next ? { hqUp: true } : {}) };
+  const base = { path, pick: pk, ret: null, updatedAt: at, owner, ...(up && next ? { hqUp: { by: cu.id, byName: cu.name, at } } : {}) };
   const fields = next ? { ...base, to: next, step: (a.step || 0) + 1 } : { ...base, state: "ok", to: "", okAt: at, okBy: cu.id, okByName: cu.name };
   return { next, final: !next, fields, entry, expect: expectOf(a) };
 }
+// [본부장에게도 올리기] 를 보여 줄까: 지금 누르면 리드에서 끝나는데(규칙 때문) 바로 위가 본부장
+export const canUpHQ = (a, cu, users, hq) => { if (!canAct(a, cu) || hq) return false; const ap = a.to || cu.id, b = bossOf(ap, users); return !!b && isLeadU(users, ap) && isHQ(users, b) && !(a.path || []).includes(b); };
 // AI 에게 다시 (담당 단계) — AI 가 다음 실행 전에 읽고 고쳐 다시 올림(team_link.py feedback · crew.html)
 //   more = 더 만들기 n개 (2026-10-15 사장님 "횟수 조절을 사람팀원이하면 더 추가해서 생성가능하게") — 지금 것 그대로 + n개 · 같은 건의 다음 판으로
 export const MORE_MAX = 50;
@@ -48,12 +71,12 @@ export const moreText = (n, note) => `지금 것은 그대로 두고 ${n}개 더
 export function planBack(a, cu, text, at, more) {
   const n = Math.max(0, Math.min(MORE_MAX, Math.round(Number(more) || 0)));
   const back = { text, by: cu.id, byName: cu.name, at, ...(n ? { more: n } : {}) };
-  return { fields: { state: "back", to: "", back, pick: null, path: [], ret: null, updatedAt: at, owner: a.owner || cu.id }, entry: { at, by: cu.id, byName: cu.name, act: "back", step: 0, text, ...(n ? { more: n } : {}) }, expect: expectOf(a) };
+  return { fields: { state: "back", to: "", back, pick: null, path: [], ret: null, hqUp: null, updatedAt: at, owner: a.owner || cu.id }, entry: { at, by: cu.id, byName: cu.name, act: "back", step: 0, text, ...(n ? { more: n } : {}) }, expect: expectOf(a) };
 }
 // 담당에게 돌려보내기 (상급자 단계) — 담당이 번호를 다시 고르거나 AI 에게 다시
 export function planRet(a, cu, text, at) {
   const owner = a.owner || (a.path || [])[0] || "";
-  return { fields: { to: owner, step: 0, path: [], ret: { text, by: cu.id, byName: cu.name, at }, updatedAt: at }, entry: { at, by: cu.id, byName: cu.name, act: "ret", step: a.step || 0, to: owner, text }, expect: expectOf(a) };
+  return { fields: { to: owner, step: 0, path: [], ret: { text, by: cu.id, byName: cu.name, at }, hqUp: null, updatedAt: at }, entry: { at, by: cu.id, byName: cu.name, act: "ret", step: a.step || 0, to: owner, text }, expect: expectOf(a) };   // hqUp(본부장에게도 올리기)은 판마다 다시 정함
 }
 // 안 함 (어느 단계든)
 export function planDrop(a, cu, reason, at) {
@@ -64,7 +87,15 @@ export function planDrop(a, cu, reason, at) {
 export const itemLine = (it, cols) => { const c = (it && it.c) || {}, ks = (cols && cols.length ? cols : Object.keys(c)).filter((k) => c[k] != null && c[k] !== "");
   return ks.slice(0, 3).map((k) => String(c[k])).join(" · ").slice(0, 90); };
 // 최종 승인 뒤 '실행' 업무 (담당에게 · 사람이 반영) — 실행 한 줄이 없으면(보고만) 없음
-export function planExec(a, pick, cu, users, at, due) {
+//   흔적(2026-10-15 사장님 "마케터들은 업무 흔적 꼭 · 어떤 포스팅·어떤 인플루언서인지 AI가 알아서 세팅 · 사람이 확인 · KPI 추적"):
+//   aiItems = 승인한 번호마다 {n, t(한 줄), link(표의 링크)} — AI 가 미리 채움 → 사람이 번호마다 [했어요](링크 고침 가능)·[안 함] → aiTrace.<번호>
+//   aiAk = 그 할 일과 짝지은 반복 실행(aimates.actAk) → [했어요] 마다 반복 실행 +1 (흔적이 같이 남음) = KPI 추적
+const URL_RE = /https?:\/\/[^\s<>"')]+/;
+export const firstUrl = (c) => { const v = c || {}; const k = Object.keys(v).find((x) => /링크|URL|주소|게시물|프로필|계정/i.test(x) && URL_RE.test(String(v[x]))) || Object.keys(v).find((x) => URL_RE.test(String(v[x]))); return k ? (String(v[k]).match(URL_RE) || [""])[0] : ""; };
+// 번호 한 줄 + 링크 (한 줄에서는 링크 칸을 빼서 두 번 안 보이게)
+const traceItem = (x) => { const link = firstUrl(x.c), c = link ? Object.fromEntries(Object.entries(x.c || {}).filter(([, v]) => !String(v).includes(link))) : x.c || {};
+  return { n: x.n, t: itemLine({ c }, Object.keys(c)) || itemLine(x), link }; };
+export function planExec(a, pick, cu, users, at, due, opt = {}) {
   if (!a || !a.exec) return null;
   const owner = actU(users, a.owner) ? a.owner : cu.id, items = a.items || [], pk = Array.isArray(pick) ? pick : null;
   const chosen = pk ? items.filter((it) => pk.includes(it.n)) : [];
@@ -74,18 +105,25 @@ export function planExec(a, pick, cu, users, at, due) {
   const memo = [a.exec, chosen.length ? `승인 번호 ${chosen.length}개` : "", ...chosen.map((x) => `- ${x.n} · ${itemLine(x, a.cols)}`), "", `AI 결과 · ${a.mateName || ""} · ${a.title}`].filter((x, i, arr) => x !== "" || (i > 0 && arr[i - 1] !== "")).join("\n");
   return { id, title, isFixed: false, type: "general", status: "todo", assigneeId: owner, assigneeIds: [owner], projectId: "", parentId: null, dueDate: due || "", workDate: "", memo, attachments: [], weekDay: null, weekSlot: null, priority: "mid",
     ...(a.brand && brandL(a.brand) ? { brand: a.brand } : {}), noReview: true, ...(owner === cu.id ? { ackAt: at } : {}), v2At: at,
-    requestedBy: cu.id, requestedAt: at, createdAt: at, createdBy: cu.id, statusLog: [{ by: cu.id, byName: cu.name, at, status: "todo" }], madeIn: "v2", aiAsk: a.id, aiMate: a.mate || "" };
+    requestedBy: cu.id, requestedAt: at, createdAt: at, createdBy: cu.id, statusLog: [{ by: cu.id, byName: cu.name, at, status: "todo" }], madeIn: "v2", aiAsk: a.id, aiMate: a.mate || "",
+    aiAct: a.act || "", aiBoard: a.board || "", aiAk: opt.ak || "", aiItems: chosen.map(traceItem) };
 }
 
+// 흔적 (실행 업무) — 번호마다 했어요/안 함이 다 남았나 · 번호가 없으면 한 줄 흔적(_) 하나
+export const traceList = (t) => { const it = (t && t.aiItems) || []; return it.length ? it : [{ n: "_", t: "무엇을 했는지 (링크·한 줄)", link: "" }]; };
+export const traceOf = (t, n) => ((t && t.aiTrace) || {})[n] || null;
+export const traceLeft = (t) => (!t || !t.aiAsk ? 0 : traceList(t).filter((x) => { const r = traceOf(t, x.n); return !(r && (r.done || r.skip)); }).length);
+export const traceDoneN = (t) => traceList(t).filter((x) => (traceOf(t, x.n) || {}).done).length;
 // 승인 길 (보기용): 이번 판에 승인한 사람(✓) → 지금 차례(●) → 그 위 상급자들(앞으로) · 끊기면 거기서 끝
-export function chainOf(a, users) {
+export function chainOf(a, users, hq) {
   const out = [], seen = new Set(), push = (uid, st) => { if (uid && seen.has(uid)) return; if (uid) seen.add(uid); out.push({ uid, st, name: uid ? nameOf(users, uid) || "(없는 사람)" : "관리자 누구나" }); };
   (a.path || []).forEach((u) => push(u, "done"));
   let from = "";
   if (a.state === "wait") { push(a.to || "", "now"); from = a.to; }
   else if (a.state === "back") { from = a.owner || ""; if (from) push(from, "wait"); }
   else return out;
-  for (let k = 0, cur = from; k < MAX_UP && cur; k++) { const b = bossOf(cur, users); if (!b || seen.has(b)) break; push(b, "next"); cur = b; }
+  const toHQ = !!(hq !== undefined ? hq || a.hqUp : hqOf(a, null));   // 리드 → 본부장 은 본부장 승인 일만 (2026-10-15)
+  for (let k = 0, cur = from; k < MAX_UP && cur; k++) { const b = bossOf(cur, users); if (!b || seen.has(b)) break; if (!toHQ && isLeadU(users, cur) && isHQ(users, b)) break; push(b, "next"); cur = b; }
   return out;
 }
 

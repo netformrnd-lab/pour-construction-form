@@ -14,7 +14,7 @@ const me = (id) => U.find((u) => u.id === id);
 eq("상급자", [X.bossOf("yj", U), X.bossOf("sy", U), X.bossOf("hj", U), X.bossOf("gm", U)], ["sy", "hj", "", ""]);   // 쉬는 사람은 상급자로 안 침
 eq("담당 = 브랜드별 → 기본 · 쉬는 사람 빼고", [X.mateOwner({ owners: { grohome: "yj", _: "cw" } }, "grohome", U), X.mateOwner({ owners: { grohome: "yj", _: "cw" } }, "pourstore", U), X.mateOwner({ owners: { _: "old" } }, "", U)], ["yj", "cw", ""]);
 
-const a0 = askDoc({ id: "ai_gyeoul_20261012_ghconvB", mate: "gyeoul", brand: "grohome", board: "gh-conv", act: "B", run: "2026-10-12", title: "전환 보드 B · 유리블러 가격", owner: "yj", at: "2026-10-12T00:00:00.000Z",
+const a0 = askDoc({ id: "ai_gyeoul_20261012_ghconvB", mate: "gyeoul", brand: "grohome", board: "gh-conv", act: "B", hq: "판매가 조정", exec: "승인되면 담당이 윙에서 가격·옵션을 바꾼다", run: "2026-10-12", title: "전환 보드 B · 유리블러 가격", owner: "yj", at: "2026-10-12T00:00:00.000Z",
   cols: ["항목", "내용", "근거"], items: [{ n: "B1", c: { 항목: "1+1", 내용: "19,900원", 근거: "경쟁 11,000원" } }, { n: "B2", c: { 항목: "키트", 내용: "툴 포함" } }, { n: "B3", c: { 항목: "단품", 내용: "저가" } }], exec: "승인되면 담당이 윙에서 가격·옵션을 바꾼다" });
 eq("누를 수 있나", [X.canAct(a0, me("yj")), X.canAct(a0, me("yr")), X.canAct(a0, me("ran")), X.canBack(a0, me("yj")), X.canRet(a0, me("yj"))], [true, false, true, true, false]);
 eq("번호 골라야 승인", [X.pickOk(a0, []), X.pickOk(a0, ["B1"]), X.pickOk({ items: [] }, null)], [false, true, true]);
@@ -124,6 +124,46 @@ eq("그날 올렸나", [X.ranOn({ at: at("2026-10-14T00:10:00") }, "2026-10-14")
   eq("담당 = 승인 줄만 (맡긴 일 결과 줄 없음)", X.askInbox([ra], U, "yj", {}, nw).map((x) => x.tag), ["AI 승인 요청"]);
   eq("읽으면 사라짐 · 다음 판이면 다시", [X.askInbox([ra], U, "cw", { ["ar:" + ra.id + ":1"]: true }, nw).length, X.askInbox([{ ...ra, ver: 2 }], U, "cw", { ["ar:" + ra.id + ":1"]: true }, nw).length], [0, 1]);
   eq("최종 승인 뒤", X.askInbox([{ ...ra, state: "ok", okBy: "hj", okAt: "2026-10-12T04:00:00.000Z", updatedAt: "2026-10-12T04:00:00.000Z" }], U, "cw", {}, nw).map((x) => x.text), ["최종 승인됐어요"]);
+}
+
+// 최종 승인 = 리드 (2026-10-15 사장님 "본부장은 승인없고 리드에게 보고 · 광고비 예산 조정, 원가조정, 판매가조정만 본부장 승인")
+{
+  const c0 = askDoc({ id: "c0", mate: "gyeoul", brand: "grohome", board: "gh-conv", act: "C", run: "2026-10-15", title: "전환 보드 C · 상세", owner: "yj", at: T1, exec: "승인되면 담당이 상세에 올린다" });
+  eq("본부장 승인 이유: 판매가 = 보드 할 일 · 상세 = 없음 · 실행 없는 보고 = 없음", [X.hqOf(a0, null), X.hqOf(c0, null), X.hqOf({ ...a0, exec: "" }, null)], ["판매가 조정", "", ""]);
+  eq("관리자가 할 일마다 켜고 끔(actHq)", [X.hqOf(c0, { actHq: { C: true } }), X.hqOf(a0, { actHq: { B: false } })], ["관리자 지정", ""]);
+  eq("옛 승인(hq 칸 없음) = 보드 정의대로", X.hqOf({ board: "gh-conv", act: "D", exec: "x" }, null), "판매가 조정");
+  const q1 = { ...c0, ...X.planPass(c0, me("yj"), U, null, T1).fields };
+  eq("담당 → 리드 (상세)", [q1.to, q1.step], ["sy", 1]);
+  const q2 = X.planPass(q1, me("sy"), U, null, T1, { hq: "" });
+  eq("리드 = 최종 (본부장 안 감)", [q2.final, q2.fields.state, q2.fields.okBy], [true, "ok", "sy"]);
+  eq("길 보기: 리드에서 끝", X.chainOf(q1, U, "").map((x) => x.name), ["남윤정", "김소연"]);
+  eq("[본부장에게도 올리기] 보임 = 리드 차례 · 본부장 승인 일 아님", [X.canUpHQ(q1, me("sy"), U, ""), X.canUpHQ(q1, me("sy"), U, "판매가 조정"), X.canUpHQ(c0, me("yj"), U, "")], [true, false, false]);
+  const q3 = X.planPass(q1, me("sy"), U, null, T1, { hq: "", up: true });
+  eq("[본부장에게도 올리기] → 본부장 · 표시 남음", [q3.next, q3.fields.to, !!q3.fields.hqUp, q3.entry.hqUp], ["hj", "hj", true, true]);
+  eq("올린 뒤 길·이유", [X.chainOf({ ...q1, ...q3.fields }, U).map((x) => x.name), X.hqOf({ ...q1, ...q3.fields }, null)], [["남윤정", "김소연", "허지은"], "본부장 확인 요청"]);
+  eq("판매가 = 리드 → 본부장 → 최종", [X.planPass(a1, me("sy"), U, ["B1"], T1, { hq: "판매가 조정" }).next, X.planPass(a2, me("hj"), U, ["B1"], T1, { hq: "판매가 조정" }).final], ["hj", true]);
+  eq("리드가 담당 = 혼자 최종 (본부장 승인 일 아님)", X.planPass({ ...c0, owner: "sh", to: "sh" }, me("sh"), U, null, T1, { hq: "" }).final, true);
+  eq("리드가 담당 · 판매가 = 본부장으로", X.planPass({ ...c0, owner: "sh", to: "sh" }, me("sh"), U, null, T1, { hq: "판매가 조정" }).next, "hj");
+  eq("팀원 → 바로 위가 본부장(리드 아님) = 본부장으로 (리드 대신)", X.planPass({ ...c0, owner: "cw", to: "cw" }, me("cw"), [...U.filter((u) => u.id !== "cw"), { id: "cw", name: "공용팀원", bossId: "hj" }], null, T1, { hq: "" }).next, "hj");
+  eq("리드 · 본부장 알아보기", [X.isLeadU(U, "sy"), X.isLeadU(U, "sh"), X.isLeadU(U, "yj"), X.isHQ(U, "hj"), X.isHQ(U, "sy")], [true, true, false, true, false]);
+  eq("할 일 담당 → 없으면 AI 담당 · 쉬는 사람은 빼고", [X.actOwner({ owners: { grohome: "yj" }, actOwners: { A: "gm" } }, "grohome", "A", U), X.actOwner({ owners: { grohome: "yj" }, actOwners: { A: "gm" } }, "grohome", "B", U), X.actOwner({ owners: { grohome: "yj" }, actOwners: { A: "old" } }, "grohome", "A", U)], ["gm", "yj", "yj"]);
+}
+
+// [본부장에게도 올리기]는 판마다 · 흔적(실행 업무 번호마다 했어요/안 함 · 2026-10-15 "마케터들은 업무 흔적 꼭 · AI가 세팅 · 사람이 확인 · KPI 추적")
+{
+  const up = { ...a1, hqUp: { by: "sy", byName: "김소연", at: T1 }, to: "hj", step: 2, path: ["yj", "sy"] };
+  eq("돌려보내기·AI에게 다시 = 올리기 표시 지움", [X.planRet(up, me("hj"), "다시", T1).fields.hqUp, X.planBack({ ...up, to: "yj", step: 0 }, me("yj"), "다시", T1).fields.hqUp], [null, null]);
+  eq("링크 칸 먼저 · 없으면 아무 칸의 주소", [X.firstUrl({ 계정: "@roller", 링크: "https://instagram.com/p/abc", 메모: "http://x.test" }), X.firstUrl({ 메모: "보기 https://blog.naver.com/a/1 참고" }), X.firstUrl({ 이름: "없음" })], ["https://instagram.com/p/abc", "https://blog.naver.com/a/1", ""]);
+  const inf = { ...a0, act: "A", board: "gh-exp", cols: ["계정", "링크", "제안"], items: [{ n: "A1", c: { 계정: "@paint_kim", 링크: "https://instagram.com/paint_kim", 제안: "쿠팡파트너스 DM" } }, { n: "A2", c: { 계정: "@diy_lee", 링크: "", 제안: "DM" } }, { n: "A3", c: { 계정: "@x", 링크: "https://instagram.com/x" } }] };
+  const ex = X.planExec(inf, ["A1", "A2"], me("hj"), U, T1, "2026-10-16", { ak: "x_insta" });
+  eq("실행 업무 = 승인 번호마다 한 줄·링크(AI 가 채움) · 반복 실행 짝 · 할 일·보드", [ex.aiItems, ex.aiAk, ex.aiAct, ex.aiBoard], [[{ n: "A1", t: "@paint_kim · 쿠팡파트너스 DM", link: "https://instagram.com/paint_kim" }, { n: "A2", t: "@diy_lee · DM", link: "" }], "x_insta", "A", "gh-exp"]);
+  eq("흔적 남은 수: 둘 다 아직", [X.traceLeft(ex), X.traceDoneN(ex)], [2, 0]);
+  const t1 = { ...ex, aiTrace: { A1: { done: true, link: "https://instagram.com/p/dm1" } } };
+  eq("A1 했어요 → 하나 남음", [X.traceLeft(t1), X.traceDoneN(t1), X.traceOf(t1, "A1").link], [1, 1, "https://instagram.com/p/dm1"]);
+  eq("A2 안 함(이유)도 남긴 것 → 0 · 했어요는 1", [X.traceLeft({ ...t1, aiTrace: { ...t1.aiTrace, A2: { skip: true, note: "답장 없음" } } }), X.traceDoneN({ ...t1, aiTrace: { ...t1.aiTrace, A2: { skip: true } } })], [0, 1]);
+  const one = X.planExec({ ...a0, items: [] }, null, me("hj"), U, T1, "");
+  eq("번호 없는 실행 = 한 줄 흔적 하나", [X.traceList(one).map((x) => x.n), X.traceLeft(one)], [["_"], 1]);
+  eq("AI 실행 업무가 아니면 흔적 없음", [X.traceLeft({ id: "t" }), X.traceLeft(null)], [0, 0]);
 }
 
 console.log(`\n${n - bad}/${n} 통과`); if (bad) process.exit(1);

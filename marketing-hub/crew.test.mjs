@@ -16,10 +16,11 @@ eq('바라스데이 크루', K.mateBrands('bosong'), ['bmupq52c0']);
 eq('원형은 크루 없음', [K.crewOf('pori'), K.mateBrands('pori')], [null, []]);
 eq('파생 원형은 있는 AI', K.CREWS.flatMap((c) => c.members.flatMap((m) => m.from || [])).every((f) => K.BASE_TEAM.some((b) => b.id === f)), true);
 
-// 보드 6개 — 크루 사람과 짝 · 행동 A~E
+// 보드 6개 — 크루 사람과 짝 · 행동 A~E (+ 2026-10-15 가을·겨울 F = 광고 일일 보고서)
 eq('보드 6개 · 짝', Object.values(K.BOARDS).map((b) => [b.id, b.mate, K.mateOf(b.mate).name]), [['gh-ohou', 'bom', '봄'], ['gh-exp', 'yeoreum', '여름'], ['gh-traffic', 'gaeul', '가을'], ['gh-conv', 'gyeoul', '겨울'], ['gh-aov', 'haneul', '하늘'], ['gh-rep', 'uju', '우주']]);
 eq('크루 사람 board = 보드 id', K.CREWS[0].members.map((m) => K.boardOf(m.board).mate === m.id), [true, true, true, true, true, true]);
-eq('행동 A~E', Object.values(K.BOARDS).map((b) => b.actions.map((a) => a.c).join('')), ['ABCDE', 'ABCDE', 'ABCDE', 'ABCDE', 'ABCDE', 'ABCDE']);
+eq('행동 A~E · 유입·전환 F', Object.values(K.BOARDS).map((b) => b.actions.map((a) => a.c).join('')), ['ABCDE', 'ABCDE', 'ABCDEF', 'ABCDEF', 'ABCDE', 'ABCDE']);
+eq('F = 광고 일일 보고서(report ads) 둘', Object.values(K.BOARDS).flatMap((b) => b.actions.filter((a) => a.report === 'ads').map((a) => b.id + a.c)), ['gh-trafficF', 'gh-convF']);
 // 원가·마진·제조사·공급 단가 칸 없음 (관리자 자리 행동의 하는 일 글은 그대로 · 화면엔 안 보임)
 const leak = [];
 Object.values(K.BOARDS).forEach((b) => b.actions.forEach((a) => { a.cols.forEach((c) => K.SECRET_RE.test(c) && leak.push(b.id + a.c + ' 칸 ' + c));
@@ -27,13 +28,13 @@ Object.values(K.BOARDS).forEach((b) => b.actions.forEach((a) => { a.cols.forEach
   if (!a.admin) a.s.forEach((s) => /원가|공급\s*단가|공급가|매입|제조사/.test(s) && leak.push(b.id + a.c + ' ' + s)); }));
 eq('원가·제조사·공급 단가 없음', leak, []);
 eq('관리자 자리 행동 = 노출 E 하나', Object.values(K.BOARDS).flatMap((b) => b.actions.filter((a) => a.admin).map((a) => b.id + a.c)), ['gh-expE']);
-// 실행은 사람: '승인…' 단계는 담당·사람이 함 · 실행 한 줄도 담당
+// 실행은 사람: '승인…' 단계는 담당·사람이 함 · 실행 한 줄도 담당 (광고 F = 규칙 안 자동 OFF 만 Aside · 구조 변경은 본부장님 — 2026-10-15 사장님 승인)
 const auto = [];
 Object.values(K.BOARDS).forEach((b) => b.actions.forEach((a) => { a.s.filter((s) => /^승인/.test(s)).forEach((s) => !/담당|사람/.test(s) && auto.push(b.id + a.c + ' ' + s));
-  if (a.exec && !/담당/.test(a.exec)) auto.push(b.id + a.c + ' exec ' + a.exec);
+  if (a.exec && !(a.report === 'ads' ? /담당|본부장/ : /담당/).test(a.exec)) auto.push(b.id + a.c + ' exec ' + a.exec);
   if (/직접\s*(반영|게시|발송|등록)/.test(a.s.join(' '))) auto.push(b.id + a.c + ' 직접'); }));
 eq('승인 뒤 실행 = 담당(사람)', auto, []);
-eq('실행 한 줄 있는 행동 수', Object.values(K.BOARDS).reduce((s, b) => s + b.actions.filter((a) => a.exec).length, 0), 27);   // 실행 없는 것 = 유입 A(감시·보고) · 재구매 A(측정) · 노출 E(관리자 자리)
+eq('실행 한 줄 있는 행동 수', Object.values(K.BOARDS).reduce((s, b) => s + b.actions.filter((a) => a.exec).length, 0), 29);   // 실행 없는 것 = 유입 A(감시·보고) · 재구매 A(측정) · 노출 E(관리자 자리)
 
 // 숫자 보기
 const m1 = K.boardOf('gh-exp').metrics[0];
@@ -112,9 +113,11 @@ eq('Aside 가 못 따르는 말 없음 (영상 생성하기 버튼 · 토요일 
   // 지시문의 올리는 모양을 그대로 채우면 crew.html 이 읽음 (지표 키 · 할 일 표 머리)
   const tpl = t.slice(t.indexOf('[지표]'), t.indexOf('■ 5.')).replace(/\(값\)/g, '1').replace(/\(한 줄\)/g, '한 줄');
   const pp = K.parseCrew(tpl, K.boardOf('gh-traffic'));
-  eq('지시문 모양 그대로 → 지표 8 · 상태 5 · 할 일 표 머리 5', [pp.metrics.length, Object.keys(pp.status).length, Object.keys(pp.acts).length, pp.acts.D.cols, pp.warn, pp.unknown], [8, 5, 5, ['캠페인·키워드', '현재', '제안', '근거', '예상 효과'], [], []]);
+  eq('지시문 모양 그대로 → 지표 8 · 상태 6(F 포함) · 할 일 표 머리 5(F 는 보고서라 표 없음)', [pp.metrics.length, Object.keys(pp.status).length, Object.keys(pp.acts).length, pp.acts.D.cols, pp.warn, pp.unknown], [8, 6, 5, ['캠페인·키워드', '현재', '제안', '근거', '예상 효과'], [], []]);
   eq('예약 글: 짧게 · 이 화면 지시문을 그대로 · 주소', [L.length < 700, L.includes(`${K.HUB_CREW}#gh-traffic`), L.includes("'오늘 지시문'"), L.startsWith('[AI 크루 · 가을 (유입마케터) · 그로홈 유입 보드] 평일 09:00')], [true, true, true, true]);
   eq('오늘의집 지시문에 런칭 체크리스트(보기만)', K.asideText(K.boardOf('gh-ohou')).includes('■ 참고: 11/9(월) 신제품 4종 런칭 체크리스트'), true);
+  eq('지시문 F = 08:30 광고 보고서 화면 · 이 루틴은 안 끔 · 표 없음', [t.includes('F. 쿠팡·네이버 CPC 일일 판정 + 롱테일 관리 — 언제: 매일 08:30'), t.includes('marketing-hub/ads.html 에서 오늘 보고서를 보고 [상태] F 에 한 줄만'), t.includes('이 루틴에서는 광고를 끄거나 바꾸지 않는다'), /\n\[F\]\n/.test(t), /\n\[F\]\n/.test(K.asideText(K.boardOf('gh-conv'))), K.asideText(K.boardOf('gh-rep')).includes('08:30 광고')], [true, true, true, false, false, false]);
+  eq('붙여 넣기 F 도 읽음 ([상태] F · [F] 표 · 번호 F1)', (() => { const q = K.parseCrew('[상태]\nF: OFF 2개\n[F]\n매체\t대상\n쿠팡\t방수 페인트', K.boardOf('gh-traffic')); return [q.status.F, q.acts.F.items]; })(), ['OFF 2개', [{ n: 'F1', c: { 매체: '쿠팡', 대상: '방수 페인트' } }]]);
   eq('예약 글 시각 = 그 PC 계획', K.asideLaunch(K.boardOf('gh-rep'), '10:00').split('\n')[0], '[AI 크루 · 우주 (재구매마케터) · 그로홈 재구매 보드] 평일 10:00');
 }
 

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>AI 팀 매뉴얼 · POUR 마케팅 허브</title>
+<!--
+  AI 팀 매뉴얼 — 크루·팀원 카드 + Aside 가 관리하는 매뉴얼 (사용자 결정 2026-10-15 "광고 운영 내재화 + AI팀 매뉴얼 화면 (Aside 연동)")
+  · 카드 = crew.js CREWS 팀원마다: 이름·역할·KPI · 담당(pour-os/v2/aimates owners → users 이름) · 보드 할 일 요약 · 루틴 시간(담당 PC Aside = crew.asidePlan) · 광고 몫(adops.js AD_ROLES)
+  · 매뉴얼 = pour-os/v2/aimanuals/{id} {id, title, md, src, at} (ad-ops-team · ad-ops-playbook …) — Aside 전용 쓰기 · 이 화면은 읽기만(담당도 못 고침)
+  · 로그인 없음 (공개 규칙 pour-os/{doc=**} · 규칙 변경 없음) · 쓰기 없음 · 사람 이름만 읽음(번호·PIN 칸은 안 씀)
+  · 주소 #<매뉴얼 id> = 그 매뉴얼 · #<팀원 id> = 그 카드로
+-->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="core.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+:root{--navy:#0D1B2A;--accent:#2563EB;--accent-l:#EFF6FF;--green:#059669;--green-l:#ECFDF5;--red:#DC2626;--red-l:#FEF2F2;
+  --gold:#D97706;--gold-l:#FFFBEB;--text:#111827;--text-md:#4B5563;--text-sm:#9CA3AF;--bg:#F9FAFB;--card:#fff;--border:#E5E7EB;
+  --r:12px;--r-sm:8px;--shadow:0 1px 6px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.04)}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:Pretendard,-apple-system,system-ui,'Segoe UI',sans-serif;font-size:14px}
+header{background:var(--navy);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+header b{font-size:16px;white-space:nowrap}
+header .sp{flex:1}
+header a{color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:var(--r-sm);padding:6px 10px;font-size:12px;text-decoration:none;white-space:nowrap}
+main{max-width:1100px;margin:0 auto;padding:16px}
+h2.sec{font-size:16px;margin:20px 2px 6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.lead{font-size:13px;color:var(--text-md);margin:0 2px 10px;line-height:1.6;word-break:keep-all}
+.sub{font-size:12px;color:var(--text-sm);font-weight:600}
+.pill{display:inline-block;font-size:11px;font-weight:800;border-radius:20px;padding:2px 9px;background:#F3F4F6;color:var(--text-md);white-space:nowrap}
+.pill.ad{background:var(--gold-l);color:var(--gold)}.pill.ro{background:var(--accent-l);color:var(--accent)}.pill.dr{background:#F3F4F6;color:var(--text-md)}
+.mates{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.mate{background:#fff;border:1px solid var(--border);border-left:5px solid var(--c,#9CA3AF);border-radius:var(--r);padding:12px 14px;min-width:0;box-shadow:var(--shadow)}
+.mate .h{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.mate .h b{font-size:17px}.mate .h .r{font-size:13px;color:var(--text-md);font-weight:700}
+.kv{margin-top:8px;font-size:13px;line-height:1.6;display:grid;grid-template-columns:56px minmax(0,1fr);gap:2px 8px}
+.kv dt{color:var(--text-sm);font-weight:700;font-size:12px;padding-top:1px}.kv dd{margin:0;word-break:keep-all;overflow-wrap:anywhere}
+.kv dd.none{color:var(--red);font-weight:700}
+.adbox{margin-top:8px;background:var(--gold-l);border-radius:8px;padding:8px 10px;font-size:12.5px;line-height:1.6;color:#78350F;word-break:keep-all}
+.adbox b{color:#92400E}
+details.acts{margin-top:8px}details.acts summary{cursor:pointer;font-size:12.5px;font-weight:800;color:var(--navy);list-style:none}
+details.acts summary::-webkit-details-marker{display:none}details.acts summary::after{content:' ▾'}details.acts[open] summary::after{content:' ▴'}
+details.acts ol{margin:6px 0 0;padding-left:0;list-style:none;font-size:12.5px;line-height:1.55}
+details.acts li{padding:4px 0;border-top:1px solid var(--border);word-break:keep-all}details.acts li b{color:var(--navy);margin-right:4px}
+details.acts li .w{display:block;color:var(--text-md);font-size:12px}
+.mate .first{margin-top:8px;font-size:12.5px;color:var(--text-md);line-height:1.6;word-break:keep-all}
+.mate:target{outline:2px solid var(--accent);outline-offset:2px}
+.mtabs{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px;-webkit-overflow-scrolling:touch}
+.mtabs button{flex:none;border:1px solid var(--border);background:#fff;border-radius:20px;padding:7px 14px;font:inherit;font-weight:700;color:var(--text-md);cursor:pointer}
+.mtabs button.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden;min-width:0}
+.doc-h{padding:14px 16px;border-bottom:1px solid var(--border)}.doc-h b{display:block;font-size:16px;word-break:keep-all}.doc-h .sub{display:block;margin-top:4px}
+.md{padding:6px 16px 16px;font-size:14.5px;line-height:1.7;word-break:break-word}
+.md h2{font-size:18px;margin:18px 0 8px}.md h3{font-size:16px;margin:16px 0 6px}.md h4,.md h5,.md h6{font-size:15px;margin:12px 0 4px}
+.md p{margin:8px 0}.md blockquote{margin:8px 0;padding:8px 12px;background:#F3F4F6;border-left:3px solid var(--border);color:var(--text-md);font-size:13px}
+.md ul,.md ol{margin:6px 0;padding-left:22px}.md li.ck{list-style:none;margin-left:-18px}
+.md pre{background:#F3F4F6;padding:10px;border-radius:var(--r-sm);overflow-x:auto;font-size:12px;white-space:pre-wrap}
+.md code{background:#F3F4F6;border-radius:4px;padding:1px 5px;font-size:12.5px;word-break:break-all}
+.md .wl{color:#7C3AED;font-weight:700}.md a{color:var(--accent);word-break:break-all}.md hr{border:0;border-top:1px solid var(--border);margin:14px 0}
+.tbl{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0}
+th,td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top;min-width:72px}
+th{font-size:11.5px;color:var(--text-md);background:#F9FAFB;white-space:nowrap}
+.empty{padding:22px 16px;text-align:center;color:var(--text-sm)}
+.msg{padding:12px 16px;border-radius:var(--r-sm);margin:0 0 14px;font-weight:700;background:var(--red-l);color:var(--red)}
+.foot{font-size:12px;color:var(--text-sm);text-align:center;margin:18px 0 6px;line-height:1.6}
+@media (max-width:900px){.mates{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:700px){main{padding:12px}.mates{grid-template-columns:1fr}.md{padding:4px 12px 14px;font-size:14px}.doc-h{padding:12px}
+  .md table.rt thead{display:none}.md table.rt,.md table.rt tbody,.md table.rt tr,.md table.rt td{display:block;width:100%}
+  .md table.rt tr{border:1px solid var(--border);border-radius:10px;padding:6px 10px;margin-bottom:8px;background:#fff}
+  .md table.rt td{border:0;padding:3px 0;min-width:0;display:flex;gap:8px}.md table.rt td::before{content:attr(data-l);flex:none;width:84px;color:var(--text-sm);font-size:12px;font-weight:700}
+  .md .tbl{overflow:visible}}
+@media (max-width:380px){header a.hub{display:none}}
+</style>
+</head>
+<body>
+<header>
+  <b>📘 AI 팀 매뉴얼</b>
+  <span class="sp"></span>
+  <a href="ads.html">광고 운영</a>
+  <a href="crew.html">크루 결과 올리기</a>
+  <a href="index.html" class="hub">허브</a>
+</header>
+<main id="app"><div class="empty">불러오는 중…</div></main>
+<script type="module">
+import * as K from './crew.js';
+import * as A from './adops.js';
+const FB_CFG={apiKey:"AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",authDomain:"pour-app-new.firebaseapp.com",projectId:"pour-app-new",
+  storageBucket:"pour-app-new.firebasestorage.app",messagingSenderId:"411031141847",appId:"1:411031141847:web:e658174fd4b9652cdadf92"};
+firebase.initializeApp(FB_CFG);
+const db=firebase.firestore();
+if(/^(localhost|127\.0\.0\.1)$/.test(location.hostname)&&new URLSearchParams(location.search).has('emu'))db.useEmulator('127.0.0.1',8080);
+const C=window.MktCore, $=(s)=>document.querySelector(s), V2=()=>db.collection('pour-os').doc('v2');
+const esc=(s)=>String(s==null?'':s).replace(/[&<>"]/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const atL=(t)=>{const m=t?new Date(t).getTime():0;if(!m)return '';const d=new Date(m+9*3600e3);return d.toISOString().slice(0,16).replace('T',' ');};
+const MAN_ORDER=['ad-ops-team','ad-ops-playbook'];   // 광고 AI팀 역할이 먼저
+const S={mates:{},users:{},mans:[],cur:'',err:[],loaded:false};
+
+async function load(){
+  const [m,u]=await Promise.allSettled([V2().collection('aimates').get(),V2().collection('aimanuals').get()]);
+  if(m.status==='fulfilled'){m.value.docs.forEach(d=>{S.mates[d.id]=d.data();});console.log(`[aimates] ${m.value.size}건 로드`);}
+  else{console.error('[aimates] 로드 실패:',m.reason);S.err.push('담당을 못 불러왔어요');}
+  if(u.status==='fulfilled'){S.mans=u.value.docs.map(d=>({id:d.id,...d.data()}));
+    S.mans.sort((a,b)=>{const x=MAN_ORDER.indexOf(a.id),y=MAN_ORDER.indexOf(b.id);return (x<0?99:x)-(y<0?99:y)||String(a.title||a.id).localeCompare(String(b.title||b.id));});
+    console.log(`[aimanuals] ${S.mans.length}건 로드`);}
+  else{console.error('[aimanuals] 로드 실패:',u.reason);S.err.push('매뉴얼을 못 불러왔어요');}
+  // 담당 이름 — 필요한 사람만 (이름·쉼 여부만 씀)
+  const ids=[...new Set(Object.values(S.mates).flatMap(x=>Object.values((x&&x.owners)||{})).filter(Boolean))];
+  await Promise.all(ids.map(async id=>{try{const d=await V2().collection('users').doc(id).get();S.users[id]=d.exists?{name:d.data().name||'',active:d.data().active}:null;}
+    catch(e){console.error(`[users/${id}] 로드 실패:`,e);S.users[id]=null;}}));
+  console.log(`[users] 담당 ${ids.length}명 이름 로드`);
+  const h=decodeURIComponent(location.hash.slice(1)); S.cur=S.mans.some(x=>x.id===h)?h:(S.mans[0]?S.mans[0].id:'');
+  S.loaded=true;render();
+  if(h&&!S.mans.some(x=>x.id===h)){const el=document.getElementById(h);if(el)el.scrollIntoView({block:'start'});}
+}
+// 담당 (쉬는 사람·없는 사람 = 미정 → 관리자 누구나)
+const act=(id)=>{const u=S.users[id];return u&&u.active!==false?id:'';};
+const nameOf=(id)=>{const u=S.users[id];return u?u.name:'';};
+function ownersL(mid){
+  const ks=K.ownerKeys(mid), doc=S.mates[mid]||null;
+  const one=(k)=>{const id=act(K.ownerFor(doc,k));return id?nameOf(id):'';};
+  const vals=ks.map(k=>[k,one(k)]), uniq=[...new Set(vals.map(v=>v[1]))];
+  if(uniq.length===1)return uniq[0]?{t:uniq[0]}:{t:'미정 (관리자 누구나)',none:true};
+  return {t:vals.map(([k,n])=>`${k?K.brandL(k):'기본'} ${n||'미정'}`).join(' · ')};
+}
+function runL(m,plan){
+  const out=[], b=m.board?K.boardOf(m.board):null;
+  if(m.routine)out.push(m.routine.split(' · ').slice(0,2).join(' '));
+  if(b&&b.run){const p=K.planOf(plan,b.id);out.push(`보드 Aside 평일 ${p?p.t:b.run.t}${p&&!p.owner?' (관리자 PC)':''}`);}
+  const ad=A.AD_ROLES[m.id]; if(ad)out.push(`광고 ${ad.when}`);
+  return out;
+}
+function mateCard(m,crew,plan){
+  const b=m.board?K.boardOf(m.board):null, ad=A.AD_ROLES[m.id], o=ownersL(m.id), runs=runL(m,plan);
+  const acts=b?b.actions:[];
+  return `<div class="mate" id="${esc(m.id)}" style="--c:${esc(m.color||'#9CA3AF')}">
+    <div class="h"><b>${esc(m.name)}</b><span class="r">${esc(m.role)}</span>${ad?`<span class="pill ad">광고 · ${esc(ad.ad)}</span>`:''}</div>
+    <dl class="kv"><dt>KPI</dt><dd>${esc(m.kpi||'')}</dd>
+      <dt>담당</dt><dd class="${o.none?'none':''}">${esc(o.t)}</dd>
+      ${runs.length?`<dt>루틴</dt><dd>${runs.map(esc).join('<br>')}</dd>`:''}
+      ${b?`<dt>보드</dt><dd>${esc(K.brandL(b.brand))} ${esc(b.title)}</dd>`:''}</dl>
+    ${ad?`<div class="adbox"><b>광고 업무</b> ${esc(ad.does)}<br><b>실행</b> ${esc(ad.exec)}</div>`:''}
+    ${acts.length?`<details class="acts"><summary>할 일 ${acts.map(a=>a.c).join('·')} (${acts.length})</summary><ol>${acts.map(a=>`<li><b>${esc(a.c)}</b>${esc(a.t)}${a.admin?' <span class="pill">관리자 자리</span>':''}${a.report?' <span class="pill ad">광고 보고서</span>':''}<span class="w">${esc(a.when)}${a.k?' · '+esc(a.k):''}</span></li>`).join('')}</ol></details>`
+      :m.first?`<div class="first"><b>첫 할 일 (초안)</b> · ${esc(m.first)}</div>`:''}
+  </div>`;
+}
+function vCrews(){
+  const plan=K.asidePlan(b=>act(K.ownerFor(S.mates[b.mate],b.brand)));
+  return K.CREWS.map(c=>`<h2 class="sec">${esc(c.name)} ${c.draft?'<span class="pill dr">초안</span>':''}<span class="sub">${esc(K.servesL(c))}</span></h2>
+    <p class="lead">${esc(c.note||'')}${c.formula?` · 매출 = ${c.formula.map(esc).join(' × ')}`:''}</p>
+    <div class="mates">${c.members.map(m=>mateCard(m,c,plan)).join('')}</div>`).join('');
+}
+function vMans(){
+  const head=`<h2 class="sec" id="manuals">매뉴얼 <span class="pill ro">Aside가 관리하는 문서 · 읽기 전용</span></h2>
+    <p class="lead">Aside 가 직접 쓰고 고쳐요 · 고칠 점은 업무OS 승인 한 장의 [AI에게 다시] 또는 확정 규칙으로 알려 주세요</p>`;
+  if(!S.mans.length)return head+'<div class="card"><div class="empty">아직 올라온 매뉴얼이 없어요</div></div>';
+  const d=S.mans.find(x=>x.id===S.cur)||S.mans[0];
+  return head+`<div class="mtabs" id="mtabs" role="tablist">${S.mans.map(x=>`<button type="button" role="tab" data-m="${esc(x.id)}" class="${x.id===d.id?'on':''}" aria-selected="${x.id===d.id}">${esc(x.title||x.id)}</button>`).join('')}</div>
+    <article class="card" id="manual"><div class="doc-h"><b>${esc(d.title||d.id)}</b><span class="sub">${d.src?esc(d.src)+' · ':''}${d.at?esc(atL(d.at))+' 고침':''}</span></div>
+      <div class="md">${C.mdLite(d.md||'')}</div></article>`;
+}
+function render(){
+  if(!S.loaded)return;
+  $('#app').innerHTML=(S.err.length?`<div class="msg" role="alert">${esc(S.err.join(' · '))} · 새로고침해 주세요</div>`:'')
+    +`<p class="lead" style="margin-top:4px">크루 팀원마다 무엇을 맡고(KPI · 할 일) 누가 승인하는지(담당) · 언제 도는지(루틴) — 담당은 업무OS AI 팀원에서 정해요 · 광고 보고서는 <a href="ads.html">광고 운영 ›</a></p>`
+    +vCrews()+vMans()+'<p class="foot">이 화면은 읽기만 해요 · 크루 정의 = crew.js · 매뉴얼 = Aside (pour-os/v2/aimanuals)</p>';
+}
+document.addEventListener('click',(e)=>{const t=e.target.closest('#mtabs button');if(t){S.cur=t.dataset.m;history.replaceState(null,'','#'+S.cur);render();const a=$('#manuals');if(a)a.scrollIntoView({block:'start'});}});
+load().catch(e=>{console.error('[ai-manual] 로드 실패:',e);S.err.push('불러오지 못했어요');S.loaded=true;render();});
+</script>
+</body>
+</html>

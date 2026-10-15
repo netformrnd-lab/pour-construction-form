@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>광고 운영 · POUR 마케팅 허브</title>
+<!--
+  광고 운영 — Aside 광고 일일 보고서 보기 (사용자 결정 2026-10-15 "광고 운영 내재화 + AI팀 매뉴얼 화면 (Aside 연동)")
+  · 읽는 곳(pour-app-new · 공개 규칙 pour-os/{doc=**} · 로그인 없음 · 규칙 변경 없음):
+      pour-os/v2/adreports/{YYYY-MM-DD} {date, title, md, summary, offs(JSON 글), longtail(JSON 글 · 없을 수 있음), by:'aside', at}
+  · 쓰기 없음 — Aside 만 REST 로 올림 (pour-os-v2/CLAUDE.md 'Aside 전용 쓰기 경로')
+  · 위 카드: 최신 보고서 요약 · 이번 주 끈 것 n개(offs) · 새 롱테일 n개(longtail · 칸 없으면 숨김)
+  · [보고서] 왼쪽 날짜(최신순) → 오른쪽 md(표 포함 · core.js mdLite = 모든 글자 escape) · 주소 #YYYY-MM-DD
+  · [끈 것 기록] 모든 보고서 offs 합친 표(날짜·매체·캠페인·대상·근거·조치) + 주간·월간 개수 · 주소 #off
+  · 계산 adops.js (시험 node marketing-hub/adops.test.mjs)
+-->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="core.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+:root{--navy:#0D1B2A;--accent:#2563EB;--accent-l:#EFF6FF;--green:#059669;--green-l:#ECFDF5;--red:#DC2626;--red-l:#FEF2F2;
+  --gold:#D97706;--gold-l:#FFFBEB;--text:#111827;--text-md:#4B5563;--text-sm:#9CA3AF;--bg:#F9FAFB;--card:#fff;--border:#E5E7EB;
+  --r:12px;--r-sm:8px;--shadow:0 1px 6px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.04)}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:Pretendard,-apple-system,system-ui,'Segoe UI',sans-serif;font-size:14px}
+header{background:var(--navy);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+header b{font-size:16px;white-space:nowrap}
+header .sp{flex:1}
+header a{color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:var(--r-sm);padding:6px 10px;font-size:12px;text-decoration:none;white-space:nowrap}
+nav{display:flex;gap:6px;overflow-x:auto;padding:10px 16px;background:#fff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:5}
+nav button{flex:none;border:1px solid var(--border);background:#fff;border-radius:20px;padding:7px 14px;font:inherit;font-weight:700;color:var(--text-md);cursor:pointer}
+nav button.on{background:var(--navy);border-color:var(--navy);color:#fff}
+main{max-width:1100px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden;min-width:0}
+.card h3{margin:0;padding:12px 16px;font-size:14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card h3 .sp{flex:1}
+.sub{font-size:12px;color:var(--text-sm);font-weight:600}
+.ro{display:inline-block;font-size:11px;font-weight:800;border-radius:20px;padding:2px 9px;background:#F3F4F6;color:var(--text-md)}
+.tops{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px}
+.top{flex:1 1 140px;background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:14px;min-width:0}.top.sum{flex:3 1 320px}
+.top .l{font-size:12px;color:var(--text-md);font-weight:700}.top .v{font-size:24px;font-weight:800;margin-top:4px;font-variant-numeric:tabular-nums}
+.top .s{font-size:14px;line-height:1.6;margin-top:6px;word-break:keep-all;overflow-wrap:anywhere}
+.top .v small{font-size:13px;font-weight:700;color:var(--text-md);margin-left:2px}
+.rules{padding:10px 16px;font-size:13px;line-height:1.7;color:var(--text-md)}
+.rules b{color:var(--navy);margin-right:6px}
+details.std>summary{cursor:pointer;padding:12px 16px;font-weight:800;list-style:none}details.std>summary::-webkit-details-marker{display:none}
+details.std>summary::after{content:' ▾';color:var(--text-sm)}details.std[open]>summary::after{content:' ▴'}
+.split{display:grid;grid-template-columns:240px minmax(0,1fr);gap:14px;align-items:start}
+.dates{display:flex;flex-direction:column}
+.dates button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--border);background:#fff;padding:10px 14px;font:inherit;cursor:pointer;color:var(--text)}
+.dates button:last-child{border-bottom:0}
+.dates button b{display:block;font-size:14px}.dates button span{display:block;font-size:12px;color:var(--text-md);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dates button.on{background:var(--accent-l)}.dates button.on b{color:var(--accent)}
+.rep-h{padding:14px 16px;border-bottom:1px solid var(--border)}
+.rep-h b{display:block;font-size:16px;word-break:keep-all}.rep-h .sub{display:block;margin-top:4px}
+.md{padding:6px 16px 16px;font-size:14.5px;line-height:1.7;word-break:break-word}
+.md h2{font-size:18px;margin:18px 0 8px}.md h3{font-size:16px;margin:16px 0 6px}.md h4,.md h5,.md h6{font-size:15px;margin:12px 0 4px}
+.md p{margin:8px 0}.md blockquote{margin:8px 0;padding:8px 12px;background:#F3F4F6;border-left:3px solid var(--border);color:var(--text-md);font-size:13px}
+.md ul,.md ol{margin:6px 0;padding-left:22px}.md li.ck{list-style:none;margin-left:-18px}
+.md pre{background:#F3F4F6;padding:10px;border-radius:var(--r-sm);overflow-x:auto;font-size:12px;white-space:pre-wrap}
+.md code{background:#F3F4F6;border-radius:4px;padding:1px 5px;font-size:12.5px;word-break:break-all}
+.md .wl{color:#7C3AED;font-weight:700}.md a{color:var(--accent);word-break:break-all}.md hr{border:0;border-top:1px solid var(--border);margin:14px 0}
+.tbl{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+th{font-size:11.5px;color:var(--text-md);background:#F9FAFB;white-space:nowrap}
+.md table{margin:8px 0}.md table th,.md table td{min-width:72px}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cnts{display:flex;gap:8px;flex-wrap:wrap;padding:12px 16px}
+.cnts span{background:#F3F4F6;border-radius:8px;padding:6px 10px;font-size:13px;color:var(--text-md)}.cnts span b{color:var(--navy);font-size:15px;margin-left:4px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.med{display:inline-block;font-size:11.5px;font-weight:800;border-radius:6px;padding:2px 7px;background:#F3F4F6;color:var(--text-md);white-space:nowrap}
+.med.m-메타{background:#EEF2FF;color:#4338CA}.med.m-쿠팡{background:#FEF2F2;color:#B91C1C}.med.m-네이버{background:var(--green-l);color:var(--green)}.med.m-오늘의집{background:var(--accent-l);color:var(--accent)}
+.empty{padding:22px 16px;text-align:center;color:var(--text-sm)}
+.msg{padding:12px 16px;border-radius:var(--r-sm);margin-bottom:14px;font-weight:700;background:var(--red-l);color:var(--red)}
+.foot{font-size:12px;color:var(--text-sm);text-align:center;margin:18px 0 6px;line-height:1.6}
+@media (max-width:900px){.split{grid-template-columns:1fr}.dates{flex-direction:row;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .dates button{flex:none;width:auto;max-width:200px;border-bottom:0;border-right:1px solid var(--border)}.grid2{grid-template-columns:1fr}}
+@media (max-width:700px){main{padding:12px}.top .v{font-size:20px}.md{padding:4px 12px 14px;font-size:14px}.rep-h{padding:12px}.card h3{padding:11px 12px}
+  .md table.rt thead{display:none}.md table.rt,.md table.rt tbody,.md table.rt tr,.md table.rt td{display:block;width:100%}
+  .md table.rt tr{border:1px solid var(--border);border-radius:10px;padding:6px 10px;margin-bottom:8px;background:#fff}
+  .md table.rt td{border:0;padding:3px 0;min-width:0;display:flex;gap:8px}.md table.rt td::before{content:attr(data-l);flex:none;width:84px;color:var(--text-sm);font-size:12px;font-weight:700}
+  .md .tbl{overflow:visible}
+  table.offs thead{display:none}table.offs,table.offs tbody,table.offs tr,table.offs td{display:block;width:100%}
+  table.offs tr{border-bottom:1px solid var(--border);padding:8px 12px}table.offs td{border:0;padding:2px 0;display:flex;gap:8px}
+  table.offs td::before{content:attr(data-l);flex:none;width:56px;color:var(--text-sm);font-size:12px;font-weight:700}}
+@media (max-width:380px){header a.hub{display:none}}
+</style>
+</head>
+<body>
+<header>
+  <b>📣 광고 운영</b>
+  <span class="sp"></span>
+  <a href="ai-manual.html" id="go-manual">AI 팀 매뉴얼</a>
+  <a href="index.html" class="hub">허브</a>
+  <a href="../pourstore-renewal/os2.html">업무OS</a>
+</header>
+<nav id="tabs" aria-label="광고 운영 탭"><button type="button" data-v="rep">보고서</button><button type="button" data-v="off">끈 것 기록</button></nav>
+<main id="app"><div class="empty">불러오는 중…</div></main>
+<script type="module">
+import * as A from './adops.js';
+const FB_CFG={apiKey:"AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",authDomain:"pour-app-new.firebaseapp.com",projectId:"pour-app-new",
+  storageBucket:"pour-app-new.firebasestorage.app",messagingSenderId:"411031141847",appId:"1:411031141847:web:e658174fd4b9652cdadf92"};
+firebase.initializeApp(FB_CFG);
+const db=firebase.firestore();
+if(/^(localhost|127\.0\.0\.1)$/.test(location.hostname)&&new URLSearchParams(location.search).has('emu'))db.useEmulator('127.0.0.1',8080);
+const C=window.MktCore, $=(s)=>document.querySelector(s);
+const esc=(s)=>String(s==null?'':s).replace(/[&<>"]/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const todayKST=()=>C.addDays(C.yesterdayKST(),1);
+const DOW='일월화수목금토';
+const dayL=(d)=>{const x=new Date(d+'T00:00:00Z');return `${Number(d.slice(5,7))}/${Number(d.slice(8,10))}(${DOW[x.getUTCDay()]})`;};
+const atL=(t)=>{const m=t?new Date(t).getTime():0;if(!m)return '';const d=new Date(m+9*3600e3);return d.toISOString().slice(5,16).replace('T',' ').replace('-','/');};
+const S={reps:[],cur:'',view:'rep',err:'',loaded:false};
+
+// 주소: #off = 끈 것 기록 · #YYYY-MM-DD = 그 보고서
+function fromHash(){const h=decodeURIComponent(location.hash.slice(1));if(h==='off')S.view='off';else{S.view='rep';if(/^\d{4}-\d{2}-\d{2}$/.test(h))S.cur=h;}}
+fromHash();
+window.addEventListener('hashchange',()=>{fromHash();render();});
+
+async function load(){
+  try{
+    const snap=await db.collection('pour-os').doc('v2').collection('adreports').get();   // orderBy 안 씀 · 날짜 글로 정렬
+    S.reps=A.sortReports(snap.docs.map(d=>({id:d.id,...d.data(),date:d.data().date||d.id})));
+    console.log(`[adreports] ${S.reps.length}건 로드`);
+    if(!S.cur||!S.reps.some(r=>r.date===S.cur))S.cur=S.reps[0]?S.reps[0].date:'';
+  }catch(e){console.error('[adreports] 로드 실패:',e);S.err='보고서를 못 불러왔어요 · 인터넷 연결을 확인하고 새로고침해 주세요 ('+(e.code||e.message||e)+')';}
+  S.loaded=true;render();
+}
+
+function tops(){
+  const t=A.topCards(S.reps,todayKST()), last=t.last;
+  return `<div class="tops">
+    <div class="top sum"><div class="l">최신 보고서${last?` · ${esc(dayL(last.date))}`:''}</div><div class="s">${last?esc(t.summary||last.title||'요약 없음'):'아직 보고서가 없어요'}</div></div>
+    ${t.offsWeek!=null?`<div class="top"><div class="l">이번 주 끈 것</div><div class="v">${t.offsWeek}<small>개</small></div></div>`:''}
+    ${t.longtail!=null?`<div class="top"><div class="l">새 롱테일</div><div class="v">${t.longtail}<small>개</small></div></div>`:''}
+  </div>`;
+}
+function rules(){
+  return `<details class="card std" id="ad-rules"><summary>운영 기준 <span class="sub">데일리그로스 메타 운영 제안 2026.10.15</span></summary>
+    <div class="rules">${A.AD_RULES.map(r=>`<div><b>${esc(r.m)}</b>${esc(r.t)}</div>`).join('')}</div></details>`;
+}
+function vRep(){
+  if(!S.reps.length)return `<div class="card"><div class="empty">아직 올라온 보고서가 없어요 · Aside 가 매일 08:30 에 올려요</div></div>`;
+  const r=S.reps.find(x=>x.date===S.cur)||S.reps[0];
+  const list=S.reps.map(x=>`<button type="button" data-d="${esc(x.date)}" class="${x.date===r.date?'on':''}" aria-label="${esc(x.date)} 보고서"><b>${esc(dayL(x.date))}</b><span>${esc(x.summary||x.title||'')}</span></button>`).join('');
+  return `<div class="split">
+    <div class="card"><h3>보고서 ${S.reps.length} <span class="sub">최신순</span></h3><div class="dates" id="dates">${list}</div></div>
+    <article class="card" id="report"><div class="rep-h"><b>${esc(r.title||r.date)}</b><span class="sub">${esc(r.date)} · ${r.by==='aside'?'Aside':esc(r.by||'')} 올림${r.at?' '+esc(atL(r.at)):''} · <span class="ro">읽기 전용</span></span></div>
+      <div class="md">${C.mdLite(r.md||r.summary||'')}</div></article>
+  </div>`;
+}
+function vOff(){
+  const L=A.offLog(S.reps,todayKST());
+  if(!L.has&&!L.rows.length)return `<div class="card"><div class="empty">끈 것 기록이 아직 없어요</div></div>`;
+  const cnt=`<div class="cnts"><span>이번 주<b>${L.thisWeek}</b></span><span>이번 달<b>${L.thisMonth}</b></span><span>전체<b>${L.rows.length}</b></span></div>`;
+  const wk=L.weeks.length?`<div class="tbl"><table><thead><tr><th>주</th><th class="n">끈 것</th></tr></thead><tbody>${L.weeks.slice(0,12).map(x=>`<tr><td>${esc(A.weekL(x.w))}</td><td class="n">${x.n}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">없음</div>';
+  const mo=L.months.length?`<div class="tbl"><table><thead><tr><th>월</th><th class="n">끈 것</th></tr></thead><tbody>${L.months.slice(0,12).map(x=>`<tr><td>${esc(Number(x.m.slice(5,7)))}월 <span class="sub">${esc(x.m.slice(0,4))}</span></td><td class="n">${x.n}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">없음</div>';
+  const rows=L.rows.length?`<div class="tbl"><table class="offs"><thead><tr><th>날짜</th><th>매체</th><th>캠페인</th><th>대상</th><th>근거</th><th>조치</th></tr></thead><tbody>${L.rows.map(x=>`<tr>
+      <td data-l="날짜" style="white-space:nowrap">${esc(x.date?dayL(x.date):'')}</td><td data-l="매체">${x.media?`<span class="med m-${esc(x.media)}">${esc(x.media)}</span>`:''}</td>
+      <td data-l="캠페인">${esc(x.campaign)}</td><td data-l="대상"><b>${esc(x.target)}</b></td><td data-l="근거">${esc(x.reason)}</td><td data-l="조치">${esc(x.action)}</td></tr>`).join('')}</tbody></table></div>`
+    :'<div class="empty">아직 끈 것이 없어요 (OFF 0건)</div>';
+  return `<div class="card"><h3>끈 것 ${L.rows.length} <span class="sub">모든 보고서의 끈 것 · 최신순 · 규칙 안 자동 OFF(Aside)</span></h3>${cnt}${rows}</div>
+    <div class="grid2"><div class="card"><h3>주간 <span class="sub">월요일 시작</span></h3>${wk}</div><div class="card"><h3>월간</h3>${mo}</div></div>`;
+}
+function render(){
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===S.view));
+  if(!S.loaded)return;
+  const body=S.err?`<div class="msg" role="alert">${esc(S.err)}</div>`:tops()+rules()+(S.view==='off'?vOff():vRep());
+  $('#app').innerHTML=body+`<p class="foot">Aside 가 매일 08:30 메타·쿠팡·네이버 광고 일일 보고서를 올려요 · 이 화면은 읽기만 해요<br>실행: 규칙 안 자동 OFF = Aside · 예산·구조 변경 = 담당·본부장님 (업무OS 승인)</p>`;
+}
+document.addEventListener('click',(e)=>{
+  const t=e.target.closest('#tabs button');if(t){S.view=t.dataset.v;history.replaceState(null,'',S.view==='off'?'#off':(S.cur?'#'+S.cur:location.pathname));render();window.scrollTo(0,0);return;}
+  const d=e.target.closest('#dates button');if(d){S.cur=d.dataset.d;history.replaceState(null,'','#'+S.cur);render();
+    if(window.matchMedia('(max-width:900px)').matches){const a=$('#report');if(a)a.scrollIntoView({block:'start'});}}
+});
+render();load();
+</script>
+</body>
+</html>

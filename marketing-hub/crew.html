@@ -10,7 +10,7 @@
   · 보드 고르기 → 날짜 → 결과 붙여 넣기([지표] [상태] [A]~[E] 표 · 그로홈 보드에서 쓰던 모양) → 미리 보기 → [업무OS에 올리기]
   · 쓰는 곳(pour-app-new · 공개 규칙 pour-os/{doc=**} · 규칙 변경 없음):
       pour-os/v2/aiboards/{보드 id}  지표 값(날짜별) · 상태 한 줄
-      pour-os/v2/aiasks/{id}         행동 A~E 하나 = 승인 한 건 → 업무OS '확인할 것' (AI → 담당 → 리드 → 본부장)
+      pour-os/v2/aiasks/{id}         행동 A~F 하나 = 승인 한 건 → 업무OS '확인할 것' (AI → 담당 → 리드 → 본부장)
   · 같은 날 같은 행동을 다시 올리면: 아직 담당 차례이거나 'AI 에게 다시'로 돌려받은 것만 2번째 판으로 고침 · 위로 올라간 뒤엔 그대로(날짜를 바꿔 새로)
   · 빼는 것: 원가·마진·제조사·공급 단가 칸 · 관리자 자리 행동(노출 E) · 휴대폰 번호·메일(가림) — crew.js
   · 실행(가격·광고·발송·게시)은 하지 않음 — 표와 초안까지 · 실제 반영은 승인 뒤 사람이 업무OS '실행' 업무에서
@@ -33,7 +33,7 @@
   --text:#111827;--text-md:#4B5563;--text-sm:#9CA3AF;--bg:#F9FAFB;--card:#fff;--border:#E5E7EB;--r:12px;--r-sm:8px}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--text);font-family:Pretendard,-apple-system,system-ui,'Segoe UI',sans-serif;font-size:15px}
-header{background:var(--navy);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px}
+header{background:var(--navy);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 header b{font-size:16px;white-space:nowrap}
 header .who{margin-left:auto;font-size:12px;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:45vw}
 header a,header button{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:var(--r-sm);padding:6px 10px;font-size:12px;cursor:pointer;font-family:inherit;text-decoration:none;white-space:nowrap}
@@ -98,6 +98,7 @@ textarea.copybox{min-height:120px;margin-top:8px}
 <header>
   <b>🤖 AI 크루 결과 올리기</b>
   <span class="who" id="who"></span>
+  <a href="ai-manual.html" id="go-manual">매뉴얼 보기</a>
   <a href="upload.html" id="go-upload" hidden>리포트 올리기</a>
   <button type="button" id="logout-button" aria-label="로그아웃" hidden>로그아웃</button>
 </header>

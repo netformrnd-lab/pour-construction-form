@@ -402,7 +402,8 @@ const pct=(a,b)=>b>0?Math.round((a-b)/b*100):null;
 const chName=(id)=>(C.channelOf(id)||{label:id}).label;
 
 /* ── 화면 ── */
-const TABS=[['home','요약'],['team','AI 팀'],['voc','고객의 소리'],['stock','재고·발주'],['ads','키워드'],['sales','판매'],['log','업로드 기록'],['acct','계정'],['set','설정']];
+const TABS=[['home','요약'],['team','AI 팀'],['adops','광고 운영'],['voc','고객의 소리'],['stock','재고·발주'],['ads','키워드'],['sales','판매'],['log','업로드 기록'],['acct','계정'],['set','설정']];
+const TAB_LINK={adops:'ads.html'};   // 다른 화면으로 가는 탭 (2026-10-15 광고 운영 = Aside 광고 일일 보고서 · 읽기 전용)
 function setMsg(c,t){S.msg=c?{c,t}:null;}
 function render(){
   if(!S.user)return;
@@ -415,7 +416,7 @@ function render(){
   renderSheet();
 }
 document.addEventListener('click',(e)=>{const o=e.target.closest('#obs-hub');if(o){if(obsHubDone()&&!confirm('허브에 이미 붙였습니다. 한 번 더 붙일까요? (같은 칸이 두 번 생깁니다)')){e.preventDefault();return;}try{localStorage.setItem('mkt_obsidian_hub','1');}catch(err){console.error(err);}setTimeout(render,500);}});
-document.addEventListener('click',(e)=>{const t=e.target.closest('[data-tab]');if(t){S.tab=t.dataset.tab;render();window.scrollTo(0,0);}});
+document.addEventListener('click',(e)=>{const t=e.target.closest('[data-tab]');if(t){if(TAB_LINK[t.dataset.tab]){location.href=TAB_LINK[t.dataset.tab];return;}S.tab=t.dataset.tab;render();window.scrollTo(0,0);}});
 
 function vHome(){
   const st=stockRows(), need=st.filter(r=>r.reorderNeeded), adv=C.keywordAdvice(S.ads,S.settings);
@@ -604,7 +605,7 @@ function vTeam(){
   <div class="card"><h3>🕘 오늘 ${esc(mdw(now.date))} <span class="sub">${today.length}건 · 지금 ${esc(now.time)}</span></h3>
     ${today.length?`<div class="rows">${today.map(r=>`<div class="row"><span class="t">${esc(r.t)}</span><div class="tx"><b>${esc(r.name)}</b> ${esc(r.what)}</div>${runState(r,now)}</div>`).join('')}</div>`:'<div class="empty">오늘은 정해진 일이 없습니다 (주말)</div>'}</div>
   ${autoCard(now)}
-  <div class="card"><h3>👥 팀원 ${shown.length} <span class="sub">가동 ${live} · 누르면 자세히 · 설정 순서는 볼트 '00 팀 운영 설계' 4절 · 크루 보드 결과는 <a href="crew.html">AI 크루 결과 올리기 ›</a></span></h3><div class="team-grid">
+  <div class="card"><h3>👥 팀원 ${shown.length} <span class="sub">가동 ${live} · 누르면 자세히 · 설정 순서는 볼트 '00 팀 운영 설계' 4절 · 크루 보드 결과는 <a href="crew.html">AI 크루 결과 올리기 ›</a> · <a href="ai-manual.html">AI 팀 매뉴얼 ›</a></span></h3><div class="team-grid">
     ${shown.map(m=>{const nx=C.nextRun(m,now), t=S.team[m.id]||{}, la=S.asks.filter(a=>a.mate===m.id).sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')))[0];
       return `<details class="tm"><summary><div class="h"><span class="sub">${esc(m.no)}</span><b>${esc(m.name)}</b><span class="sub">${esc(m.role)}</span><span class="sp" style="flex:1"></span>${stepPill(m)}</div>
         <div class="l">다음: ${nx?`${esc(nx.date===now.date?'오늘':mdw(nx.date))} ${esc(nx.t)} · ${esc(nx.what)}`:'요청할 때'}</div></summary>

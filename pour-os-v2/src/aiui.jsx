@@ -2,7 +2,7 @@
 //   "AI팀원이 실행한 것을 사람팀원에게 승인요청하고, 사람팀원은 상급자 사람에게 승인요청" · "AI 팀원을 각 사람 담당자가 관리하면서 고도화"
 //   AiAskSheet = 승인 한 장(번호 고르기 · 위로 · AI 에게 다시 · 돌려보내기 · 안 함 · 대화 · 기록)
 //   AiTeamBody = AI 팀원 목록(크루 = 브랜드+고객별 · 기본 AI 팀원 = 원형) — 팀 앱 더보기 › AI 팀원 · 관리자 탭 'AI 팀원'
-//   AiMateSheet = AI 한 장(담당 · 승인 길 · 성과 · 고칠 점 → 확정 규칙 · 보드 = 지표·행동 A~E·최근 결과)
+//   AiMateSheet = AI 한 장(담당 · 승인 길 · 성과 · 고칠 점 → 확정 규칙 · 보드 = 지표·행동 A~E(가을·겨울 F = 광고 일일 보고서)·최근 결과)
 //   BossCard · BossPanel = 상급자(관리자 › 사람)
 //   AiSetupSheet = 내 PC Aside 세팅(2026-10-15 담당마다 자기 PC · 시각 · 로그인해 둘 곳 · [Aside 글 복사] · 고칠 것 확인) — '확인할 것' 세팅·안 돎 줄에서 열림
 // 계산 aiask.js · 정의 marketing-hub/crew.js · 쓰기 core.jsx(useActs aiPass·aiBack·aiRet·aiDrop·mateOwnerSet·mateRule·setBoss·setBosses)
@@ -16,6 +16,7 @@ import { CREWS, GONE, crewOf, mateOf, boardOf, brandL, servesL, mateBrands, owne
 import { ASK_STATE_L, canAct, canBack, canRet, isProxy, pickOk, planPass, chainOf, mateOwner, mateStats, repeatNotes, itemLine, bossOf, bossRec, bossLoop, asidePlanOf, ranOn, missedOn } from "./aiask.js";
 
 export const HUB_CREW_URL = "../marketing-hub/crew.html";   // Aside 결과 올리기 (허브)
+export const HUB_MANUAL_URL = "../marketing-hub/ai-manual.html", HUB_ADS_URL = "../marketing-hub/ads.html";   // AI 팀 매뉴얼 · 광고 운영 (2026-10-15 · 읽기 전용 · Aside 가 씀)
 const aiNoteId = (id) => "ai:" + id;
 const tone = { wait: C.navy, back: C.sub, ok: C.green, no: C.mute };
 const Pill = ({ children, color = C.navy, bg = C.soft }) => <span style={{ display: "inline-block", fontSize: 12, fontWeight: 800, padding: "3px 8px", borderRadius: 6, color, background: bg, whiteSpace: "nowrap" }}>{children}</span>;
@@ -179,7 +180,7 @@ export function AiTeamBody({ D, cu, A, open, admin }) {
       <div style={{ flex: "1 1 220px", maxWidth: 320 }}><Seg items={[["mine", `내가 맡은 AI ${mineIds.length}`], ["all", "모두"]]} value={scope} onChange={setScope} /></div>
       {master && <TBtn onClick={() => setBulk(!bulk)} aria-pressed={bulk}>{bulk ? "담당 정하기 끝" : "담당 한꺼번에 정하기"}</TBtn>}
     </div>
-    <p style={{ fontSize: 12.5, color: C.sub, lineHeight: 1.6, margin: "8px 2px 0" }}>AI가 결과를 올리면 담당 → 리드 → 본부장 순서로 승인해요 · 실제 반영은 늘 사람이 해요{myTurn ? ` · 지금 내 차례 ${myTurn}건` : ""}</p>
+    <p style={{ fontSize: 12.5, color: C.sub, lineHeight: 1.6, margin: "8px 2px 0" }}>AI가 결과를 올리면 담당 → 리드 → 본부장 순서로 승인해요 · 실제 반영은 늘 사람이 해요{myTurn ? ` · 지금 내 차례 ${myTurn}건` : ""} · <a className="v2-lblink" href={HUB_MANUAL_URL} target="_blank" rel="noopener">매뉴얼 보기 ›</a> · <a className="v2-lblink" href={HUB_ADS_URL} target="_blank" rel="noopener">광고 운영 ›</a></p>
     {(myG || (master && noneG)) && <Card style={{ marginTop: 10 }}>
       {myG && <Row title={`내 PC Aside · ${myG.runs.map((r) => `${(mateOf(r.board.mate) || {}).name} ${r.t}`).join(" · ")}`} sub="세팅 · 지금 돌리기 · 고칠 것 확인 — 담당마다 자기 PC 에서 동시에 돌아요" onClick={() => open({ type: "aiSetup" })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last={!(master && noneG)} />}
       {master && noneG && <Row title={`담당 미정 크루 ${noneG.runs.length}명 · 관리자 PC 에서`} sub={`${noneG.runs.map((r) => (mateOf(r.board.mate) || {}).name).join(" · ")} · 담당을 정하면 그 사람 PC 로 옮겨가요`} onClick={() => open({ type: "aiSetup", owner: "" })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last />}
@@ -222,7 +223,7 @@ function BoardView({ D, b, open, asks }) {
         <div style={{ height: 5, borderRadius: 3, background: "#E8EBF2", margin: "6px 0 4px", overflow: "hidden" }}><div style={{ width: `${Math.round((pct || 0) * 100)}%`, height: "100%", background: ok ? C.green : C.navy }} /></div>
         <div style={{ fontSize: 12, color: C.mute }}>기준 {fmtMetric(m, m.base)} → 목표 {fmtMetric(m, m.target)}{m.dir === "down" ? " (줄이기)" : ""} · {x && x.date ? `${md(x.date)} 값` : "아직 값 없음"} · {m.src}</div>
       </div>; })}</Card>
-    <Head>할 일 A~E</Head>
+    <Head>할 일 {b.actions[0].c}~{b.actions[b.actions.length - 1].c}</Head>
     <Card>{b.actions.map((a, i) => { const last = asks.filter((x) => x.board === b.id && x.act === a.c).sort((p, q) => String(q.createdAt || "").localeCompare(String(p.createdAt || "")))[0];
       return <div key={a.c} style={{ borderBottom: i === b.actions.length - 1 ? "none" : `1px solid ${C.line}` }}>
         <Row title={`${a.c} · ${a.t}`} tag={a.admin ? "관리자 자리" : last ? ASK_STATE_L[last.state] : null} sub={[a.when, a.k ? "지표 " + a.k : ""].filter(Boolean).join(" · ")} sub2={last ? `최근 ${last.run ? md(last.run) : ""} · ${last.title}` : null}
@@ -232,6 +233,7 @@ function BoardView({ D, b, open, asks }) {
             <div><b style={{ color: C.ink }}>상황</b> · {a.w}</div>
             <ol style={{ margin: "6px 0 0", paddingLeft: 18 }}>{a.s.map((s, k) => <li key={k} style={{ marginTop: 2 }}>{s}</li>)}</ol>
             {a.cols.length > 0 && <div style={{ marginTop: 6 }}><b style={{ color: C.ink }}>올리는 표</b> · {a.cols.join(" · ")}</div>}
+            {a.report === "ads" && <div style={{ marginTop: 6 }}>매일 08:30 Aside 광고 일일 보고서 · <a className="v2-lblink" href={HUB_ADS_URL} target="_blank" rel="noopener">광고 운영 보고서 ›</a></div>}
             {last && <div style={{ marginTop: 8 }}><TBtn onClick={() => open({ type: "aiask", id: last.id })}>최근 결과 보기 ›</TBtn></div>}</>}
         </div>}
       </div>; })}</Card>
@@ -261,7 +263,7 @@ export function AiMateSheet({ D, cu, A, open, onBack, onClose, id }) {
     <div style={{ fontSize: 13.5, color: C.sub, lineHeight: 1.7, marginTop: 12 }}>
       {m.kpi && <div>KPI · <b style={{ color: C.ink }}>{m.kpi}</b></div>}
       {m.routine && <div>{m.routine}</div>}
-      {b && pl && <div>Aside 루틴 · 평일 {pl.t} · {PC_L(D, pl.owner, cu)} · 보드 지표·할 일 A~E → 이 승인으로 · <a className="v2-lblink" href={`${HUB_CREW_URL}#${b.id}`} target="_blank" rel="noopener">허브 AI 크루 결과 올리기 ›</a></div>}
+      {b && pl && <div>Aside 루틴 · 평일 {pl.t} · {PC_L(D, pl.owner, cu)} · 보드 지표·할 일 → 이 승인으로 · <a className="v2-lblink" href={`${HUB_CREW_URL}#${b.id}`} target="_blank" rel="noopener">허브 AI 크루 결과 올리기 ›</a></div>}
       {GONE[id] && <div style={{ color: C.text }}>2026-10-14부터 쉬어요 · 이 일은 B2C 크루 {(mateOf(GONE[id]) || {}).name} 몫이에요 · 이미 올라온 결과는 그대로 승인·안 함</div>}
       {c && <div>일하는 곳 · {servesL(c)}</div>}
       {m.from && m.from.length > 0 && <div>원형 · {m.from.map((f) => (mateOf(f) || {}).name || f).join(" · ")} <span style={{ color: C.mute }}>(파생 · 짐작)</span></div>}

@@ -14,6 +14,7 @@
 - 쓰기는 오직 `pour-os/v2/**` 와 Storage `task-attachments/v2/**`. v1 문서(`pour-os/state-*`, `pour-os/ak-notes/c`)는 **읽기만**.
 - 기기 저장 이름도 `pour-os2-…` 로 따로 (v1 `pour-os-…` 와 안 겹침).
 - 보안규칙 `pour-os/{doc=**}` · `task-attachments/**` 안이라 **규칙 변경 없음**.
+- **광고 일일 보고서(`pour-os/v2/adreports/{YYYY-MM-DD}`)·AI 매뉴얼(`pour-os/v2/aimanuals/{id}`)은 Aside 전용 쓰기 경로** — 업무OS·허브·Claude 는 읽기만(쓰지·고치지·지우지 않음) · 보기 = 허브 `marketing-hub/ads.html`·`ai-manual.html` (더보기 › AI 팀원 아래 · AI 팀원 화면 '매뉴얼 보기 ›' · 2026-10-15)
 
 ## 저장 구조
 - `pour-os/v2` — 복사 정보 {seededAt, counts, reseededAt, reseededBy}
@@ -380,7 +381,7 @@
 - 결정 업무(task.decision): 방법이 안 정해진 일 → 하위 업무를 '안'(option, optInfo = 단가·MOQ·납기 한 줄)으로 비교 → [이 안으로 정하기](이유 선택) → task.decided {optionId,title,reason,by,at} 기록, 안 고른 안은 보류(optDropped, 지우지 않음), 결정 업무는 끝냄 → 다음 단계 담당에게 '이제 내 차례'. 5초 되돌리기
 - 업무 보기: 순서 칸(앞 일 · 남긴 말 · 자료 n ›, 다음 일, [+ 다음 일 맡기기] [앞 일 바꾸기]), 앞 일 늦음 띠, 끝낼 때 '다음 사람에게 한마디'(notes.handoff)
 - 고정업무 보기: 담당·마스터는 '반복 · 시간 바꾸기'(매일 / 매주 요일 여러 개 / 매월 1~31일 · 말일(평일 기준) + 기본 시간). 말일(평일) = monthEnd:true(monthDay 31 유지) → 그 달 마지막 평일(주말·공휴일이면 앞 평일, model.monthEndWorkday). 사람마다 정한 시간(timeBy)은 그대로. 기록에 이전 값
-- 더보기: 내가 맡긴 일 · 내 할 일 모두 · 내 고정업무 · 내가 쓴 댓글 · 읽은 알림(폰·PC 같이) · 시작 화면(오늘/달력) · (마스터) 관리자 화면 › · Firebase 사용량 ›(../firebase-usage.html · 2026-10-11 · scripts/usage/README.md)
+- 더보기: 내가 맡긴 일 · 내 할 일 모두 · 내 고정업무 · 내가 쓴 댓글 · 읽은 알림(폰·PC 같이) · 시작 화면(오늘/달력) · (마스터) 관리자 화면 › · Firebase 사용량 ›(../firebase-usage.html · 2026-10-11 · scripts/usage/README.md) · AI 팀원 › · 광고 운영 ›(../marketing-hub/ads.html · 새 탭) · AI 팀 매뉴얼 ›(../marketing-hub/ai-manual.html · 새 탭) (2026-10-15)
 
 ## 차례 계산 (turn.js, 저장 안 함)
 - 앞 일 = ① deps(v1 과 같은 칸, [] 는 '앞 일 없음') ② 신제품 순서표 LAUNCH_AFTER — 건너뛴 항목(project.skipItems)·선택 항목만 거슬러 올라가고, 그 밖에 안 불러온 항목(30일 넘게 전에 끝남)은 끝난 것으로 ③ 담당 다른 하위 업무. 끝난 앞 일 = done 또는 review

@@ -11,6 +11,8 @@
   · 매뉴얼 = pour-os/v2/aimanuals/{id} {id, title, md, src, at} (ad-ops-team · ad-ops-playbook …) — Aside 전용 쓰기 · 이 화면은 읽기만(담당도 못 고침)
   · 로그인 없음 (공개 규칙 pour-os/{doc=**} · 규칙 변경 없음) · 쓰기 없음 · 사람 이름만 읽음(번호·PIN 칸은 안 씀)
   · 주소 #<매뉴얼 id> = 그 매뉴얼 · #<팀원 id> = 그 카드로
+  · 출처 배지 (2026-10-15): 맨 위 '광고 운영 역할' = 제안서 원래 역할 [제안서] (pour-os/v2/proposal/dailygrowth-202610 roles 가 오면 그것) vs 크루 광고 분담 [Aside 추가] (제안서에 없음)
+      매뉴얼 글 안 [제안서 pXX] · [김송희 관리방안] · [Aside 추가] = 배지 · 문서마다 태그 개수
 -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -66,7 +68,13 @@ th{font-size:11.5px;color:var(--text-md);background:#F9FAFB;white-space:nowrap}
 .empty{padding:22px 16px;text-align:center;color:var(--text-sm)}
 .msg{padding:12px 16px;border-radius:var(--r-sm);margin:0 0 14px;font-weight:700;background:var(--red-l);color:var(--red)}
 .foot{font-size:12px;color:var(--text-sm);text-align:center;margin:18px 0 6px;line-height:1.6}
-@media (max-width:900px){.mates{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.src{display:inline-block;font-size:11px;font-weight:800;border-radius:6px;padding:1px 7px;white-space:nowrap;vertical-align:1px;margin:0 2px;line-height:1.6}
+.src.s-p{background:#E0E7FF;color:#3730A3}.src.s-k{background:var(--green-l);color:#047857}.src.s-a{background:var(--gold-l);color:#B45309}.src.s-x{background:#F3F4F6;color:var(--text-md)}
+.roles{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.rbox{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;min-width:0;box-shadow:var(--shadow)}
+.rbox h3{font-size:14px;margin:0 0 6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.rbox .rl{font-size:13px;line-height:1.6;padding:5px 0;border-top:1px solid var(--border);word-break:keep-all}.rbox .rl:first-of-type{border-top:0}.rbox .rl b{color:var(--navy);margin-right:6px}
+@media (max-width:900px){.mates{grid-template-columns:repeat(2,minmax(0,1fr))}.roles{grid-template-columns:1fr}}
 @media (max-width:700px){main{padding:12px}.mates{grid-template-columns:1fr}.md{padding:4px 12px 14px;font-size:14px}.doc-h{padding:12px}
   .md table.rt thead{display:none}.md table.rt,.md table.rt tbody,.md table.rt tr,.md table.rt td{display:block;width:100%}
   .md table.rt tr{border:1px solid var(--border);border-radius:10px;padding:6px 10px;margin-bottom:8px;background:#fff}
@@ -96,10 +104,13 @@ const C=window.MktCore, $=(s)=>document.querySelector(s), V2=()=>db.collection('
 const esc=(s)=>String(s==null?'':s).replace(/[&<>"]/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const atL=(t)=>{const m=t?new Date(t).getTime():0;if(!m)return '';const d=new Date(m+9*3600e3);return d.toISOString().slice(0,16).replace('T',' ');};
 const MAN_ORDER=['ad-ops-team','ad-ops-playbook'];   // 광고 AI팀 역할이 먼저
-const S={mates:{},users:{},mans:[],cur:'',err:[],loaded:false};
+const S={mates:{},users:{},mans:[],prop:null,cur:'',err:[],loaded:false};
+const srcB=(src,page)=>`<span class="src s-${A.srcKind(src)}">${esc(A.srcText(src,page))}</span>`;
 
 async function load(){
-  const [m,u]=await Promise.allSettled([V2().collection('aimates').get(),V2().collection('aimanuals').get()]);
+  const [m,u,pr]=await Promise.allSettled([V2().collection('aimates').get(),V2().collection('aimanuals').get(),V2().collection('proposal').doc(A.PROPOSAL_ID).get()]);
+  if(pr.status==='fulfilled'){console.log(`[proposal/${A.PROPOSAL_ID}] ${pr.value.exists?'있음':'없음'}`);S.prop=A.parseProposal(pr.value.exists?pr.value.data():{});}
+  else{console.error(`[proposal/${A.PROPOSAL_ID}] 로드 실패:`,pr.reason);S.prop=A.parseProposal({});}
   if(m.status==='fulfilled'){m.value.docs.forEach(d=>{S.mates[d.id]=d.data();});console.log(`[aimates] ${m.value.size}건 로드`);}
   else{console.error('[aimates] 로드 실패:',m.reason);S.err.push('담당을 못 불러왔어요');}
   if(u.status==='fulfilled'){S.mans=u.value.docs.map(d=>({id:d.id,...d.data()}));
@@ -136,15 +147,23 @@ function mateCard(m,crew,plan){
   const b=m.board?K.boardOf(m.board):null, ad=A.AD_ROLES[m.id], o=ownersL(m.id), runs=runL(m,plan);
   const acts=b?b.actions:[];
   return `<div class="mate" id="${esc(m.id)}" style="--c:${esc(m.color||'#9CA3AF')}">
-    <div class="h"><b>${esc(m.name)}</b><span class="r">${esc(m.role)}</span>${ad?`<span class="pill ad">광고 · ${esc(ad.ad)}</span>`:''}</div>
+    <div class="h"><b>${esc(m.name)}</b><span class="r">${esc(m.role)}</span>${ad?`<span class="pill ad">광고 · ${esc(ad.ad)}</span>${srcB(A.SRC.A)}`:''}</div>
     <dl class="kv"><dt>KPI</dt><dd>${esc(m.kpi||'')}</dd>
       <dt>담당</dt><dd class="${o.none?'none':''}">${esc(o.t)}</dd>
       ${runs.length?`<dt>루틴</dt><dd>${runs.map(esc).join('<br>')}</dd>`:''}
       ${b?`<dt>보드</dt><dd>${esc(K.brandL(b.brand))} ${esc(b.title)}</dd>`:''}</dl>
-    ${ad?`<div class="adbox"><b>광고 업무</b> ${esc(ad.does)}<br><b>실행</b> ${esc(ad.exec)}</div>`:''}
-    ${acts.length?`<details class="acts"><summary>할 일 ${acts.map(a=>a.c).join('·')} (${acts.length})</summary><ol>${acts.map(a=>`<li><b>${esc(a.c)}</b>${esc(a.t)}${a.admin?' <span class="pill">관리자 자리</span>':''}${a.report?' <span class="pill ad">광고 보고서</span>':''}<span class="w">${esc(a.when)}${a.k?' · '+esc(a.k):''}</span></li>`).join('')}</ol></details>`
+    ${ad?`<div class="adbox"><b>광고 업무</b> ${srcB(A.SRC.A)} ${esc(ad.does)}<br><b>실행</b> ${esc(ad.exec)}</div>`:''}
+    ${acts.length?`<details class="acts"><summary>할 일 ${acts.map(a=>a.c).join('·')} (${acts.length})</summary><ol>${acts.map(a=>`<li><b>${esc(a.c)}</b>${esc(a.t)}${a.admin?' <span class="pill">관리자 자리</span>':''}${a.report?` <span class="pill ad">광고 보고서</span>${srcB(A.SRC.A)}`:''}<span class="w">${esc(a.when)}${a.k?' · '+esc(a.k):''}</span></li>`).join('')}</ol></details>`
       :m.first?`<div class="first"><b>첫 할 일 (초안)</b> · ${esc(m.first)}</div>`:''}
   </div>`;
+}
+function vRoles(){
+  const P=S.prop||A.parseProposal({});
+  const crew=K.CREWS.find(c=>c.id==='b2c').members.filter(m=>A.AD_ROLES[m.id]);
+  return `<h2 class="sec" id="roles">광고 운영 역할 <span class="sub">누가 무엇을 · 출처</span></h2>
+    <p class="lead">제안서에 적힌 역할과, Aside 가 크루에 나눠 붙인 광고 분담을 따로 보여요 · 크루 분담은 제안서에 없는 <b>Aside 추가</b>예요</p>
+    <div class="roles"><div class="rbox"><h3>제안서의 원래 역할 ${srcB(A.SRC.P)}</h3>${P.roles.map(r=>`<div class="rl"><b>${esc(r.who||'')}</b>${esc(r.does||'')} ${srcB(r.src||A.SRC.P,r.page)}</div>`).join('')}</div>
+    <div class="rbox"><h3>크루 광고 분담 ${srcB(A.SRC.A)} <span class="sub">제안서에 없음</span></h3>${crew.map(m=>{const ad=A.AD_ROLES[m.id];return `<div class="rl"><b>${esc(m.name)}</b>${esc(ad.ad)} · ${esc(ad.when)} <span class="sub">· 실행 ${esc(ad.exec)}</span></div>`;}).join('')}</div></div>`;
 }
 function vCrews(){
   const plan=K.asidePlan(b=>act(K.ownerFor(S.mates[b.mate],b.brand)));
@@ -156,16 +175,18 @@ function vMans(){
   const head=`<h2 class="sec" id="manuals">매뉴얼 <span class="pill ro">Aside가 관리하는 문서 · 읽기 전용</span></h2>
     <p class="lead">Aside 가 직접 쓰고 고쳐요 · 고칠 점은 업무OS 승인 한 장의 [AI에게 다시] 또는 확정 규칙으로 알려 주세요</p>`;
   if(!S.mans.length)return head+'<div class="card"><div class="empty">아직 올라온 매뉴얼이 없어요</div></div>';
-  const d=S.mans.find(x=>x.id===S.cur)||S.mans[0];
+  const d=S.mans.find(x=>x.id===S.cur)||S.mans[0], tc=A.countSrcTags(d.md), tn=tc.p+tc.k+tc.a;
+  const tagL=tn?`출처 태그 ${srcB(A.SRC.P)} ${tc.p} · ${srcB(A.SRC.K)} ${tc.k} · ${srcB(A.SRC.A)} ${tc.a}`:`출처 태그 아직 없음 — Aside 가 문장마다 [제안서 pXX] · [김송희 관리방안] · [Aside 추가]를 붙이면 배지로 보여요`;
   return head+`<div class="mtabs" id="mtabs" role="tablist">${S.mans.map(x=>`<button type="button" role="tab" data-m="${esc(x.id)}" class="${x.id===d.id?'on':''}" aria-selected="${x.id===d.id}">${esc(x.title||x.id)}</button>`).join('')}</div>
     <article class="card" id="manual"><div class="doc-h"><b>${esc(d.title||d.id)}</b><span class="sub">${d.src?esc(d.src)+' · ':''}${d.at?esc(atL(d.at))+' 고침':''}</span></div>
-      <div class="md">${C.mdLite(d.md||'')}</div></article>`;
+      <div class="doc-h" style="padding-top:8px;padding-bottom:8px;font-size:12.5px;color:var(--text-md)">${tagL}</div>
+      <div class="md">${A.srcTags(C.mdLite(d.md||''))}</div></article>`;
 }
 function render(){
   if(!S.loaded)return;
   $('#app').innerHTML=(S.err.length?`<div class="msg" role="alert">${esc(S.err.join(' · '))} · 새로고침해 주세요</div>`:'')
     +`<p class="lead" style="margin-top:4px">크루 팀원마다 무엇을 맡고(KPI · 할 일) 누가 승인하는지(담당) · 언제 도는지(루틴) — 담당은 업무OS AI 팀원에서 정해요 · 광고 보고서는 <a href="ads.html">광고 운영 ›</a></p>`
-    +vCrews()+vMans()+'<p class="foot">이 화면은 읽기만 해요 · 크루 정의 = crew.js · 매뉴얼 = Aside (pour-os/v2/aimanuals)</p>';
+    +vRoles()+vCrews()+vMans()+'<p class="foot">이 화면은 읽기만 해요 · 크루 정의 = crew.js · 매뉴얼 = Aside (pour-os/v2/aimanuals)</p>';
 }
 document.addEventListener('click',(e)=>{const t=e.target.closest('#mtabs button');if(t){S.cur=t.dataset.m;history.replaceState(null,'','#'+S.cur);render();const a=$('#manuals');if(a)a.scrollIntoView({block:'start'});}});
 load().catch(e=>{console.error('[ai-manual] 로드 실패:',e);S.err.push('불러오지 못했어요');S.loaded=true;render();});

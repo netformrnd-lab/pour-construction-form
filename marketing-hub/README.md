@@ -119,9 +119,15 @@
   - Aside 가 매일 08:30 메타·쿠팡·네이버 광고 일일 보고서 → `pour-os/v2/adreports/{YYYY-MM-DD}` {date, title, md, summary, offs(JSON 글), longtail(JSON 글 · 없을 수 있음), by:'aside', at} — **Aside 전용 쓰기**
   - 위 카드: 최신 요약 · 이번 주 끈 것 n개 · 새 롱테일 n개(칸 없으면 숨김) · [보고서] 날짜 최신순 → md(표) · 주소 `#YYYY-MM-DD` · [끈 것 기록] offs 합친 표(날짜·매체·캠페인·대상·근거·조치) + 주간·월간 개수 · `#off`
   - 운영 기준(데일리그로스 2026.10.15): 메타 캠페인 3개 고정(신규 60 · 리타겟 10 · 테스트 30) · 금요일 판정(증액 350%+ 2주 +20% · 유지 200~350% · 종료 180% 미만 2주 · 구매 10건 전 보류) · 쿠팡 롱테일 400~500% · 수익률 300% · 입찰 100원부터
-  - 계산 `adops.js`(offs·longtail 읽기 · 주간·월간 · 광고 AI팀 몫 AD_ROLES) · 시험 `node adops.test.mjs`
+  - **맨 위 '제안서 검증'** (2026-10-15 사장님 "진짜 목적 = 데일리그로스 「넷폼_메타운영_제안서_202610」이 정답인지 실제 운영 데이터로 검증"): `pour-os/v2/proposal/dailygrowth-202610` {title, at, by, json(baseline · structure · hypotheses H1~H6 · gaps_YYYYMMDD · source_rule)} — Aside 매일 갱신 · **Aside 전용 쓰기**
+    - 기준선 vs 실제: 메타 ROAS(1~9월 205% · 9월 286% · 12월 목표 350%) · 자사몰 MER(310% · 9월 415%) · 합산 MER — 실제 = 최신 보고서 `metrics`(JSON 글 {meta_roas, mall_mer, total_mer}) → 문서 `actual` → 없으면 보고서 글에서 읽음(표시함)
+    - 가설 카드(확인 · 어디서 · 통과 · 미달이면 · 상태 미시작/진행/통과/미달/보류 · 제안서 쪽수) · 현재 세팅과 제안서 구조 차이(gaps) · 운영 규칙 출처별
+    - 출처 배지 3종 `[제안서 pXX]` · `[김송희 관리방안]` · `[Aside 추가]` — 보고서·매뉴얼 글 안 대괄호 태그도 배지로 · 문서에 `rules`·`roles`·`pages{structure,judge,live,coupang}`가 오면 기본값 대신 그것
+  - [메타 판정] `#judge`: 보고서 `judges`(JSON 글 [{date, campaign, target, roas7, roas14, purchases, verdict, reason}]) 또는 본문 md 의 '판정' 칸 표 → 증액/유지/종료/보류 · 근거 · 제안서 기준과 일치/다름(180~200% = 제안서에 없는 구간)
+  - 계산 `adops.js`(offs·longtail 읽기 · 주간·월간 · 광고 AI팀 몫 AD_ROLES · 제안서 parseProposal · 실제 값 actualOf · 판정 judgeLog) · 시험 `node adops.test.mjs`
 - **`ai-manual.html` — AI 팀 매뉴얼** (2026-10-15 · 로그인 없음 · 읽기 전용 · crew.html·업무OS AI 팀원에서 '매뉴얼 보기')
   - crew.js CREWS 팀원 카드: 이름·역할·KPI · 담당(aimates owners → users 이름 · 없으면 '미정') · 루틴 시간(아침 루틴 · 보드 Aside = asidePlan · 광고) · 광고 몫(가을 쿠팡·네이버 검색광고 · 겨울 메타 판정 · 여름 메타 소재 · 하늘 오퍼 · 우주 리타겟팅 · 봄 오늘의집) · 보드 할 일
+  - 맨 위 '광고 운영 역할': 제안서의 원래 역할 [제안서](퍼포먼스 마케터 = 일일 운영·금요일 판정 · 디자인 마케터·외주 = 소재 · 본부장 = 예산·목표 · 쿠팡 = 본부장님 · 네이버 = 링크프라이스) vs 크루 광고 분담 [Aside 추가](제안서에 없음)
   - 아래 `pour-os/v2/aimanuals/{id}` {id, title, md, src, at} 목록·md — **Aside 가 관리하는 문서**(담당도 화면에서 못 고침)
   - 보드 할 일 F(가을 `gh-traffic` · 겨울 `gh-conv` · `report:'ads'`) = 08:30 광고 루틴 몫 → 09:00 크루 지시문은 [상태] F 한 줄만 · 규칙 안 자동 OFF 만 Aside 직접(사장님 승인) · 구조·예산 변경은 사람
 - **`crew.html` — Aside: AI 크루 결과 올리기** (그로홈·POUR스토어 B2C 크루 6명 보드 · 업로더·관리자 로그인)

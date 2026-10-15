@@ -14,7 +14,7 @@
 - 쓰기는 오직 `pour-os/v2/**` 와 Storage `task-attachments/v2/**`. v1 문서(`pour-os/state-*`, `pour-os/ak-notes/c`)는 **읽기만**.
 - 기기 저장 이름도 `pour-os2-…` 로 따로 (v1 `pour-os-…` 와 안 겹침).
 - 보안규칙 `pour-os/{doc=**}` · `task-attachments/**` 안이라 **규칙 변경 없음**.
-- **광고 일일 보고서(`pour-os/v2/adreports/{YYYY-MM-DD}`)·AI 매뉴얼(`pour-os/v2/aimanuals/{id}`)은 Aside 전용 쓰기 경로** — 업무OS·허브·Claude 는 읽기만(쓰지·고치지·지우지 않음) · 보기 = 허브 `marketing-hub/ads.html`·`ai-manual.html` (더보기 › AI 팀원 아래 · AI 팀원 화면 '매뉴얼 보기 ›' · 2026-10-15)
+- **광고 일일 보고서(`pour-os/v2/adreports/{YYYY-MM-DD}`)·AI 매뉴얼(`pour-os/v2/aimanuals/{id}`)·제안서 검증(`pour-os/v2/proposal/dailygrowth-202610`)은 Aside 전용 쓰기 경로** — 업무OS·허브·Claude 는 읽기만(쓰지·고치지·지우지 않음) · 보기 = 허브 `marketing-hub/ads.html`·`ai-manual.html` (더보기 › AI 팀원 아래 · AI 팀원 화면 '매뉴얼 보기 ›' · 2026-10-15)
 
 ## 저장 구조
 - `pour-os/v2` — 복사 정보 {seededAt, counts, reseededAt, reseededBy}

@@ -38,4 +38,32 @@ eq('광고 몫 = B2C 크루 6명 모두', K.CREWS.find((c) => c.id === 'b2c').me
 // 가을·겨울 보드의 광고 할 일 F = 08:30 광고 루틴 (보고서 화면 링크)
 eq('보드 F = 광고 일일 보고서', ['gh-traffic', 'gh-conv'].map((id) => { const a = K.actOf(id, 'F'); return [a.when, a.report]; }), [['매일 08:30', 'ads'], ['매일 08:30 · 금 16:00', 'ads']]);
 
+// 제안서 검증 — 실제 문서 모양 (2026-10-15 · json 글 하나)
+const pdoc = { title: '데일리그로스 메타 운영 제안서(2026.10.15) 검증', at: '2026-10-15T09:20:05.263Z', by: 'aside', json: JSON.stringify({ baseline: { meta_roas_jan_sep: 205, meta_roas_sep: 286, meta_roas_target_dec: 350, mall_mer_jan_sep: 310, mall_mer_sep: 415 },
+  structure: { campaigns: '① 신규 60', judge: '금요일', live: '2026-11-02' }, hypotheses: [{ id: 'H1', area: '구조', what: 'x', where: 'y', pass: 'z', fail: 'w', page: 23, status: '미시작' }, { id: 'H2', status: '진행 중' }, { id: 'H3', status: '통과' }],
+  gaps_20261015: ['메타 캠페인 3단 구조 아님', '구매자 제외 타겟 없음'], source_rule: '[제안서 pXX] / [김송희 관리방안] / [Aside 추가]' }) };
+const P = A.parseProposal(pdoc);
+eq('제안서: 기준선 · 가설 · 차이 · 차이 날짜', [P.baseline.meta_roas_sep, P.hypotheses.map((h) => h.id), P.gaps, P.gapsAt, P.structure.live], [286, ['H1', 'H2', 'H3'], ['메타 캠페인 3단 구조 아님', '구매자 제외 타겟 없음'], '20261015', '2026-11-02']);
+eq('제안서: 역할·규칙 기본값 · 출처', [P.roles.length, P.rules.map((r) => r.src)], [4, ['제안서', '제안서', '김송희 관리방안', 'Aside 추가']]);
+eq('제안서: 칸이 문서 바로 아래 + 쪽수', A.parseProposal({ baseline: '{"meta_roas_sep":290}', pages: { judge: 14 }, hypotheses: [] }).rules.find((r) => r.k === 'judge').page + '|' + A.parseProposal({ baseline: '{"meta_roas_sep":290}' }).baseline.meta_roas_sep, '14|290');
+eq('가설 상태 · 개수', [A.hypStatus('진행 중'), A.hypStatus(''), A.hypCount(P.hypotheses)], ['진행', '미시작', { 미시작: 1, 진행: 1, 통과: 1, 미달: 0, 보류: 0 }]);
+eq('출처 배지', [A.srcTags('a [제안서 p23] b [김송희 관리방안] [Aside 추가] [링크]'), A.srcText('제안서', 23), A.srcText('제안서', null), A.countSrcTags('[제안서 p3][제안서][Aside 추가]')],
+  ['a <span class="src s-p">제안서 p23</span> b <span class="src s-k">김송희 관리방안</span> <span class="src s-a">Aside 추가</span> [링크]', '제안서 p23', '제안서', { p: 2, k: 0, a: 1 }]);
+// 실제 값 — 보고서 글에서 (첫 보고서 요약·본문)
+const rep15 = { date: '2026-10-15', summary: '쿠팡 7일 ROAS 221.8% · 메타 342% · OFF 0건', md: '쿠팡 ... ROAS 221.8%. 메타는 10/13 재개 후 10/14까지 ROAS 342%.\n- 자사몰 MER = 카페24 순매출 ÷ 메타 광고비' };
+eq('실제 값: 글에서 메타 ROAS · MER 없음', A.actualOf(rep15, P), { meta_roas: 342, mall_mer: null, total_mer: null, date: '2026-10-15', how: { meta_roas: '보고서 글에서 읽음' } });
+eq('실제 값: 보고서 숫자가 먼저', A.actualOf({ ...rep15, metrics: '{"meta_roas":301.5,"mall_mer":"402","total_mer":288}' }, P).how, { meta_roas: '보고서 숫자', mall_mer: '보고서 숫자', total_mer: '보고서 숫자' });
+eq('실제 값: 합산 MER 글', A.actualOf({ date: 'd', md: '합산 MER 1,210% · 자사몰 MER: 415%' }).mall_mer + '|' + A.actualOf({ date: 'd', md: '합산 MER 1,210%' }).total_mer, '415|1210');
+// 메타 판정 로그
+eq('판정 말 · 기준', [A.verdictOf('예산 +20% 증액'), A.verdictOf('OFF'), A.verdictOf('보류(구매 6)'), A.verdictOf('유지 · 소재 교체'),
+  A.expectVerdict({ purchases: 6, roas14: 500 }).v, A.expectVerdict({ purchases: 20, roas14: 360 }).v, A.expectVerdict({ purchases: 20, roas: 360 }).why, A.expectVerdict({ purchases: 20, roas14: 170 }).v, A.expectVerdict({ purchases: 20, roas14: 250 }).v, A.expectVerdict({ purchases: 20, roas14: 190 }).why],
+  ['증액', '종료', '보류', '유지', '보류', '증액', '350%+ (2주 확인 필요)', '종료', '유지', '180~200% · 제안서 기준 없음']);
+const jr = [{ date: '2026-10-16', judges: JSON.stringify([{ campaign: '① 신규', target: '위닝 6', roas14: 362, purchases: 31, verdict: '증액', reason: '2주 350%+' }, { campaign: '③ 테스트', target: 'T2', roas14: 150, purchases: 12, verdict: '유지', reason: '소재 교체' }]) },
+  { date: '2026-10-23', md: '## 금요일 판정\n| 캠페인·세트 | ROAS 14일 | 구매 | 판정 | 근거 |\n|---|---|---|---|---|\n| T3 A1 | 410% | 8 | 보류 | 구매 10건 전 |\n\n| 매체 | ROAS |\n|---|---|\n| 쿠팡 | 200% |' }];
+const JL = A.judgeLog(jr);
+eq('판정 로그: 숫자 칸 + 본문 표 · 최신순 · 일치/다름', JL.rows.map((x) => [x.date, x.target, x.roas14, x.purchases, x.verdict, x.expect, x.match]),
+  [['2026-10-23', 'T3 A1', 410, 8, '보류', '보류', '일치'], ['2026-10-16', '위닝 6', 362, 31, '증액', '증액', '일치'], ['2026-10-16', 'T2', 150, 12, '유지', '종료', '다름']]);
+eq('판정 로그: 개수 · 다름', [JL.count, JL.diff], [{ 증액: 1, 유지: 1, 종료: 0, 보류: 1 }, 1]);
+eq('판정 로그: 첫 보고서 = 없음', A.judgeLog([{ date: '2026-10-15', md: '| 매체 | 계정 |\n|---|---|\n| 쿠팡 | x |' }]).rows, []);
+
 console.log(`\n${n - bad}/${n} 통과`); if (bad) process.exit(1);

@@ -115,8 +115,23 @@
     - 쉬는 팀원(`GONE` 하루·포리·에코 → 여름 · 2026-10-14)은 올리지 않음(여름으로 안내) · 그들이 올렸다 돌려받은 옛 건은 `open 여름 … <같은 노트>` = 같은 건의 다음 판(mate·mateName·crew·제목을 여름으로)
   - `feedback [일수] [팀원…]` = 고쳐서 다시 올릴 것(state back) · 상급자가 돌려보낸 말·안 함 이유 · 확정 규칙(켠 것) · 사장님 메모 — 노트로 올린 건(board '')만(크루 보드 건은 crew.html) · `feedback 14 여름` = 여름 + 쉬는 하루·포리·에코의 옛 건·규칙·메모 · 팀원을 안 적으면 규칙은 기본 AI 팀원 + 여름 것만 · `rules [팀원]` · `asks [팀원]` · `list`(예전 검토 줄) · `numbers`
 - **허브**: AI 팀 탭 '✅ AI 승인 진행'(최근 30일 + 진행 중 · 노트로 올린 건 = base 또는 board 없음) · '📋 예전 검토 줄'(2026-10-11까지 올라온 links aiReview → 그대로 [검토 끝]) · 요약 '🤖 AI 승인 진행' · 노트 시트 = 승인 상태 칩 + [업무OS에서 승인 ›](`os2.html#a-<id>`) · **[📝 임시저장 맡기기]·[✅ 등록 완료]는 최종 승인(state ok) 뒤에만**(시트를 열 때 그 노트의 승인을 새로 읽음 · 못 읽으면 잠금 · 복사는 됨) · 팀원 카드 '최근 결과' · `#note-<id>` = AI 팀 탭 + 그 노트(업무OS '결과 전체 보기')
+- **`ads.html` — 광고 운영** (2026-10-15 · 로그인 없음 · 읽기 전용 · 허브 탭 '광고 운영' · 업무OS 더보기)
+  - Aside 가 매일 08:30 메타·쿠팡·네이버 광고 일일 보고서 → `pour-os/v2/adreports/{YYYY-MM-DD}` {date, title, md, summary, offs(JSON 글), longtail(JSON 글 · 없을 수 있음), by:'aside', at} — **Aside 전용 쓰기**
+  - 위 카드: 최신 요약 · 이번 주 끈 것 n개 · 새 롱테일 n개(칸 없으면 숨김) · [보고서] 날짜 최신순 → md(표) · 주소 `#YYYY-MM-DD` · [끈 것 기록] offs 합친 표(날짜·매체·캠페인·대상·근거·조치) + 주간·월간 개수 · `#off`
+  - 운영 기준(데일리그로스 2026.10.15): 메타 캠페인 3개 고정(신규 60 · 리타겟 10 · 테스트 30) · 금요일 판정(증액 350%+ 2주 +20% · 유지 200~350% · 종료 180% 미만 2주 · 구매 10건 전 보류) · 쿠팡 롱테일 400~500% · 수익률 300% · 입찰 100원부터
+  - **맨 위 '제안서 검증'** (2026-10-15 사장님 "진짜 목적 = 데일리그로스 「넷폼_메타운영_제안서_202610」이 정답인지 실제 운영 데이터로 검증"): `pour-os/v2/proposal/dailygrowth-202610` {title, at, by, json(baseline · structure · hypotheses H1~H6 · gaps_YYYYMMDD · source_rule)} — Aside 매일 갱신 · **Aside 전용 쓰기**
+    - 기준선 vs 실제: 메타 ROAS(1~9월 205% · 9월 286% · 12월 목표 350%) · 자사몰 MER(310% · 9월 415%) · 합산 MER — 실제 = 최신 보고서 `metrics`(JSON 글 {meta_roas, mall_mer, total_mer}) → 문서 `actual` → 없으면 보고서 글에서 읽음(표시함)
+    - 가설 카드(확인 · 어디서 · 통과 · 미달이면 · 상태 미시작/진행/통과/미달/보류 · 제안서 쪽수) · 현재 세팅과 제안서 구조 차이(gaps) · 운영 규칙 출처별
+    - 출처 배지 3종 `[제안서 pXX]` · `[김송희 관리방안]` · `[Aside 추가]` — 보고서·매뉴얼 글 안 대괄호 태그도 배지로 · 문서에 `rules`·`roles`·`pages{structure,judge,live,coupang}`가 오면 기본값 대신 그것
+  - [메타 판정] `#judge`: 보고서 `judges`(JSON 글 [{date, campaign, target, roas7, roas14, purchases, verdict, reason}]) 또는 본문 md 의 '판정' 칸 표 → 증액/유지/종료/보류 · 근거 · 제안서 기준과 일치/다름(180~200% = 제안서에 없는 구간)
+  - 계산 `adops.js`(offs·longtail 읽기 · 주간·월간 · 광고 AI팀 몫 AD_ROLES · 제안서 parseProposal · 실제 값 actualOf · 판정 judgeLog) · 시험 `node adops.test.mjs`
+- **`ai-manual.html` — AI 팀 매뉴얼** (2026-10-15 · 로그인 없음 · 읽기 전용 · crew.html·업무OS AI 팀원에서 '매뉴얼 보기')
+  - crew.js CREWS 팀원 카드: 이름·역할·KPI · 담당(aimates owners → users 이름 · 없으면 '미정') · 루틴 시간(아침 루틴 · 보드 Aside = asidePlan · 광고) · 광고 몫(가을 쿠팡·네이버 검색광고 · 겨울 메타 판정 · 여름 메타 소재 · 하늘 오퍼 · 우주 리타겟팅 · 봄 오늘의집) · 보드 할 일
+  - 맨 위 '광고 운영 역할': 제안서의 원래 역할 [제안서](퍼포먼스 마케터 = 일일 운영·금요일 판정 · 디자인 마케터·외주 = 소재 · 본부장 = 예산·목표 · 쿠팡 = 본부장님 · 네이버 = 링크프라이스) vs 크루 광고 분담 [Aside 추가](제안서에 없음)
+  - 아래 `pour-os/v2/aimanuals/{id}` {id, title, md, src, at} 목록·md — **Aside 가 관리하는 문서**(담당도 화면에서 못 고침)
+  - 보드 할 일 F(가을 `gh-traffic` · 겨울 `gh-conv` · `report:'ads'`) = 08:30 광고 루틴 몫 → 09:00 크루 지시문은 [상태] F 한 줄만 · 규칙 안 자동 OFF 만 Aside 직접(사장님 승인) · 구조·예산 변경은 사람
 - **`crew.html` — Aside: AI 크루 결과 올리기** (그로홈·POUR스토어 B2C 크루 6명 보드 · 업로더·관리자 로그인)
-  - 보드 고르기(`#crew-board` · 주소 `#보드id`) → 날짜(`#crew-date`) → 담당·승인 길 줄(`#crew-who`) · 고쳐서 다시 올릴 것(`#crew-redo`) · 확정 규칙(`#crew-rules`) · Aside 지시문(`#copy-guide` · 붙여 넣는 모양) → 결과 붙여 넣기(`#crew-text`: `[지표]` 키·값 · `[상태]` A: 한 줄 · `[A]`~`[E]` 요약 + 탭 표) → [미리보기](`#preview-button`) → [업무OS에 올리기](`#save-button`) → `#status-message`
+  - 보드 고르기(`#crew-board` · 주소 `#보드id`) → 날짜(`#crew-date`) → 담당·승인 길 줄(`#crew-who`) · 고쳐서 다시 올릴 것(`#crew-redo`) · 확정 규칙(`#crew-rules`) · Aside 지시문(`#copy-guide` · 붙여 넣는 모양) → 결과 붙여 넣기(`#crew-text`: `[지표]` 키·값 · `[상태]` A: 한 줄 · `[A]`~`[F]` 요약 + 탭 표) → [미리보기](`#preview-button`) → [업무OS에 올리기](`#save-button`) → `#status-message`
   - 저장: `aiboards/{보드}` 지표·날짜별 값(merge) + 행동마다 승인 한 건(`ai_<AI>_<날짜>_<보드id+행동>` · transaction: 없으면 만듦 · 담당 차례이거나 돌려받은 것만 다음 판 · 위로 올라간 건 그대로 + 안내)
   - 빼는 것(crew.js): 원가·마진·제조사·공급 단가·파일 칸 · 관리자 자리 행동(노출 E) · 휴대폰 번호·메일(가림) · 모르는 지표 키
   - B2B 크루·바라스데이 크루는 초안(이름·구성·보드는 같이 정해 고침) — 보드가 생기면 같은 화면에 자동으로 나옴

@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>광고 운영 · POUR 마케팅 허브</title>
+<!--
+  광고 운영 — Aside 광고 일일 보고서 보기 (사용자 결정 2026-10-15 "광고 운영 내재화 + AI팀 매뉴얼 화면 (Aside 연동)")
+  · 읽는 곳(pour-app-new · 공개 규칙 pour-os/{doc=**} · 로그인 없음 · 규칙 변경 없음):
+      pour-os/v2/adreports/{YYYY-MM-DD} {date, title, md, summary, offs(JSON 글), longtail(JSON 글 · 없을 수 있음), by:'aside', at}
+  · 쓰기 없음 — Aside 만 REST 로 올림 (pour-os-v2/CLAUDE.md 'Aside 전용 쓰기 경로')
+  · 위 카드: 최신 보고서 요약 · 이번 주 끈 것 n개(offs) · 새 롱테일 n개(longtail · 칸 없으면 숨김)
+  · [보고서] 왼쪽 날짜(최신순) → 오른쪽 md(표 포함 · core.js mdLite = 모든 글자 escape) · 주소 #YYYY-MM-DD
+  · [끈 것 기록] 모든 보고서 offs 합친 표(날짜·매체·캠페인·대상·근거·조치) + 주간·월간 개수 · 주소 #off
+  · [메타 판정] 금요일 증액/유지/종료/보류 + 근거 — 보고서 judges(JSON 글) 또는 본문 md 의 '판정' 칸 표 → 제안서 기준(350%+ 2주 · 200~350% · 180% 미만 2주 · 구매 10건)과 일치/다름 · 주소 #judge
+  · 맨 위 '제안서 검증'(2026-10-15 "진짜 목적 = 데일리그로스 「넷폼_메타운영_제안서_202610」이 정답인지 실제 운영 데이터로 검증"):
+      pour-os/v2/proposal/dailygrowth-202610 {title, at, by, json(baseline · structure · hypotheses H1~H6 · gaps_20261015)} — Aside 가 매일 갱신 · 읽기만
+      기준선 vs 실제(최신 보고서 metrics → 없으면 보고서 글에서 읽음) · 가설 카드 · 현재 세팅과 제안서 구조 차이 · 규칙마다 출처 배지 [제안서 pXX]/[김송희 관리방안]/[Aside 추가]
+      접기·펴기는 이 기기에만 기억(localStorage · 막히면 늘 펼침)
+  · 계산 adops.js (시험 node marketing-hub/adops.test.mjs)
+-->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="core.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+:root{--navy:#0D1B2A;--accent:#2563EB;--accent-l:#EFF6FF;--green:#059669;--green-l:#ECFDF5;--red:#DC2626;--red-l:#FEF2F2;
+  --gold:#D97706;--gold-l:#FFFBEB;--text:#111827;--text-md:#4B5563;--text-sm:#9CA3AF;--bg:#F9FAFB;--card:#fff;--border:#E5E7EB;
+  --r:12px;--r-sm:8px;--shadow:0 1px 6px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.04)}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:Pretendard,-apple-system,system-ui,'Segoe UI',sans-serif;font-size:14px}
+header{background:var(--navy);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+header b{font-size:16px;white-space:nowrap}
+header .sp{flex:1}
+header a{color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:var(--r-sm);padding:6px 10px;font-size:12px;text-decoration:none;white-space:nowrap}
+nav{display:flex;gap:6px;overflow-x:auto;padding:10px 16px;background:#fff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:5}
+nav button{flex:none;border:1px solid var(--border);background:#fff;border-radius:20px;padding:7px 14px;font:inherit;font-weight:700;color:var(--text-md);cursor:pointer}
+nav button.on{background:var(--navy);border-color:var(--navy);color:#fff}
+main{max-width:1100px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden;min-width:0}
+.card h3{margin:0;padding:12px 16px;font-size:14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card h3 .sp{flex:1}
+.sub{font-size:12px;color:var(--text-sm);font-weight:600}
+.ro{display:inline-block;font-size:11px;font-weight:800;border-radius:20px;padding:2px 9px;background:#F3F4F6;color:var(--text-md)}
+.tops{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px}
+.top{flex:1 1 140px;background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:14px;min-width:0}.top.sum{flex:3 1 320px}
+.top .l{font-size:12px;color:var(--text-md);font-weight:700}.top .v{font-size:24px;font-weight:800;margin-top:4px;font-variant-numeric:tabular-nums}
+.top .s{font-size:14px;line-height:1.6;margin-top:6px;word-break:keep-all;overflow-wrap:anywhere}
+.top .v small{font-size:13px;font-weight:700;color:var(--text-md);margin-left:2px}
+.rules{padding:10px 16px;font-size:13px;line-height:1.7;color:var(--text-md)}
+.rules b{color:var(--navy);margin-right:6px}
+details.std>summary{cursor:pointer;padding:12px 16px;font-weight:800;list-style:none}details.std>summary::-webkit-details-marker{display:none}
+details.std>summary::after{content:' ▾';color:var(--text-sm)}details.std[open]>summary::after{content:' ▴'}
+.split{display:grid;grid-template-columns:240px minmax(0,1fr);gap:14px;align-items:start}
+.dates{display:flex;flex-direction:column}
+.dates button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--border);background:#fff;padding:10px 14px;font:inherit;cursor:pointer;color:var(--text)}
+.dates button:last-child{border-bottom:0}
+.dates button b{display:block;font-size:14px}.dates button span{display:block;font-size:12px;color:var(--text-md);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dates button.on{background:var(--accent-l)}.dates button.on b{color:var(--accent)}
+.rep-h{padding:14px 16px;border-bottom:1px solid var(--border)}
+.rep-h b{display:block;font-size:16px;word-break:keep-all}.rep-h .sub{display:block;margin-top:4px}
+.md{padding:6px 16px 16px;font-size:14.5px;line-height:1.7;word-break:break-word}
+.md h2{font-size:18px;margin:18px 0 8px}.md h3{font-size:16px;margin:16px 0 6px}.md h4,.md h5,.md h6{font-size:15px;margin:12px 0 4px}
+.md p{margin:8px 0}.md blockquote{margin:8px 0;padding:8px 12px;background:#F3F4F6;border-left:3px solid var(--border);color:var(--text-md);font-size:13px}
+.md ul,.md ol{margin:6px 0;padding-left:22px}.md li.ck{list-style:none;margin-left:-18px}
+.md pre{background:#F3F4F6;padding:10px;border-radius:var(--r-sm);overflow-x:auto;font-size:12px;white-space:pre-wrap}
+.md code{background:#F3F4F6;border-radius:4px;padding:1px 5px;font-size:12.5px;word-break:break-all}
+.md .wl{color:#7C3AED;font-weight:700}.md a{color:var(--accent);word-break:break-all}.md hr{border:0;border-top:1px solid var(--border);margin:14px 0}
+.tbl{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+th{font-size:11.5px;color:var(--text-md);background:#F9FAFB;white-space:nowrap}
+.md table{margin:8px 0}.md table th,.md table td{min-width:72px}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cnts{display:flex;gap:8px;flex-wrap:wrap;padding:12px 16px}
+.cnts span{background:#F3F4F6;border-radius:8px;padding:6px 10px;font-size:13px;color:var(--text-md)}.cnts span b{color:var(--navy);font-size:15px;margin-left:4px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.med{display:inline-block;font-size:11.5px;font-weight:800;border-radius:6px;padding:2px 7px;background:#F3F4F6;color:var(--text-md);white-space:nowrap}
+.med.m-메타{background:#EEF2FF;color:#4338CA}.med.m-쿠팡{background:#FEF2F2;color:#B91C1C}.med.m-네이버{background:var(--green-l);color:var(--green)}.med.m-오늘의집{background:var(--accent-l);color:var(--accent)}
+.empty{padding:22px 16px;text-align:center;color:var(--text-sm)}
+.msg{padding:12px 16px;border-radius:var(--r-sm);margin-bottom:14px;font-weight:700;background:var(--red-l);color:var(--red)}
+.foot{font-size:12px;color:var(--text-sm);text-align:center;margin:18px 0 6px;line-height:1.6}
+.src{display:inline-block;font-size:11px;font-weight:800;border-radius:6px;padding:1px 7px;white-space:nowrap;vertical-align:1px;margin:0 2px;line-height:1.6}
+.src.s-p{background:#E0E7FF;color:#3730A3}.src.s-k{background:var(--green-l);color:#047857}.src.s-a{background:var(--gold-l);color:#B45309}.src.s-x{background:#F3F4F6;color:var(--text-md)}
+#verify h3 button{border:1px solid var(--border);background:#fff;border-radius:8px;padding:5px 10px;font:inherit;font-size:12px;font-weight:700;color:var(--text-md);cursor:pointer}
+.vb{padding:4px 16px 16px}.vb h4{font-size:14px;margin:16px 0 8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.cmp{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:10px}
+.cm{border:1px solid var(--border);border-radius:10px;padding:12px;min-width:0}
+.cm .l{font-size:12px;font-weight:800;color:var(--text-md)}.cm .v{font-size:24px;font-weight:800;margin:4px 0 2px;font-variant-numeric:tabular-nums}.cm .v.na{font-size:16px;color:var(--text-sm)}
+.cm .h{font-size:11.5px;color:var(--text-sm)}.cm .b{font-size:12.5px;color:var(--text-md);line-height:1.6;margin-top:6px;word-break:keep-all}
+.bar{height:6px;border-radius:3px;background:#E8EBF2;margin:8px 0 2px;position:relative;overflow:hidden}.bar i{display:block;height:100%;background:var(--navy);border-radius:3px}
+.cm.ok .v{color:var(--green)}.cm.ok .bar i{background:var(--green)}.cm.low .v{color:var(--red)}.cm.low .bar i{background:var(--red)}
+.hyps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.hy{border:1px solid var(--border);border-radius:10px;padding:10px 12px;min-width:0;font-size:12.5px;line-height:1.55}
+.hy .t{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px}.hy .t b{font-size:14px}.hy .t .a{color:var(--text-md);font-weight:700}
+.hy dl{margin:0;display:grid;grid-template-columns:52px minmax(0,1fr);gap:2px 8px}.hy dt{color:var(--text-sm);font-weight:700}.hy dd{margin:0;word-break:keep-all;overflow-wrap:anywhere}
+.st{display:inline-block;font-size:11px;font-weight:800;border-radius:20px;padding:1px 8px;background:#F3F4F6;color:var(--text-md)}
+.st.s-진행,.st.s-증액{background:var(--accent-l);color:var(--accent)}.st.s-통과,.st.s-일치{background:var(--green-l);color:var(--green)}.st.s-미달,.st.s-종료,.st.s-다름{background:var(--red-l);color:var(--red)}.st.s-보류{background:var(--gold-l);color:var(--gold)}.st.s-유지{background:#EEF2FF;color:#4338CA}
+ul.gaps{margin:0;padding-left:20px;font-size:13px;line-height:1.75}
+.rl{font-size:13px;line-height:1.7;padding:3px 0;word-break:keep-all}.rl b{color:var(--navy);margin-right:4px}
+.crit{padding:0 16px 10px;font-size:12.5px;color:var(--text-md);line-height:1.6}
+@media (max-width:900px){.cmp,.hyps{grid-template-columns:1fr 1fr}.split{grid-template-columns:1fr}.dates{flex-direction:row;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .dates button{flex:none;width:auto;max-width:200px;border-bottom:0;border-right:1px solid var(--border)}.grid2{grid-template-columns:1fr}}
+@media (max-width:700px){main{padding:12px}.top .v{font-size:20px}.md{padding:4px 12px 14px;font-size:14px}.rep-h{padding:12px}.card h3{padding:11px 12px}
+  .md table.rt thead{display:none}.md table.rt,.md table.rt tbody,.md table.rt tr,.md table.rt td{display:block;width:100%}
+  .md table.rt tr{border:1px solid var(--border);border-radius:10px;padding:6px 10px;margin-bottom:8px;background:#fff}
+  .md table.rt td{border:0;padding:3px 0;min-width:0;display:flex;gap:8px}.md table.rt td::before{content:attr(data-l);flex:none;width:84px;color:var(--text-sm);font-size:12px;font-weight:700}
+  .md .tbl{overflow:visible}
+  .cmp,.hyps{grid-template-columns:1fr}.vb{padding:4px 12px 14px}.cm .v{font-size:20px}
+  table.ct thead{display:none}table.ct,table.ct tbody,table.ct tr,table.ct td{display:block;width:100%}
+  table.ct tr{border-bottom:1px solid var(--border);padding:8px 12px}table.ct td{border:0;padding:2px 0;display:flex;gap:8px}
+  table.ct td::before{content:attr(data-l);flex:none;width:64px;color:var(--text-sm);font-size:12px;font-weight:700}}
+@media (max-width:380px){header a.hub{display:none}}
+</style>
+</head>
+<body>
+<header>
+  <b>📣 광고 운영</b>
+  <span class="sp"></span>
+  <a href="ai-manual.html" id="go-manual">AI 팀 매뉴얼</a>
+  <a href="index.html" class="hub">허브</a>
+  <a href="../pourstore-renewal/os2.html">업무OS</a>
+</header>
+<nav id="tabs" aria-label="광고 운영 탭"><button type="button" data-v="rep">보고서</button><button type="button" data-v="judge">메타 판정</button><button type="button" data-v="off">끈 것 기록</button></nav>
+<main id="app"><div class="empty">불러오는 중…</div></main>
+<script type="module">
+import * as A from './adops.js';
+const FB_CFG={apiKey:"AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",authDomain:"pour-app-new.firebaseapp.com",projectId:"pour-app-new",
+  storageBucket:"pour-app-new.firebasestorage.app",messagingSenderId:"411031141847",appId:"1:411031141847:web:e658174fd4b9652cdadf92"};
+firebase.initializeApp(FB_CFG);
+const db=firebase.firestore();
+if(/^(localhost|127\.0\.0\.1)$/.test(location.hostname)&&new URLSearchParams(location.search).has('emu'))db.useEmulator('127.0.0.1',8080);
+const C=window.MktCore, $=(s)=>document.querySelector(s);
+const esc=(s)=>String(s==null?'':s).replace(/[&<>"]/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const todayKST=()=>C.addDays(C.yesterdayKST(),1);
+const DOW='일월화수목금토';
+const dayL=(d)=>{const x=new Date(d+'T00:00:00Z');return `${Number(d.slice(5,7))}/${Number(d.slice(8,10))}(${DOW[x.getUTCDay()]})`;};
+const atL=(t)=>{const m=t?new Date(t).getTime():0;if(!m)return '';const d=new Date(m+9*3600e3);return d.toISOString().slice(5,16).replace('T',' ').replace('-','/');};
+const S={reps:[],prop:null,propErr:'',cur:'',view:'rep',err:'',loaded:false};
+const LSget=(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:v;}catch(e){return d;}}, LSset=(k,v)=>{try{localStorage.setItem(k,v);}catch(e){}};
+let vOpen=LSget('ads_verify_open','1')==='1';
+
+// 주소: #off = 끈 것 기록 · #judge = 메타 판정 · #YYYY-MM-DD = 그 보고서
+function fromHash(){const h=decodeURIComponent(location.hash.slice(1));if(h==='off'||h==='judge')S.view=h;else{S.view='rep';if(/^\d{4}-\d{2}-\d{2}$/.test(h))S.cur=h;}}
+fromHash();
+window.addEventListener('hashchange',()=>{fromHash();render();});
+
+async function loadProposal(){
+  try{const d=await db.collection('pour-os').doc('v2').collection('proposal').doc(A.PROPOSAL_ID).get();
+    console.log(`[proposal/${A.PROPOSAL_ID}] ${d.exists?'있음':'없음'}`);S.prop=A.parseProposal(d.exists?d.data():{});if(!d.exists)S.propErr='아직 검증 문서가 없어요 (Aside 가 올리면 보여요) · 아래는 제안서 기본값';}
+  catch(e){console.error(`[proposal/${A.PROPOSAL_ID}] 로드 실패:`,e);S.prop=A.parseProposal({});S.propErr='검증 문서를 못 불러왔어요 · 아래는 제안서 기본값';}
+}
+async function load(){
+  const pp=loadProposal();
+  try{
+    const snap=await db.collection('pour-os').doc('v2').collection('adreports').get();   // orderBy 안 씀 · 날짜 글로 정렬
+    S.reps=A.sortReports(snap.docs.map(d=>({id:d.id,...d.data(),date:d.data().date||d.id})));
+    console.log(`[adreports] ${S.reps.length}건 로드`);
+    if(!S.cur||!S.reps.some(r=>r.date===S.cur))S.cur=S.reps[0]?S.reps[0].date:'';
+  }catch(e){console.error('[adreports] 로드 실패:',e);S.err='보고서를 못 불러왔어요 · 인터넷 연결을 확인하고 새로고침해 주세요 ('+(e.code||e.message||e)+')';}
+  await pp;S.loaded=true;render();
+}
+
+function tops(){
+  const t=A.topCards(S.reps,todayKST()), last=t.last;
+  return `<div class="tops">
+    <div class="top sum"><div class="l">최신 보고서${last?` · ${esc(dayL(last.date))}`:''}</div><div class="s">${last?esc(t.summary||last.title||'요약 없음'):'아직 보고서가 없어요'}</div></div>
+    ${t.offsWeek!=null?`<div class="top"><div class="l">이번 주 끈 것</div><div class="v">${t.offsWeek}<small>개</small></div></div>`:''}
+    ${t.longtail!=null?`<div class="top"><div class="l">새 롱테일</div><div class="v">${t.longtail}<small>개</small></div></div>`:''}
+  </div>`;
+}
+const srcB=(src,page)=>`<span class="src s-${A.srcKind(src)}">${esc(A.srcText(src,page))}</span>`;
+const pctL=(v)=>v==null?'—':`${Math.round(v*10)/10}%`;
+function verify(){
+  const P=S.prop||A.parseProposal({}), b=P.baseline, rep=S.reps[0]||null, act=A.actualOf(rep,P), hc=A.hypCount(P.hypotheses);
+  const head=`<h3>제안서 검증 <span class="sub">데일리그로스「넷폼_메타운영_제안서_202610」(2026.10.15)${P.at?` · Aside 갱신 ${esc(atL(P.at))}`:''}</span><span class="sp"></span><button type="button" id="vtoggle" aria-expanded="${vOpen}">${vOpen?'접기':'펴기'}</button></h3>`;
+  const sumLine=`<div class="cnts">${A.HYP_STATUS.map(h=>`<span>${esc(h)}<b>${hc[h]}</b></span>`).join('')}<span>세팅 차이<b>${(P.gaps||[]).length}</b></span><span>메타 ROAS<b>${pctL(act.meta_roas)}</b></span></div>`;
+  if(!vOpen)return `<section class="card" id="verify">${head}${sumLine}</section>`;
+  const how=(k)=>act[k]!=null?`${esc(act.date?dayL(act.date):'')} · ${esc(act.how[k]||'')}${act.how[k]==='보고서 글에서 읽음'?' (기간이 짧을 수 있음)':''}`:'최신 보고서에 없음';
+  const target=b.meta_roas_target_dec, mr=act.meta_roas, cls=mr==null?'':mr>=target?'ok':mr<b.meta_roas_jan_sep?'low':'';
+  const tiles=`<div class="cmp">
+    <div class="cm ${cls}"><div class="l">메타 ROAS ${srcB(A.SRC.P)}</div><div class="v ${mr==null?'na':''}">${mr==null?'값 없음':pctL(mr)}</div><div class="h">${how('meta_roas')}</div>
+      <div class="bar" aria-label="12월 목표 ${target}% 대비"><i style="width:${mr==null?0:Math.min(100,Math.round(mr/target*100))}%"></i></div>
+      <div class="b">기준선 1~9월 <b>${b.meta_roas_jan_sep}%</b> · 9월 <b>${b.meta_roas_sep}%</b> → 12월 목표 <b>${target}%</b>${mr!=null?` · 목표까지 ${mr>=target?'달성':`${Math.round((target-mr)*10)/10}%p`}`:''}</div></div>
+    <div class="cm"><div class="l">자사몰 MER ${srcB(A.SRC.P)}</div><div class="v ${act.mall_mer==null?'na':''}">${act.mall_mer==null?'값 없음':pctL(act.mall_mer)}</div><div class="h">${how('mall_mer')}</div>
+      <div class="b">기준선 1~9월 <b>${b.mall_mer_jan_sep}%</b> · 9월 <b>${b.mall_mer_sep}%</b> · 카페24 순매출 ÷ 메타 광고비</div></div>
+    <div class="cm"><div class="l">합산 MER ${srcB(A.SRC.P)}</div><div class="v ${act.total_mer==null?'na':''}">${act.total_mer==null?'값 없음':pctL(act.total_mer)}</div><div class="h">${how('total_mer')}</div>
+      <div class="b">전체 매출 ÷ (메타+쿠팡+네이버 광고비) · 주간 · 제안서 기준선 없음</div></div></div>`;
+  const hy=(P.hypotheses||[]).length?`<div class="hyps">${P.hypotheses.map(h=>{const st=A.hypStatus(h.status);return `<div class="hy"><div class="t"><b>${esc(h.id||'')}</b><span class="a">${esc(h.area||'')}</span><span class="st s-${esc(st)}">${esc(st)}</span>${srcB(A.SRC.P,h.page)}</div>
+      <dl><dt>확인</dt><dd>${esc(h.what||'')}</dd><dt>어디서</dt><dd>${esc(h.where||'')}</dd><dt>통과</dt><dd>${esc(h.pass||'')}</dd>${h.fail?`<dt>미달이면</dt><dd>${esc(h.fail)}</dd>`:''}${h.result?`<dt>결과</dt><dd>${esc(h.result)}</dd>`:''}</dl></div>`;}).join('')}</div>`
+    :'<div class="empty">가설이 아직 없어요</div>';
+  const gd=P.gapsAt?`${Number(P.gapsAt.slice(4,6))}/${Number(P.gapsAt.slice(6,8))} 기준`:'';
+  const gaps=(P.gaps||[]).length?`<ul class="gaps">${P.gaps.map(g=>`<li>${A.srcTags(esc(typeof g==='string'?g:(g.t||g.text||JSON.stringify(g))))}</li>`).join('')}</ul>`:'<div class="empty">차이 없음</div>';
+  const st=P.structure||{}, live=st.live?`<div class="rl"><b>라이브</b>${esc(st.live)} ${srcB(A.SRC.P,(P.rules.find(r=>r.k==='live')||{}).page)}</div>`:'';
+  const rules=P.rules.map(r=>`<div class="rl"><b>${esc(r.m||'')}</b>${esc(r.t||'')} ${srcB(r.src,r.page)}</div>`).join('')+live;
+  return `<section class="card" id="verify">${head}${S.propErr?`<div class="crit" style="color:var(--gold)">${esc(S.propErr)}</div>`:''}<div class="vb">
+    <h4>기준선 vs 실제 <span class="sub">실제 = 최신 보고서 ${rep?esc(dayL(rep.date)):'없음'}</span></h4>${tiles}
+    <h4>가설 H1~H6 <span class="sub">무엇을 확인 · 어디서 · 통과 조건 · 상태</span></h4>${hy}
+    <h4>현재 세팅과 제안서 구조 차이 ${(P.gaps||[]).length} <span class="sub">${esc(gd)}</span></h4>${gaps}
+    <h4>운영 규칙 <span class="sub">출처</span> ${srcB(A.SRC.P)} ${srcB(A.SRC.K)} ${srcB(A.SRC.A)}</h4>${rules}
+  </div></section>`;
+}
+function vRep(){
+  if(!S.reps.length)return `<div class="card"><div class="empty">아직 올라온 보고서가 없어요 · Aside 가 매일 08:30 에 올려요</div></div>`;
+  const r=S.reps.find(x=>x.date===S.cur)||S.reps[0];
+  const list=S.reps.map(x=>`<button type="button" data-d="${esc(x.date)}" class="${x.date===r.date?'on':''}" aria-label="${esc(x.date)} 보고서"><b>${esc(dayL(x.date))}</b><span>${esc(x.summary||x.title||'')}</span></button>`).join('');
+  return `<div class="split">
+    <div class="card"><h3>보고서 ${S.reps.length} <span class="sub">최신순</span></h3><div class="dates" id="dates">${list}</div></div>
+    <article class="card" id="report"><div class="rep-h"><b>${esc(r.title||r.date)}</b><span class="sub">${esc(r.date)} · ${r.by==='aside'?'Aside':esc(r.by||'')} 올림${r.at?' '+esc(atL(r.at)):''} · <span class="ro">읽기 전용</span></span></div>
+      <div class="md">${A.srcTags(C.mdLite(r.md||r.summary||''))}</div></article>
+  </div>`;
+}
+function vOff(){
+  const L=A.offLog(S.reps,todayKST());
+  if(!L.has&&!L.rows.length)return `<div class="card"><div class="empty">끈 것 기록이 아직 없어요</div></div>`;
+  const cnt=`<div class="cnts"><span>이번 주<b>${L.thisWeek}</b></span><span>이번 달<b>${L.thisMonth}</b></span><span>전체<b>${L.rows.length}</b></span></div>`;
+  const wk=L.weeks.length?`<div class="tbl"><table><thead><tr><th>주</th><th class="n">끈 것</th></tr></thead><tbody>${L.weeks.slice(0,12).map(x=>`<tr><td>${esc(A.weekL(x.w))}</td><td class="n">${x.n}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">없음</div>';
+  const mo=L.months.length?`<div class="tbl"><table><thead><tr><th>월</th><th class="n">끈 것</th></tr></thead><tbody>${L.months.slice(0,12).map(x=>`<tr><td>${esc(Number(x.m.slice(5,7)))}월 <span class="sub">${esc(x.m.slice(0,4))}</span></td><td class="n">${x.n}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">없음</div>';
+  const rows=L.rows.length?`<div class="tbl"><table class="offs ct"><thead><tr><th>날짜</th><th>매체</th><th>캠페인</th><th>대상</th><th>근거</th><th>조치</th></tr></thead><tbody>${L.rows.map(x=>`<tr>
+      <td data-l="날짜" style="white-space:nowrap">${esc(x.date?dayL(x.date):'')}</td><td data-l="매체">${x.media?`<span class="med m-${esc(x.media)}">${esc(x.media)}</span>`:''}</td>
+      <td data-l="캠페인">${esc(x.campaign)}</td><td data-l="대상"><b>${esc(x.target)}</b></td><td data-l="근거">${esc(x.reason)}</td><td data-l="조치">${esc(x.action)}</td></tr>`).join('')}</tbody></table></div>`
+    :'<div class="empty">아직 끈 것이 없어요 (OFF 0건)</div>';
+  return `<div class="card"><h3>끈 것 ${L.rows.length} <span class="sub">모든 보고서의 끈 것 · 최신순 · 규칙 안 자동 OFF(Aside)</span></h3>${cnt}${rows}</div>
+    <div class="grid2"><div class="card"><h3>주간 <span class="sub">월요일 시작</span></h3>${wk}</div><div class="card"><h3>월간</h3>${mo}</div></div>`;
+}
+function nextFri(){const t=todayKST(),d=new Date(t+'T00:00:00Z'),add=(5-d.getUTCDay()+7)%7;return C.addDays(t,add);}
+function vJudge(){
+  const J=A.judgeLog(S.reps);
+  const crit=`<div class="crit">기준 ${srcB(A.SRC.P)} 금요일 16:00 · 증액 350%+ 2주 → 예산 +20% · 유지 200~350% → 소재 1안 교체 · 종료 180% 미만 2주 → OFF · 구매 10건 전 보류 — 판정 담당 = 넷폼 퍼포먼스 마케터 ${srcB(A.SRC.P)} · 판정표 초안 = 겨울 ${srcB(A.SRC.A)}</div>`;
+  const cnt=`<div class="cnts">${A.JUDGE.map(j=>`<span>${j}<b>${J.count[j]}</b></span>`).join('')}<span>기준과 다름<b style="color:${J.diff?'var(--red)':'inherit'}">${J.diff}</b></span></div>`;
+  const rows=J.rows.length?`<div class="tbl"><table class="ct"><thead><tr><th>날짜</th><th>캠페인</th><th>대상</th><th class="n">ROAS 14일</th><th class="n">ROAS 7일</th><th class="n">구매</th><th>판정</th><th>근거</th><th>제안서 기준</th><th>비교</th></tr></thead><tbody>${J.rows.map(x=>`<tr>
+      <td data-l="날짜" style="white-space:nowrap">${esc(x.date?dayL(x.date):'')}</td><td data-l="캠페인">${esc(x.campaign)}</td><td data-l="대상"><b>${esc(x.target)}</b></td>
+      <td data-l="ROAS 14일" class="n">${pctL(x.roas14)}</td><td data-l="ROAS 7일" class="n">${pctL(x.roas)}</td><td data-l="구매" class="n">${x.purchases==null?'—':x.purchases}</td>
+      <td data-l="판정">${x.verdict?`<span class="st s-${esc(x.verdict)}">${esc(x.verdict)}</span>`:esc(x.verdictRaw)}</td><td data-l="근거">${esc(x.reason)}</td>
+      <td data-l="제안서 기준">${x.expect?`<span class="st s-${esc(x.expect)}">${esc(x.expect)}</span> `:''}<span class="sub">${esc(x.expectWhy)}</span></td><td data-l="비교"><span class="st s-${esc(x.match)}">${esc(x.match)}</span></td></tr>`).join('')}</tbody></table></div>`
+    :`<div class="empty">아직 판정이 없어요 · 첫 금요일 판정 ${esc(dayL(nextFri()))} 16:00<br><span class="sub">보고서에 judges 칸이나 '판정' 칸이 있는 표가 오면 여기에 모여요</span></div>`;
+  return `<div class="card"><h3>메타 판정 ${J.rows.length} <span class="sub">모든 보고서 · 최신순 · 판정 vs 제안서 기준</span></h3>${crit}${cnt}${rows}</div>`;
+}
+function render(){
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===S.view));
+  if(!S.loaded)return;
+  const body=S.err?`<div class="msg" role="alert">${esc(S.err)}</div>`:verify()+tops()+(S.view==='off'?vOff():S.view==='judge'?vJudge():vRep());
+  $('#app').innerHTML=body+`<p class="foot">Aside 가 매일 08:30 메타·쿠팡·네이버 광고 일일 보고서를 올려요 · 이 화면은 읽기만 해요<br>실행: 규칙 안 자동 OFF = Aside ${srcB(A.SRC.A)} · 예산·목표 = 본부장 ${srcB(A.SRC.P)} · 쿠팡 = 본부장님 · 네이버 = 링크프라이스 ${srcB(A.SRC.P)}</p>`;
+}
+document.addEventListener('click',(e)=>{
+  if(e.target.closest('#vtoggle')){vOpen=!vOpen;LSset('ads_verify_open',vOpen?'1':'0');render();return;}
+  const t=e.target.closest('#tabs button');if(t){S.view=t.dataset.v;history.replaceState(null,'',S.view!=='rep'?'#'+S.view:(S.cur?'#'+S.cur:location.pathname));render();window.scrollTo(0,0);return;}
+  const d=e.target.closest('#dates button');if(d){S.cur=d.dataset.d;history.replaceState(null,'','#'+S.cur);render();
+    if(window.matchMedia('(max-width:900px)').matches){const a=$('#report');if(a)a.scrollIntoView({block:'start'});}}
+});
+render();load();
+</script>
+</body>
+</html>

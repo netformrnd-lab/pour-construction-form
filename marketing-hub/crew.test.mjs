@@ -118,6 +118,10 @@ eq('Aside 가 못 따르는 말 없음 (영상 생성하기 버튼 · 토요일 
   eq('오늘의집 지시문에 런칭 체크리스트(보기만)', K.asideText(K.boardOf('gh-ohou')).includes('■ 참고: 11/9(월) 신제품 4종 런칭 체크리스트'), true);
   eq('지시문 F = 08:30 광고 보고서 화면 · 이 루틴은 안 끔 · 표 없음', [t.includes('F. 쿠팡·네이버 외주 운영 분석 + 롱테일 기록 — 언제: 매일 08:30'), t.includes('marketing-hub/ads.html 에서 오늘 보고서를 보고 [상태] F 에 한 줄만'), t.includes('이 루틴에서는 광고를 끄거나 바꾸지 않는다'), /\n\[F\]\n/.test(t), /\n\[F\]\n/.test(K.asideText(K.boardOf('gh-conv'))), K.asideText(K.boardOf('gh-rep')).includes('08:30 광고')], [true, true, true, false, false, false]);
   eq('외주 운영 기간: 쿠팡·네이버·메타 광고 할 일엔 ★ 바꿀 안 안 만듦 · 지킬 것 한 줄 · 다른 할 일엔 없음', [(t.match(/★ 외주 운영 기간/g) || []).length, (K.asideText(K.boardOf('gh-exp')).match(/★ 외주 운영 기간/g) || []).length, t.includes('이 루틴도 08:30 광고 루틴도 광고를 끄거나 바꾸지 않는다'), K.asideText(K.boardOf('gh-rep')).includes('★ 외주'), Object.values(K.BOARDS).flatMap((b) => b.actions.filter((a) => a.adMedia).map((a) => b.id + a.c + a.adMedia))], [2, 1, true, false, ['gh-expC메타', 'gh-trafficD쿠팡', 'gh-trafficE네이버']]);
+  { const q = K.parseCrew('[C]\n요약: 관찰\n캠페인·키워드\t현재\n쿠팡 B\t외주 세팅 그대로\n[D]\n캠페인·키워드\t현재\t제안\n방수 페인트\t1만\t외주 세팅 그대로 · 관찰\n[E]\n키워드\t현재 순위\n롤러페인트\t3', K.boardOf('gh-traffic'));
+    const ex = Object.fromEntries(K.asksFromParse(q, { board: 'gh-traffic', mate: 'gaeul', run: '2026-10-16' }).map((a) => [a.act, a.exec]));
+    eq('외주 운영 기간: 쿠팡 D·네이버 E 승인 = 실행 업무 없음(보고만) · 광고 아닌 C 는 그대로 · 지시문도 보고만', [ex.D, ex.E, ex.C, t.includes('승인 뒤 사람이 할 일: 없음 (외주 운영 기간 · 보고만)'), K.execOf(K.actOf('gh-exp', 'C')), K.execOf(K.actOf('gh-exp', 'A')).length > 0],
+      ['', '', '승인되면 담당이 윙에서 통합을 신청한다', true, '', true]); }
   eq('붙여 넣기 F 도 읽음 ([상태] F · [F] 표 · 번호 F1)', (() => { const q = K.parseCrew('[상태]\nF: OFF 2개\n[F]\n매체\t대상\n쿠팡\t방수 페인트', K.boardOf('gh-traffic')); return [q.status.F, q.acts.F.items]; })(), ['OFF 2개', [{ n: 'F1', c: { 매체: '쿠팡', 대상: '방수 페인트' } }]]);
   eq('예약 글 시각 = 그 PC 계획', K.asideLaunch(K.boardOf('gh-rep'), '10:00').split('\n')[0], '[AI 크루 · 우주 (재구매마케터) · 그로홈 재구매 보드] 평일 10:00');
 }

@@ -359,11 +359,15 @@ export function redoFields(cur, nx, owner) {
     metrics: nx.metrics || cur.metrics || [], url: nx.url || cur.url || '', note: nx.note || cur.note || '', noteId: nx.noteId || cur.noteId || '',
     owner: owner != null ? owner : cur.owner || '', to: owner != null ? owner : cur.owner || '', step: 0, state: 'wait', path: [], pick: null, ver: (cur.ver || 1) + 1, back: null, ret: null, updatedAt: at };
 }
+// 외주 운영 기간(adops AD_MODE · 2026-10-15 사장님 "세팅등록한것을 분석만") — 메타·네이버·쿠팡 광고 할 일(adMedia) = 실행 없음(보고만)
+//   승인해도 '광고관리자·광고센터에서 바꾼다' 실행 업무를 만들지 않음 · 보드 글(exec)은 외주가 끝나면 그대로 다시 씀
+export const adHold = (a) => !!(a && a.adMedia && AD_MODE.mode === 'outsourced' && AD_MODE.media.includes(a.adMedia));
+export const execOf = (a) => (!a || adHold(a) ? '' : a.exec || '');
 // 행동 하나 = 승인 요청 하나로 (보드 붙여 넣기) — 표가 비고 요약·설명도 없으면 안 만듦 · R(맡긴 일)은 빼고 askFromReq 로
 export function asksFromParse(p, { board, mate, brand, run, at, owner, src }) {
   const b = typeof board === 'string' ? boardOf(board) : board; if (!b) return [];
   return Object.entries(p.acts).filter(([c, x]) => c !== 'R' && ((x.items || []).length || x.sum || (x.body || []).length)).map(([c, x]) => { const a = actOf(b.id, c) || { t: `${c}`, exec: '' };
-    return askDoc({ id: askId(mate, run, `${b.id}${c}`), mate, brand, board: b.id, act: c, run, at, owner, src, title: `${b.title} ${c} · ${a.t}`, sum: x.sum || p.status[c] || '', body: (x.body || []).join('\n'), cols: x.cols || [], items: x.items || [], exec: a.exec || '' }); });
+    return askDoc({ id: askId(mate, run, `${b.id}${c}`), mate, brand, board: b.id, act: c, run, at, owner, src, title: `${b.title} ${c} · ${a.t}`, sum: x.sum || p.status[c] || '', body: (x.body || []).join('\n'), cols: x.cols || [], items: x.items || [], exec: execOf(a) }); });
 }
 
 // ── 맡긴 일 (2026-10-15 사장님 "ai팀원에게 업무요청을 별도로해서 진행도 가능했으면 좋겠어") ──
@@ -530,12 +534,12 @@ export function asideText(b, opt = {}) {
         `  오늘: ${HUB_ADS} 에서 오늘 보고서를 보고 [상태] ${a.c} 에 한 줄만 쓴다 (예: 'OFF 2개 · 새 롱테일 3개' · 보고서가 없으면 '막힘 — 오늘 광고 보고서 없음'). 표는 안 쓴다.`, '');
       return; }
     L.push(`${a.c}. ${a.t} — 언제: ${a.when}${a.k ? ` · 보는 지표: ${a.k}` : ''}`, `  왜: ${a.w}`);
-    if (a.adMedia && AD_MODE.mode === 'outsourced' && AD_MODE.media.includes(a.adMedia))   // 외주 운영 기간 (2026-10-15 사장님 · 약 2개월)
+    if (adHold(a))   // 외주 운영 기간 (2026-10-15 사장님 · 약 2개월)
       L.push(`  ★ ${AD_MODE.label} (${AD_MODE.from}부터 ${AD_MODE.until}): ${a.adMedia} 광고는 외주업체가 운영 — 끄기·증액·입찰·제외 키워드 같은 바꿀 안은 만들지 않는다. 아래 단계는 외주 세팅과 성과를 읽고 표로 기록하는 데까지만 하고, 표의 '할 일'·'제안' 칸에는 '외주 세팅 그대로 · 관찰'처럼 관찰한 것만 쓴다.`);
     if (a.qty) { const n = qtyNow({ qty: opt.qty }, a.c, a.qty.n); L.push(`  이번 몫: ${a.qty.l} ${n}${a.qty.u}${n !== a.qty.n ? ` (담당이 정함 · 기본 ${a.qty.n}${a.qty.u})` : ''} — 보드 글의 숫자보다 이 수가 먼저`); }
     a.s.forEach((s, i) => { const p = stepParts(s);
       L.push(`  ${i + 1}) ${p.ai ? p.ai : `(사람 몫 · AI는 하지 않음) ${p.human}`}${p.ai && p.human ? ` — 그다음 '${p.human}' = 사람 몫` : ''}`); });
-    L.push(`  올리는 표 칸: ${a.cols.join(' | ')}`, `  승인 뒤 사람이 할 일: ${a.exec || '없음 (보고만)'}`, '');
+    L.push(`  올리는 표 칸: ${a.cols.join(' | ')}`, `  승인 뒤 사람이 할 일: ${execOf(a) || (adHold(a) ? '없음 (외주 운영 기간 · 보고만)' : '없음 (보고만)')}`, '');
   });
   if (b.checklist) { L.push(`■ 참고: ${b.checklist.title} — 체크·담당은 사람이 업무OS 신제품 프로젝트에서 (보기만)`);
     b.checklist.items.forEach((x) => L.push(`- ${x.d} ${x.t}`)); L.push(''); }

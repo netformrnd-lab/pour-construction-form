@@ -124,7 +124,8 @@ export const BOARDS = {
     run: { dow: WD, t: START },
     logins: [{ s: "인스타그램", w: "@grohome_diy · 크리에이터 찾기 · 릴스 레퍼런스 (DM 보내기는 담당)" }, { s: "틱톡", w: "크리에이터 찾기 · 레퍼런스" }, { s: "메타 광고관리자", w: "캠페인 지출 · 클릭률 · ROAS" },
       { s: "쿠팡 광고센터", w: "광고 노출" }, { s: "네이버 검색광고 (그로홈 광고 계정)", w: "광고 노출" }, { s: "오늘의집 파트너센터", w: "광고 노출" }, { s: "카페24", w: "인스타 유입 · 매출 맞추기" },
-      { s: "그로홈 대시보드", w: "인플루언서 일정 · 공동구매 · grohome-dashboard.web.app", open: true }],
+      { s: "그로홈 대시보드", w: "인플루언서 일정 · 공동구매 · grohome-dashboard.web.app", open: true },
+      { s: "구글 애즈 (그로홈)", w: "디맨드젠 캠페인·광고 초안 (게시는 담당 · 결제·충전 안 함)" }],   // F 디맨드젠 (2026-10-15)
     desc: "본 사람을 늘린다. 4채널 노출 약 618만 → 1,000만/월 (×1.6). 오늘의집·메타·네이버처럼 클릭률 높은 채널로 노출을 옮긴다.",
     metrics: [
       {"k": "exp_total", "l": "4채널 노출 (최근 30일)", "u": "만", "base": 6185000, "target": 10000000, "src": "아래 4채널 노출 합계", "dir": "up"},
@@ -143,6 +144,20 @@ export const BOARDS = {
       {"c": "C", "hq": "광고비 예산 조정", "adMedia": "메타", "t": "메타 광고 재가동과 매일 관리", "w": "자사몰 인스타 경유 매출이 월 450~650만 원이었는데 10월 0원. 광고 라이브러리에서 그로홈 공식 광고가 안 보인다.", "when": "매일 10:00", "k": "ROAS 300%, 인스타 유입", "qty": {"l": "새 광고 소재 (주)", "n": 3, "u": "종"}, "s": ["메타 광고관리자에서 캠페인별 지출, 클릭률, 구매, ROAS를 수집한다", "카페24 인스타 유입·매출과 맞춰 실제 팔린 광고를 가려낸다", "3일 연속 ROAS 200% 미만은 끄기, 400% 이상은 예산 +20%로 번호를 매긴다", "승인된 번호만 담당이 광고관리자에서 바꾼다", "매주 새 소재 3종(첫 2초 훅만 다르게)과 UTM 규칙대로 붙인 링크로 등록안을 만든다 (등록은 담당)"], "cols": ["캠페인·소재", "지출", "클릭률", "ROAS", "할 일", "근거"], "exec": "승인된 번호만 담당이 광고관리자에서 바꾼다"},
       {"c": "D", "hq": "판매가 조정", "t": "공구 월 2회", "w": "올해 공구 매출 488만 원, 목표 7,200만 원의 6.8%.", "when": "월 2회", "qty": {"l": "공구 후보 인플루언서", "n": 10, "u": "명"}, "k": "공구 매출 월 600만 원", "s": ["공구 경험이 있는 리빙 인플루언서 10명과 과거 공구 반응을 정리한다", "공구가·수수료(10~30%)를 정리하고, 마진 확인(25% 미만 표시)은 관리자 마진 대시보드에 맡긴다", "공구 공지글, 공구 상세 카피, 인플루언서용 제품 가이드(강조점 3개, 금지 표현)를 쓴다", "샘플 발송 → 게시 → 마감 일정을 정하고 매일 챙긴다", "공구 기간에는 매일 판매량을 집계한다"], "cols": ["인플루언서", "계정", "공구가", "수수료", "일정", "최근 공구 게시물"], "exec": "승인되면 담당이 공구를 확정하고 인플루언서에게 연락한다", "card": {"title": "인플루언서", "link": "계정", "linkLabel": "계정", "meta": ["공구가", "수수료", "일정"], "lines": [["최근 공구", "최근 공구 게시물"]]}},
       {"c": "E", "t": "신제품 후보 상시 발굴 (홈리페어·홈데코 전체 · 오늘의집·쿠팡·네이버)", "w": "한 후보가 준비완료되면 빠지고, 다음 후보가 계속 채워진다. 항상 10개 안팎의 후보가 조사 → 견적 문의 → 샘플 → 준비완료 단계로 돌아가게 한다.", "when": "매주 월요일 (새 후보 보충) + 승인 뒤", "k": "준비완료 후보 월 2개, 활성 후보 10개 유지", "s": ["오늘의집·쿠팡·네이버에서 홈리페어(보수·방수·단열·배수·마루·가구 보수 등)와 홈데코(필름·몰딩·벽재·바닥재·소품 시공재 등) 카테고리를 훑어 1위 레퍼런스 제품(링크, 섬네일, 가격, 리뷰)과 1점 리뷰 불만을 모은다", "네이버 월 검색량, 상위 10개 중 리뷰 1천+ 개수(시장 크기), 가격대, 그로홈 적합도(키트·번들 가능성)로 점수를 매기고, 이미 파는 제품과 기존 후보는 뺀다", "상위 후보는 레퍼런스 섬네일로 알리바바 이미지 검색을 해서 제조사 5곳을 [E 알리바바 제조사] 표로, 출시 전 필수 확인 항목 중심의 문의 멘트를 [E 문의 멘트] 표로 만든다", "후보마다 진행 단계(조사 → 견적 문의 → 샘플 → 준비완료)를 기록한다. 관리자가 승인하면 사람이 문의를 보내고 답변을 정리한다", "준비완료가 된 후보는 표에서 빼고 \"준비완료 목록\"으로 옮긴 뒤, 활성 후보가 10개가 되도록 새 후보를 채운다"], "cols": ["후보", "섬네일", "파트", "채널", "레퍼런스 제품", "레퍼런스 링크", "가격", "1위 리뷰", "월 검색", "점수", "진행 단계"], "exec": "", "card": {"title": "후보", "meta": ["파트", "채널", "진행 단계"], "tag": "점수", "tagLabel": "점수", "lines": [["레퍼런스", "레퍼런스 제품", "레퍼런스 링크"], ["시장", "가격", "1위 리뷰", "월 검색"]]}, "admin": "제조사·공급 단가를 다루는 일이라 업무OS에 올리지 않아요 — 관리자 소싱 자리(마진 대시보드)에서"},
+      // F = 구글 디맨드젠 광고 (사장님 2026-10-15 "디멘드젠광고 세팅해서 게시까지 하고싶어. 내일부터 · 외주 상관없어") — 신제품마다 5개 = 업무OS 신제품 '디맨드젠 광고 (n/5)'(launch x_dg)
+      //   AI = 구글 애즈 초안까지(게시 버튼은 안 누름) → 상품마다 승인 한 건(split · 그 신제품 담당이 받음) · 새 예산을 적었을 때만 본부장(hqIf) → 담당이 게시 → [했어요] = 그 신제품 '디맨드젠 광고' +1
+      //   규격 = 구글 애즈 고객센터 '디맨드젠 이미지 광고'(제목 40자 · 설명 90자 · 비즈니스 이름 25자 · 이미지 1.91:1·1:1·4:5 · 로고 1:1) · 예산 = 목표 CPA 의 15~20배(구글 권장)
+      {"c": "F", "t": "구글 디맨드젠 광고 — 신제품마다 5개 (외주 무관)", "adMedia": "구글", "launch": "x_dg", "split": "상품", "hq": "광고비 예산 조정", "hqIf": "예산",
+        "w": "신제품마다 디맨드젠 광고 5개(업무OS 신제품 '디맨드젠 광고 (n/5)')가 아직 0개다. 디맨드젠은 유튜브(쇼츠)·디스커버·지메일 피드에 이미지 광고를 띄워 새 고객을 만든다. 메타·네이버·쿠팡 외주와 상관없이 우리가 직접 한다.",
+        "when": "신제품 출시일 앞뒤 · 남은 신제품이 있는 평일 매일 (하루 1~2개 상품)", "qty": {"l": "광고안 (상품당)", "n": 5, "u": "개"}, "k": "디맨드젠 클릭 · 자사몰 구매 · 신제품 디맨드젠 n/5",
+        "s": ["화면 '디맨드젠 남은 신제품'에서 오늘 할 상품을 고른다 (출시일이 가깝고 남은 개수가 많은 것부터 · 하루 1~2개)",
+          "자사몰 상품 상세·리뷰·광고 운영 화면의 이긴 소재에서 소구점 3개를 뽑아 상품마다 광고 5안을 만든다 — 광고마다 제목 5개(40자 이내) · 설명 5개(90자 이내) · 비즈니스 이름 '그로홈'(25자 이내) · 버튼 '구매하기'",
+          "이미지: 상품 상세·대표 이미지와 이긴 소재를 구글 애즈 이미지 편집으로 가로 1.91:1(1200×628) · 정사각 1:1(1200×1200) · 세로 4:5(960×1200)로 맞춘다(비율마다 1장 이상, 되면 3장) · 로고 1:1(1200×1200 · 150KB 이하) · 글자 많은 특가 이미지는 피한다",
+          "구글 애즈(그로홈)에서 디맨드젠 캠페인 초안: 목표 '판매' · 입찰 '전환수 최대화'(전환 추적이 없으면 '클릭수 최대화' + [상태]에 적음) · 상품마다 광고 그룹 1개 · 최종 URL = 자사몰 상품 상세 + utm_source=google&utm_medium=paid&utm_campaign=dg_상품 — 마지막 [게시]는 누르지 않고 초안으로 저장",
+          "새 캠페인이라 예산이 필요하면 '예산' 칸에 일 예산 제안(목표 CPA 의 15~20배가 구글 권장 · 근거 한 줄) — 이미 있는 캠페인에 광고만 더하면 비워 둔다 (예산을 적으면 본부장 승인)",
+          "표 = 광고마다 한 줄 (상품 · 광고 1~5 · 제목 · 설명 · 이미지 · 최종 URL · 예산 · 초안 링크) · 승인되면 담당이 구글 애즈에서 초안을 확인하고 [게시] · 광고 하나 게시할 때마다 업무OS 실행 업무 [했어요](게시된 광고 링크) = 신제품 '디맨드젠 광고' +1"],
+        "cols": ["상품", "광고", "제목", "설명", "이미지", "최종 URL", "예산", "초안 링크"],
+        "exec": "승인되면 담당이 구글 애즈에서 초안을 확인하고 [게시]한다 — 광고 하나 게시할 때마다 실행 업무 [했어요](게시된 광고 링크) → 그 신제품 '디맨드젠 광고' +1"},
     ] },
   "gh-traffic": { id: "gh-traffic", mate: "gaeul", brand: "grohome", code: "유입", title: "유입 보드",
     run: { dow: WD, t: START },
@@ -190,7 +205,7 @@ export const BOARDS = {
       {"c": "D", "hq": "판매가 조정", "t": "리셀러·아이템위너 관리 (내 상품 페이지에서 남이 팔지 않게)", "w": "네이버쇼핑 상위는 그로홈 상품을 파는 리셀러가 차지하고, 쿠팡도 같은 상품에 다른 판매자가 붙으면 구매 버튼(아이템위너)을 뺏겨 우리 상세 노력이 남의 주문이 된다.", "when": "매일 10:00", "k": "히어로 4종 아이템위너 유지율 100%, 리셀러 최저가 이탈 0건", "s": ["히어로 상품의 쿠팡 아이템위너와 다른 판매자 가격, 네이버쇼핑 리셀러 가격을 매일 확인한다", "그로홈보다 싸게 파는 판매자와 위너를 뺏긴 상품을 위에 알린다", "최소 판매가 정책(MAP)과 리셀러 공급 조건 안내문 초안을 쓴다", "승인되면 담당이 쿠팡 가격·배송 조건을 조정해 위너를 되찾고, 리셀러에게 안내문을 보낸다", "위너 유지율과 리셀러 가격을 주간으로 기록한다"], "cols": ["상품", "채널", "판매자", "가격", "그로홈 가격", "차이", "위너 여부", "할 일"], "exec": "승인되면 담당이 쿠팡 가격·배송 조건을 조정해 위너를 되찾고, 리셀러에게 안내문을 보낸다"},
       {"c": "E", "t": "리뷰 정리 + 진짜 포토리뷰 확보", "w": "같은 문장이 반복되는 리뷰는 쿠팡·네이버 제재 위험.", "when": "매일 11:00", "k": "월 포토리뷰 수", "s": ["3채널 리뷰를 모아 같은 문장 반복, 이상 패턴을 목록으로 만든다", "1~2점 리뷰를 불만 유형별로 분류한다", "리뷰 답글 초안을 쓴다 · 승인되면 담당이 게시한다", "리뷰플레이스·티블 체험단 모집글을 쓴다", "지식인·카페 질문에 달 제품 답변 초안을 쓴다 (등록은 담당)"], "cols": ["채널", "리뷰 요약", "유형", "답글 초안·조치"], "exec": "승인되면 담당이 답글·답변을 게시한다"},
       // F = 광고 일일 보고서 (2026-10-15 · 가을 F 와 같은 08:30 루틴) · 기준 = 데일리그로스 메타 운영 제안(캠페인 3개 고정 신규 60 · 리타겟 10 · 테스트 30 · 금요일 판정)
-      {"c": "F", "t": "메타 외주 운영 분석 + 금요일 판정 비교", "report": "ads", "w": "2026-10-15부터 약 2개월 메타 광고는 외주업체가 운영한다. 메타 ROAS 1~9월 205%, 9월 286% → 12월 목표 350%. 외주 세팅과 판정을 제안서 기준(캠페인 3개 고정 · 금요일 판정)과 나란히 쌓는다.", "when": "매일 08:30 · 금 16:00", "k": "메타 ROAS 350%, 자사몰 MER", "s": ["메타 광고관리자에서 계정별 광고 단위 성과(어제 · 7일 · 14일)와 학습 상태를 읽는다", "외주업체가 바꾼 캠페인·세트·소재·예산을 어제와 비교해 변경 기록에 남긴다", "캠페인 구조가 제안서 3개(신규 60 · 리타겟 10 · 테스트 30)와 다르면 차이를 적는다", "금요일 16:00: 외주 판정(증액·유지·종료·보류)과 제안서 기준(350%+ 2주 · 200~350% · 180% 미만 2주 · 구매 10건)을 나란히 적는다", "자사몰 MER(카페24 순매출 ÷ 메타 광고비)을 같이 적어 일일·주간 보고서를 올린다 · 광고는 끄거나 바꾸지 않는다"], "cols": ["매체", "캠페인", "대상", "근거", "조치"], "exec": "실행은 외주업체 · 예산·목표는 본부장 — 우리 쪽은 분석·보고만 (외주에 전할 말은 담당이 보낸다)"},
+      {"c": "F", "t": "메타 외주 운영 분석 + 금요일 판정 비교", "report": "ads", "w": "2026-10-15부터 약 2개월 메타 광고는 외주업체가 운영한다. 메타 ROAS 1~9월 205%, 9월 286% → 12월 목표 350%. 외주 세팅과 판정을 김송희 관리방안(상품별 캠페인 · 테스트 300% · 고정 400~500% — 외주 기간 운영 기준)과 비교하고, 제안서 기준(캠페인 3개 · 금요일 판정)은 참고로 나란히 쌓는다.", "when": "매일 08:30 · 금 16:00", "k": "메타 ROAS 350%, 자사몰 MER", "s": ["메타 광고관리자에서 계정별 광고 단위 성과(어제 · 7일 · 14일)와 학습 상태를 읽는다", "외주업체가 바꾼 캠페인·세트·소재·예산을 어제와 비교해 변경 기록에 남긴다", "캠페인 구조가 김송희 관리방안(상품별 캠페인 → 세트 = 소구점·타겟 → 세트 안 소재 테스트)과 다르면 차이를 적는다 (제안서 3개 구조와의 차이는 참고로)", "금요일 16:00: 외주 판정(증액·유지·종료·보류)과 김송희 기준(테스트 300% · 고정 400~500%)을 나란히 적고, 제안서 기준(350%+ 2주 · 200~350% · 180% 미만 2주 · 구매 10건)은 참고로 적는다", "자사몰 MER(카페24 순매출 ÷ 메타 광고비)을 같이 적어 일일·주간 보고서를 올린다 · 광고는 끄거나 바꾸지 않는다"], "cols": ["매체", "캠페인", "대상", "근거", "조치"], "exec": "실행은 외주업체 · 예산·목표는 본부장 — 우리 쪽은 분석·보고만 (외주에 전할 말은 담당이 보낸다)"},
     ] },
   "gh-aov": { id: "gh-aov", mate: "haneul", brand: "grohome", code: "객단가", title: "객단가 보드",
     run: { dow: WD, t: START },
@@ -355,6 +370,7 @@ export function askDoc(o) {
   return { id: o.id, crew: c ? c.id : 'base', mate: o.mate, mateName: m.name, brand: o.brand || '', board: o.board || '', act: o.act || '', run: o.run || at.slice(0, 10),
     title: String(o.title || '').slice(0, 120), sum: maskPII(o.sum || '').slice(0, 400), body: maskPII(o.body || '').slice(0, 20000), cols: o.cols || [], items: (o.items || []).slice(0, 200),
     exec: o.exec || '', hq: o.hq || '', url: o.url || '', note: o.note || '', noteId: o.noteId || '', metrics: o.metrics || [],
+    ...(o.launch ? { launch: o.launch, prod: o.prod || '' } : {}),   // 신제품 칸(디맨드젠 x_dg) · 상품 — 실행 업무 [했어요] = 그 신제품 +1 (2026-10-15)
     owner, to: owner, step: 0, state: 'wait', path: [], pick: null, ver: 1, back: null, ret: null,
     log: [{ at, by, byName, act: 'ask' }], createdAt: at, updatedAt: at, by, byName, src: o.src || '' };
 }
@@ -363,7 +379,7 @@ export const canRedo = (cur) => !!cur && (cur.state === 'back' || (cur.state ===
 export function redoFields(cur, nx, owner) {
   const at = nx.at || new Date().toISOString();
   return { title: nx.title || cur.title, sum: maskPII(nx.sum || ''), body: maskPII(nx.body || '').slice(0, 20000), cols: nx.cols || [], items: (nx.items || []).slice(0, 200), exec: nx.exec != null ? nx.exec : cur.exec || '',
-    hq: nx.hq != null ? nx.hq : cur.hq || '', hqUp: null,   // 본부장 승인 일 (2026-10-15) · [본부장에게도 올리기]는 새 판에서 다시
+    hq: nx.hq != null ? nx.hq : cur.hq || '', hqUp: null, ...(nx.launch ? { launch: nx.launch, prod: nx.prod || cur.prod || '' } : {}),   // 본부장 승인 일 (2026-10-15) · [본부장에게도 올리기]는 새 판에서 다시
     metrics: nx.metrics || cur.metrics || [], url: nx.url || cur.url || '', note: nx.note || cur.note || '', noteId: nx.noteId || cur.noteId || '',
     owner: owner != null ? owner : cur.owner || '', to: owner != null ? owner : cur.owner || '', step: 0, state: 'wait', path: [], pick: null, ver: (cur.ver || 1) + 1, back: null, ret: null, updatedAt: at };
 }
@@ -374,11 +390,20 @@ export const adHold = (a) => !!(a && a.adMedia && AD_MODE.mode === 'outsourced' 
 export const execOf = (a) => (!a || adHold(a) || (a.report === 'ads' && AD_MODE.mode === 'outsourced') ? '' : a.exec || '');
 // 행동 하나 = 승인 요청 하나로 (보드 붙여 넣기) — 표가 비고 요약·설명도 없으면 안 만듦 · R(맡긴 일)은 빼고 askFromReq 로
 // owner = 담당 id 또는 (할 일 글자) => 담당 id (할 일별 담당 · 2026-10-15)
+// hqIf = 그 칸에 값이 있는 줄이 있을 때만 본부장 승인 (디맨드젠 '예산' · 새 예산 = 광고비 예산 조정)
+export const hqFor = (a, ex, items) => (!ex || !a || !a.hq ? '' : !a.hqIf ? a.hq : (items || []).some((it) => String(((it && it.c) || {})[a.hqIf] || '').trim()) ? a.hq : '');
+export const prodOf = (it, col) => String(((it && it.c) || {})[col] || '').trim();
+// owner(할 일 글자, 상품) — split 할 일은 상품마다 한 건(id 끝 = 상품) · 담당 = 그 신제품 담당(crew.html)
 export function asksFromParse(p, { board, mate, brand, run, at, owner, src }) {
   const b = typeof board === 'string' ? boardOf(board) : board; if (!b) return [];
-  return Object.entries(p.acts).filter(([c, x]) => c !== 'R' && ((x.items || []).length || x.sum || (x.body || []).length)).map(([c, x]) => { const a = actOf(b.id, c) || { t: `${c}`, exec: '' };
-    const ex = execOf(a), ow = typeof owner === 'function' ? owner(c) : owner;
-    return askDoc({ id: askId(mate, run, `${b.id}${c}`), mate, brand, board: b.id, act: c, run, at, owner: ow, src, title: `${b.title} ${c} · ${a.t}`, sum: x.sum || p.status[c] || '', body: (x.body || []).join('\n'), cols: x.cols || [], items: x.items || [], exec: ex, hq: ex ? a.hq || '' : '' }); });
+  return Object.entries(p.acts).filter(([c, x]) => c !== 'R' && ((x.items || []).length || x.sum || (x.body || []).length)).flatMap(([c, x]) => { const a = actOf(b.id, c) || { t: `${c}`, exec: '' };
+    const ex = execOf(a), base = { mate, brand, board: b.id, act: c, run, at, src, sum: x.sum || p.status[c] || '', body: (x.body || []).join('\n'), cols: x.cols || [], exec: ex };
+    if (a.split && (x.items || []).length) {
+      const g = new Map(); x.items.forEach((it) => { const k = prodOf(it, a.split) || '상품 미정'; if (!g.has(k)) g.set(k, []); g.get(k).push(it); });
+      return [...g.entries()].map(([k, its]) => askDoc({ ...base, id: askId(mate, run, `${b.id}${c}_${k}`), owner: typeof owner === 'function' ? owner(c, k) : owner,
+        title: `${b.title} ${c} · ${k} · ${a.t}`, items: its, hq: hqFor(a, ex, its), launch: a.launch || '', prod: k }));
+    }
+    return [askDoc({ ...base, id: askId(mate, run, `${b.id}${c}`), owner: typeof owner === 'function' ? owner(c) : owner, title: `${b.title} ${c} · ${a.t}`, items: x.items || [], hq: hqFor(a, ex, x.items) })]; });
 }
 
 // ── 맡긴 일 (2026-10-15 사장님 "ai팀원에게 업무요청을 별도로해서 진행도 가능했으면 좋겠어") ──
@@ -518,6 +543,31 @@ export function asideLaunch(b, t) {
     RULE_SHORT,
   ].join('\n');
 }
+// 신제품 칸 남은 것 (디맨드젠 x_dg · 2026-10-15) — crew.html 이 업무OS 업무(launchItem)·프로젝트를 읽어 넘김
+//   끝냄·버림·없앤 것 빼고 · 크루 브랜드만 · 아마존 수출 트랙(lbProject amazon-*) 빼고 · 개수 = count 칸 → 제목 '(n/목표)' · 출시일 가까운 순 (미정은 맨 뒤)
+const lcnt = (t) => { if (t.count != null && !isNaN(+t.count)) return Math.max(0, +t.count); const m = /\((\d+)\s*\/\s*\d+\)\s*$/.exec(t.title || ''); return m ? +m[1] : 0; };
+const lgoal = (t) => { const m = /\(\d+\s*\/\s*(\d+)\)\s*$/.exec(t.title || ''); return m ? +m[1] : 5; };
+export const prodKey = (s) => String(s || '').replace(/[\s·()\-_/]+/g, '').toLowerCase();
+export function launchRows(tasks, projects, { item, brands } = {}) {
+  const pm = new Map((projects || []).map((p) => [p.id, p])), gone = (x) => !!(x && x.removed && x.removed.at);
+  return (tasks || []).filter((t) => t && t.launchItem === item && !gone(t) && !['done', 'dropped'].includes(t.status)).map((t) => ({ t, p: pm.get(t.projectId) || null }))
+    .filter(({ t, p }) => p && !gone(p) && !/^amazon/.test(String(p.lbProject || '')) && p.status !== 'done' && (!brands || brands.includes(t.brand || p.brand)))
+    .map(({ t, p }) => ({ id: t.id, prod: String(p.title || p.name || '').trim(), n: lcnt(t), g: lgoal(t), owner: t.assigneeId || '', launch: p.launchDate || '', due: t.dueDate || '', brand: t.brand || p.brand || '' }))
+    .filter((x) => x.prod && x.n < x.g)
+    .sort((a, b) => String(a.launch || '9999').localeCompare(String(b.launch || '9999')) || String(a.due || '9999').localeCompare(String(b.due || '9999')) || a.prod.localeCompare(b.prod));
+}
+// 상품 이름 → 신제품 줄 (띄어쓰기·기호 무시 · 같으면 먼저 · 없으면 한쪽이 다른 쪽을 품을 때)
+export const launchRowOf = (rows, prod) => { const k = prodKey(prod); if (!k) return null; return (rows || []).find((r) => prodKey(r.prod) === k) || (rows || []).find((r) => { const q = prodKey(r.prod); return q && (q.includes(k) || k.includes(q)); }) || null; };
+// 할 일 하나만 지금 (crew.html 디맨드젠 [F만 지금 하기] · 2026-10-15) — 오늘 지시문 중 그 할 일만
+export function asideActLaunch(b, c) {
+  const { m, head } = who(b), a = actOf(b.id, c) || { t: c };
+  return [`[${head} · ${c} 할 일만 지금] ${a.t}`,
+    `1. 이 주소를 연다: ${crewUrl(b)} (마케팅 허브 업로더 계정으로 로그인돼 있음)`,
+    `2. 화면 '오늘 지시문'(${m.name} · ${b.title})에서 ■ 2의 ${c} 할 일만 그대로 한다 — 다른 할 일·지표는 오늘 정해진 예약 때 한다.`,
+    `3. 결과 칸에 [상태] ${c} 한 줄 + [${c}] 표만 넣고 [미리보기] → [업무OS에 올리기] → 맨 위 '올렸어요'를 확인하면 끝.`,
+    RULE_SHORT,
+  ].join('\n');
+}
 // 화면 '오늘 지시문' (크루 한 명 · 보드 하나) — crew.html 이 보여 주고 [지시문 복사] · opt.qty = aimates 의 담당이 정한 횟수
 // 사람이 정한 계획 (업무OS AI 크루 보고서 pour-os/v2/aireports · 2026-10-15 "다음주는 AI 피드백 + 사람팀원이 직접 넣으면 추가 반영")
 //   그 칸을 담당이 확인했거나(done) 리드가 보낸(sent) 가장 최근 보고서의 '사람이 더함'(secs.<AI>.plan) + 리드·본부장 한마디 → 오늘 지시문 앞쪽(■ 사람이 정한 계획)
@@ -549,6 +599,11 @@ export function asideText(b, opt = {}) {
     "3) 화면의 '확정 규칙'은 꼭 지킨다. 화면 지시문 판이 이 글보다 새로우면 화면 지시문을 따른다.",
     '4) 여는 곳 (이 PC Aside 브라우저에 로그인돼 있음):', ...(b.logins || []).map((x) => `   - ${x.s} — ${x.w}${x.open ? ' (로그인 없음)' : ''}`),
     "   로그인이 풀려 있으면 그 일은 하지 말고 [상태]에 '막힘 — ○○ 로그인'만 쓴다 (비밀번호를 찾거나 바꾸지 않는다).", '');
+  const la = acts.find((a) => a.launch);
+  if (la && Array.isArray(opt.launch))   // 디맨드젠 남은 신제품 (업무OS 신제품 칸 · crew.html 이 읽어 넘김 · 2026-10-15)
+    L.push(`■ 디맨드젠 남은 신제품 (${la.c} 할 일 · 업무OS 신제품 '디맨드젠 광고' · 출시일 가까운 순)`,
+      ...(opt.launch.length ? opt.launch.map((r) => `- ${r.prod} · ${r.n}/${r.g}개 · 출시 ${r.launch || '미정'}${r.due ? ` · 기한 ${r.due}` : ''}`) : ['- 없음 — 오늘 F 는 [상태]에 \'대기 — 남은 신제품 없음\'']),
+      `  → 표의 '상품' 칸에 위 이름을 그대로 쓴다 (업무OS 신제품 개수가 그 이름으로 올라감) · 출시일 미정은 하지 않는다`, '');
   if (opt.plan && (opt.plan.lines || []).length)   // 업무OS AI 크루 보고서에서 사람이 더한 다음 계획 (2026-10-15)
     L.push(`■ 사람이 정한 계획 (${opt.plan.from} 보고 · 꼭 반영)`, ...opt.plan.lines.map((x) => `- ${x}`), "  → 오늘 차례인 할 일에 넣어 표로 올린다 · 오늘 못 하면 [상태]에 '계획 — 언제 할지' 한 줄", '');
   L.push('■ 1. 지표 (매번 · 화면에서 직접 확인한 숫자만 · 못 찾으면 비워 두고 [상태]에 이유)');
@@ -563,7 +618,7 @@ export function asideText(b, opt = {}) {
       return; }
     L.push(`${a.c}. ${a.t} — 언제: ${a.when}${a.k ? ` · 보는 지표: ${a.k}` : ''}`, `  왜: ${a.w}`);
     if (adHold(a))   // 외주 운영 기간 (2026-10-15 사장님 · 약 2개월)
-      L.push(`  ★ ${AD_MODE.label} (${AD_MODE.from}부터 ${AD_MODE.until}): ${a.adMedia} 광고는 외주업체가 운영 — 끄기·증액·입찰·제외 키워드 같은 바꿀 안은 만들지 않는다. 아래 단계는 외주 세팅과 성과를 읽고 표로 기록하는 데까지만 하고, 표의 '할 일'·'제안' 칸에는 '외주 세팅 그대로 · 관찰'처럼 관찰한 것만 쓴다.`);
+      L.push(`  ★ ${AD_MODE.label} (${AD_MODE.from}부터 ${AD_MODE.until}): ${a.adMedia} 광고는 외주업체가 운영 — 끄기·증액·입찰·제외 키워드 같은 바꿀 안은 만들지 않는다. 아래 단계는 외주 세팅과 성과를 읽고 표로 기록하는 데까지만 하고, 표의 '할 일'·'제안' 칸에는 '외주 세팅 그대로 · 관찰'처럼 관찰한 것만 쓴다. 비교 기준 = ${AD_MODE.basis} (광고 운영 화면 '운영 기준')`);
     if (a.qty) { const n = qtyNow({ qty: opt.qty }, a.c, a.qty.n); L.push(`  이번 몫: ${a.qty.l} ${n}${a.qty.u}${n !== a.qty.n ? ` (담당이 정함 · 기본 ${a.qty.n}${a.qty.u})` : ''} — 보드 글의 숫자보다 이 수가 먼저`); }
     a.s.forEach((s, i) => { const p = stepParts(s);
       L.push(`  ${i + 1}) ${p.ai ? p.ai : `(사람 몫 · AI는 하지 않음) ${p.human}`}${p.ai && p.human ? ` — 그다음 '${p.human}' = 사람 몫` : ''}`); });

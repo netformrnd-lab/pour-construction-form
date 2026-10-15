@@ -1,6 +1,7 @@
 // 업무OS v2 — 업무 보기 · 고정업무 보기 · 대화 · 파일
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import * as fb from "./fb.js";
+import { viewOnlyOn } from "./viewonly.js";
 import {
   ymd, addDays, ddays, ddayLabel, md, hm, ago, dayTitle, WD, isMaster, activeUsers, nameOf, STATUS_L, isDone, isOneOff, isMine, ownersOf, dueOf,
   fxIsMine, fxDueOn, fxMeDone, fxCount, fxTime, fxLabel, fxSubs, fxRecurL, fxDoneWord, fxCheckPatch, fxPeople, fxHit, fxWeekDays, fxIds, FX_WD, monthEndWorkday,
@@ -178,7 +179,7 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, id
       {parent && <div><TBtn onClick={() => open({ type: "task", id: parent.id })} style={{ padding: "2px 0" }}>상위 업무 · {parent.title} ›</TBtn></div>}
       {isGhProj(t.projectId) && <div>그로홈 그로스보드 업무{!owners.length && t.ghAssigneeName ? ` · 그로홈 담당 ${t.ghAssigneeName}` : ""} · <a className="v2-lblink" href={ghDashUrl(t.id)} target="_blank" rel="noopener">그로홈 대시보드에서 보기 ›</a></div>}
     </div>
-    {t.aiAsk && <AiTraceBox t={t} can={(mine || master) && !done} A={A} open={open} />}   {/* AI 승인 → 실행 업무 (2026-10-12) · 번호마다 흔적 → KPI (2026-10-15) */}
+    {t.aiAsk && <AiTraceBox t={t} can={(mine || master) && !done} A={A} open={open} D={D} />}   {/* AI 승인 → 실행 업무 (2026-10-12) · 번호마다 흔적 → KPI (2026-10-15) */}
     {t.firstStep && !done && <Banner><b>첫 걸음</b> · {t.firstStep}</Banner>}
     {/* 신제품 횟수 항목(블로그 포스팅 3회 …): 할 때마다 [+1] → 반복(행동지표) 짝이 있으면 같이 (routineui) */}
     <CountBox t={t} D={D} cu={cu} A={A} can={mine || master || !!(p && p.assigneeId === cu.id)} />
@@ -374,8 +375,9 @@ function NoteEdit({ D, cu, A, n, itemId, onDone }) {
       <TBtn v="solid" disabled={busy || U.busy || (!text.trim() && !keep.length && !U.rows.length)} onClick={() => save()} style={{ minWidth: 64, height: 36 }}>{busy || U.busy ? "저장 중" : "저장"}</TBtn></div>
   </div>;
 }
-// readOnly: 없앤 업무를 링크로 열었을 때 — 대화는 보이지만 새로 쓰기·답글·고치기 없음
-export function Thread({ D, cu, A, notes, itemId, ctx, rec, onRec, cfg, link, hl, readOnly }) {
+// readOnly: 없앤 업무를 링크로 열었을 때 · 보기 모드(팀원 화면 읽기만 · 2026-10-15) — 대화는 보이지만 새로 쓰기·답글·고치기 없음
+export function Thread({ D, cu, A, notes, itemId, ctx, rec, onRec, cfg, link, hl, readOnly: ro0 }) {
+  const readOnly = ro0 || !!viewOnlyOn();
   const [got, setGot] = useState(null), [miss, setMiss] = useState(false), [hlOn, setHlOn] = useState(""), hlDone = useRef(false);
   const all = got && !notes.some((n) => n.id === got.id) ? [...notes, got] : notes;
   const th = threads(all, itemId);

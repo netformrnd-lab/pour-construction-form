@@ -2,6 +2,7 @@
 //   빌드: npx vite build --config test/vite.test.config.js (src/fb.js → 이 파일로 바꿔 끼움)
 //   데이터: window.__V2 = { v2: {키: {id: 문서}}, meta: {...}, writes: [] } · 버전1 읽기 = window.__V1_DATA · __V1_DOCS · __V1_LAUNCH
 //   시험 도구: window.__OTHER(키, id, 칸) = '다른 사람이 지금 바꿈' · window.__V2.writes = 쓴 기록 · window.__FETCH_FAIL(정규식) · __UP_MS · __UP_FAIL
+import { guardWrite } from "../src/viewonly.js";   // 보기 모드 쓰기 잠금 — 진짜 저장 장치와 같은 자리에서 막음
 const W = typeof window !== "undefined" ? window : globalThis;
 const ST = () => { if (!W.__V2) W.__V2 = { v2: {}, meta: null, writes: [] }; if (!W.__V2.v2) W.__V2.v2 = {}; if (!W.__V2.writes) W.__V2.writes = []; return W.__V2; };
 const col = (key) => { const s = ST(); if (!s.v2[key]) s.v2[key] = {}; return s.v2[key]; };
@@ -58,18 +59,18 @@ const rec = (op, key, id, data) => { ST().writes.push({ op, key, id, data: clone
 export async function getOne(key, id) { const d = col(key)[id]; return d ? { ...clone(d), id: d.id || id } : null; }
 export async function fetchWhere(key, w) { const f = W.__FETCH_FAIL; if (f && f.test(key)) { W.__FETCH_FAIL = null; throw new Error("시험: 읽기 실패 " + key); } (ST().fetches = ST().fetches || []).push({ key, w }); return items(key, w); }
 export async function getMeta() { return clone(ST().meta); }
-export async function setMeta(data) { ST().meta = mergeDeep(ST().meta, data); save(); }
-export async function put(key, id, data) { col(key)[id] = deep(data); rec("put", key, id, data); kick(); }
-export async function merge(key, id, data) { col(key)[id] = mergeDeep(col(key)[id], data); rec("merge", key, id, data); kick(); }
-export async function patch(key, id, fields) { const d = col(key)[id]; if (!d) throw new Error(`시험: 없는 문서 ${key}/${id}`); Object.entries(fields).forEach(([k, v]) => setPath(d, k, v)); rec("patch", key, id, fields); kick(); }
-export async function putMany(ops, onProgress, opt) { ops.forEach((o) => { col(o.key)[o.id] = opt && opt.merge ? mergeDeep(col(o.key)[o.id], o.data) : deep(o.data); rec("put", o.key, o.id, o.data); }); onProgress && onProgress(ops.length, ops.length); kick(); }
-export async function patchMany(ops, onProgress) { for (const o of ops) await patch(o.key, o.id, o.fields); onProgress && onProgress(ops.length, ops.length); }
-export async function patchIf(key, id, expect, fields) { const d = col(key)[id] || null; if (!fits(d, expect)) return { ok: false, cur: clone(d) }; await patch(key, id, fields); return { ok: true, cur: clone(d) }; }
-export async function patchManyIf(ops) { let done = 0; const skipped = []; for (const o of ops) { const d = col(o.key)[o.id]; if (fits(d, o.expect)) { await patch(o.key, o.id, o.fields); done++; } else skipped.push(o.id); } return { done, skipped }; }
-export async function createMissing(ops) { let made = 0, skipped = 0; ops.forEach((o) => { if (col(o.key)[o.id]) skipped++; else { col(o.key)[o.id] = deep(o.data); rec("put", o.key, o.id, o.data); made++; } }); kick(); return { made, skipped }; }
-export async function txDoc(key, id, fn) { const cur = col(key)[id] ? clone(col(key)[id]) : null, out = fn(cur) || {};
+export async function setMeta(data) { guardWrite(); ST().meta = mergeDeep(ST().meta, data); save(); }
+export async function put(key, id, data) { guardWrite(); col(key)[id] = deep(data); rec("put", key, id, data); kick(); }
+export async function merge(key, id, data) { guardWrite(); col(key)[id] = mergeDeep(col(key)[id], data); rec("merge", key, id, data); kick(); }
+export async function patch(key, id, fields) { guardWrite(); const d = col(key)[id]; if (!d) throw new Error(`시험: 없는 문서 ${key}/${id}`); Object.entries(fields).forEach(([k, v]) => setPath(d, k, v)); rec("patch", key, id, fields); kick(); }
+export async function putMany(ops, onProgress, opt) { guardWrite(); ops.forEach((o) => { col(o.key)[o.id] = opt && opt.merge ? mergeDeep(col(o.key)[o.id], o.data) : deep(o.data); rec("put", o.key, o.id, o.data); }); onProgress && onProgress(ops.length, ops.length); kick(); }
+export async function patchMany(ops, onProgress) { guardWrite(); for (const o of ops) await patch(o.key, o.id, o.fields); onProgress && onProgress(ops.length, ops.length); }
+export async function patchIf(key, id, expect, fields) { guardWrite(); const d = col(key)[id] || null; if (!fits(d, expect)) return { ok: false, cur: clone(d) }; await patch(key, id, fields); return { ok: true, cur: clone(d) }; }
+export async function patchManyIf(ops) { guardWrite(); let done = 0; const skipped = []; for (const o of ops) { const d = col(o.key)[o.id]; if (fits(d, o.expect)) { await patch(o.key, o.id, o.fields); done++; } else skipped.push(o.id); } return { done, skipped }; }
+export async function createMissing(ops) { guardWrite(); let made = 0, skipped = 0; ops.forEach((o) => { if (col(o.key)[o.id]) skipped++; else { col(o.key)[o.id] = deep(o.data); rec("put", o.key, o.id, o.data); made++; } }); kick(); return { made, skipped }; }
+export async function txDoc(key, id, fn) { guardWrite(); const cur = col(key)[id] ? clone(col(key)[id]) : null, out = fn(cur) || {};
   if (out.write) { if (cur) await patch(key, id, out.write); else await put(key, id, { id, ...out.write }); } return out.ret ?? null; }
-export async function txDocs(docs, fn) { const curs = docs.map((d) => (col(d.key)[d.id] ? clone(col(d.key)[d.id]) : null)), out = fn(curs) || {};
+export async function txDocs(docs, fn) { guardWrite(); const curs = docs.map((d) => (col(d.key)[d.id] ? clone(col(d.key)[d.id]) : null)), out = fn(curs) || {};
   for (let i = 0; i < (out.writes || []).length; i++) { const w = out.writes[i]; if (!w) continue; if (curs[i]) await patch(docs[i].key, docs[i].id, w); else await put(docs[i].key, docs[i].id, { id: docs[i].id, ...w }); } return out.ret ?? null; }
 
 // 버전1 읽기 (읽기만)
@@ -79,10 +80,10 @@ export function listenV1Doc(id, cb) { setTimeout(() => cb(clone((W.__V1_DOCS || 
 export async function readV1Notes() { return clone(W.__V1_NOTES || []); }
 export function listenLaunch(cb) { setTimeout(() => { const a = clone(W.__V1_LAUNCH || []); a.structure = null; cb(a, false); }, 0); return () => {}; }
 export async function readLaunchProduct(id) { return clone((W.__V1_LAUNCH || []).find((x) => x.id === id) || null); }
-export async function patchLaunchIf(ops) { return { done: 0, skipped: ops.map((o) => o.id) }; }
-export async function backupLaunch() { return true; }
+export async function patchLaunchIf(ops) { guardWrite(); return { done: 0, skipped: ops.map((o) => o.id) }; }
+export async function backupLaunch() { guardWrite(); return true; }
 // 파일 (가짜 주소 · 진행 4단계)
-export async function upload(target, file, onProg) {
+export async function upload(target, file, onProg) { guardWrite();
   const f = W.__UP_FAIL; if (f && f.test(String(file && file.name))) { if (W.__UP_FAIL_ONCE) W.__UP_FAIL = null; throw new Error("시험: 올리기 실패"); }
   for (let i = 1; i <= 4; i++) { await new Promise((r) => setTimeout(r, (W.__UP_MS || 40) / 4)); onProg && onProg(i / 4); }
   return { name: file.name || "file", url: "https://example.test/" + encodeURIComponent(file.name || "file"), path: `task-attachments/v2/${target}/${Date.now()}_${file.name || "file"}`, size: file.size || 0, type: file.type || "", uploadedAt: new Date().toISOString() };

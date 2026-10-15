@@ -13,8 +13,10 @@ export const HUB_MANUAL = 'https://pour-construction-form.pages.dev/marketing-hu
 // 외주 운영 기간 (사장님 결정 2026-10-15 "광고관리 메타, 네이버, 쿠팡은 약 2개월간 다른 외주업체 이용해보고 나중에 자동화로 이용할거야.
 //   지금부터는 광고 외주업체에서 세팅등록한것을 분석만해서 데이터 쌓고 보고해. 매일, 매주 금요일마다 보고해")
 //   → Aside 자동 OFF 멈춤 · 외주 세팅 읽기·분석·기록·보고만 · 일일(매일 08:30) + 주간(금 16:00) 보고서 · 끝나면(약 12월 중순) 쌓인 데이터로 자동화 여부 결정
+//   사장님 2026-10-15 "광고는 외주기간에는 김송희의 방안으로 진행해줘" → 외주 기간 운영 기준(basis) = 김송희 관리방안 (KSH_RULES · 판정 비교 expectKsh) · 데일리그로스 제안서는 참고 검증
 export const AD_MODE = { mode: 'outsourced', label: '외주 운영 기간 · 분석·보고만', from: '2026-10-15', until: '약 2개월 (12월 중순)', media: ['메타', '네이버', '쿠팡'],
-  daily: '매일 08:30', weekly: '금 16:00', note: '메타·네이버·쿠팡 광고는 외주업체가 세팅·운영해요. Aside 는 외주 세팅을 분석해 데이터를 쌓고 보고만 해요 (끄기·켜기·예산·입찰·소재 변경 없음).' };
+  daily: '매일 08:30', weekly: '금 16:00', basis: '김송희 관리방안',
+  note: '메타·네이버·쿠팡 광고는 외주업체가 세팅·운영해요. 운영 기준은 김송희 관리방안이에요 — Aside 는 외주 세팅이 그 기준과 맞는지 분석해 쌓고 보고만 해요 (끄기·켜기·예산·입찰·소재 변경 없음 · 데일리그로스 제안서는 참고로 같이 봄).' };
 
 // 광고 AI팀 = B2C 크루 6명의 광고 몫 (매뉴얼 ad-ops-team 표와 같게 · 고치면 둘 다) — 제안서에 없는 분담 = 출처 [Aside 추가] (제안서 원래 역할 = PROPOSAL_ROLES)
 export const AD_ROLES = {
@@ -79,10 +81,12 @@ export function changeLog(reps, today) {
     weeks: [...wk.entries()].sort((a, b) => b[0].localeCompare(a[0])).map(([w, n]) => ({ w, n })), months: [...mo.entries()].sort((a, b) => b[0].localeCompare(a[0])).map(([m, n]) => ({ m, n })) };
 }
 // Aside 광고 루틴 지시문 (외주 운영 기간 · 사람이 Aside 예약 작업에 붙여 넣음 · ads.html [지시문 복사]) — 고치면 ASIDE_ADS_VER 날짜를 올림
-export const ASIDE_ADS_VER = '2026-10-15';
+export const ASIDE_ADS_VER = '2026-10-15b';   // b = 운영 기준 김송희 관리방안 (2026-10-15 밤)
 export function asideAdsText() {
   return [`[광고 외주 운영 기간 · 분석·보고만] 지시문 판 ${ASIDE_ADS_VER}`,
     `기간: ${AD_MODE.from}부터 ${AD_MODE.until} — 메타·네이버·쿠팡 광고는 외주업체가 세팅·운영한다. 이후 쌓인 데이터로 자동화 여부를 정한다.`,
+    `운영 기준: ${AD_MODE.basis} (사장님 2026-10-15) — 외주 세팅·판정이 이 기준과 맞는지 본다 · 데일리그로스 제안서는 참고로 같이 적는다.`,
+    ...KSH_RULES.map((r) => `- [${SRC.K}] ${r.m}: ${r.t}`),
     '',
     '■ 지킬 것',
     '- 광고를 끄거나 켜지 않는다. 예산·입찰·타겟·소재·캠페인을 바꾸지 않는다 (자동 OFF 멈춤 · offs 는 늘 "[]").',
@@ -92,7 +96,7 @@ export function asideAdsText() {
     '',
     `■ 매일 ${AD_MODE.daily} 일일 보고서 → pour-os/v2/adreports/{YYYY-MM-DD}`,
     '- 읽는 곳: 메타 광고관리자(그로홈 · POUR스토어) · 쿠팡 광고센터 · 네이버 검색광고 2계정 · 카페24(자사몰 매출 · 있으면)',
-    '- md: 0 한 줄 결론 / 1 매체별 성과(어제 · 7일: 광고비 · 매출 · ROAS · 구매) / 2 외주 변경(어제와 달라진 세팅) / 3 제안서 기준과 다른 점 / 4 외주에 전할 말 / 쿠팡 롱테일 현황',
+    '- md: 0 한 줄 결론 / 1 매체별 성과(어제 · 7일: 광고비 · 매출 · ROAS · 구매) / 2 외주 변경(어제와 달라진 세팅) / 3 김송희 관리방안과 다른 점(제안서와 다른 점은 참고로 한 줄) / 4 외주에 전할 말(김송희 관리방안 기준) / 쿠팡 롱테일 현황',
     '- summary: 한 줄',
     '- metrics(JSON 글): {"meta_roas": 7일 메타 ROAS, "mall_mer": 자사몰 MER(카페24 순매출 ÷ 메타 광고비 · 못 보면 빼기), "total_mer": 합산 MER(못 보면 빼기)} — 화면 "제안서 검증" 실제 값',
     '- changes(JSON 글): [{"media":"메타","campaign":"…","target":"세트·소재·키워드","what":"예산","before":"일 10만","after":"일 12만","note":"…"}] — 어제와 달라진 외주 세팅 · 없으면 "[]"',
@@ -100,8 +104,8 @@ export function asideAdsText() {
     '- offs: "[]" · by: "aside" · at: 올린 시각',
     '',
     `■ 금요일 ${AD_MODE.weekly} 주간 보고서 → pour-os/v2/adreports/{그 금요일 YYYY-MM-DD}-weekly · kind: "weekly" · date: 그 금요일`,
-    '- md: 이번 주 매체별 광고비·매출·ROAS · 합산 MER · 외주 변경 요약 · 이긴 소재/진 소재 · 외주 판정 vs 제안서 기준 · 가설 H1~H6 진행 · 다음 주 볼 것 · 외주에 전할 말',
-    '- judges(JSON 글): [{"campaign","target","roas7","roas14","purchases","verdict":"외주 판정(증액·유지·종료·보류 · 없으면 \'판정 없음\')","reason"}] — 화면이 제안서 기준(350%+ 2주 · 200~350% · 180% 미만 2주 · 구매 10건)과 비교',
+    '- md: 이번 주 매체별 광고비·매출·ROAS · 합산 MER · 외주 변경 요약 · 이긴 소재/진 소재 · 외주 판정 vs 김송희 관리방안(테스트 300% · 고정 400~500%) · (참고) 제안서 기준 · 가설 H1~H6 진행 · 다음 주 볼 것 · 외주에 전할 말',
+    '- judges(JSON 글): [{"campaign","target","roas7","roas14","purchases","verdict":"외주 판정(증액·유지·종료·보류 · 없으면 \'판정 없음\')","reason"}] — 캠페인 이름에 테스트 여부가 드러나게(예: \'테스트_…\') · 화면이 김송희 관리방안(테스트 300% · 고정 400~500%)과 제안서 기준(참고)에 나란히 비교',
     '- metrics 는 이번 주 값으로',
     '- pour-os/v2/proposal/dailygrowth-202610 json 의 hypotheses[].status(미시작·진행·통과·미달·보류) · result · gaps_YYYYMMDD 를 이번 주 기준으로 갱신',
     '',
@@ -167,11 +171,19 @@ export const PROPOSAL_ROLES = [
   { who: '쿠팡 · 네이버', does: '쿠팡 = 본부장님 · 네이버 = 링크프라이스 운영 그대로 유지', src: SRC.P },
 ];
 // 운영 규칙 (출처별) — 문서 rules 가 오면 그것 · 쪽수는 pages{structure, judge, live, coupang}
+//   외주 기간 기준 = 김송희 관리방안(KSH · 광고 플레이북 매뉴얼에서 옮김 — 문서 rules 가 오면 그것) · 제안서 규칙은 ref = 참고(외주 기간 기준 아님)
+export const KSH_RULES = [
+  { k: 'ksh_meta_structure', m: '메타', t: '상품(군)별 캠페인 → 광고세트 = 소구점·타겟 → 세트 안에서 소재 테스트 · 세트별 예산이 필요하면 세트 예산 (예: 목재페인트 캠페인 — 세트A 바르는 장면 / 세트B 부식방지 강화)', src: SRC.K },
+  { k: 'ksh_meta_judge', m: '메타', t: '테스트 캠페인 ROAS 300% · 고정 캠페인(이긴 소재·타겟 = 롱테일) 400~500% 유지', src: SRC.K },
+  { k: 'ksh_meta_ops', m: '메타', t: '구매 전환 = 메인 목표(프로모션·단순 홍보 = 서브) · 월 예산 ÷ 30 = 일 예산(주말 포함 · 고정 소진 금지) · 전환수/전환값 최적화 고르기 · 상세 타겟은 적게·세밀하게 · 인스타·페북만 · \'여러 광고주의 광고\' 끔 · 원본 비율', src: SRC.K },
+  { k: 'coupang', m: '쿠팡', t: '수익률 300% · 롱테일 400~500% · 입찰 100원부터 · 키워드 보고서로 효율 없는 키워드 끄기 · 1차 자동 → 2차 수동 · 품목 유사군으로 묶기 · 큰 키워드는 수동에서 빼기', src: SRC.K },
+  { k: 'ksh_naver', m: '네이버', t: '월 1회 감수 — 예산 이동 · 손실 그룹 정리 · 비즈머니 자동충전 확인 · 자사몰행 일반 키워드 → 스마트스토어행 이동 제안', src: SRC.K },
+];
 export const RULES_DEFAULT = [
-  { k: 'structure', m: '메타', t: '캠페인 3개 고정 — ① 신규 판매 60% · ② 리타겟팅 10% · ③ 소재 테스트 30%', src: SRC.P },
-  { k: 'judge', m: '메타', t: '금요일 판정 — 증액 350%+ 2주 → 예산 +20% · 유지 200~350% → 소재 1안 교체 · 종료 180% 미만 2주 → OFF · 구매 10건 전 보류', src: SRC.P },
-  { k: 'coupang', m: '쿠팡', t: '수익률 300% · 롱테일 400~500% · 입찰 100원부터 · 키워드 보고서로 효율 없는 키워드 끄기', src: SRC.K },
-  { k: 'outsourced', m: '공통', t: '외주 운영 기간(2026-10-15부터 약 2개월) — 메타·네이버·쿠팡 세팅·실행은 외주업체 · Aside 는 분석·기록·보고만 (자동 OFF 멈춤)', src: SRC.D },
+  ...KSH_RULES,
+  { k: 'outsourced', m: '공통', t: '외주 운영 기간(2026-10-15부터 약 2개월) — 메타·네이버·쿠팡 세팅·실행은 외주업체 · 운영 기준 = 김송희 관리방안 · Aside 는 분석·기록·보고만 (자동 OFF 멈춤)', src: SRC.D },
+  { k: 'structure', m: '메타', t: '캠페인 3개 고정 — ① 신규 판매 60% · ② 리타겟팅 10% · ③ 소재 테스트 30%', src: SRC.P, ref: true },
+  { k: 'judge', m: '메타', t: '금요일 판정 — 증액 350%+ 2주 → 예산 +20% · 유지 200~350% → 소재 1안 교체 · 종료 180% 미만 2주 → OFF · 구매 10건 전 보류', src: SRC.P, ref: true },
 ];
 const objOf = (v) => { const f = jsonField(v); return f.has && !f.bad ? f.val : null; };
 export function parseProposal(doc) {
@@ -220,6 +232,14 @@ export function expectVerdict(r) {
   if (roas >= 200) return { v: '유지', why: '200~350%' };
   return { v: '', why: '180~200% · 제안서 기준 없음' };
 }
+// 김송희 관리방안 기준 (외주 기간 · 2026-10-15) — 테스트 캠페인 300% · 고정(이긴 소재·타겟) 400~500% 유지 · 관리방안에 없는 판단(구매 수·2주)은 하지 않음
+export const isTestCamp = (r) => /테스트|test|\bT\d{1,2}\b|소재\s*실험|슬롯/i.test(`${(r && r.campaign) || ''} ${(r && r.target) || ''}`);
+export function expectKsh(r) {
+  const roas = r.roas14 ?? r.roas;
+  if (roas == null) return { v: '', why: 'ROAS 없음' };
+  if (isTestCamp(r)) return roas >= 300 ? { v: '유지', why: '테스트 300%+ · 고정 캠페인으로 옮길 후보' } : { v: '종료', why: '테스트 300% 미만 · 다음 소재로' };
+  return roas >= 400 ? { v: '유지', why: '고정 400%+' } : { v: '', why: `고정 400% 미만 · 소재·타겟 점검 (관리방안 400~500%)` };
+}
 const mdCells = (l) => l.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim());
 function judgeFromMd(md, date) {
   const lines = String(md || '').split('\n'), out = [];
@@ -244,10 +264,12 @@ export function judgeLog(reps) {
     const got = arr ? arr.map((o) => ({ date: (/^\d{4}-\d{2}-\d{2}/.test(o.date || '') ? o.date.slice(0, 10) : r.date), campaign: o.campaign || o.캠페인 || '', target: o.target || o.대상 || o.ad || o.adset || '',
       roas14: nn(o.roas14 ?? o.roas2w), roas: nn(o.roas ?? o.roas7), purchases: nn(o.purchases ?? o.구매), verdictRaw: o.verdict || o.판정 || '', reason: o.reason || o.근거 || '' }))
       : judgeFromMd(r.md, r.date);
-    got.forEach((x) => { x.verdict = verdictOf(x.verdictRaw); const e = expectVerdict(x); x.expect = e.v; x.expectWhy = e.why;
-      x.match = !x.verdict || !e.v ? '판단 불가' : x.verdict === e.v ? '일치' : '다름'; rows.push(x); });
+    got.forEach((x) => { x.verdict = verdictOf(x.verdictRaw); const e = expectVerdict(x), k = expectKsh(x); x.expect = e.v; x.expectWhy = e.why; x.ksh = k.v; x.kshWhy = k.why;
+      x.match = !x.verdict || !e.v ? '판단 불가' : x.verdict === e.v ? '일치' : '다름';   // 제안서 기준 (참고)
+      x.kshMatch = !x.verdict || !k.v ? '판단 불가' : x.verdict === k.v ? '일치' : '다름';   // 김송희 기준 (외주 기간 기준)
+      rows.push(x); });
   });
   rows.sort((a, b) => String(b.date).localeCompare(String(a.date)));
   const c = Object.fromEntries(JUDGE.map((j) => [j, 0])); rows.forEach((x) => { if (c[x.verdict] != null) c[x.verdict]++; });
-  return { rows, count: c, diff: rows.filter((x) => x.match === '다름').length };
+  return { rows, count: c, diff: rows.filter((x) => x.match === '다름').length, kshDiff: rows.filter((x) => x.kshMatch === '다름').length };
 }

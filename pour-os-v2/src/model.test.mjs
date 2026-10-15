@@ -726,3 +726,18 @@ ok("업무 프로젝트 연결·바꾸기 (2026-10-13 '내 할일로 업무 등�
   assert.ok(M.canRenameProj(D.projects[5], a));                            // 신제품(lb_)도 (업무OS 이름만)
   assert.ok(!M.canRenameProj(D.projects[3], a)); assert.ok(!M.canRenameProj(D.projects[4], b)); assert.ok(!M.canRenameProj({ ...D.projects[1], removed: { at: "x" } }, a));
 });
+ok("확인할 것: 같은 대화의 새 댓글은 한 줄 '새 댓글 n'(열면 모두 읽음) · 나를 부른 댓글은 따로 · AI 크루 보고는 확인 요청 다음", () => {
+  const now = new Date("2026-10-16T09:40:00");
+  const D = { users: [{ id: "a", name: "가" }, { id: "b", name: "나" }, { id: "c", name: "다" }], projects: [{ id: "p", title: "1L 프로모션", assigneeId: "a" }],
+    tasks: [{ id: "t1", title: "1L 프로모션 기획", assigneeId: "a", status: "todo", projectId: "p" }, { id: "t2", title: "라벨지", assigneeId: "a", status: "todo" }],
+    notes: [{ id: "n1", itemId: "task:t1", by: "b", byName: "나", at: "2026-10-15T09:00:00Z", text: "첫 댓글" }, { id: "n2", itemId: "task:t1", by: "c", byName: "다", at: "2026-10-15T10:00:00Z", text: "둘째" },
+      { id: "n3", itemId: "task:t1", by: "b", byName: "나", at: "2026-10-15T11:00:00Z", text: "@가 봐 주세요", mentions: ["a"] }, { id: "n4", itemId: "task:t2", by: "b", byName: "나", at: "2026-10-15T08:00:00Z", text: "라벨 한 줄" }],
+    ai: { asks: [] }, aiRepInbox: () => [{ kind: "aiRep", tag: "주간 보고", id: "rep:w:x", title: "우주 칸 쓰기", at: "2026-10-16T00:00:00", keep: true }] };
+  const v = M.todayView(D, "a", now, {}), rows = v.inbox.map((x) => [x.kind, x.title]);
+  assert.deepEqual(rows, [["aiRep", "우주 칸 쓰기"], ["mention", "1L 프로모션 기획"], ["note", "1L 프로모션 기획 · 새 댓글 2"], ["note", "라벨지"]]);
+  const g = v.inbox.find((x) => x.n === 2);
+  assert.equal(g.id, "nt:n2|nt:n1"); assert.equal(g.whoName, "다·나"); assert.equal(g.text, "다: 둘째"); assert.equal(g.taskId, "t1");
+  assert.equal(M.todayView(D, "a", now, { "nt:n1": true }).inbox.find((x) => x.taskId === "t1" && x.kind === "note").title, "1L 프로모션 기획");   // 하나 읽으면 남은 하나는 그냥 줄
+  assert.ok(!M.todayView(D, "a", now, { "nt:n1": true, "nt:n2": true }).inbox.some((x) => x.kind === "note" && x.taskId === "t1"));
+  assert.equal(M.groupNotes([{ id: "x", kind: "note", title: "하나" }])[0].title, "하나");
+});

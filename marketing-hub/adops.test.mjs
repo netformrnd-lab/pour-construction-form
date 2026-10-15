@@ -44,7 +44,14 @@ const pdoc = { title: '데일리그로스 메타 운영 제안서(2026.10.15) �
   gaps_20261015: ['메타 캠페인 3단 구조 아님', '구매자 제외 타겟 없음'], source_rule: '[제안서 pXX] / [김송희 관리방안] / [Aside 추가]' }) };
 const P = A.parseProposal(pdoc);
 eq('제안서: 기준선 · 가설 · 차이 · 차이 날짜', [P.baseline.meta_roas_sep, P.hypotheses.map((h) => h.id), P.gaps, P.gapsAt, P.structure.live], [286, ['H1', 'H2', 'H3'], ['메타 캠페인 3단 구조 아님', '구매자 제외 타겟 없음'], '20261015', '2026-11-02']);
-eq('제안서: 역할·규칙 기본값 · 출처', [P.roles.length, P.rules.map((r) => r.src)], [4, ['제안서', '제안서', '김송희 관리방안', '사장님 결정']]);
+eq('규칙 기본값: 김송희 관리방안 먼저 · 사장님 결정 · 제안서는 참고', [P.roles.length, P.rules.map((r) => r.src), P.rules.filter((r) => r.ref).map((r) => r.k)], [4, ['김송희 관리방안', '김송희 관리방안', '김송희 관리방안', '김송희 관리방안', '김송희 관리방안', '사장님 결정', '제안서', '제안서'], ['structure', 'judge']]);
+// 외주 기간 운영 기준 = 김송희 관리방안 (2026-10-15 사장님 "광고는 외주기간에는 김송희의 방안으로 진행해줘")
+eq('외주 기간 기준', [A.AD_MODE.basis, A.AD_MODE.note.includes('김송희 관리방안')], ['김송희 관리방안', true]);
+eq('테스트 캠페인 알아보기', [A.isTestCamp({ campaign: '테스트_A1 소용량' }), A.isTestCamp({ campaign: '메인_상품별', target: 'T03 공감형' }), A.isTestCamp({ campaign: '메인_상품별', target: '목재페인트' })], [true, true, false]);
+eq('김송희 기준: 테스트 300% · 고정 400% · 그 밖은 점검', [A.expectKsh({ campaign: '테스트_A1', roas14: 320 }), A.expectKsh({ campaign: '테스트_A2', roas: 250 }), A.expectKsh({ campaign: '메인', roas14: 450 }).v, A.expectKsh({ campaign: '메인', roas14: 330 }), A.expectKsh({ campaign: '메인' }).why],
+  [{ v: '유지', why: '테스트 300%+ · 고정 캠페인으로 옮길 후보' }, { v: '종료', why: '테스트 300% 미만 · 다음 소재로' }, '유지', { v: '', why: '고정 400% 미만 · 소재·타겟 점검 (관리방안 400~500%)' }, 'ROAS 없음']);
+{ const J = A.judgeLog([{ date: '2026-10-16', judges: JSON.stringify([{ campaign: '테스트_A1', roas14: 250, purchases: 12, verdict: '유지' }, { campaign: '메인_목재', roas14: 420, purchases: 30, verdict: '증액' }]) }]);
+  eq('판정 로그: 김송희 기준 비교(외주 기간) + 제안서 기준(참고)', J.rows.map((x) => [x.campaign, x.verdict, x.ksh, x.kshMatch, x.expect, x.match]).concat([[J.kshDiff, J.diff]]), [['테스트_A1', '유지', '종료', '다름', '유지', '일치'], ['메인_목재', '증액', '유지', '다름', '증액', '일치'], [2, 0]]); }
 eq('제안서: 칸이 문서 바로 아래 + 쪽수', A.parseProposal({ baseline: '{"meta_roas_sep":290}', pages: { judge: 14 }, hypotheses: [] }).rules.find((r) => r.k === 'judge').page + '|' + A.parseProposal({ baseline: '{"meta_roas_sep":290}' }).baseline.meta_roas_sep, '14|290');
 eq('가설 상태 · 개수', [A.hypStatus('진행 중'), A.hypStatus(''), A.hypCount(P.hypotheses)], ['진행', '미시작', { 미시작: 1, 진행: 1, 통과: 1, 미달: 0, 보류: 0 }]);
 eq('출처 배지', [A.srcTags('a [제안서 p23] b [김송희 관리방안] [Aside 추가] [링크]'), A.srcText('제안서', 23), A.srcText('제안서', null), A.countSrcTags('[제안서 p3][제안서][Aside 추가]')],
@@ -78,6 +85,7 @@ eq('변경 기록: 외주 변경 + 예전 Aside 끈 것 · 주간 보고서는 �
   [['2026-10-16', '외주', '메타', '세트A', '예산 · 일 10만 → 일 12만'], ['2026-10-16', '외주', '', '', '쿠팡 B 캠페인 키워드 30개 추가'], ['2026-10-15', 'Aside', '쿠팡', '방수 페인트', 'OFF']]);
 eq('변경 기록: 이번 주 · 칸 있음', [CL.thisWeek, CL.has, A.changeLog([{ date: '2026-10-15', offs: '[]' }], '2026-10-15').has], [3, true, false]);
 { const t = A.asideAdsText();
+  eq('Aside 지시문: 운영 기준 = 김송희 관리방안 · 규칙 줄 · 판 b', [t.includes('운영 기준: 김송희 관리방안'), t.includes('- [김송희 관리방안] 메타: 테스트 캠페인 ROAS 300%'), t.includes('3 김송희 관리방안과 다른 점'), t.includes('외주 판정 vs 김송희 관리방안'), A.ASIDE_ADS_VER], [true, true, true, true, '2026-10-15b']);
   eq('Aside 지시문: 끄지 않음 · 일일·주간 · 칸 이름 · 제안서 문서 갱신', [t.includes('광고를 끄거나 켜지 않는다'), t.includes('pour-os/v2/adreports/{YYYY-MM-DD}'), t.includes('-weekly · kind: "weekly"'), ['metrics(JSON 글)', 'changes(JSON 글)', 'judges(JSON 글)', 'offs: "[]"'].every((k) => t.includes(k)), t.includes('pour-os/v2/proposal/dailygrowth-202610')], [true, true, true, true, true]); }
 
 console.log(`\n${n - bad}/${n} 통과`); if (bad) process.exit(1);

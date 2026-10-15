@@ -14,7 +14,7 @@ import {
   canSetEst, EST_MAX, canMoveProj, phaseNowOf, isGhProj, projLabel, canRenameProj,
 } from "./model.js";
 import { canEditTpl, canSaveTpl, TPL_MAX, TPL_NAME_MAX } from "./tpl.js";
-import { planLaunchImport, relaunch, isTempOwner, LAUNCH_ITEMS } from "./launch.js";
+import { planLaunchImport, relaunch, isTempOwner, LAUNCH_ITEMS, targetOf } from "./launch.js";
 import { nextTurnText } from "./turn.js";
 import { planLaunchSync, planLaunchTrash, planRowSync, planCustomSteps } from "./lbsync.js";
 import { planLaunchPush, BY as LB_BY } from "./lbpush.js";
@@ -23,7 +23,7 @@ import { parseMentions, smsTarget, smsOpen, smsDue, smsText } from "./mention.js
 import { flowOwners } from "./flow.js";
 import { sumAk, akWrite, countFields, countOf, baseTitle } from "./routine.js";
 import { linkInbox } from "./links.js";
-import { askInbox, asideInbox, planPass, planBack, planRet, planDrop, planExec, canAct, canBack, canRet, pickOk, bossLoop, moreText, MORE_MAX, hqOf, traceOf, traceLeft, mateOwner, isHQ } from "./aiask.js";   // AI 승인 (2026-10-12) · Aside 담당 PC (2026-10-15)
+import { askInbox, asideInbox, planPass, planBack, planRet, planDrop, planExec, canAct, canBack, canRet, pickOk, bossLoop, moreText, MORE_MAX, hqOf, traceOf, traceLeft, mateOwner, isHQ, launchTaskOf } from "./aiask.js";   // AI 승인 (2026-10-12) · Aside 담당 PC (2026-10-15)
 import { mateOf, boardOf, brandL, qtyDefs, canReq, reqDoc, reqId } from "../../marketing-hub/crew.js";
 import { repSlots, repId, canWriteSec, secPeople, snapOf, cycleOf, monOf, CYCLE_L, repInbox } from "./aireport.js";   // AI 크루 보고서 (2026-10-15)
 import { lagInbox, applyKpiOv, kpiEditWrite, newKpiId } from "./kpi2.js";
@@ -185,16 +185,17 @@ export function useBoot() {
 //   쓰기는 바뀐 키만 합치기(merge) → 폰과 PC가 동시에 읽어도 서로 안 지움 · [안 읽음으로] = 그 키만 deleteField
 //   이 기기 처음 한 번: 서버 답을 받은 뒤 예전 방식(이 기기에만 저장)으로 읽은 것을 서버에 올림 (pour-os2-seen-up-<나> = 올린 때)
 //   서버를 못 읽어도(구독 실패) 이 기기 사본으로 예전처럼 동작
-export function useSeen(uid) {
+//   ro(보기 모드 · 2026-10-15): 그 사람의 서버 읽음만 읽어 그대로 보여 줌 — 서버·이 기기 어디에도 쓰지 않음(누르면 이 화면에서만 바뀜)
+export function useSeen(uid, ro = false) {
   const KEY = LS("seen-" + uid), UP = LS("seen-up-" + uid);
   const lsGet = (k) => { try { return localStorage.getItem(k); } catch (_) { return null; } };
-  const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (_) { /* 저장소 막힘 → 이번 화면만 */ } };
-  const readLocal = () => { try { const v = JSON.parse(lsGet(KEY) || "{}"); return v && typeof v === "object" ? v : {}; } catch (_) { return {}; } };
+  const lsSet = (k, v) => { if (ro) return; try { localStorage.setItem(k, v); } catch (_) { /* 저장소 막힘 → 이번 화면만 */ } };
+  const readLocal = () => { if (ro) return {}; try { const v = JSON.parse(lsGet(KEY) || "{}"); return v && typeof v === "object" ? v : {}; } catch (_) { return {}; } };
   const [view, setView] = useState(readLocal);
   const cur = useRef(view), mig = useRef(""), sig = useRef("");   // mig: "" 아직 · "busy" 올리는 중 · "ok" 올림(이 기기) · "fail" 이번엔 못 올림(다음에 열 때 다시)
   const show = (v) => { const j = JSON.stringify(v); cur.current = v; if (j === sig.current) return; sig.current = j; setView(v); lsSet(KEY, j); };   // 같은 값(서버 확인 알림 등)이면 다시 그리지 않음
   useEffect(() => {
-    let alive = true; cur.current = readLocal(); sig.current = JSON.stringify(cur.current); setView(cur.current); mig.current = lsGet(UP) ? "ok" : "";
+    let alive = true; cur.current = readLocal(); sig.current = JSON.stringify(cur.current); setView(cur.current); mig.current = ro || lsGet(UP) ? "ok" : "";
     const un = fb.listenOne("seen", uid, (d, fromCache) => {
       if (!alive) return;
       const ids = (d && d.ids && typeof d.ids === "object") ? d.ids : {};
@@ -209,13 +210,14 @@ export function useSeen(uid) {
         .catch((e) => { console.error("[v2 읽음] 이 기기 읽음 서버로 올리기 실패 · 다음에 열 때 다시:", e); mig.current = "fail"; });
     }, (e) => console.warn("[v2 읽음] 서버 읽음 못 읽음 · 이 기기 것만:", e));
     return () => { alive = false; un(); };
-  }, [uid]);
+  }, [uid, ro]);
   // setSeen(새 값 또는 (지금 값) => 새 값) — 예전 useLocal 과 같은 모양 · 바뀐 키만 서버로
   const setSeen = (upd) => {
     const c = cur.current, next = typeof upd === "function" ? upd(c) : upd;
     const at = nowIso(), DEL = fb.deleteField(), ids = seenPatch(c, next, at, DEL);
     if (!ids) return;
     show(applySeen(c, ids, (v) => v === DEL));
+    if (ro) return;
     fb.merge("seen", uid, { id: uid, ids, at }).catch((e) => console.error("[v2 읽음] 서버 저장 실패 · 이 기기엔 남음:", e));
   };
   return [view, setSeen];
@@ -590,7 +592,7 @@ export function useActs(D, cu, setToast, idx = null) {
       if (!canAct(a, cu)) { setToast({ text: "지금 내 차례가 아니에요" }); return false; }
       if (!pickOk(a, pick)) { setToast({ text: "승인할 번호를 골라 주세요" }); return false; }
       const md0 = ((D.ai && D.ai.mates) || {})[a.mate] || {}, at = nowIso(), pl = planPass(a, cu, D.users, pick, at, { hq: hqOf(a, md0), up: !!up });
-      const ex = pl.final ? planExec({ ...a, ...pl.fields }, pl.fields.pick, cu, D.users, at, nextWorkday(addDays(ymd(new Date()), 1)), { ak: (md0.actAk || {})[a.act] || "" }) : null;
+      const ex = pl.final ? planExec({ ...a, ...pl.fields }, pl.fields.pick, cu, D.users, at, nextWorkday(addDays(ymd(new Date()), 1)), { ak: (md0.actAk || {})[a.act] || "", launchTask: launchTaskOf(D, a) }) : null;   // 디맨드젠 = 그 신제품 칸
       try {
         const ok = await fb.txDocs([{ key: "aiasks", id: a.id }, ...(ex ? [{ key: "tasks", id: ex.id }] : [])], (curs) => {
           const cur = curs[0]; if (!cur || !Object.keys(pl.expect).every((k) => fb.sameVal(cur[k], pl.expect[k]))) return { ret: false };
@@ -686,10 +688,14 @@ export function useActs(D, cu, setToast, idx = null) {
       try { await fb.patch("tasks", tdoc(t), { [`aiTrace.${n}`]: val || fb.deleteField(), updatedAt: at, v2At: at }); } catch (e) { fail("흔적")(e); return false; }
       fb.patch("aiasks", t.aiAsk, { [`trace.${n}`]: val || fb.deleteField(), traceAt: at }).catch((e) => console.error("[v2] 승인 건 흔적 실패(업무 흔적은 남음):", e));
       const it = t.aiAk ? ((D.ak && D.ak.items) || []).find((x) => x.id === t.aiAk) : null, was = !!(prev && prev.done), now = !!(val && val.done);
-      let counted = false;
+      let counted = false, lc = null, lt = null;
       if (it && was !== now) { const r = await A.akPlus(it, now ? 1 : -1, { task: t.id, via: "ai", ...(now ? { date, wk: val.wk, ai: { ask: t.aiAsk, n, link: val.link } } : { date: prev.date || date, wk: prev.wk }) }); counted = !!r; }
+      // 디맨드젠(2026-10-15): [했어요] = 그 신제품 '디맨드젠 광고 (n/5)' +1 · 되돌리면 −1 · 이미 다 찼으면 안 셈
+      if (t.aiLaunch && was !== now) { const lid = t.aiLaunchTask || launchTaskOf(D, { launch: t.aiLaunch, prod: t.aiProd }); lt = lid ? (D.tasks || []).find((x) => x.id === lid) : null;
+        if (lt && !(now && targetOf(lt) && countOf(lt) >= targetOf(lt))) lc = await A.launchCount(lt, now ? 1 : -1, { via: "ai", ask: t.aiAsk, n }); }
+      const lcL = lc ? ` · 신제품 '${t.aiProd}' ${baseTitle(lt)} ${lc.n}/${lc.g}` : t.aiLaunch && was !== now && !lt ? ` · 신제품 '${t.aiProd || "?"}' 칸을 못 찾아 개수는 안 셌어요` : "";
       log("aiTrace", { col: "tasks", targetId: t.id, label: `${t.title} · ${n === "_" ? "" : n + " "}${val ? (val.skip ? "안 함" : "했어요") : "되돌림"}${val && val.link ? " · " + val.link : ""}` });
-      setToast({ text: val ? (val.skip ? "안 한 이유를 남겼어요" : `흔적을 남겼어요${counted ? ` · 반복 '${it.name}' +1` : ""}`) : `되돌렸어요${counted ? ` · 반복 '${it.name}' −1` : ""}` });
+      setToast({ text: val ? (val.skip ? "안 한 이유를 남겼어요" : `흔적을 남겼어요${counted ? ` · 반복 '${it.name}' +1` : ""}${lcL}`) : `되돌렸어요${counted ? ` · 반복 '${it.name}' −1` : ""}${lcL}` });
       return true;
     },
     // 횟수(2026-10-15 사장님 "횟수 조절을 사람팀원이하면 더 추가해서 생성가능하게") — 담당·관리자 · aimates.qty.<열쇠> = {n, at, by, byName} (기본과 같으면 n null)

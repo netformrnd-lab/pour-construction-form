@@ -57,6 +57,7 @@ export function inboxFns(D, A, open, setSeen) {
     if (x.aiId) return open({ type: "aiask", id: x.aiId, ...(x.kind === "note" || x.kind === "mention" ? { focus: "talk" } : {}) });   // AI 승인 한 장 (확인할 것 · 최종 승인 · 대화)
     if (x.akId) return open({ type: "routine", id: x.akId, focus: "talk" });   // 반복 실행 대화 (@ 나를 부름 · 내가 말한 대화의 답)
     if (x.kind === "mention") return x.taskId ? open({ type: "task", id: x.taskId, focus: "talk" }) : open({ type: "project", id: x.projectId, first: "news" });   // @ 나를 부른 댓글 → 바로 대화 칸
+    if (x.kind === "note" && x.taskId) { const t = tOf(x.taskId); return open({ type: t && t.isFixed ? "fixed" : "task", id: x.taskId, focus: "talk" }); }   // 새 댓글(묶은 줄 '새 댓글 n' 포함) → 대화 칸
     if (x.taskId) { const t = tOf(x.taskId); t ? openTask(open, t) : open({ type: "task", id: x.taskId }); } else if (x.mine) open({ type: "mine" }); else if (x.personId) open({ type: "person", id: x.personId }); else if (x.projectId) open({ type: "project", id: x.projectId, first: x.kind === "launchNew" || x.kind === "bulk" || x.kind === "projHoldDue" ? "work" : "news" }); };
   const inboxAct = (x) => { const t = x.taskId && tOf(x.taskId);
     if (x.kind === "assigned" && t) return <Act onClick={() => A.ack(t)} style={BTN_ON}>받았어요</Act>;

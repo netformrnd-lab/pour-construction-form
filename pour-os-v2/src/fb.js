@@ -10,6 +10,7 @@ import {
   doc, collection, query, where, onSnapshot, getDoc, getDocFromServer, getDocs, setDoc, updateDoc, writeBatch, arrayUnion, arrayRemove, deleteField, runTransaction, increment,
 } from "firebase/firestore";
 import { getStorage, ref as sref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { guardWrite } from "./viewonly.js";   // 보기 모드(팀원 화면 읽기만 · 2026-10-15) 동안 쓰기 함수마다 맨 앞에서 막음
 
 const app = initializeApp({
   apiKey: "AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",
@@ -56,21 +57,21 @@ export async function fetchWhere(key, w) {
 }
 // 복사 정보 — 서버에서 직접 확인(기기 저장의 빈 값으로 판단하지 않음)
 export async function getMeta() { const s = await getDocFromServer(META); return s.exists() ? s.data() : null; }
-export async function setMeta(data) { await setDoc(META, data, { merge: true }); }
+export async function setMeta(data) { guardWrite(); await setDoc(META, data, { merge: true }); }
 // 새 문서(통째로) · 바뀐 칸만(점 경로 "doneDates.songhee")
-export async function put(key, id, data) { await setDoc(v2doc(key, id), data); }
+export async function put(key, id, data) { guardWrite(); await setDoc(v2doc(key, id), data); }
 // 문서가 없어도 되는 합치기 쓰기 — 맵 안 칸 하나만 넣고 뺄 때 (예: 회사 쉬는 날 days.날짜). 다른 사람이 넣은 칸은 그대로
-export async function merge(key, id, data) { await setDoc(v2doc(key, id), data, { merge: true }); }
-export async function patch(key, id, fields) { await updateDoc(v2doc(key, id), fields); }
+export async function merge(key, id, data) { guardWrite(); await setDoc(v2doc(key, id), data, { merge: true }); }
+export async function patch(key, id, fields) { guardWrite(); await updateDoc(v2doc(key, id), fields); }
 // 여러 건 한 번에 (400건씩 나눔)
-export async function putMany(ops, onProgress, opt) {
+export async function putMany(ops, onProgress, opt) { guardWrite();
   for (let i = 0; i < ops.length; i += 400) {
     const b = writeBatch(db); ops.slice(i, i + 400).forEach((o) => (opt && opt.merge ? b.set(v2doc(o.key, o.id), o.data, { merge: true }) : b.set(v2doc(o.key, o.id), o.data)));
     await b.commit(); onProgress && onProgress(Math.min(ops.length, i + 400), ops.length);
   }
 }
 // 여러 건의 바뀐 칸만 한 번에 (400건씩) — [{key, id, fields}]
-export async function patchMany(ops, onProgress) {
+export async function patchMany(ops, onProgress) { guardWrite();
   for (let i = 0; i < ops.length; i += 400) {
     const b = writeBatch(db); ops.slice(i, i + 400).forEach((o) => b.update(v2doc(o.key, o.id), o.fields));
     await b.commit(); onProgress && onProgress(Math.min(ops.length, i + 400), ops.length);
@@ -92,7 +93,7 @@ export function listenV1Doc(id, cb, onErr) {
 }
 export async function readV1Notes() { const snap = await getDocs(collection(db, "pour-os", "ak-notes", "c")); console.log(`[v1 댓글 읽기] ${snap.size}건`); return snap.docs.map((d) => ({ ...d.data(), id: d.data().id || d.id })); }
 // 파일 올리기 (task-attachments/v2/{대상}/…) · onProg(0~1) = 올라간 비율 (uploadBytesResumable)
-export async function upload(target, file, onProg) {
+export async function upload(target, file, onProg) { guardWrite();
   const safe = String(file.name || "file").replace(/[^\w.\-가-힣]/g, "_").slice(-80);
   const path = `task-attachments/v2/${String(target).replace(/[^\w\-]/g, "_")}/${Date.now()}_${safe}`;
   const r = sref(storage, path);
@@ -112,13 +113,13 @@ export const sameVal = (a, b) => stable(a) === stable(b);
 const fits = (cur, expect) => !!cur && Object.keys(expect || {}).every((k) => sameVal(valAt(cur, k), expect[k]));
 const offline = (e) => e && /unavailable|offline|network/i.test(String(e.code || e.message || ""));
 // opt.noFallback: 자동으로 도는 쓰기(신제품 대시보드 반영 등)는 연결이 끊기면 확인 없이 쓰지 않고 그냥 실패 → 다음에 다시
-export async function patchIf(key, id, expect, fields, opt) {
+export async function patchIf(key, id, expect, fields, opt) { guardWrite();
   try { return await runTransaction(db, async (tx) => { const r = v2doc(key, id), s = await tx.get(r); const cur = s.exists() ? s.data() : null;
       if (!fits(cur, expect)) return { ok: false, cur }; tx.update(r, fields); return { ok: true, cur }; }); }
   catch (e) { if (!offline(e) || (opt && opt.noFallback)) throw e; console.warn("[v2] 확인 없이 저장(연결 끊김):", e.message); await updateDoc(v2doc(key, id), fields); return { ok: true, cur: null, unchecked: true }; }
 }
 // 여러 문서 — 문서마다 검사, 그사이 남이 바꾼 문서는 건너뜀. ops: [{key, id, fields, expect}] → {done, skipped:[id]}
-export async function patchManyIf(ops, opt) {
+export async function patchManyIf(ops, opt) { guardWrite();
   let done = 0; const skipped = [];
   for (let i = 0; i < ops.length; i += 100) {
     const part = ops.slice(i, i + 100);
@@ -131,7 +132,7 @@ export async function patchManyIf(ops, opt) {
   console.log(`[v2 조건부 쓰기] ${done}건 · 건너뜀 ${skipped.length}건`); return { done, skipped };
 }
 // 없을 때만 만들기 (두 사람이 동시에 열어 같은 문서를 두 번 만들거나 덮지 않게). ops: [{key, id, data}] → {made, skipped}
-export async function createMissing(ops) {
+export async function createMissing(ops) { guardWrite();
   let made = 0, skipped = 0;
   for (let i = 0; i < ops.length; i += 200) {
     const part = ops.slice(i, i + 200);
@@ -144,7 +145,7 @@ export async function createMissing(ops) {
 
 // ── 신제품 대시보드 (pour-os/launch-board/products) 쓰기 — 단계 칸만, 서버 지금 값이 기대값과 같을 때만 ──
 const LB = (id) => doc(db, "pour-os", "launch-board", "products", String(id));
-export async function patchLaunchIf(ops) {   // ops: [{id, fields, expect}] → {done, skipped}
+export async function patchLaunchIf(ops) { guardWrite();   // ops: [{id, fields, expect}] → {done, skipped}
   let done = 0; const skipped = [];
   for (let i = 0; i < ops.length; i += 100) {
     const part = ops.slice(i, i + 100);
@@ -157,7 +158,7 @@ export async function patchLaunchIf(ops) {   // ops: [{id, fields, expect}] → 
 }
 // 쓰기 전 통째 백업 (v2 안 backups/{id} · 문서 하나 1MB 안 · 되돌릴 때 이 값으로)
 // once: 같은 번호 백업이 이미 있으면 그대로 둠 (하루 첫 백업을 남김)
-export async function backupLaunch(id, products, by, once) {
+export async function backupLaunch(id, products, by, once) { guardWrite();
   const json = JSON.stringify(products); if (json.length > 900000) throw new Error("백업이 너무 커요 (" + json.length + "자)");
   const data = { id, kind: "launch-board", at: new Date().toISOString(), by, count: products.length, json };
   if (!once) { await setDoc(v2doc("backups", id), data); return true; }
@@ -174,14 +175,14 @@ export function listenLaunch(cb, onErr) {
 // 신제품 제품 하나를 서버에서 바로 읽기 (자동 반영 직전 — 받아 둔 목록이 그사이 낡았을 수 있어서)
 export async function readLaunchProduct(id) { const s = await getDocFromServer(LB(id)); return s.exists() ? { ...s.data(), id: s.id } : null; }
 // 문서 하나를 읽고-판단하고-쓰기 (transaction) · fn(cur) → { write?: fields, ret? } — 없으면 만들고(set) 있으면 바뀐 칸만(update)
-export async function txDoc(key, id, fn) {
+export async function txDoc(key, id, fn) { guardWrite();
   return runTransaction(db, async (tx) => { const r = v2doc(key, id), s = await tx.get(r), cur = s.exists() ? s.data() : null, out = fn(cur) || {};
     if (out.write) { if (s.exists()) tx.update(r, out.write); else tx.set(r, { id, ...out.write }); } return out.ret ?? null; });
 }
 // 여러 문서를 한 transaction 으로 (반복 실행 +1 = 분기 실적 + 그날 기록 + 체크리스트 진행 중 문서를 같이 · 하나만 써지는 일 없음)
 //   docs: [{key, id}] · fn(curs[]) → { writes: [fields | null](docs 순서) , ret } — 없던 문서는 set({id, …}) · 있던 문서는 update(점 경로 가능)
 //   없던 문서에 쓸 칸은 점 경로가 아니라 통째 모양이어야 함 (set 은 점 경로를 칸 이름으로 씀)
-export async function txDocs(docs, fn) {
+export async function txDocs(docs, fn) { guardWrite();
   return runTransaction(db, async (tx) => { const refs = docs.map((d) => v2doc(d.key, d.id)), snaps = await Promise.all(refs.map((r) => tx.get(r)));
     const out = fn(snaps.map((s) => (s.exists() ? s.data() : null))) || {};
     (out.writes || []).forEach((w, i) => { if (!w) return; if (snaps[i].exists()) tx.update(refs[i], w); else tx.set(refs[i], { id: docs[i].id, ...w }); });

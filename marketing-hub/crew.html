@@ -135,6 +135,7 @@ textarea.copybox{min-height:120px;margin-top:8px}
       <div id="crew-who" class="hint"></div>
       <div id="crew-redo"></div>
       <div id="crew-reqs"></div>
+      <div id="crew-launch"></div>
       <div id="crew-rules"></div>
       <details id="crew-guide-box" style="margin:6px 0 14px" open><summary id="crew-guide-head">오늘 지시문</summary>
         <div id="crew-last"></div>
@@ -195,19 +196,24 @@ async function loadMate(){
   const b=board(), m=mate(); mateDoc=null; $('crew-guide').textContent=K.asideText(b);
   $('crew-guide-head').textContent=`오늘 지시문 — ${m.name} · ${b.title} · 판 ${K.ASIDE_VER}`; $('crew-last').innerHTML='';
   try{
-    const cr=K.crewOf(m.id);
+    const cr=K.crewOf(m.id), la=b.actions.find(a=>a.launch);
+    LAUNCH=null; $('crew-launch').innerHTML='';
+    const lp=la?loadLaunch(la,cr).catch(e=>{console.error('[신제품 칸] 못 읽음',e);return null;}):Promise.resolve(null);   // 디맨드젠 남은 신제품 (2026-10-15)
     const [md,back,rq,rp]=await Promise.all([V2().collection('aimates').doc(m.id).get(),V2().collection('aiasks').where('mate','==',m.id).get(),V2().collection('aireqs').where('mate','==',m.id).get(),
       cr?V2().collection('aireports').where('crew','==',cr.id).get().catch(e=>{console.error('[aireports] 못 읽음',e);return {docs:[]};}):Promise.resolve({docs:[]})]);
+    LAUNCH=await lp;   // 지시문(아래)에 넣기 전에
     PLANNOW=K.planFromReports(rp.docs.map(d=>({id:d.id,...d.data()})),m.id);   // 업무OS AI 크루 보고서 · 사람이 정한 계획 (2026-10-15)
     console.log(`[aireports/${cr?cr.id:'-'}] ${rp.docs.length}장 · 사람이 정한 계획 ${PLANNOW?PLANNOW.lines.length+'줄':'없음'}`);
     REQS=rq.docs.map(d=>({id:d.id,...d.data()})).filter(r=>r.state==='open'||r.state==='doing').sort((x,y)=>String(x.createdAt||'').localeCompare(String(y.createdAt||'')));
     console.log(`[aireqs/${m.id}] 맡긴 일 ${REQS.length}건 (전체 ${rq.size})`);
     $('crew-reqs').innerHTML=REQS.length?`<div class="reqbox">맡긴 일 ${REQS.length}건 — [이 일 하기]를 누르고 적힌 대로 해서 결과 칸의 <b>[R]</b> 묶음으로 올려요 (하나씩)${REQS.map((r,i)=>`<div class="rq">· <b>${esc(r.title)}</b>${r.state==='doing'?' <span class="pill">하는 중</span>':''} <span class="s">${esc(K.reqLine(r))}</span>
       ${r.body?`<div class="d">${esc(r.body)}</div>`:''}<button type="button" class="btn sm" id="req-load-${i}" data-r="${i}" aria-label="이 일 하기 ${esc(r.title)}" style="margin-top:6px">${REQ&&REQ.id===r.id?'✓ 고름':'이 일 하기'}</button></div>`).join('')}</div>`:'';
-    mateDoc=md.exists?md.data():null; $('crew-guide').textContent=K.asideText(b,{qty:mateDoc&&mateDoc.qty,plan:PLANNOW});   // 이번 몫 = 담당이 정한 횟수 · 사람이 정한 계획 = 업무OS 보고서
-    const need=[...new Set([K.ownerFor(mateDoc,b.brand),...b.actions.map(a=>K.ownerForAct(mateDoc,b.brand,a.c))])].filter(id=>id&&!(id in users));   // 할 일 담당까지 (2026-10-15)
+    mateDoc=md.exists?md.data():null; $('crew-guide').textContent=K.asideText(b,{qty:mateDoc&&mateDoc.qty,plan:PLANNOW,launch:LAUNCH||undefined});   // 이번 몫 = 담당이 정한 횟수 · 사람이 정한 계획 = 업무OS 보고서 · 디맨드젠 남은 신제품
+    const need=[...new Set([K.ownerFor(mateDoc,b.brand),...b.actions.map(a=>K.ownerForAct(mateDoc,b.brand,a.c)),...(LAUNCH||[]).map(r=>r.owner)])].filter(id=>id&&!(id in users));   // 할 일 담당 · 신제품 담당까지 (2026-10-15)
     await Promise.all(need.map(async id=>{const ud=await V2().collection('users').doc(id).get();users[id]=ud.exists?{name:ud.data().name||'',active:ud.data().active}:null;}));
     const owner=ownerId(), on=(mateDoc&&mateDoc.rules||[]).filter(r=>!r.off);
+    if(la&&LAUNCH)$('crew-launch').innerHTML=`<div class="reqbox">디맨드젠 남은 신제품 ${LAUNCH.length}개 — ${esc(la.c)} 할 일 (업무OS 신제품 '디맨드젠 광고' · 상품마다 승인 한 건 → 그 신제품 담당이 게시)${LAUNCH.length?LAUNCH.map(r=>`<div class="rq">· <b>${esc(r.prod)}</b> ${r.n}/${r.g}개 <span class="s">출시 ${esc(r.launch?r.launch.slice(5).replace('-','/'):'미정')}${r.due?' · 기한 '+esc(r.due.slice(5).replace('-','/')):''} · 담당 ${esc(r.owner?nameOf(r.owner):'미정')}</span></div>`).join(''):'<div class="rq">없음 — 모든 신제품 디맨드젠이 끝났어요</div>'}
+      <div class="btns" style="margin-top:6px"><button type="button" class="btn sm" id="copy-act-launch" data-c="${esc(la.c)}" aria-label="${esc(la.c)} 할 일만 지금 — Aside 글 복사">${esc(la.c)} 할 일만 지금 — Aside 글 복사</button></div></div>`;
     const mine=back.docs.map(d=>d.data()).filter(a=>a.board===b.id), backs=mine.filter(a=>a.state==='back'); BACKS=backs;
     $('crew-last').innerHTML=`<div class="hint" style="margin:0 0 4px">할 일별 최근 올림 (월 1회·1회 같은 할 일은 이걸 보고 이미 했는지 판단)</div><div class="lastrow">${b.actions.filter(a=>!a.admin).map(a=>{const l=mine.filter(x=>x.act===a.c).sort((p,q)=>String(q.createdAt||'').localeCompare(String(p.createdAt||'')))[0];
       return `<span><b>${esc(a.c)}</b> ${l?`${esc(String(l.run||'').slice(5).replace('-','/'))} · ${esc(stateL(l))}`:'없음'}</span>`;}).join('')}</div>`;
@@ -228,6 +234,16 @@ const stateL=(a)=>a.state==='wait'?(a.step>0?'위로 올라감':'승인 대기')
 const kst=(iso)=>{if(!iso)return '';const k=new Date(new Date(iso).getTime()+9*3600e3).toISOString();return `${Number(k.slice(5,7))}/${Number(k.slice(8,10))} ${k.slice(11,16)}`;};
 // 이전 판 불러오기 = 그 건의 날짜 + 그 판의 표(번호 그대로)를 결과 칸에 → 고치거나 맨 아래 줄을 더해 다시 올림
 let BACKS=[], PLAN=[], PLANNOW=null;   // PLANNOW = 업무OS AI 크루 보고서에서 사람이 정한 계획 (그 칸)
+let LAUNCH=null;   // 디맨드젠 남은 신제품 (crew.launchRows · 업무OS 업무 launchItem + 프로젝트 · 2026-10-15)
+async function loadLaunch(la,cr){
+  const tq=await V2().collection('tasks').where('launchItem','==',la.launch).get();
+  const ts=tq.docs.map(d=>({id:d.id,...d.data()})), pids=[...new Set(ts.map(t=>t.projectId).filter(Boolean))];
+  const ps=await Promise.all(pids.map(id=>V2().collection('projects').doc(id).get()));
+  const rows=K.launchRows(ts,ps.filter(x=>x.exists).map(x=>({id:x.id,...x.data()})),{item:la.launch,brands:cr?cr.serves.map(x=>x.brand):null});
+  console.log(`[tasks launchItem=${la.launch}] ${tq.size}건 → 남은 신제품 ${rows.length}개`);
+  return rows;
+}
+$('crew-launch').addEventListener('click',(e)=>{const t=e.target.closest('[data-c]');if(!t)return;copyText(t,K.asideActLaunch(board(),t.dataset.c),`${t.dataset.c} 할 일만 지금 — Aside 글 복사`);});
 let REQS=[], REQ=null;   // 맡긴 일 (aireqs) · 지금 고른 것 = 결과 [R] 의 주인
 $('crew-reqs').addEventListener('click',async(e)=>{const t=e.target.closest('[data-r]');if(!t)return;const r=REQS[Number(t.dataset.r)];if(!r)return;
   t.disabled=true;
@@ -275,19 +291,22 @@ $('setup-groups').addEventListener('click',(e)=>{const t=e.target.closest('[data
   else copyText(t,K.asideFixLaunch(t.dataset.fix.split(',').map(K.boardOf)),'고칠 것 확인 글 복사');});
 function ownerId(){const id=K.ownerFor(mateDoc,board().brand); const u=users[id]; return u&&u.active!==false?id:'';}
 // 할 일 담당 (aimates.actOwners · 업무OS AI 팀원 한 장에서 관리자가 정함) → 없거나 쉬면 위 담당 (업무OS aiask.actOwner 와 같은 규칙)
-function ownerIdAct(c){const id=K.ownerForAct(mateDoc,board().brand,c); const u=users[id]; return u&&u.active!==false?id:ownerId();}
+function ownerIdAct(c,prod){
+  const a=K.actOf(board().id,c);
+  if(a&&a.launch&&prod&&!(mateDoc&&mateDoc.actOwners&&mateDoc.actOwners[c])){const r=K.launchRowOf(LAUNCH,prod),u=r&&users[r.owner];if(u&&u.active!==false)return r.owner;}   // 디맨드젠 = 그 신제품 담당 (할 일 담당을 따로 정하면 그 사람)
+  const id=K.ownerForAct(mateDoc,board().brand,c); const u=users[id]; return u&&u.active!==false?id:ownerId();}
 function actSplit(b){const base=ownerId(), g={};b.actions.filter(a=>!a.admin).forEach(a=>{const id=ownerIdAct(a.c);(g[id]=g[id]||[]).push(a.c);});
   const ks=Object.keys(g); if(ks.length<2&&ks[0]===base)return '';
   return ks.map(id=>`<b>${esc(g[id].join('·'))}</b> ${id?esc(nameOf(id)):'관리자 누구나'}`).join(' · ');}
 $('crew-board').onchange=()=>{history.replaceState(null,'','#'+$('crew-board').value);$('preview-section').hidden=true;loadMate();};
-$('copy-guide').onclick=()=>copyText($('copy-guide'),K.asideText(board(),{qty:mateDoc&&mateDoc.qty,plan:PLANNOW}),'지시문 복사');
+$('copy-guide').onclick=()=>copyText($('copy-guide'),K.asideText(board(),{qty:mateDoc&&mateDoc.qty,plan:PLANNOW,launch:LAUNCH||undefined}),'지시문 복사');
 $('copy-launch').onclick=()=>copyText($('copy-launch'),K.asideLaunch(board(),(K.planOf(PLAN,board().id)||{}).t),'예약 글 복사');
 
 // 미리 보기
 function parse(){const p=K.parseCrew($('crew-text').value,board());return p;}
 function preview(){
   const b=board(), p=parse(), run=$('crew-date').value, acts=Object.entries(p.acts);
-  const n=acts.filter(([c,x])=>(x.items||[]).length||x.sum||(x.body||[]).length).length;
+  const n=K.asksFromParse(p,{board:b.id,mate:b.mate,brand:b.brand,run:run||'x',at:'x',owner:''}).length+(p.acts.R?1:0);   // 상품마다 한 건(디맨드젠)까지 센 승인 수
   $('preview').innerHTML=`<h2>${esc(mate().name)} · ${esc(b.title)} · ${esc(run)}</h2>
     ${p.warn.map(w=>`<div class="warn">${esc(w)}</div>`).join('')}
     ${p.unknown.length?`<div class="warn">모르는 지표 키(안 올림): ${esc(p.unknown.join(' · '))}</div>`:''}
@@ -296,6 +315,9 @@ function preview(){
     ${p.metrics.length?`<div class="list">${p.metrics.map(x=>{const m=b.metrics.find(y=>y.k===x.k);return `<div class="li"><b>${esc(x.l)}</b> ${esc(K.fmtMetric(m,x.v))} <span class="s">· 목표 ${esc(K.fmtMetric(m,m.target))}${K.metricOk(m,x.v)?' ✓':''}</span></div>`;}).join('')}</div>`:''}
     ${acts.map(([c,x])=>{const a=c==='R'?{t:REQ?'맡긴 일 · '+REQ.title:'맡긴 일 — 먼저 [이 일 하기]로 골라 주세요'}:(K.actOf(b.id,c)||{t:''});return `<div style="margin-top:12px"><span class="pill">${esc(c)}</span><b>${esc(a.t)}</b> <span class="s">· 번호 ${x.items.length}개${p.status[c]?' · '+esc(p.status[c]):''}</span>
       ${x.sum?`<div class="hint">요약: ${esc(x.sum)}</div>`:''}
+      ${(()=>{const a=K.actOf(b.id,c);if(!a||!a.launch||!a.split)return '';const prods=[...new Set(x.items.map(it=>K.prodOf(it,a.split)).filter(Boolean))];
+        return prods.map(pr=>{const r=K.launchRowOf(LAUNCH,pr);return r?`<div class="hint">· ${esc(pr)} → 업무OS 신제품 ${r.n}/${r.g} · 담당 ${esc(r.owner?nameOf(r.owner):'미정')}${x.items.some(it=>K.prodOf(it,a.split)===pr&&String((it.c||{})[a.hqIf]||'').trim())?' · 새 예산 → 본부장 승인':''}</div>`
+          :`<div class="warn">'${esc(pr)}' — 업무OS 디맨드젠 남은 신제품에 없는 이름이에요 · 위 목록 이름 그대로 써 주세요 (그대로 올리면 신제품 개수는 안 올라가요)</div>`;}).join('');})()}
       ${x.items.length?`<div class="tbl"><table><tr><th>번호</th>${x.cols.map(h=>`<th>${esc(h)}</th>`).join('')}</tr>${x.items.slice(0,30).map(it=>`<tr><td>${esc(it.n)}</td>${x.cols.map(h=>`<td title="${esc(it.c[h]||'')}">${esc(it.c[h]||'')}</td>`).join('')}</tr>`).join('')}</table></div>`:''}</div>`;}).join('')}`;
   $('preview-section').hidden=false; return {p,n};
 }
@@ -316,7 +338,7 @@ $('save-button').onclick=async()=>{
       await V2().collection('aiboards').doc(b.id).set({id:b.id,board:b.id,mate:m.id,brand:b.brand,metrics,hist,status:p.status,...nx,at,by:u.email},{merge:true});
       console.log(`[aiboards/${b.id}] 지표 ${p.metrics.length}개${p.next?' · 다음 주 계획':''}`);
     }
-    const asks=K.asksFromParse(p,{board:b.id,mate:m.id,brand:b.brand,run,at,owner:(c)=>ownerIdAct(c),src:'crew'}); const res={made:0,redo:0,kept:[]};
+    const asks=K.asksFromParse(p,{board:b.id,mate:m.id,brand:b.brand,run,at,owner:(c,prod)=>ownerIdAct(c,prod),src:'crew'}); const res={made:0,redo:0,kept:[]};
     let reqAsk=null;
     if(p.acts.R&&REQ){const rs=await V2().collection('aireqs').doc(REQ.id).get();   // 취소된 일은 안 올림
       if(rs.exists&&rs.data().state==='cancel'){setMsg('err','이 맡긴 일은 취소됐어요 · [R] 묶음을 지우고 다시 올려 주세요');$('save-button').disabled=false;return;}
@@ -326,7 +348,7 @@ $('save-button').onclick=async()=>{
       await db.runTransaction(async(tx)=>{const s=await tx.get(ref);
         if(!s.exists){tx.set(ref,{...a,log:[...a.log]});res.made++;return;}
         const cur=s.data(); if(!K.canRedo(cur)){res.kept.push(`${a.act} (${cur.state==='ok'?'최종 승인됨':cur.state==='no'?'안 함':'위로 올라감'})`);return;}
-        tx.update(ref,{...K.redoFields(cur,a,(a.act==='R'?owner:ownerIdAct(a.act))||cur.owner||''),log:firebase.firestore.FieldValue.arrayUnion({at,by:'ai:'+m.id,byName:`${m.name} (AI)`,act:'redo'})});res.redo++;});
+        tx.update(ref,{...K.redoFields(cur,a,(a.act==='R'?owner:ownerIdAct(a.act,a.prod))||cur.owner||''),log:firebase.firestore.FieldValue.arrayUnion({at,by:'ai:'+m.id,byName:`${m.name} (AI)`,act:'redo'})});res.redo++;});
     }
     console.log(`[aiasks] 새로 ${res.made} · 다시 ${res.redo} · 그대로 ${res.kept.length}`);
     if(reqAsk&&!res.kept.some(k=>k.startsWith('R '))){await V2().collection('aireqs').doc(REQ.id).set({state:'done',askId:reqAsk.id,doneAt:at,updatedAt:at,log:firebase.firestore.FieldValue.arrayUnion({at,by:'ai:'+m.id,byName:`${m.name} (AI)`,act:'done',askId:reqAsk.id})},{merge:true});

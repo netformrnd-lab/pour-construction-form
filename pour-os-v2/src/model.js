@@ -410,6 +410,7 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
   if (D.kpi && D.lagInbox) D.lagInbox(D.kpi.lagDefs, D.kpi.lagV2, users, uid, key, D.brands).forEach((x) => inbox.push(x));   // 월말 결과 KPI 넣기 (kpi2.js · 마스터·결과 KPI 권한)   // CRM·마진에서 온 한 줄 (links.js · 순환 import 피하려고 D 로 받음)
   const taskById = Object.fromEntries(tasks.map((t) => [t.id, t]));
   const talked = new Set((D.notes || []).filter((n) => n && n.by === uid && !n.deleted).map((n) => n.itemId));   // 내가 말한 대화 → 답이 오면 나에게도
+  const noteRows = [];   // 나를 부르지 않은 새 댓글 — 같은 대화(업무·프로젝트·AI 승인·반복 실행)끼리 아래에서 한 줄로
   (D.notes || []).forEach((n) => {
     // 댓글을 고치며 새로 부른 사람(mentionedAt.<나>)은 고친 때 기준 · 새 줄(이미 읽은 댓글이어도)
     const ma = n && n.mentionedAt && n.mentionedAt[uid], nid = ma ? "nt:" + n.id + ":" + ma : "nt:" + (n && n.id);
@@ -423,9 +424,12 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
     else if (kind === "ai") { const a = ((D.ai && D.ai.asks) || []).find((x) => x.id === ref);   // AI 승인 대화 (2026-10-12)
       if (ment || talked.has(n.itemId) || (a && (a.owner === uid || a.to === uid || (a.path || []).includes(uid)))) hit = { aiId: ref, title: a ? a.title : "AI 승인" }; }
     else if (!rest.length && (ment || talked.has(n.itemId))) { const it = ((D.ak && D.ak.items) || []).find((x) => x && x.id === n.itemId); if (it) hit = { akId: it.id, title: it.name || "반복 실행" }; }   // 반복 실행(횟수 목표) 대화 — ':' 없는 itemId = 행동지표 id
-    if (hit) inbox.push({ kind: ment ? "mention" : "note", tag: ment ? "@ 나를 부름" : "댓글", id: nid, ...hit, who: ma ? n.editedBy || n.by : n.by, whoName: ma ? n.editedByName || n.byName : n.byName, at: ma || n.at, text: n.text });
+    if (hit) (ment ? inbox : noteRows).push({ kind: ment ? "mention" : "note", tag: ment ? "@ 나를 부름" : "댓글", id: nid, ...hit, who: ma ? n.editedBy || n.by : n.by, whoName: ma ? n.editedByName || n.byName : n.byName, at: ma || n.at, text: n.text });
   });
-  const ORDER = { feedback: 0, review: 1, ai: 1.2, aiGroup: 1.2, aiMiss: 1.25, aiSetup: 2.97, aiOwnerless: 2.98, aiDone: 9, dueReq: 2, help: 2.5, mention: 2.8, link: 2.9, lagDue: 2.95, blocked: 3, handed: 7.5, turnAgain: 3.5, turnLate: 4, turnOrder: 5, nextNoOwner: 6, assigned: 7, bulk: 7, launchNew: 8, holdDue: 8.5, projHoldDue: 8.5, dueRes: 9, approved: 9, unblocked: 9, pinNew: 9.5, note: 10 };
+  // 같은 대화의 새 댓글 여러 개 → 한 줄 '제목 · 새 댓글 n' (2026-10-15 페르소나 시험: 팀원 '확인할 것' 22줄 중 13줄이 한두 대화의 댓글이라 할 일이 묻힘)
+  //   id = 댓글 줄 id 를 | 로 이음 → 열면 모두 읽음 · 읽은 알림에서 다시 볼 때도 한 줄 · 나를 부른 댓글(@)은 따로 그대로
+  groupNotes(noteRows).forEach((x) => inbox.push(x));
+  const ORDER = { feedback: 0, review: 1, aiRep: 1.1, ai: 1.2, aiGroup: 1.2, aiMiss: 1.25, aiSetup: 2.97, aiOwnerless: 2.98, aiDone: 9, dueReq: 2, help: 2.5, mention: 2.8, link: 2.9, lagDue: 2.95, blocked: 3, handed: 7.5, turnAgain: 3.5, turnLate: 4, turnOrder: 5, nextNoOwner: 6, assigned: 7, bulk: 7, launchNew: 8, holdDue: 8.5, projHoldDue: 8.5, dueRes: 9, approved: 9, unblocked: 9, pinNew: 9.5, note: 10 };
   inbox.sort((a, b) => (ORDER[a.kind] ?? 11) - (ORDER[b.kind] ?? 11) || String(b.at || "").localeCompare(String(a.at || "")));
   const userName = (id) => nameOf(users, id);
   // 끝낸 시각은 UTC(toISOString) → 기기 날짜로 바꿔 비교 (아침 9시 전에 끝낸 일도 오늘)
@@ -433,6 +437,16 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
   const doneToday = fixed.done.length + routine.done.length + tasks.filter((t) => isOneOff(t) && isMine(t, uid) && (isDone(t) || t.status === "review") && localDay(t.doneAt || t.reviewAt) === key).length;
   const oneOffOpen = open.length;   // 0이면 '고정업무만 하는 사람' — 오늘 고정업무를 처음부터 펼침
   return { key, fixed, routine, ranked, todo: ranked, focus, late, doing, inbox, userName, left: fixed.left.length + routine.left.length + focus.length, doneToday, oneOffOpen, freshN: ranked.filter((x) => x.fresh).length };
+}
+
+// 새 댓글 줄 묶기 (todayView) — 같은 업무·프로젝트·AI 승인·반복 실행의 댓글이 2개 넘으면 한 줄 · 하나면 그대로
+export function groupNotes(rows) {
+  const keyOf = (x) => (x.taskId ? "t:" + x.taskId : x.projectId ? "p:" + x.projectId : x.aiId ? "a:" + x.aiId : x.akId ? "k:" + x.akId : "n:" + x.id), by = new Map();
+  (rows || []).forEach((x) => { const k = keyOf(x); if (!by.has(k)) by.set(k, []); by.get(k).push(x); });
+  return [...by.values()].map((g) => { if (g.length < 2) return g[0];
+    const s = g.slice().sort((a, b) => String(b.at || "").localeCompare(String(a.at || ""))), last = s[0], names = [...new Set(s.map((x) => x.whoName).filter(Boolean))];
+    const { id, text, who, whoName, at, title, ...hit } = last;
+    return { ...hit, id: s.map((x) => x.id).join("|"), n: s.length, title: `${title} · 새 댓글 ${s.length}`, who, whoName: names.length > 2 ? `${names.slice(0, 2).join("·")} 외 ${names.length - 2}명` : names.join("·"), at, text: `${whoName || ""}: ${text || ""}` }; });
 }
 
 // ── 읽은 알림 다시 보기 (사용자 요청 2026-10-13 "OS에서 읽음한거 다시보고싶어") ──

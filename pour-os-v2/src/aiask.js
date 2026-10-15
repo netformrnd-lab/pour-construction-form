@@ -106,6 +106,10 @@ export function askInbox(asks, users, uid, seen = {}, now = new Date()) {
         : [brandL(a.brand), n ? `제안 ${n}개 · 번호 골라 승인` : "확인하고 승인", (a.ver || 1) > 1 ? `${a.ver}번째로 다시 올림` : "", !a.to ? "담당 미정 · 관리자 누구나" : ""].filter(Boolean).join(" · ");
       mine.push({ kind: "ai", tag, red: !!a.ret, id: `ai:${a.id}:${a.ver || 1}:${a.step || 0}:${a.to || "-"}`, aiId: a.id, mate: a.mate, title: a.title, whoName: a.step > 0 && prev ? prev : ai, at: a.updatedAt || a.createdAt, text, keep: true, _ret: !!a.ret });
     }
+    // 맡긴 일 결과 (2026-10-15 · crew.askFromReq) — 맡긴 사람이 담당이 아니면 판마다 한 번 (7일 · 읽음 = 사라짐) · 담당이면 위 승인 줄로 충분
+    if (a.req && a.reqBy === uid && a.owner !== uid && (a.updatedAt || a.createdAt || "") >= since && !seen["ar:" + a.id + ":" + (a.ver || 1)])
+      rows.push({ kind: "aiDone", tag: "맡긴 일 결과", id: "ar:" + a.id + ":" + (a.ver || 1), aiId: a.id, title: a.title, whoName: ai, at: a.updatedAt || a.createdAt,
+        text: a.state === "wait" ? `${a.to ? nameOf(users, a.to) + "님" : "관리자"} 승인 대기 · 결과 먼저 보기` : a.state === "ok" ? "최종 승인됐어요" : a.state === "no" ? `안 하기로 했어요${a.noReason ? " · " + a.noReason : ""}` : "AI가 고치는 중" });
     if (a.owner === uid && a.state === "ok" && a.okBy !== uid && (a.okAt || "") >= since && !seen["ao:" + a.id + a.okAt])
       rows.push({ kind: "aiDone", tag: "최종 승인", id: "ao:" + a.id + a.okAt, aiId: a.id, title: a.title, whoName: a.okByName, at: a.okAt, text: a.exec ? "실행 업무가 생겼어요 · 사람이 반영해 주세요" : "끝난 일로 확인됐어요" });
     if (a.owner === uid && a.state === "no" && a.noBy !== uid && (a.noAt || "") >= since && !seen["an:" + a.id + a.noAt])

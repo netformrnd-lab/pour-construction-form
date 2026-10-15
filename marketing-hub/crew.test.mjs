@@ -145,6 +145,25 @@ eq('지금 횟수 = 담당이 정한 수 → 없으면 기본 · 0·이상한 �
   eq('고칠 것 확인 글 = 그 PC 보드 모두 · 없으면 건너뜀 · 새 일 안 함', [f.includes('#gh-conv') && f.includes('#gh-rep'), f.includes('없으면 그 보드는 건너뛴다'), f.includes('새 일은 하지 않는다')], [true, true, true]);
 }
 
+// 맡긴 일 (2026-10-15 사장님 "ai팀원에게 업무요청을 별도로해서 진행도 가능했으면") — aireqs → crew.html [이 일 하기] → [R] → 승인 한 건
+{
+  eq('맡길 수 있는 AI = 보드가 있는 크루 6명 (초안 크루·원형 빼고)', [K.reqMates().map((m) => m.name), K.canReq('dandan'), K.canReq('luna')], [['봄', '여름', '가을', '겨울', '하늘', '우주'], false, false]);
+  eq('자주 맡기는 일 = 맡길 수 있는 AI 마다', Object.keys(K.REQ_PRESETS).sort(), K.reqMates().map((m) => m.id).sort());
+  const id = K.reqId('gyeoul', 1760500000000, 'x9z'), r = K.reqDoc({ id, mate: 'gyeoul', title: '  상세 이탈 진단 010-1234-5678 ', body: '참고 a@b.com', shape: '표', n: '3', due: '2026-10-17', by: 'sy', byName: '김소연', at: 'T' });
+  eq('맡긴 일 문서: 보드·브랜드 · 개인정보 가림 · 대기', [r.id, r.board, r.brand, r.title, r.body, r.shape, r.n, r.due, r.state, r.askId, r.log[0].act], [id, 'gh-conv', 'grohome', '상세 이탈 진단 010-****-****', '참고 (메일 가림)', '표', 3, '2026-10-17', 'open', '', 'req']);
+  eq('이상한 값 = 비움', [K.reqDoc({ id: 'q', mate: 'bom', shape: '그림', n: -2, due: '내일' }).shape, K.reqDoc({ id: 'q', mate: 'bom', n: 0 }).n, K.reqDoc({ id: 'q', mate: 'bom', due: '내일' }).due], ['', null, '']);
+  eq('결과 승인 id = 맡긴 일마다 하나(다시 올려도 같은 건)', K.reqAskId(r), `ai_gyeoul_rq_${id.slice('rq_gyeoul_'.length)}`);
+  eq('한 줄', K.reqLine(r), '표 · 3개 · 10/17까지 · 김소연 맡김');
+  const txt = K.reqToPaste(r).replace('요약: (한 줄)', '요약: 이탈 지점 3곳').split('\n').filter((l) => !/^\(맡긴 일/.test(l)).join('\n') + '\n상단 리뷰\t리뷰가 맨 끝\t스크롤 85%\thttp://x';
+  const p = K.parseCrew(txt, K.boardOf('gh-conv'));
+  eq('[R] 읽기 = 번호 R1 · 보드 할 일 승인엔 안 섞임', [p.acts.R.sum, p.acts.R.items.map((x) => x.n), K.asksFromParse(p, { board: 'gh-conv', mate: 'gyeoul', run: '2026-10-16' }).length], ['이탈 지점 3곳', ['R1'], 0]);
+  const a = K.askFromReq(r, p.acts.R, { run: '2026-10-16', at: 'T2', owner: 'yj' });
+  eq('결과 → 승인 한 건: 담당 차례 · 실행 없음 · 맡긴 사람', [a.id, a.act, a.board, a.title, a.state, a.to, a.exec, a.req, a.reqBy, a.reqByName, a.items.length, a.src], [K.reqAskId(r), 'R', 'gh-conv', '맡긴 일 · 상세 이탈 진단 010-****-****', 'wait', 'yj', '', id, 'sy', '김소연', 1, 'crew-req']);
+  eq('다시 올림(AI에게 다시) = 승인 건의 req·reqBy 로도', K.askFromReq({ mate: 'gyeoul', id: a.req, req: a.req, reqBy: 'sy', reqTitle: '상세', board: 'gh-conv' }, p.acts.R, { run: 'd' }).id, a.id);
+  const L = K.asideReqLaunch(r), F = K.asideFixLaunch([K.boardOf('gh-conv')]), T = K.asideText(K.boardOf('gh-conv'));
+  eq('Aside 글: 바로 하기 · 한 시간마다 확인 · 오늘 지시문에 맡긴 일', [L.includes(`${K.HUB_CREW}#gh-conv`), L.includes('[이 일 하기]'), L.includes('원가·마진·제조사'), F.includes("'맡긴 일'이 있으면 하나씩"), F.includes('없으면 그 보드는 건너뛴다'), T.includes("'맡긴 일'(사람이 업무OS에서 따로 맡긴 일)")], [true, true, true, true, true, true]);
+}
+
 // 2026-10-14 하루·포리·에코 쉼 → 여름 (아침 루틴) · team_link.py(볼트 사본도 같은 파일) CREW·GONE 과 같게
 eq('쉬는 팀원 → 여름', Object.entries(K.GONE).map(([g, to]) => [K.mateOf(g).name, K.mateOf(to).name, K.crewOf(to).id]), [['하루', '여름', 'b2c'], ['포리', '여름', 'b2c'], ['에코', '여름', 'b2c']]);
 eq('아침 루틴 = 여름 하나', K.allMates().filter((m) => m.routine).map((m) => m.id), ['yeoreum']);

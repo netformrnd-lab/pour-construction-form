@@ -8,11 +8,11 @@
 // 계산 aiask.js · 정의 marketing-hub/crew.js · 쓰기 core.jsx(useActs aiPass·aiBack·aiRet·aiDrop·mateOwnerSet·mateRule·setBoss·setBosses)
 import { useEffect, useMemo, useState } from "react";
 import * as fb from "./fb.js";
-import { md, hm, ago, ymd, isMaster, nameOf, activeUsers } from "./model.js";
+import { md, hm, ago, ymd, addDays, isMaster, nameOf, activeUsers } from "./model.js";
 import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, inp, Linked, useLocal } from "./ui.jsx";
 import { Thread, useItemNotes } from "./task.jsx";
 import { LS } from "./core.jsx";
-import { CREWS, GONE, crewOf, mateOf, boardOf, brandL, servesL, mateBrands, ownerKeys, fmtMetric, metricPct, metricOk, runWord, asideLaunch, asideRedoLaunch, asideFixLaunch, loginSites, planOf, qtyDefs, qtyNow } from "../../marketing-hub/crew.js";
+import { CREWS, GONE, crewOf, mateOf, boardOf, brandL, servesL, mateBrands, ownerKeys, fmtMetric, metricPct, metricOk, runWord, asideLaunch, asideRedoLaunch, asideFixLaunch, loginSites, planOf, qtyDefs, qtyNow, canReq, reqMates, REQ_SHAPES, REQ_PRESETS, REQ_STATE_L, reqLine, asideReqLaunch } from "../../marketing-hub/crew.js";
 import { ASK_STATE_L, canAct, canBack, canRet, isProxy, pickOk, planPass, chainOf, mateOwner, mateStats, repeatNotes, itemLine, bossOf, bossRec, bossLoop, asidePlanOf, ranOn, missedOn } from "./aiask.js";
 
 export const HUB_CREW_URL = "../marketing-hub/crew.html";   // Aside 결과 올리기 (허브)
@@ -180,6 +180,9 @@ export function AiTeamBody({ D, cu, A, open, admin }) {
       <div style={{ flex: "1 1 220px", maxWidth: 320 }}><Seg items={[["mine", `내가 맡은 AI ${mineIds.length}`], ["all", "모두"]]} value={scope} onChange={setScope} /></div>
       {master && <TBtn onClick={() => setBulk(!bulk)} aria-pressed={bulk}>{bulk ? "담당 정하기 끝" : "담당 한꺼번에 정하기"}</TBtn>}
     </div>
+    {/* 맡긴 일(2026-10-15 "ai팀원에게 업무요청을 별도로해서 진행도 가능") — 누구나 · 보드가 있는 크루 팀원에게 */}
+    {(() => { const mine = ((D.ai && D.ai.reqs) || []).filter((r) => r.by === cu.id && (r.state === "open" || r.state === "doing")).length;
+      return <Card style={{ marginTop: 10 }}><Row title="AI에게 업무 맡기기" tag={mine ? `진행 ${mine}` : null} sub="무엇을 · 몇 개 · 언제까지 → 담당 PC Aside 가 한 시간 안에 · 결과는 승인으로 와요" onClick={() => open({ type: "aiReq" })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last /></Card>; })()}
     <p style={{ fontSize: 12.5, color: C.sub, lineHeight: 1.6, margin: "8px 2px 0" }}>AI가 결과를 올리면 담당 → 리드 → 본부장 순서로 승인해요 · 실제 반영은 늘 사람이 해요{myTurn ? ` · 지금 내 차례 ${myTurn}건` : ""} · <a className="v2-lblink" href={HUB_MANUAL_URL} target="_blank" rel="noopener">매뉴얼 보기 ›</a> · <a className="v2-lblink" href={HUB_ADS_URL} target="_blank" rel="noopener">광고 운영 ›</a></p>
     {(myG || (master && noneG)) && <Card style={{ marginTop: 10 }}>
       {myG && <Row title={`내 PC Aside · ${myG.runs.map((r) => `${(mateOf(r.board.mate) || {}).name} ${r.t}`).join(" · ")}`} sub="세팅 · 지금 돌리기 · 고칠 것 확인 — 담당마다 자기 PC 에서 동시에 돌아요" onClick={() => open({ type: "aiSetup" })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last={!(master && noneG)} />}
@@ -272,6 +275,8 @@ export function AiMateSheet({ D, cu, A, open, onBack, onClose, id }) {
     {b && pl && canRule && <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
       <CopyText text={asideLaunch(b, pl.t)} label="지금 돌리기 — Aside 글 복사" solid />
       <TBtn onClick={() => open({ type: "aiSetup", owner: pl.owner })}>{pl.owner === cu.id ? "내 PC 세팅 ›" : "그 PC 세팅 ›"}</TBtn></div>}
+    {canReq(id) && <><Head right={<TBtn v="solid" onClick={() => open({ type: "aiReq", mate: id })}>업무 맡기기</TBtn>}>맡긴 일</Head>
+      <ReqRows D={D} cu={cu} A={A} open={open} rows={((D.ai && D.ai.reqs) || []).filter((r) => r.mate === id)} empty={`${m.name}(AI)에게 따로 맡긴 일이 없어요 · [업무 맡기기]로 보드 일과 별도로 맡겨요`} /></>}
     <Head>담당 · 승인 길</Head>
     <Card>{owners.map((o, i) => <Row key={o.bb || "_"} title={`담당${o.bb ? ` (${brandL(o.bb)})` : brands.length ? " (기본)" : ""} · ${o.uid ? nameOf(D.users, o.uid) : "미정"}`}
       sub={[!o.bb && brands.length ? "아침 루틴 원고처럼 브랜드가 섞인 결과 · 브랜드 담당을 안 정한 브랜드" : "", o.uid ? [`${m.name}(AI) → ${nameOf(D.users, o.uid)}`, ...chainFrom(o.uid)].join(" → ") : "정할 때까지 관리자 누구나 승인해요"].filter(Boolean).join(" · ")}
@@ -318,6 +323,58 @@ function QtyRow({ q, n, can, onSet, last }) {
       <input value={v} inputMode="numeric" onChange={(e) => setV(e.target.value.replace(/[^0-9]/g, ""))} onBlur={commit} onKeyDown={(e) => { if (e.key === "Enter") e.target.blur(); }} aria-label={`${q.l} 횟수`} style={{ ...inp, width: 64, padding: "6px 8px", fontSize: 16, textAlign: "center" }} />
       <span style={{ fontSize: 13, color: C.sub }}>{q.u}</span>
       <Act onClick={() => n < 200 && onSet(n + 1)} aria-label={`${q.l} 늘리기`}>+1</Act></div> : null} last={last} />;
+}
+
+// 맡긴 일 줄 (2026-10-15) — 제목 · 상태 · AI · 결과 모양·몇 개·언제까지 · 결과 올라가면 그 승인 한 장 · 대기·하는 중은 맡긴 사람·관리자가 [취소]
+function ReqRows({ D, cu, A, open, rows, empty, showMate }) {
+  const [n, setN] = useState(6);
+  const list = (rows || []).filter((r) => r.state !== "cancel" || (r.updatedAt || "") >= new Date(Date.now() - 2 * 864e5).toISOString());
+  if (!list.length) return <Card><Empty>{empty}</Empty></Card>;
+  return <Card>{list.slice(0, n).map((r, i, arr) => <Row key={r.id} tag={REQ_STATE_L[r.state] || r.state} tagTone={r.state === "cancel" ? null : r.state === "done" ? "green" : null} dim={r.state === "cancel"}
+    title={r.title} sub={[showMate ? `${r.mateName || ""}(AI)` : "", reqLine(r), r.createdAt ? ago(r.createdAt) : ""].filter(Boolean).join(" · ")}
+    onClick={r.askId ? () => open({ type: "aiask", id: r.askId }) : undefined}
+    right={r.askId ? <span style={{ color: C.navy, fontWeight: 800 }}>결과 ›</span> : (r.state === "open" || r.state === "doing") && (r.by === cu.id || isMaster(cu)) ? <Act onClick={(e) => { e.stopPropagation && e.stopPropagation(); A.aiReqCancel(r); }} aria-label={`맡긴 일 취소 ${r.title}`}>취소</Act> : null}
+    last={i === arr.length - 1 && list.length <= n} />)}{list.length > n && <More onClick={() => setN(n + 10)}>{list.length - n}개 더 ▾</More>}</Card>;
+}
+// AI에게 업무 맡기기 (2026-10-15 사장님 "ai팀원에게 업무요청을 별도로해서 진행도 가능했으면 좋겠어") — 한 화면에서 끝: AI 고르기 → 자주 맡기는 일 → 무엇을 · 자세히 · 결과 모양 · 몇 개 · 언제까지 → [맡기기]
+//   맡긴 뒤: [지금 바로 — Aside 글 복사](담당 PC Aside 에 붙여 넣으면 바로) · 아니면 한 시간 안에(고칠 것 확인) · 아래 '내가 맡긴 일'
+export function AiReqSheet({ D, cu, A, open, onBack, onClose, mate }) {
+  const mates = reqMates(), [mid, setMid] = useState(mate && canReq(mate) ? mate : ""), m = mateOf(mid);
+  const [title, setTitle] = useState(""), [body, setBody] = useState(""), [shape, setShape] = useState(""), [n, setN] = useState(""), [due, setDue] = useState(""), [brand, setBrand] = useState(""), [busy, setBusy] = useState(false), [sent, setSent] = useState(null);
+  const brands = mid ? mateBrands(mid) : [], today = ymd(new Date()), dow = new Date().getDay(), fri = addDays(today, (5 - dow + 7) % 7);
+  const dues = [["", "기한 없음"], [today, "오늘"], [addDays(today, 1), "내일"], [fri, `금요일 ${md(fri)}`], [addDays(today, 7), "다음 주"]];
+  const reset = () => { setTitle(""); setBody(""); setShape(""); setN(""); setDue(""); setSent(null); };
+  const go = async () => { if (busy) return; setBusy(true); try { const r = await A.aiReq({ mate: mid, title, body, shape, n, due, brand: brand || brands[0] || "" }); if (r) setSent(r); } finally { setBusy(false); } };
+  const mine = ((D.ai && D.ai.reqs) || []).filter((r) => r.by === cu.id);
+  const lab = { fontSize: 13, fontWeight: 800, color: C.ink, margin: "14px 2px 6px" };
+  const foot = sent ? null : <Big disabled={busy || !mid || !title.trim()} onClick={go}>{busy ? "맡기는 중…" : m ? `${m.name}(AI)에게 맡기기` : "AI 팀원을 골라 주세요"}</Big>;
+  return <Sheet title="업무 맡기기" kind="AI 팀원" head="AI에게 업무 맡기기" onBack={onBack} onClose={onClose} foot={foot}>
+    {sent ? <Card style={{ marginTop: 12, padding: "14px 16px" }}>
+      <div style={{ fontSize: 16, fontWeight: 800, color: C.ink }}>{sent.mateName}(AI)에게 맡겼어요</div>
+      <div style={{ fontSize: 13.5, color: C.sub, lineHeight: 1.7, marginTop: 6 }}>{sent.title}<br />담당 PC 의 Aside 가 한 시간 안에 시작해요 · 바로 하려면 아래 글을 담당 PC Aside 에 붙여 넣어요<br />결과는 승인 한 건으로 오고, 내 '확인할 것'에 '맡긴 일 결과'로 떠요</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}><CopyText text={asideReqLaunch(sent)} label="지금 바로 — Aside 글 복사" solid /><TBtn onClick={reset}>하나 더 맡기기</TBtn></div></Card>
+    : <>
+      <div style={lab}>누구에게</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{mates.map((x) => <Chip key={x.id} on={mid === x.id} onClick={() => { setMid(x.id); setBrand(""); }}>{x.name} · {x.role}</Chip>)}</div>
+      {m && (REQ_PRESETS[mid] || []).length > 0 && <><div style={lab}>자주 맡기는 일 <span style={{ fontWeight: 400, color: C.sub }}>(누르면 채워져요 · 고쳐 써도 돼요)</span></div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{REQ_PRESETS[mid].map((t) => <Chip key={t} on={title === t} onClick={() => setTitle(t)}>{t}</Chip>)}</div></>}
+      <div style={lab}>무엇을</div>
+      <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} placeholder="예: 쿠팡 유리블러 경쟁 상품 10개 가격·리뷰 조사" aria-label="무엇을" style={inp} />
+      <div style={lab}>자세히 · 참고 링크 <span style={{ fontWeight: 400, color: C.sub }}>(선택)</span></div>
+      <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={3} maxLength={4000} placeholder="왜 필요한지 · 볼 곳 · 참고 링크 (고객 연락처·원가는 쓰지 않아요)" aria-label="자세히" style={{ ...inp, resize: "vertical" }} />
+      <div style={lab}>결과 모양</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{REQ_SHAPES.map((x) => <Chip key={x} on={shape === x} onClick={() => setShape(shape === x ? "" : x)}>{x}</Chip>)}</div>
+      <div style={lab}>몇 개 <span style={{ fontWeight: 400, color: C.sub }}>(선택)</span></div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>{["1", "3", "5", "10", "20"].map((x) => <Chip key={x} on={n === x} onClick={() => setN(n === x ? "" : x)}>{x}개</Chip>)}
+        <input value={["1", "3", "5", "10", "20"].includes(n) ? "" : n} onChange={(e) => setN(e.target.value.replace(/[^0-9]/g, "").slice(0, 3))} inputMode="numeric" placeholder="직접" aria-label="몇 개 직접" style={{ ...inp, width: 80, padding: "8px 10px" }} /></div>
+      <div style={lab}>언제까지</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{dues.map(([v, l]) => <Chip key={l} on={due === v} onClick={() => setDue(v)}>{l}</Chip>)}</div>
+      {brands.length > 1 && <><div style={lab}>브랜드</div><div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{brands.map((bb) => <Chip key={bb} on={(brand || brands[0]) === bb} onClick={() => setBrand(bb)}>{brandL(bb)}</Chip>)}</div></>}
+      <p style={{ fontSize: 12.5, color: C.sub, lineHeight: 1.6, margin: "12px 2px 0" }}>AI는 조사·표·초안까지 해요 · 가격·광고·발송·게시 같은 실행은 결과를 승인한 뒤 사람이 해요{m ? ` · 결과 승인 = ${m.name}(AI) 담당 → 리드 → 본부장` : ""}</p>
+    </>}
+    <Head>내가 맡긴 일</Head>
+    <ReqRows D={D} cu={cu} A={A} open={open} rows={mine} showMate empty="아직 맡긴 일이 없어요" />
+  </Sheet>;
 }
 
 // 내 PC Aside 세팅 (2026-10-15 사장님 "각 담당자들에게 세팅방안 업무 os로 알려줘") — '확인할 것' 세팅·안 돎 · AI 팀원 '내 PC' 카드에서 열림

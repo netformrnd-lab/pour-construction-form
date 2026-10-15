@@ -24,7 +24,7 @@ import { flowOwners } from "./flow.js";
 import { sumAk, akWrite, countFields, countOf, baseTitle } from "./routine.js";
 import { linkInbox } from "./links.js";
 import { askInbox, asideInbox, planPass, planBack, planRet, planDrop, planExec, canAct, canBack, canRet, pickOk, bossLoop, moreText, MORE_MAX } from "./aiask.js";   // AI 승인 (2026-10-12) · Aside 담당 PC (2026-10-15)
-import { mateOf, brandL, qtyDefs } from "../../marketing-hub/crew.js";
+import { mateOf, brandL, qtyDefs, canReq, reqDoc, reqId } from "../../marketing-hub/crew.js";
 import { lagInbox, applyKpiOv, kpiEditWrite, newKpiId } from "./kpi2.js";
 import { dayIdFx, dayIdAk, openIdAk, dayBase, dayAdd, dayFix, roundTap, qtyToGoal, akSubsOf } from "./rec.js";
 import { akQidOfWeek, akWeekKey } from "../../pour-os/src/actionKpi.js";
@@ -97,6 +97,9 @@ export function useData(on, full = true) {
       fb.listen("aimates", null, put("aimates"), (e) => { console.warn("[v2] AI 팀원 설정 못 읽음:", e); setS((s) => ({ ...s, aimates: [] })); }),
       // 크루 보드 값(aiboards · 보드 6개 · 허브 crew.html 이 씀) — 마지막 올린 때 → '내 PC Aside 세팅' · '오늘 안 돎' (2026-10-15)
       fb.listen("aiboards", null, put("aiboards"), (e) => console.warn("[v2] AI 크루 보드 값 못 읽음:", e)),
+      // 맡긴 일(aireqs · 2026-10-15 "ai팀원에게 업무요청을 별도로해서 진행도 가능") — 열린 것(대기·하는 중) + 최근 7일 바뀐 것 · 못 읽어도 앱은 그대로
+      fb.listen("aireqs", ["state", "in", ["open", "doing"]], put("aiReqOpen"), (e) => console.warn("[v2] 맡긴 일 못 읽음:", e)),
+      fb.listen("aireqs", ["updatedAt", ">=", since14], put("aiReqRecent"), (e) => console.warn("[v2] 맡긴 일(최근) 못 읽음:", e)),
     ];
     return () => subs.forEach((u) => u && u());
   }, [on, full]);
@@ -134,7 +137,8 @@ export function useData(on, full = true) {
       loaded: !!S.users && S.openT !== null && S.projects !== null, salesReady: S.kpisales !== undefined,
       // AI 승인(2026-10-12): asks = 열린 것 + 최근 7일(같은 id 는 열린 쪽) · mates = AI 팀원 덧칠 {id: 문서} · aiInbox = '확인할 것' 줄(model.todayView 가 부름 · 순환 import 피하려고 D 로)
       ai: (() => { const m = new Map(); (S.aiRecent || []).forEach((x) => m.set(x.id, x)); (S.aiOpen || []).forEach((x) => m.set(x.id, x));
-        return { asks: [...m.values()], mates: Object.fromEntries((S.aimates || []).map((x) => [x.id || x._doc, x])), boards: Object.fromEntries((S.aiboards || []).map((x) => [x.id || x._doc, x])), ready: S.aimates !== undefined }; })(), aiInbox: askInbox, asideInbox };
+        const rq = new Map(); (S.aiReqRecent || []).forEach((x) => rq.set(x.id || x._doc, x)); (S.aiReqOpen || []).forEach((x) => rq.set(x.id || x._doc, x));
+        return { reqs: [...rq.values()].sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || ""))), asks: [...m.values()], mates: Object.fromEntries((S.aimates || []).map((x) => [x.id || x._doc, x])), boards: Object.fromEntries((S.aiboards || []).map((x) => [x.id || x._doc, x])), ready: S.aimates !== undefined }; })(), aiInbox: askInbox, asideInbox };
   }, [S, akQ, dayK]);
   return [D, err];
 }
@@ -663,6 +667,28 @@ export function useActs(D, cu, setToast, idx = null) {
       catch (e) { fail("규칙")(e); return false; }
       log("aiRule", { col: "aimates", targetId: mateId, label: `${(mateOf(mateId) || {}).name || mateId} · 규칙 · ${t.slice(0, 60)}` });
       setToast({ text: "확정 규칙에 더했어요 · AI가 다음 실행부터 읽어요", undo: () => A.mateRuleOff(mateId, r.id, true) });
+      return true;
+    },
+    // 맡긴 일(2026-10-15 사장님 "ai팀원에게 업무요청을 별도로해서 진행도 가능했으면") — 누구나 · 보드가 있는 크루 팀원에게만(Aside 가 돎)
+    //   pour-os/v2/aireqs/{id} → 담당 PC Aside 가 한 시간 안에(고칠 것 확인) 또는 [지금 바로] → 결과 = 승인 한 건(같은 길) → 맡긴 사람 '확인할 것'
+    aiReq: async (f) => {
+      const m = mateOf(f.mate); if (!m || !canReq(f.mate)) { setToast({ text: "이 AI 팀원에게는 아직 맡길 수 없어요 (보드가 없어요)" }); return null; }
+      const title = String(f.title || "").trim(); if (!title) { setToast({ text: "무엇을 할지 한 줄 써 주세요" }); return null; }
+      const at = nowIso(), id = reqId(f.mate, Date.now(), Math.random().toString(36).slice(2, 6));
+      const doc = reqDoc({ ...f, id, title, at, by: cu.id, byName: cu.name });
+      try { await fb.put("aireqs", id, doc); } catch (e) { fail("업무 맡기기")(e); return null; }
+      log("aiReq", { col: "aireqs", targetId: id, label: `${m.name}(AI)에게 · ${doc.title.slice(0, 50)}` });
+      setToast({ text: `${m.name}(AI)에게 맡겼어요 · 담당 PC Aside 가 한 시간 안에 시작해요` });
+      return doc;
+    },
+    aiReqCancel: async (r) => {
+      if (!(r.by === cu.id || isMaster(cu))) { setToast({ text: "맡긴 사람·관리자만 취소해요" }); return false; }
+      const at = nowIso();
+      try { const x = await fb.patchIf("aireqs", r.id, { state: r.state }, { state: "cancel", cancelAt: at, updatedAt: at, log: fb.arrayUnion({ at, by: cu.id, byName: cu.name, act: "cancel" }) });
+        if (!x.ok) { setToast({ text: "그사이 AI가 이미 시작했거나 끝냈어요 · 다시 봐 주세요" }); return false; } }
+      catch (e) { fail("맡긴 일 취소")(e); return false; }
+      log("aiReqX", { col: "aireqs", targetId: r.id, label: `${r.mateName || "AI"} · ${String(r.title || "").slice(0, 50)} · 취소` });
+      setToast({ text: "취소했어요" });
       return true;
     },
     mateRuleOff: async (mateId, rid, off = true) => {

@@ -282,10 +282,10 @@ export const metricOk = (m, v) => v != null && m && m.target != null && (m.dir =
 // ── Aside 결과 붙여 넣기 읽기 (그로홈 보드에서 쓰던 모양 그대로) ──
 //   [지표] 줄마다 '키 값' 또는 '이름: 값' (키 = 보드 지표 k · 이름 = l)
 //   [상태] 'A: 한 줄'
-//   [A] ~ [F] 표: 첫 줄 = 열 이름 · 칸은 탭 또는 | · 위나 아래에 '요약: …' · 표가 아닌 줄은 설명(body)
+//   [A] ~ [F] 표 · [R] = 맡긴 일 결과(askFromReq): 첫 줄 = 열 이름 · 칸은 탭 또는 | · 위나 아래에 '요약: …' · 표가 아닌 줄은 설명(body)
 //   [완료] 읽기만 (실행은 사람이 업무OS '실행' 업무에서 끝냄)
 //   빼는 것: 원가·마진·제조사·공급 단가 칸 · 피그마·파일 받기 칸 · 관리자 자리 행동(admin) 표 · 휴대폰 번호·메일(가림)
-const SEC_RE = /^\s*\[\s*(지표|상태|완료|([A-F])(?:\s+([^\]]*))?)\s*\]\s*$/;
+const SEC_RE = /^\s*\[\s*(지표|상태|완료|([A-FR])(?:\s+([^\]]*))?)\s*\]\s*$/;
 const norm = (s) => String(s || '').replace(/[\s()·,./:%-]/g, '').toLowerCase();
 const cellsOf = (line) => { if (line.includes('\t')) return line.split('\t').map((x) => x.trim());
   if (line.includes('|')) { let a = line.split('|').map((x) => x.trim()); if (a[0] === '') a = a.slice(1); if (a.length && a[a.length - 1] === '') a = a.slice(0, -1); return a; } return null; };
@@ -310,7 +310,7 @@ export function parseCrew(text, board) {
       const m = mByKey.get(norm(mm[1])), v = toNum(mm[2]);
       if (!m) { out.unknown.push(mm[1].trim()); continue; } if (v == null) { out.warn.push(`${m.l} 값을 숫자로 못 읽음: ${mm[2]}`); continue; }
       out.metrics = out.metrics.filter((x) => x.k !== m.k).concat({ k: m.k, l: m.l, v, raw: mm[2].trim() }); continue; }
-    if (sec === '상태') { const mm = /^\s*([A-F])\s*[:：.)]\s*(.+)$/.exec(line); if (mm) out.status[mm[1]] = maskPII(mm[2].trim()); continue; }
+    if (sec === '상태') { const mm = /^\s*([A-FR])\s*[:：.)]\s*(.+)$/.exec(line); if (mm) out.status[mm[1]] = maskPII(mm[2].trim()); continue; }
     if (sec === '완료') { out.done += (out.done ? '\n' : '') + line.trim(); continue; }
     if (cur) {
       const sum = /^\s*(요약|한 줄)\s*[:：]\s*(.+)$/.exec(line); if (sum) { cur.sum = maskPII(sum[2].trim()); continue; }
@@ -328,7 +328,7 @@ export function parseCrew(text, board) {
     if (x.dropped.length) out.warn.push(`${a}: 뺀 칸 ${x.dropped.join(' · ')} (원가·마진·제조사·파일 칸은 업무OS에 안 둠)`);
     const keep = cols.filter((h) => h && !dropCol(h) && h !== '번호');
     // 번호: 적힌 번호(A1 …)는 그대로 · 빈 줄은 같은 글자의 가장 큰 번호 다음부터 (이전 판에 줄을 더해도 안 겹침 · 2026-10-15)
-    const given = x.rows.map((r) => String(r['번호'] || '').trim().toUpperCase()), ok = (n) => /^[A-F]\d+$/.test(n);
+    const given = x.rows.map((r) => String(r['번호'] || '').trim().toUpperCase()), ok = (n) => /^[A-FR]\d+$/.test(n);
     let k = Math.max(0, ...given.filter((n) => ok(n) && n[0] === a).map((n) => Number(n.slice(1))));
     x.items = x.rows.map((r, i) => { const c = {}; keep.forEach((h) => { if (r[h] != null) c[h] = maskPII(r[h]); });
       return { n: ok(given[i]) ? given[i] : `${a}${++k}`, c }; });
@@ -359,11 +359,63 @@ export function redoFields(cur, nx, owner) {
     metrics: nx.metrics || cur.metrics || [], url: nx.url || cur.url || '', note: nx.note || cur.note || '', noteId: nx.noteId || cur.noteId || '',
     owner: owner != null ? owner : cur.owner || '', to: owner != null ? owner : cur.owner || '', step: 0, state: 'wait', path: [], pick: null, ver: (cur.ver || 1) + 1, back: null, ret: null, updatedAt: at };
 }
-// 행동 하나 = 승인 요청 하나로 (보드 붙여 넣기) — 표가 비고 요약·설명도 없으면 안 만듦
+// 행동 하나 = 승인 요청 하나로 (보드 붙여 넣기) — 표가 비고 요약·설명도 없으면 안 만듦 · R(맡긴 일)은 빼고 askFromReq 로
 export function asksFromParse(p, { board, mate, brand, run, at, owner, src }) {
   const b = typeof board === 'string' ? boardOf(board) : board; if (!b) return [];
-  return Object.entries(p.acts).filter(([c, x]) => (x.items || []).length || x.sum || (x.body || []).length).map(([c, x]) => { const a = actOf(b.id, c) || { t: `${c}`, exec: '' };
+  return Object.entries(p.acts).filter(([c, x]) => c !== 'R' && ((x.items || []).length || x.sum || (x.body || []).length)).map(([c, x]) => { const a = actOf(b.id, c) || { t: `${c}`, exec: '' };
     return askDoc({ id: askId(mate, run, `${b.id}${c}`), mate, brand, board: b.id, act: c, run, at, owner, src, title: `${b.title} ${c} · ${a.t}`, sum: x.sum || p.status[c] || '', body: (x.body || []).join('\n'), cols: x.cols || [], items: x.items || [], exec: a.exec || '' }); });
+}
+
+// ── 맡긴 일 (2026-10-15 사장님 "ai팀원에게 업무요청을 별도로해서 진행도 가능했으면 좋겠어") ──
+//   pour-os/v2/aireqs/{id} = 업무OS [업무 맡기기](사람) → 담당 PC Aside(고칠 것 확인 · 한 시간마다 · 또는 [지금 바로]) 가 crew.html '맡긴 일'에서 [이 일 하기]
+//   → 결과 [R] 묶음 → 업무OS 승인 한 건(act 'R' · id reqAskId · req = 맡긴 일 id · 같은 승인 길) → 맡긴 사람 '확인할 것'에 '맡긴 일 결과'
+//   state: open(대기) → doing(Aside 하는 중) → done(결과 올라감 · askId) · cancel(맡긴 사람·관리자가 취소) · 보드가 있는 크루 팀원만(Aside 가 돎)
+//   지킬 것은 보드 일과 같음: 실행(가격·광고·발송·게시·등록)은 사람 · 원가·제조사·고객 정보 안 씀 · 외주 운영 기간 광고는 바꾸지 않음
+export const REQ_STATE_L = { open: '대기', doing: 'AI 하는 중', done: '결과 올라감', cancel: '취소' };
+export const REQ_SHAPES = ['표', '초안', '목록', '조사 메모'];
+// 자주 맡기는 일 (버튼 한 번에 '무엇을' 채움 · 고쳐 써도 됨)
+export const REQ_PRESETS = {
+  bom: ['오늘의집 경쟁 상품 10개 가격·리뷰 조사', '기획전·특가 신청안 초안', '상품명·썸네일 개선안 3개'],
+  yeoreum: ['인스타 릴스 레퍼런스 5개 찾기', '크리에이터 후보 10명 찾기', '메타 소재 브리프 3안'],
+  gaeul: ['키워드 20개 검색량·경쟁 조사', '네이버쇼핑 순위 점검', '자사몰 유입 경로 점검'],
+  gyeoul: ['상품 상세 이탈 진단 1건', '리뷰 불만 유형 정리', '경쟁 상세 첫 화면 비교'],
+  haneul: ['세트 구성안 3개', '무료배송 기준 다시 계산', '추가구성 상품 제안'],
+  uju: ['재구매 안내 문구 3안', '이번 달 캠페인 쿠폰안', '사진 후기 이벤트 초안'],
+};
+export const canReq = (mateId) => { const m = mateOf(mateId); return !!(m && m.board && boardOf(m.board)); };
+export const reqMates = () => CREWS.flatMap((c) => c.members).filter((m) => canReq(m.id));
+export const reqId = (mate, ms, r) => `rq_${mate}_${Number(ms || 0).toString(36)}${r ? String(r).replace(/[^\w]/g, '').slice(0, 4) : ''}`;
+export function reqDoc(o) {
+  const m = mateOf(o.mate) || { name: o.mate }, c = crewOf(o.mate), b = m.board ? boardOf(m.board) : null, at = o.at || new Date().toISOString();
+  const n = Math.round(Number(o.n)) || 0;
+  return { id: o.id, mate: o.mate, mateName: m.name, crew: c ? c.id : 'base', brand: o.brand || (b ? b.brand : ''), board: b ? b.id : '',
+    title: maskPII(String(o.title || '').trim()).slice(0, 120), body: maskPII(String(o.body || '').trim()).slice(0, 4000), shape: REQ_SHAPES.includes(o.shape) ? o.shape : '',
+    n: n > 0 ? Math.min(n, 200) : null, due: /^\d{4}-\d{2}-\d{2}$/.test(o.due || '') ? o.due : '', taskId: o.taskId || '',
+    state: 'open', askId: '', by: o.by || '', byName: o.byName || '', createdAt: at, updatedAt: at, log: [{ at, by: o.by || '', byName: o.byName || '', act: 'req' }] };
+}
+export const reqAskId = (req) => `ai_${req.mate}_rq_${String(req.id || '').replace(/^rq_[a-z]+_/, '').replace(/[^\w]/g, '').slice(-32)}`;
+// 맡긴 일 한 줄 (Aside 화면 · 업무OS 목록)
+export const reqLine = (r) => [r.shape, r.n ? `${r.n}개` : '', r.due ? `${Number(r.due.slice(5, 7))}/${Number(r.due.slice(8, 10))}까지` : '', r.byName ? `${r.byName} 맡김` : ''].filter(Boolean).join(' · ');
+// 결과 [R] → 승인 한 건 (같은 승인 길 · 실행 한 줄 없음 = 보고 · 맡긴 사람 req·reqBy 로 '확인할 것')
+export function askFromReq(req, x, { run, at, owner }) {
+  const d = askDoc({ id: reqAskId(req), mate: req.mate, brand: req.brand || '', board: req.board || '', act: 'R', run, at, owner, src: 'crew-req',
+    title: `맡긴 일 · ${req.title || req.reqTitle || ''}`, sum: (x && x.sum) || '', body: ((x && x.body) || []).join('\n'), cols: (x && x.cols) || [], items: (x && x.items) || [], exec: '' });
+  return { ...d, req: req.id || req.req || '', reqBy: req.by || req.reqBy || '', reqByName: req.byName || req.reqByName || '', reqTitle: req.title || req.reqTitle || '' };
+}
+// [이 일 하기] 를 누르면 결과 칸에 넣는 모양
+export function reqToPaste(req) {
+  const head = req.shape === '표' || req.shape === '목록' || req.shape === '조사 메모' ? (req.shape === '조사 메모' ? '항목\t내용\t출처 링크' : '항목\t내용\t근거\t링크') : '';
+  return ['[R]', '요약: (한 줄)', `(맡긴 일: ${req.title}${req.n ? ` · ${req.n}개` : ''}${req.shape ? ` · ${req.shape}` : ''} — 이 줄은 지우고 결과를 쓴다)`, ...(head ? [head] : ['(초안 글 · 줄마다)'])].join('\n');
+}
+// 지금 바로 (업무OS [업무 맡기기] 뒤 · 담당 PC Aside 에 붙여 넣기)
+export function asideReqLaunch(req) {
+  const b = boardOf(req.board); if (!b) return '';
+  const m = mateOf(b.mate) || { name: b.mate };
+  return [`[AI 크루 · ${m.name} · 맡긴 일 바로 하기] ${String(req.title || '').slice(0, 60)}`,
+    `1. 이 주소를 연다: ${HUB_CREW}#${b.id}`,
+    `2. '맡긴 일'의 '${String(req.title || '').slice(0, 40)}' 줄에서 [이 일 하기]를 누른다 (결과 칸에 [R] 모양이 채워짐).`,
+    `3. 적힌 대로 한다${req.n ? ` (${req.n}개)` : ''}${req.shape ? ` · 결과 모양 ${req.shape}` : ''} — 자세히: ${String(req.body || '').slice(0, 300) || '없음'}`,
+    "4. [R] 묶음의 요약·표(또는 글)를 채우고 [미리보기] → [업무OS에 올리기] → 맨 위 '올렸어요' 확인. 다른 일은 하지 않는다.", RULE_SHORT].join('\n');
 }
 
 // ── Aside 루틴 (2026-10-14 사장님 "모든 크루들의 행위들 모두 가능하게 세팅해줘") ──
@@ -424,7 +476,9 @@ const RULE_SHORT = '지킬 것: 실행(가격·옵션·광고·쿠폰·신청·�
 export function asideFixLaunch(boards) {
   const bs = (boards || []).filter(Boolean), names = bs.map((b) => (mateOf(b.mate) || {}).name || b.mate).join(' · ');
   return [`[AI 크루 · 고칠 것만 확인 — ${names}] 지금 또는 평일 한 시간마다`,
-    "아래 주소를 차례로 연다. 화면 맨 위 '고쳐서 다시 올릴 것'(더 만들기 포함)이 있을 때만: [이전 판 불러오기] → 적힌 말대로 고치거나 줄을 더한다 → [미리보기] → [업무OS에 올리기] → '올렸어요' 확인. 없으면 그 보드는 건너뛴다. 오늘 지시문의 새 일은 하지 않는다.",
+    "아래 주소를 차례로 연다. 화면 맨 위 '고쳐서 다시 올릴 것'(더 만들기 포함)이 있을 때만: [이전 판 불러오기] → 적힌 말대로 고치거나 줄을 더한다 → [미리보기] → [업무OS에 올리기] → '올렸어요' 확인.",
+    "'맡긴 일'이 있으면 하나씩: [이 일 하기] → 적힌 대로 한다 → 결과 칸의 [R] 묶음을 채운다 → [미리보기] → [업무OS에 올리기] → '올렸어요' 확인.",
+    "둘 다 없으면 그 보드는 건너뛴다. 오늘 지시문의 새 일은 하지 않는다.",
     ...bs.map((b) => `- ${(mateOf(b.mate) || {}).name || b.mate} · ${b.title}: ${HUB_CREW}#${b.id}`), RULE_SHORT].join('\n');
 }
 // 승인 한 건을 바로 고치게 (업무OS [AI에게 다시] 뒤 · 담당 PC Aside 에 붙여 넣기)
@@ -461,6 +515,7 @@ export function asideText(b, opt = {}) {
   L.push('■ 0. 먼저 (매번)',
     `1) ${crewUrl(b)} 를 연다 (마케팅 허브 업로더 계정).`,
     "2) 화면에 '고쳐서 다시 올릴 것'(더 만들기 포함)이 있으면 그것부터 — [이전 판 불러오기]로 그 건의 날짜·표를 불러와 적힌 말대로 고치거나(더 만들기면 맨 아래에 줄을 더함 · 번호 칸은 비워 둠) 같은 할 일만 다시 올린다 (= 같은 건의 다음 판). 다 올린 뒤 오늘 일을 한다.",
+    "   '맡긴 일'(사람이 업무OS에서 따로 맡긴 일)이 있으면 그다음 — [이 일 하기]로 하나 고르고 적힌 대로 해서 [R] 묶음(요약 + 표 또는 글)으로 따로 올린다. 아래 '지킬 것'은 맡긴 일에도 같다.",
     "3) 화면의 '확정 규칙'은 꼭 지킨다. 화면 지시문 판이 이 글보다 새로우면 화면 지시문을 따른다.",
     '4) 여는 곳 (이 PC Aside 브라우저에 로그인돼 있음):', ...(b.logins || []).map((x) => `   - ${x.s} — ${x.w}${x.open ? ' (로그인 없음)' : ''}`),
     "   로그인이 풀려 있으면 그 일은 하지 말고 [상태]에 '막힘 — ○○ 로그인'만 쓴다 (비밀번호를 찾거나 바꾸지 않는다).", '');

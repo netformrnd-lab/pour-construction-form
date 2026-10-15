@@ -9,7 +9,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { pinHash } from '../src/sha.js';
-import { askDoc } from '../../marketing-hub/crew.js';
+import { askDoc, askFromReq } from '../../marketing-hub/crew.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const TEAM = path.join(here, 'out/team/index.html'), ADMIN = path.join(here, 'out/admin/admin.html');
@@ -236,6 +236,45 @@ ST.v2.aiboards['gh-conv'].at = '2026-10-12T00:10:00.000Z';
   s = await session('cw', { now: '2026-10-13T11:00:00+09:00' });
   await expand(s.pg);
   eq('김채원 = 여름 세팅 안내 (담당마다 09:00 동시에)', await inbox(s.pg, '내 PC Aside 세팅 · 여름 09:00').count(), 1);
+  await s.close(); }
+
+// ⑧ AI에게 업무 맡기기 (2026-10-15 사장님 "ai팀원에게 업무요청을 별도로해서 진행도 가능했으면") — 김채원(폰) → 겨울에게 → 취소 · 다시 맡김 → Aside 결과 → 맡긴 사람 '맡긴 일 결과' · 담당(남윤정) 승인 줄
+{ let s = await session('cw', { now: '2026-10-13T11:00:00+09:00' });
+  await s.pg.locator('.v2-nav').getByRole('button', { name: '더보기' }).click(); await s.pg.waitForTimeout(300);
+  await s.pg.getByText(/^AI 팀원 · 내가 맡은 AI 1/).click(); await s.pg.waitForTimeout(500);
+  await s.S().getByText('AI에게 업무 맡기기').click(); await s.pg.waitForTimeout(500);
+  ok('맡기기 시트: AI 6명 · 버튼 잠김(아직 안 고름)', (await s.S().getByText('겨울 · 전환마케터').count()) > 0 && (await s.S().getByText('봄 · 오늘의집 MD').count()) > 0 && await s.pg.getByRole('button', { name: 'AI 팀원을 골라 주세요' }).isDisabled());
+  await s.S().getByText('겨울 · 전환마케터').click(); await s.S().getByText('상품 상세 이탈 진단 1건').click();
+  await s.S().getByText('표', { exact: true }).click(); await s.S().getByText('3개', { exact: true }).click(); await s.S().getByText('내일', { exact: true }).click();
+  await s.S().getByLabel('자세히').fill('쿠팡 유리블러 상세 · 리뷰가 맨 끝이라 이탈');
+  await shot(s.pg, 'cw-req-375'); ok('맡기기 시트 넘침 없음 375', !(await over(s.pg)));
+  await s.pg.getByRole('button', { name: '겨울(AI)에게 맡기기' }).click(); await s.pg.waitForTimeout(600);
+  let rq = Object.values(await s.pg.evaluate(() => window.__V2.v2.aireqs || {}));
+  eq('맡긴 일 저장: 겨울 · 전환 보드 · 표 3개 · 내일 · 대기 · 맡긴 사람', rq.map((r) => [r.mate, r.board, r.title, r.shape, r.n, r.due, r.state, r.by]), [['gyeoul', 'gh-conv', '상품 상세 이탈 진단 1건', '표', 3, '2026-10-14', 'open', 'cw']]);
+  ok('맡긴 뒤: 지금 바로 글 · 하나 더', (await s.S().innerText()).includes('겨울(AI)에게 맡겼어요') && (await s.S().getByRole('button', { name: '하나 더 맡기기' }).count()) === 1);
+  await s.S().getByRole('button', { name: '지금 바로 — Aside 글 복사' }).click(); await s.pg.waitForTimeout(300);
+  ok('[지금 바로] 글 = 겨울 보드 주소 · [이 일 하기]', (await boxOf(s.S, '지금 바로 — Aside 글 복사')).startsWith('[AI 크루 · 겨울 · 맡긴 일 바로 하기]') && (await boxOf(s.S, '지금 바로 — Aside 글 복사')).includes('crew.html#gh-conv'));
+  await shot(s.pg, 'cw-req-sent-375');
+  ok('내가 맡긴 일: 대기 · 겨울(AI)', (await s.S().innerText()).includes('대기') && (await s.S().innerText()).includes('겨울(AI)'));
+  await s.S().getByRole('button', { name: '맡긴 일 취소 상품 상세 이탈 진단 1건' }).click(); await s.pg.waitForTimeout(500);
+  eq('취소 = cancel', Object.values(await s.pg.evaluate(() => window.__V2.v2.aireqs)).map((r) => r.state), ['cancel']);
+  await s.S().getByRole('button', { name: '하나 더 맡기기' }).click(); await s.pg.waitForTimeout(300);
+  await s.S().getByText('겨울 · 전환마케터').click(); await s.S().getByLabel('무엇을').fill('리뷰 불만 유형 정리');
+  await s.pg.getByRole('button', { name: '겨울(AI)에게 맡기기' }).click(); await s.pg.waitForTimeout(600);
+  await s.close(); }
+// Aside 가 crew.html 에서 [이 일 하기] → [R] 결과 → 승인 한 건 + 맡긴 일 done (허브 쪽 쓰기를 같은 모양으로)
+{ const r = Object.values(ST.v2.aireqs).find((x) => x.state === 'open'), at = '2026-10-13T02:30:00.000Z';
+  const a = askFromReq(r, { sum: '불만 4유형', cols: ['유형', '건수'], items: [{ n: 'R1', c: { 유형: '냄새', 건수: '12' } }] }, { run: '2026-10-13', at, owner: 'yj' });
+  ST.v2.aiasks[a.id] = a; Object.assign(ST.v2.aireqs[r.id], { state: 'done', askId: a.id, doneAt: at, updatedAt: at });
+  let s = await session('cw', { now: '2026-10-13T11:40:00+09:00' });
+  await expand(s.pg);
+  eq('맡긴 사람(김채원) = 맡긴 일 결과 한 줄', await inbox(s.pg, '맡긴 일 · 리뷰 불만 유형 정리').count(), 1);
+  await inbox(s.pg, '맡긴 일 · 리뷰 불만 유형 정리').first().click(); await s.pg.waitForTimeout(500);
+  ok('누르면 그 승인 한 장 (남윤정 차례)', (await s.S().innerText()).includes('리뷰 불만 유형 정리') && (await s.S().innerText()).includes('남윤정'));
+  await s.close();
+  s = await session('yj', { now: '2026-10-13T11:40:00+09:00' });
+  await expand(s.pg);
+  eq('담당(남윤정) = AI 승인 요청 줄', await inbox(s.pg, '맡긴 일 · 리뷰 불만 유형 정리').count(), 1);
   await s.close(); }
 
 ok('화면 오류 없음', errs.length === 0, errs);

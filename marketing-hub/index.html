@@ -599,7 +599,7 @@ function vTeam(){
   const week=[];for(let i=0;i<7;i++){const d=C.addDays(now.date,i);week.push({d,runs:C.teamDay(d)});}
   const shown=C.teamShown(), live=shown.filter(m=>m.live).length;   // 하루·포리·에코는 2026-10-14부터 쉼 → 여름(B2C 크루)
   const ao=asksOpen();
-  return `<div class="card"><h3>✅ AI 승인 진행 ${ao.filter(a=>a.state==='wait').length} <span class="sub">[📄 보기] 미리보기 · 고칠 점 메모 → 승인은 <b>업무OS</b>(담당 → 리드 → 본부장) → 최종 승인 뒤 [임시저장 맡기기]</span></h3>${askRows(ao)}</div>
+  return `<div class="card"><h3>✅ AI 승인 진행 ${ao.filter(a=>a.state==='wait').length} <span class="sub">[📄 보기] 미리보기 · 고칠 점 메모 → 승인은 <b>업무OS</b>(담당 → 리드 · 광고비 예산·원가·판매가 조정만 본부장까지) → 최종 승인 뒤 [임시저장 맡기기]</span></h3>${askRows(ao)}</div>
   ${rv.length?`<div class="card"><h3>📋 예전 검토 줄 ${rv.length} <span class="sub">업무OS 승인 전에 올라온 것 · [검토 끝]으로 닫기</span></h3>${reviewRows(rv)}</div>`:''}
   ${pubCard()}
   <div class="card"><h3>🕘 오늘 ${esc(mdw(now.date))} <span class="sub">${today.length}건 · 지금 ${esc(now.time)}</span></h3>

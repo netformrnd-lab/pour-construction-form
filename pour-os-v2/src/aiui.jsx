@@ -12,8 +12,8 @@ import { md, hm, ago, ymd, addDays, isMaster, nameOf, activeUsers } from "./mode
 import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, inp, Linked, useLocal } from "./ui.jsx";
 import { Thread, useItemNotes } from "./task.jsx";
 import { LS } from "./core.jsx";
-import { CREWS, GONE, crewOf, mateOf, boardOf, brandL, servesL, mateBrands, ownerKeys, fmtMetric, metricPct, metricOk, runWord, asideLaunch, asideRedoLaunch, asideFixLaunch, loginSites, planOf, qtyDefs, qtyNow, canReq, reqMates, REQ_SHAPES, REQ_PRESETS, REQ_STATE_L, reqLine, asideReqLaunch } from "../../marketing-hub/crew.js";
-import { ASK_STATE_L, canAct, canBack, canRet, isProxy, pickOk, planPass, chainOf, mateOwner, mateStats, repeatNotes, itemLine, bossOf, bossRec, bossLoop, asidePlanOf, ranOn, missedOn } from "./aiask.js";
+import { CREWS, GONE, crewOf, mateOf, boardOf, brandL, servesL, mateBrands, ownerKeys, fmtMetric, metricPct, metricOk, runWord, asideLaunch, asideRedoLaunch, asideFixLaunch, loginSites, planOf, qtyDefs, qtyNow, canReq, reqMates, REQ_SHAPES, REQ_PRESETS, REQ_STATE_L, reqLine, asideReqLaunch, execOf } from "../../marketing-hub/crew.js";
+import { ASK_STATE_L, canAct, canBack, canRet, isProxy, pickOk, planPass, chainOf, mateOwner, actOwner, hqOf, canUpHQ, mateStats, repeatNotes, itemLine, bossOf, bossRec, bossLoop, asidePlanOf, ranOn, missedOn } from "./aiask.js";
 
 export const HUB_CREW_URL = "../marketing-hub/crew.html";   // Aside 결과 올리기 (허브)
 export const HUB_MANUAL_URL = "../marketing-hub/ai-manual.html", HUB_ADS_URL = "../marketing-hub/ads.html";   // AI 팀 매뉴얼 · 광고 운영 (2026-10-15 · 읽기 전용 · Aside 가 씀)
@@ -46,8 +46,8 @@ export function useAsk(D, id) {
 }
 
 // 승인 길 한 줄: 겨울(AI) → 남윤정 ✓ → 김소연 ● → 허지은
-export function ChainLine({ a, users }) {
-  const ch = chainOf(a, users), mk = { done: "✓", now: "●", next: "", wait: "" };
+export function ChainLine({ a, users, hq }) {
+  const ch = chainOf(a, users, hq), mk = { done: "✓", now: "●", next: "", wait: "" };
   return <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6, fontSize: 13, color: C.sub, lineHeight: 1.7 }}>
     <span style={{ fontWeight: 800, color: C.ink }}>{a.mateName || "AI"} (AI)</span>
     {ch.map((x, i) => <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><span style={{ color: C.mute }}>→</span>
@@ -88,11 +88,13 @@ export function AiAskSheet({ D, cu, A, open, onBack, onClose, id, focus, note })
   const items = a.items || [], can = canAct(a, cu), proxy = can && isProxy(a, cu);
   const pick = pick0 || (Array.isArray(a.pick) ? a.pick : []), pset = new Set(pick);
   const toggle = (n) => setPick(pset.has(n) ? pick.filter((x) => x !== n) : [...pick, n]);
-  const pv = can ? planPass(a, cu, D.users, items.length ? pick : null, "") : null, nextN = pv && pv.next ? nameOf(D.users, pv.next) : "";
+  const hq = hqOf(a, ((D.ai && D.ai.mates) || {})[a.mate]), upOk = canUpHQ(a, cu, D.users, hq);   // 본부장 승인 일 (2026-10-15 · 광고비 예산·원가·판매가 조정)
+  const pv = can ? planPass(a, cu, D.users, items.length ? pick : null, "", { hq }) : null, nextN = pv && pv.next ? nameOf(D.users, pv.next) : "";
   const go = async (fn) => { if (busy) return; setBusy(true); try { const ok = await fn(); if (ok) { setMode(""); setTxt(""); setPick(null); } } finally { setBusy(false); } };
   const passL = `${items.length ? `고른 ${pick.length}개 ` : ""}${pv && pv.next ? `승인 → ${nextN}님께` : "최종 승인"}`;
   const exT = a.execTask ? (D.tasks || []).find((t) => t.id === a.execTask) : null;
   const foot = can ? <><Big disabled={busy || !pickOk(a, pick)} onClick={() => go(() => A.aiPass(a, items.length ? pick : null))}>{passL}</Big>
+      {upOk && <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, fontSize: 12.5, color: C.sub, flexWrap: "wrap" }}><span style={{ flex: "1 1 160px" }}>리드에서 끝나는 일이에요 · 본부장 확인이 필요하면</span><TBtn disabled={busy || !pickOk(a, pick)} onClick={() => go(() => A.aiPass(a, items.length ? pick : null, true))}>본부장에게도 올리기</TBtn></div>}
       {proxy && <div style={{ fontSize: 12.5, color: C.sub, marginTop: 6 }}>관리자로 대신 눌러요 · 지금 차례는 {nameOf(D.users, a.to)}님 · 기록엔 내 이름이 남아요</div>}</>
     : a.state === "wait" ? <Big disabled>{a.to ? `${nameOf(D.users, a.to)}님 승인 기다리는 중` : "담당 미정 · 관리자가 승인해요"}</Big>
     : a.state === "back" ? <Big disabled>{m.name}(AI)가 고치는 중 · 다시 올리면 알려 드려요</Big>
@@ -103,16 +105,19 @@ export function AiAskSheet({ D, cu, A, open, onBack, onClose, id, focus, note })
       <Pill color={tone[a.state] || C.navy}>{ASK_STATE_L[a.state] || a.state}{a.state === "wait" ? (a.step > 0 ? ` · ${a.step + 1}단계` : " · 담당 단계") : ""}</Pill>
       {a.brand && <Pill color={C.sub} bg="#F1F2F6">{brandL(a.brand)}</Pill>}
       {(a.ver || 1) > 1 && <Pill color={C.sub} bg="#F1F2F6">{a.ver}번째로 다시 올림</Pill>}
+      {hq && <Pill color="#9A3412" bg="#FFF1E6">본부장 승인 · {hq}</Pill>}
       <span style={{ fontSize: 12.5, color: C.mute }}>{a.run ? md(a.run) + " 실행" : ""}{a.createdAt ? ` · ${ago(a.createdAt)}` : ""}</span>
     </div>
-    <div style={{ marginTop: 10 }}><ChainLine a={a} users={D.users} /></div>
+    <div style={{ marginTop: 10 }}><ChainLine a={a} users={D.users} hq={hq} /></div>
     {a.ret && a.state === "wait" && <Banner red><b>수정 요청</b> · {a.ret.byName} · {ago(a.ret.at)}<div style={{ whiteSpace: "pre-wrap" }}><Linked text={a.ret.text} /></div>
       <div style={{ fontSize: 12.5, color: C.sub, marginTop: 4 }}>번호를 다시 고르거나 AI에게 다시 보내 주세요</div></Banner>}
     {a.state === "back" && a.back && <Banner><b>{m.name}(AI)에게 {a.back.more ? `더 만들기 ${a.back.more}개` : "다시 보냄"}</b> · {a.back.byName} · {ago(a.back.at)}<div style={{ whiteSpace: "pre-wrap" }}>{a.back.text}</div>
       {b ? <div style={{ marginTop: 8 }}><div style={{ fontSize: 12.5, color: C.sub, marginBottom: 6 }}>바로 고치게 하려면 담당 PC Aside 에 이 글을 붙여 넣어요 · 고칠 것 확인을 한 시간마다 걸어 뒀으면 그때 고쳐요</div><CopyText text={asideRedoLaunch(a)} label="바로 고치기 — Aside 글 복사" /></div>
         : <div style={{ fontSize: 12.5, color: C.sub, marginTop: 6 }}>{m.name}(AI)가 평일 10~17시엔 한 시간 안에 고쳐 다시 올려요 · 그 밖엔 다음 날 아침 06:50</div>}</Banner>}
     {a.state === "no" && <Banner><b>안 함</b> · {a.noByName} · {a.noAt ? ago(a.noAt) : ""}{a.noReason ? <div>{a.noReason}</div> : null}</Banner>}
-    {a.state === "ok" && <Banner><b>최종 승인</b> · {a.okByName} · {a.okAt ? `${md(ymd(new Date(a.okAt)))} ${hm(a.okAt)}` : ""}{a.exec ? <div>실제 반영은 사람이 해요 · '실행' 업무에서 끝내 주세요</div> : null}</Banner>}
+    {a.state === "ok" && <Banner><b>최종 승인</b> · {a.okByName} · {a.okAt ? `${md(ymd(new Date(a.okAt)))} ${hm(a.okAt)}` : ""}{a.exec ? <div>실제 반영은 사람이 해요 · '실행' 업무에서 번호마다 흔적을 남기고 끝내 주세요</div> : null}
+      {a.trace && Object.keys(a.trace).length > 0 && <div style={{ marginTop: 6 }}>{Object.entries(a.trace).filter(([, v]) => v).sort(([x], [y]) => x.localeCompare(y)).map(([n, v]) => <div key={n} style={{ fontSize: 13, lineHeight: 1.6 }}>
+        <b style={{ color: v.skip ? C.sub : C.green }}>{n === "_" ? "흔적" : n} {v.skip ? "안 함" : "했어요 ✓"}</b> · {v.byName} {v.date ? md(v.date) : ""}{v.link ? <> · <Linked text={v.link} /></> : null}{v.note ? ` · ${v.note}` : ""}</div>)}</div>}</Banner>}
 
     {(a.sum || a.body) && <Card style={{ marginTop: 12, padding: "12px 14px" }}>
       {a.sum && <div style={{ fontSize: 14.5, fontWeight: 800, color: C.text, lineHeight: 1.6 }}>{a.sum}</div>}
@@ -183,7 +188,7 @@ export function AiTeamBody({ D, cu, A, open, admin }) {
     {/* 맡긴 일(2026-10-15 "ai팀원에게 업무요청을 별도로해서 진행도 가능") — 누구나 · 보드가 있는 크루 팀원에게 */}
     {(() => { const mine = ((D.ai && D.ai.reqs) || []).filter((r) => r.by === cu.id && (r.state === "open" || r.state === "doing")).length;
       return <Card style={{ marginTop: 10 }}><Row title="AI에게 업무 맡기기" tag={mine ? `진행 ${mine}` : null} sub="무엇을 · 몇 개 · 언제까지 → 담당 PC Aside 가 한 시간 안에 · 결과는 승인으로 와요" onClick={() => open({ type: "aiReq" })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last /></Card>; })()}
-    <p style={{ fontSize: 12.5, color: C.sub, lineHeight: 1.6, margin: "8px 2px 0" }}>AI가 결과를 올리면 담당 → 리드 → 본부장 순서로 승인해요 · 실제 반영은 늘 사람이 해요{myTurn ? ` · 지금 내 차례 ${myTurn}건` : ""} · <a className="v2-lblink" href={HUB_MANUAL_URL} target="_blank" rel="noopener">매뉴얼 보기 ›</a> · <a className="v2-lblink" href={HUB_ADS_URL} target="_blank" rel="noopener">광고 운영 ›</a></p>
+    <p style={{ fontSize: 12.5, color: C.sub, lineHeight: 1.6, margin: "8px 2px 0" }}>AI가 결과를 올리면 담당 → 리드 순서로 승인해요(광고비 예산·원가·판매가 조정만 본부장까지) · 실제 반영은 늘 사람이 해요 · 실행 업무엔 번호마다 흔적{myTurn ? ` · 지금 내 차례 ${myTurn}건` : ""} · <a className="v2-lblink" href={HUB_MANUAL_URL} target="_blank" rel="noopener">매뉴얼 보기 ›</a> · <a className="v2-lblink" href={HUB_ADS_URL} target="_blank" rel="noopener">광고 운영 ›</a></p>
     {(myG || (master && noneG)) && <Card style={{ marginTop: 10 }}>
       {myG && <Row title={`내 PC Aside · ${myG.runs.map((r) => `${(mateOf(r.board.mate) || {}).name} ${r.t}`).join(" · ")}`} sub="세팅 · 지금 돌리기 · 고칠 것 확인 — 담당마다 자기 PC 에서 동시에 돌아요" onClick={() => open({ type: "aiSetup" })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last={!(master && noneG)} />}
       {master && noneG && <Row title={`담당 미정 크루 ${noneG.runs.length}명 · 관리자 PC 에서`} sub={`${noneG.runs.map((r) => (mateOf(r.board.mate) || {}).name).join(" · ")} · 담당을 정하면 그 사람 PC 로 옮겨가요`} onClick={() => open({ type: "aiSetup", owner: "" })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last />}
@@ -213,9 +218,14 @@ function useBoardVals(boardId) {
   useEffect(() => { if (!boardId) return undefined; return fb.listen("aiboards", ["board", "==", boardId], (x) => setV(x[0] || {}), (e) => { console.warn("[v2] 보드 숫자 못 읽음:", e); setV({}); }); }, [boardId]);
   return v;
 }
-function BoardView({ D, b, open, asks }) {
+function BoardView({ D, cu, A, b, open, asks, doc }) {
   const v = useBoardVals(b.id), vals = (v && v.metrics) || {};
   const [openA, setOpenA] = useState("");
+  // 할 일 설정 (2026-10-15): 담당(관리자) · 본부장 승인(관리자) · 반복 실행 짝(관리자·AI 담당) — 짝이면 실행 업무 [했어요]마다 그 반복 +1 (KPI)
+  const master = isMaster(cu), mine = Object.values((doc && doc.owners) || {}).includes(cu.id), users = activeUsers(D.users), akItems = ((D.ak && D.ak.items) || []);
+  const ownL = (c) => { const x = actOwner(doc, b.brand, c, D.users); return x ? nameOf(D.users, x) : "담당 미정"; };
+  const hqL = (a) => hqOf({ board: b.id, act: a.c, exec: execOf(a), hq: a.hq }, doc);   // 외주 기간 광고 할 일 = 실행 없음 → 표시 없음
+  const akL = (c) => { const id = ((doc && doc.actAk) || {})[c]; const it = id ? akItems.find((x) => x.id === id) : null; return it ? it.name : ""; };
   return <>
     <Head>{b.title}</Head>
     <div style={{ fontSize: 13, color: C.sub, lineHeight: 1.65, margin: "-4px 2px 8px" }}>{b.desc}</div>
@@ -229,10 +239,21 @@ function BoardView({ D, b, open, asks }) {
     <Head>할 일 {b.actions[0].c}~{b.actions[b.actions.length - 1].c}</Head>
     <Card>{b.actions.map((a, i) => { const last = asks.filter((x) => x.board === b.id && x.act === a.c).sort((p, q) => String(q.createdAt || "").localeCompare(String(p.createdAt || "")))[0];
       return <div key={a.c} style={{ borderBottom: i === b.actions.length - 1 ? "none" : `1px solid ${C.line}` }}>
-        <Row title={`${a.c} · ${a.t}`} tag={a.admin ? "관리자 자리" : last ? ASK_STATE_L[last.state] : null} sub={[a.when, a.k ? "지표 " + a.k : ""].filter(Boolean).join(" · ")} sub2={last ? `최근 ${last.run ? md(last.run) : ""} · ${last.title}` : null}
+        <Row title={`${a.c} · ${a.t}`} tag={a.admin ? "관리자 자리" : last ? ASK_STATE_L[last.state] : null} sub={[a.admin ? "" : `담당 ${ownL(a.c)}`, a.admin ? "" : hqL(a) ? `본부장 승인(${hqL(a)})` : "", a.when, akL(a.c) ? `반복 '${akL(a.c)}'` : ""].filter(Boolean).join(" · ")} sub2={last ? `최근 ${last.run ? md(last.run) : ""} · ${last.title}` : null}
           onClick={() => setOpenA(openA === a.c ? "" : a.c)} right={<span style={{ color: C.navy, fontWeight: 800 }}>{openA === a.c ? "▴" : "▾"}</span>} last />
         {openA === a.c && <div style={{ padding: "0 14px 12px", fontSize: 13, color: C.sub, lineHeight: 1.65 }}>
           {a.admin ? <div style={{ color: C.text }}>{a.admin}</div> : <>
+            {(master || mine) && <div className="v2-actset" style={{ display: "grid", gap: 8, margin: "0 0 10px", padding: "10px 12px", background: "#F6F7FA", borderRadius: 10 }}>
+              {master && <label style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}><b style={{ color: C.ink, minWidth: 74 }}>이 할 일 담당</b>
+                <select value={((doc && doc.actOwners) || {})[a.c] || ""} onChange={(e) => A.mateActSet(b.mate, "actOwners", a.c, e.target.value)} aria-label={`${a.c} 할 일 담당`} style={{ ...inp, width: "auto", maxWidth: 180, padding: "6px 8px", fontSize: 13 }}>
+                  <option value="">AI 담당 그대로 ({nameOf(D.users, mateOwner(doc, b.brand, D.users)) || "미정"})</option>{users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></label>}
+              {master && a.exec && <label style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}><b style={{ color: C.ink, minWidth: 74 }}>본부장 승인</b>
+                <select value={(() => { const x = ((doc && doc.actHq) || {})[a.c]; return x === true ? "on" : x === false ? "off" : ""; })()} onChange={(e) => A.mateActSet(b.mate, "actHq", a.c, e.target.value === "on" ? true : e.target.value === "off" ? false : null)} aria-label={`${a.c} 본부장 승인`} style={{ ...inp, width: "auto", maxWidth: 220, padding: "6px 8px", fontSize: 13 }}>
+                  <option value="">기본 ({a.hq ? `받음 · ${a.hq}` : "리드에서 끝"})</option><option value="on">받음</option><option value="off">안 받음 (리드에서 끝)</option></select></label>}
+              {execOf(a) && <label style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}><b style={{ color: C.ink, minWidth: 74 }}>반복 실행 짝</b>
+                <select value={((doc && doc.actAk) || {})[a.c] || ""} onChange={(e) => A.mateActSet(b.mate, "actAk", a.c, e.target.value)} aria-label={`${a.c} 반복 실행 짝`} style={{ ...inp, width: "auto", maxWidth: 220, padding: "6px 8px", fontSize: 13 }}>
+                  <option value="">없음</option>{akItems.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>}
+              <div style={{ fontSize: 12, color: C.mute, lineHeight: 1.5 }}>담당 = 승인 첫 단계·실행 업무 받는 사람 · 반복 실행 짝 = 실행 업무 번호마다 [했어요]가 그 반복에 +1 (KPI)</div></div>}
             <div><b style={{ color: C.ink }}>상황</b> · {a.w}</div>
             <ol style={{ margin: "6px 0 0", paddingLeft: 18 }}>{a.s.map((s, k) => <li key={k} style={{ marginTop: 2 }}>{s}</li>)}</ol>
             {a.cols.length > 0 && <div style={{ marginTop: 6 }}><b style={{ color: C.ink }}>올리는 표</b> · {a.cols.join(" · ")}</div>}
@@ -304,7 +325,7 @@ export function AiMateSheet({ D, cu, A, open, onBack, onClose, id }) {
     {qs.length > 0 && <><Head>횟수 (담당이 정함)</Head>
       <Card>{qs.map((q, i) => <QtyRow key={q.key} q={q} n={qtyNow(doc, q.key, q.n)} can={canRule} onSet={(v) => A.mateQty(id, q.key, v)} last={i === qs.length - 1} />)}</Card>
       <div style={{ fontSize: 12.5, color: st.more >= 2 ? C.navy : C.sub, fontWeight: st.more >= 2 ? 800 : 400, margin: "8px 2px 0", lineHeight: 1.6 }}>{st.more >= 2 ? `이번 주 [더 만들기] ${st.more}번 — 매번 모자라면 위 횟수를 늘려 주세요 · ` : ""}다음 실행부터 이 수만큼 만들어요 · 이번 결과에서 더 필요하면 승인 한 장에서 [더 만들기]</div></>}
-    {b ? <BoardView D={D} b={b} open={open} asks={asks} />
+    {b ? <BoardView D={D} cu={cu} A={A} b={b} open={open} asks={asks} doc={doc} />
       : m.first ? <><Head>첫 할 일 (초안)</Head><Card style={{ padding: "12px 14px", fontSize: 13.5, color: C.text, lineHeight: 1.7 }}>{m.first}<div style={{ fontSize: 12.5, color: C.sub, marginTop: 6 }}>보드(지표·할 일 A~E)는 아직 없어요 · 같이 정하면 넣어요</div></Card></> : null}
     {b && <p style={{ fontSize: 12.5, color: C.sub, margin: "10px 2px 0", lineHeight: 1.6 }}>Aside 결과는 <a className="v2-lblink" href={`${HUB_CREW_URL}#${b.id}`} target="_blank" rel="noopener">마케팅 허브 › AI 크루 결과 올리기 ›</a>에 붙여 넣어요</p>}
 
@@ -370,7 +391,7 @@ export function AiReqSheet({ D, cu, A, open, onBack, onClose, mate }) {
       <div style={lab}>언제까지</div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{dues.map(([v, l]) => <Chip key={l} on={due === v} onClick={() => setDue(v)}>{l}</Chip>)}</div>
       {brands.length > 1 && <><div style={lab}>브랜드</div><div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{brands.map((bb) => <Chip key={bb} on={(brand || brands[0]) === bb} onClick={() => setBrand(bb)}>{brandL(bb)}</Chip>)}</div></>}
-      <p style={{ fontSize: 12.5, color: C.sub, lineHeight: 1.6, margin: "12px 2px 0" }}>AI는 조사·표·초안까지 해요 · 가격·광고·발송·게시 같은 실행은 결과를 승인한 뒤 사람이 해요{m ? ` · 결과 승인 = ${m.name}(AI) 담당 → 리드 → 본부장` : ""}</p>
+      <p style={{ fontSize: 12.5, color: C.sub, lineHeight: 1.6, margin: "12px 2px 0" }}>AI는 조사·표·초안까지 해요 · 가격·광고·발송·게시 같은 실행은 결과를 승인한 뒤 사람이 해요{m ? ` · 결과 승인 = ${m.name}(AI) 담당 → 리드 (광고비 예산·원가·판매가 조정만 본부장까지)` : ""}</p>
     </>}
     <Head>내가 맡긴 일</Head>
     <ReqRows D={D} cu={cu} A={A} open={open} rows={mine} showMate empty="아직 맡긴 일이 없어요" />

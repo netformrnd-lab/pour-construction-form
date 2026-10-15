@@ -94,7 +94,7 @@ export function akWrite(cur, it, wk, d, cu, at, extra) {
   const v = (((cur || {}).w || {})[wk] || {})[it.id] || {}, step = d * akStep(it), fail = !!(extra && extra.fail);
   const n = Math.max(0, (+v.n || 0) + (fail ? 0 : step)), fl = Math.max(0, (+v.fail || 0) + (fail ? d : 0)), mine = Math.max(0, (+((v.by || {})[cu.id]) || 0) + (fail ? 0 : step));
   const entry = { at, by: cu.id, byName: cu.name, it: it.id, wk, d: step, ...(fail ? { fail: true } : {}), ...(extra && extra.task ? { task: extra.task } : {}),
-    ...(extra && extra.date ? { date: extra.date } : {}), ...(extra && extra.qty != null ? { qty: extra.qty } : {}), ...(extra && extra.via ? { via: extra.via } : {}) };   // 3단계: 그날 · 건수 · 어디서(btn 버튼 · list 체크리스트 한 바퀴 · qty 건수)
+    ...(extra && extra.date ? { date: extra.date } : {}), ...(extra && extra.qty != null ? { qty: extra.qty } : {}), ...(extra && extra.via ? { via: extra.via } : {}), ...(extra && extra.ai ? { ai: extra.ai } : {}) };   // ai = 흔적(승인 id · 번호 · 링크 · 2026-10-15)   // 3단계: 그날 · 건수 · 어디서(btn 버튼 · list 체크리스트 한 바퀴 · qty 건수)
   if (!cur) return { write: { w: { [wk]: { [it.id]: { n, fail: fl, by: { [cu.id]: mine } } } }, log: [entry] }, ret: n };
   const p = `w.${wk}.${it.id}.`;
   return { write: { [p + "n"]: n, [p + "fail"]: fl, [p + "by." + cu.id]: mine, log: (extra && extra.union ? extra.union(entry) : [...(cur.log || []), entry]) }, ret: n };

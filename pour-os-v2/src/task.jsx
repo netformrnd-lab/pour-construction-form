@@ -28,6 +28,8 @@ import { CountBox } from "./routineui.jsx";
 import { recTag, DayQty, RecList, useRecs } from "./recui.jsx";
 import { qtyCfg, qtyText, QTY_UNITS } from "./rec.js";
 import { liveNotes, useNoteOver } from "./core.jsx";
+import { AiTraceBox } from "./aitrace.jsx";
+import { traceLeft } from "./aiask.js";
 
 const roP = (n) => { const c = String(n || "").slice(-1).charCodeAt(0) - 0xAC00; if (c < 0 || c > 11171) return "(으)로"; const j = c % 28; return j === 0 || j === 8 ? "로" : "으로"; };
 export const openTask = (open, t) => open({ type: t.isFixed ? "fixed" : "task", id: t.id });
@@ -149,6 +151,7 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, id
   // 아래 큰 버튼 하나 (+ 다음 사람에게 한마디: 다음 일 담당이 나와 다를 때만)
   const foot = done ? <Big tone="white" onClick={() => A.reopen(t)}>다시 열기</Big>
     : review ? (amReviewer ? <Big onClick={() => A.approve(t)}>확인 완료</Big> : <Big disabled>{nameOf(D.users, t.reviewTo || req) || "맡긴 사람"}님 확인 기다리는 중</Big>)
+    : canFinish(t, cu) && t.aiAsk && traceLeft(t) > 0 ? <Big disabled>흔적을 남기면 끝낼 수 있어요 · {traceLeft(t)}개 남음</Big>   /* AI 실행 업무 = 번호마다 [했어요]·[안 함] 먼저 (2026-10-15) */
     : canFinish(t, cu) ? <>{nextOwners.length > 0 && <input value={handoff} onChange={(e) => setHandoff(e.target.value)} placeholder={`다음 사람(${nameOf(D.users, nextOwners[0])}${nextOwners.length > 1 ? ` 외 ${nextOwners.length - 1}명` : ""})에게 한마디 (선택)`} aria-label="다음 사람에게 한마디" style={{ ...inp, padding: "10px 12px", fontSize: 14, marginBottom: 8 }} />}
       <Big onClick={() => { A.finish(t, handoff); setHandoff(""); }}>{needsReview(t) ? `끝냈어요 · ${reqName}님께 확인 요청` : "끝냈어요"}</Big>
       {!mine && <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, fontSize: 12.5, color: C.sub, flexWrap: "wrap" }}><span style={{ flex: "1 1 160px" }}>관리자로 대신 끝내요 · 기록엔 내 이름이 남아요</span><TBtn onClick={() => A.assign(t, cu.id, true)}>내가 이어서 하기</TBtn></div>}</>
@@ -175,7 +178,7 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, id
       {parent && <div><TBtn onClick={() => open({ type: "task", id: parent.id })} style={{ padding: "2px 0" }}>상위 업무 · {parent.title} ›</TBtn></div>}
       {isGhProj(t.projectId) && <div>그로홈 그로스보드 업무{!owners.length && t.ghAssigneeName ? ` · 그로홈 담당 ${t.ghAssigneeName}` : ""} · <a className="v2-lblink" href={ghDashUrl(t.id)} target="_blank" rel="noopener">그로홈 대시보드에서 보기 ›</a></div>}
     </div>
-    {t.aiAsk && <Banner><b>AI 승인 결과를 사람이 반영하는 일이에요</b> · 반영한 뒤 '끝냈어요'를 눌러 주세요 (AI는 준비까지만)<div style={{ marginTop: 6 }}><TBtn onClick={() => open({ type: "aiask", id: t.aiAsk })}>원래 AI 승인 보기 ›</TBtn></div></Banner>}   {/* AI 승인 → 실행 업무 (2026-10-12) */}
+    {t.aiAsk && <AiTraceBox t={t} can={(mine || master) && !done} A={A} open={open} />}   {/* AI 승인 → 실행 업무 (2026-10-12) · 번호마다 흔적 → KPI (2026-10-15) */}
     {t.firstStep && !done && <Banner><b>첫 걸음</b> · {t.firstStep}</Banner>}
     {/* 신제품 횟수 항목(블로그 포스팅 3회 …): 할 때마다 [+1] → 반복(행동지표) 짝이 있으면 같이 (routineui) */}
     <CountBox t={t} D={D} cu={cu} A={A} can={mine || master || !!(p && p.assigneeId === cu.id)} />

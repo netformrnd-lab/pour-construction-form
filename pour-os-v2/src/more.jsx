@@ -52,7 +52,7 @@ export function MoreTab({ D, cu, A, meta, logout, open, BUILD, setToast }) {
     <Head>AI 팀원</Head>
     {(() => { const asks = (D.ai && D.ai.asks) || [], turn = asks.filter((x) => x.state === "wait" && (x.to === cu.id || (!x.to && isMaster(cu)))).length;
       const mine = allMates().filter((m) => m.crew !== "base" && Object.values(((D.ai && D.ai.mates[m.id]) || {}).owners || {}).includes(cu.id)).length;   // 크루만 (2026-10-14 기본 AI 팀원 칸 없앰)
-      return <Card><Row title={`AI 팀원${mine ? ` · 내가 맡은 AI ${mine}` : ""}`} tag={turn ? `승인 차례 ${turn}` : null} sub="크루(브랜드·고객별) · 담당 → 리드 → 본부장 승인 · 확정 규칙" onClick={() => open({ type: "aiTeam" })} right={arrow} last={false} />
+      return <Card><Row title={`AI 팀원${mine ? ` · 내가 맡은 AI ${mine}` : ""}`} tag={turn ? `승인 차례 ${turn}` : null} sub="크루(브랜드·고객별) · 담당 → 리드 승인(광고비 예산·원가·판매가 조정만 본부장까지) · 확정 규칙" onClick={() => open({ type: "aiTeam" })} right={arrow} last={false} />
         {/* 광고 운영 · AI 팀 매뉴얼(2026-10-15) — 허브 화면(읽기 전용 · Aside 가 매일 08:30 올림) */}
         <a href="../marketing-hub/ads.html" target="_blank" rel="noopener" style={{ textDecoration: "none" }}><Row title="광고 운영" sub="Aside 광고 일일 보고서 · 끈 것 기록 · 메타·쿠팡·네이버" right={arrow} last={false} /></a>
         <a href="../marketing-hub/ai-manual.html" target="_blank" rel="noopener" style={{ textDecoration: "none" }}><Row title="AI 팀 매뉴얼" sub="크루 팀원별 역할·KPI·담당·루틴 · 광고 AI팀 매뉴얼" right={arrow} last /></a></Card>; })()}

@@ -168,6 +168,29 @@ eq('지금 횟수 = 담당이 정한 수 → 없으면 기본 · 0·이상한 �
   eq('Aside 글: 바로 하기 · 한 시간마다 확인 · 오늘 지시문에 맡긴 일', [L.includes(`${K.HUB_CREW}#gh-conv`), L.includes('[이 일 하기]'), L.includes('원가·마진·제조사'), F.includes("'맡긴 일'이 있으면 하나씩"), F.includes('없으면 그 보드는 건너뛴다'), T.includes("'맡긴 일'(사람이 업무OS에서 따로 맡긴 일)")], [true, true, true, true, true, true]);
 }
 
+// 2026-10-15 최종 승인 = 리드 · 본부장 승인 = 광고비 예산 조정·원가 조정·판매가 조정만 (hq) · 할 일 담당(actOwners) · [다음주]
+{
+  const HQ = Object.values(K.BOARDS).flatMap((b) => b.actions.filter((a) => a.hq).map((a) => `${b.id} ${a.c} ${a.hq}`));
+  eq('본부장 승인 할 일 11개 = 광고비·판매가만', HQ, ['gh-ohou A 광고비 예산 조정', 'gh-ohou D 판매가 조정', 'gh-exp C 광고비 예산 조정', 'gh-exp D 판매가 조정', 'gh-traffic D 광고비 예산 조정', 'gh-traffic E 광고비 예산 조정', 'gh-conv B 판매가 조정', 'gh-conv D 판매가 조정', 'gh-aov A 판매가 조정', 'gh-aov C 판매가 조정', 'gh-aov E 판매가 조정']);
+  eq('hq 글자 = 세 가지 안', Object.values(K.BOARDS).flatMap((b) => b.actions.filter((a) => a.hq).map((a) => a.hq)).every((h) => ['광고비 예산 조정', '원가 조정', '판매가 조정'].includes(h)), true);
+  eq('보고(F)·관리자 자리엔 hq 없음', Object.values(K.BOARDS).flatMap((b) => b.actions.filter((a) => (a.report || a.admin) && a.hq)).length, 0);
+  const md = { owners: { grohome: 'ym' }, actOwners: { B: 'mj', C: 'mj', D: '' } };
+  eq('할 일 담당 → 없으면 브랜드 담당', ['A', 'B', 'C', 'D', ''].map((c) => K.ownerForAct(md, 'grohome', c)), ['ym', 'mj', 'mj', 'ym', 'ym']);
+  eq('문서 없음 = 미정', [K.ownerForAct(null, 'grohome', 'A'), K.ownerForAct({ actOwners: { A: 'x' } }, 'grohome', 'A')], ['', 'x']);
+  const txt = ['[상태]', 'A: 품절 3개 확인', 'B: 가격안 2개', '', '[다음주]', '- 롤러 재입고 알림 켜기 (010-1234-5678 확인)', '· 쿠팡 반투명 옵션 1개로', '상세 첫 화면 시안 2개', '', '[A]', '요약: 품절 3', '상품\t채널', '롤러\t자사몰', '', '[B]', '요약: 가격안', '안\t가격', '1+1\t19,900원', '', '[C]', '요약: 상세 진단', '구간\t이탈', '리뷰\t85%'].join('\n');
+  const p = K.parseCrew(txt, K.boardOf('gh-conv'));
+  eq('[다음주] = 세 줄 · 앞 기호 통일 · 개인정보 가림 · 상태는 그대로', [p.next.split('\n'), p.status.A], [['- 롤러 재입고 알림 켜기 (010-****-**** 확인)', '- 쿠팡 반투명 옵션 1개로', '상세 첫 화면 시안 2개'], '품절 3개 확인']);
+  const asks = K.asksFromParse(p, { board: 'gh-conv', mate: 'gyeoul', brand: 'grohome', run: '2026-10-16', at: 'T', owner: (c) => K.ownerForAct(md, 'grohome', c) });
+  eq('할 일마다 승인 첫 차례 = 할 일 담당', asks.map((a) => [a.act, a.owner, a.to]), [['A', 'ym', 'ym'], ['B', 'mj', 'mj'], ['C', 'mj', 'mj']]);
+  eq('승인 건 hq = 실행 있는 본부장 승인 일만', asks.map((a) => [a.act, a.hq]), [['A', ''], ['B', '판매가 조정'], ['C', '']]);
+  eq('담당 하나(글자) 넘기기도 그대로', K.asksFromParse(p, { board: 'gh-conv', mate: 'gyeoul', run: 'd', owner: 'yj' }).map((a) => a.owner), ['yj', 'yj', 'yj']);
+  const tr = K.parseCrew('[D]\n요약: 키워드\n키워드\t입찰\n롤러페인트\t500', K.boardOf('gh-traffic'));
+  eq('F(광고 일일 보고서) = 외주 기간 실행 없음(보고만)', ['gh-traffic', 'gh-conv'].map((b) => K.execOf(K.actOf(b, 'F'))), ['', '']);
+  eq('외주 기간 광고 할 일(쿠팡 D) = 실행 없음 → hq 도 없음', K.asksFromParse(tr, { board: 'gh-traffic', mate: 'gaeul', run: 'd' }).map((a) => [a.exec, a.hq]), [['', '']]);
+  const T = K.asideText(K.boardOf('gh-conv'));
+  eq('지시문: [다음주] 묶음 · 금요일만', [T.includes('[다음주]\n- (한 줄)\n- (한 줄)\n- (한 줄)'), T.includes('[다음주] = 금요일만 채운다')], [true, true]);
+}
+
 // 2026-10-14 하루·포리·에코 쉼 → 여름 (아침 루틴) · team_link.py(볼트 사본도 같은 파일) CREW·GONE 과 같게
 eq('쉬는 팀원 → 여름', Object.entries(K.GONE).map(([g, to]) => [K.mateOf(g).name, K.mateOf(to).name, K.crewOf(to).id]), [['하루', '여름', 'b2c'], ['포리', '여름', 'b2c'], ['에코', '여름', 'b2c']]);
 eq('아침 루틴 = 여름 하나', K.allMates().filter((m) => m.routine).map((m) => m.id), ['yeoreum']);

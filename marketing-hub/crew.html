@@ -195,12 +195,16 @@ async function loadMate(){
   const b=board(), m=mate(); mateDoc=null; $('crew-guide').textContent=K.asideText(b);
   $('crew-guide-head').textContent=`오늘 지시문 — ${m.name} · ${b.title} · 판 ${K.ASIDE_VER}`; $('crew-last').innerHTML='';
   try{
-    const [md,back,rq]=await Promise.all([V2().collection('aimates').doc(m.id).get(),V2().collection('aiasks').where('mate','==',m.id).get(),V2().collection('aireqs').where('mate','==',m.id).get()]);
+    const cr=K.crewOf(m.id);
+    const [md,back,rq,rp]=await Promise.all([V2().collection('aimates').doc(m.id).get(),V2().collection('aiasks').where('mate','==',m.id).get(),V2().collection('aireqs').where('mate','==',m.id).get(),
+      cr?V2().collection('aireports').where('crew','==',cr.id).get().catch(e=>{console.error('[aireports] 못 읽음',e);return {docs:[]};}):Promise.resolve({docs:[]})]);
+    PLANNOW=K.planFromReports(rp.docs.map(d=>({id:d.id,...d.data()})),m.id);   // 업무OS AI 크루 보고서 · 사람이 정한 계획 (2026-10-15)
+    console.log(`[aireports/${cr?cr.id:'-'}] ${rp.docs.length}장 · 사람이 정한 계획 ${PLANNOW?PLANNOW.lines.length+'줄':'없음'}`);
     REQS=rq.docs.map(d=>({id:d.id,...d.data()})).filter(r=>r.state==='open'||r.state==='doing').sort((x,y)=>String(x.createdAt||'').localeCompare(String(y.createdAt||'')));
     console.log(`[aireqs/${m.id}] 맡긴 일 ${REQS.length}건 (전체 ${rq.size})`);
     $('crew-reqs').innerHTML=REQS.length?`<div class="reqbox">맡긴 일 ${REQS.length}건 — [이 일 하기]를 누르고 적힌 대로 해서 결과 칸의 <b>[R]</b> 묶음으로 올려요 (하나씩)${REQS.map((r,i)=>`<div class="rq">· <b>${esc(r.title)}</b>${r.state==='doing'?' <span class="pill">하는 중</span>':''} <span class="s">${esc(K.reqLine(r))}</span>
       ${r.body?`<div class="d">${esc(r.body)}</div>`:''}<button type="button" class="btn sm" id="req-load-${i}" data-r="${i}" aria-label="이 일 하기 ${esc(r.title)}" style="margin-top:6px">${REQ&&REQ.id===r.id?'✓ 고름':'이 일 하기'}</button></div>`).join('')}</div>`:'';
-    mateDoc=md.exists?md.data():null; $('crew-guide').textContent=K.asideText(b,{qty:mateDoc&&mateDoc.qty});   // 이번 몫 = 담당이 정한 횟수
+    mateDoc=md.exists?md.data():null; $('crew-guide').textContent=K.asideText(b,{qty:mateDoc&&mateDoc.qty,plan:PLANNOW});   // 이번 몫 = 담당이 정한 횟수 · 사람이 정한 계획 = 업무OS 보고서
     const need=[...new Set([K.ownerFor(mateDoc,b.brand),...b.actions.map(a=>K.ownerForAct(mateDoc,b.brand,a.c))])].filter(id=>id&&!(id in users));   // 할 일 담당까지 (2026-10-15)
     await Promise.all(need.map(async id=>{const ud=await V2().collection('users').doc(id).get();users[id]=ud.exists?{name:ud.data().name||'',active:ud.data().active}:null;}));
     const owner=ownerId(), on=(mateDoc&&mateDoc.rules||[]).filter(r=>!r.off);
@@ -223,7 +227,7 @@ const whoOf=(asks)=>{const g={};asks.forEach(a=>{(g[a.owner||'']=g[a.owner||'']|
 const stateL=(a)=>a.state==='wait'?(a.step>0?'위로 올라감':'승인 대기'):a.state==='back'?'AI에게 다시':a.state==='ok'?'최종 승인':a.state==='no'?'안 함':a.state||'';
 const kst=(iso)=>{if(!iso)return '';const k=new Date(new Date(iso).getTime()+9*3600e3).toISOString();return `${Number(k.slice(5,7))}/${Number(k.slice(8,10))} ${k.slice(11,16)}`;};
 // 이전 판 불러오기 = 그 건의 날짜 + 그 판의 표(번호 그대로)를 결과 칸에 → 고치거나 맨 아래 줄을 더해 다시 올림
-let BACKS=[], PLAN=[];
+let BACKS=[], PLAN=[], PLANNOW=null;   // PLANNOW = 업무OS AI 크루 보고서에서 사람이 정한 계획 (그 칸)
 let REQS=[], REQ=null;   // 맡긴 일 (aireqs) · 지금 고른 것 = 결과 [R] 의 주인
 $('crew-reqs').addEventListener('click',async(e)=>{const t=e.target.closest('[data-r]');if(!t)return;const r=REQS[Number(t.dataset.r)];if(!r)return;
   t.disabled=true;
@@ -276,7 +280,7 @@ function actSplit(b){const base=ownerId(), g={};b.actions.filter(a=>!a.admin).fo
   const ks=Object.keys(g); if(ks.length<2&&ks[0]===base)return '';
   return ks.map(id=>`<b>${esc(g[id].join('·'))}</b> ${id?esc(nameOf(id)):'관리자 누구나'}`).join(' · ');}
 $('crew-board').onchange=()=>{history.replaceState(null,'','#'+$('crew-board').value);$('preview-section').hidden=true;loadMate();};
-$('copy-guide').onclick=()=>copyText($('copy-guide'),K.asideText(board(),{qty:mateDoc&&mateDoc.qty}),'지시문 복사');
+$('copy-guide').onclick=()=>copyText($('copy-guide'),K.asideText(board(),{qty:mateDoc&&mateDoc.qty,plan:PLANNOW}),'지시문 복사');
 $('copy-launch').onclick=()=>copyText($('copy-launch'),K.asideLaunch(board(),(K.planOf(PLAN,board().id)||{}).t),'예약 글 복사');
 
 // 미리 보기

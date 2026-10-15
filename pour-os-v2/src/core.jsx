@@ -23,8 +23,9 @@ import { parseMentions, smsTarget, smsOpen, smsDue, smsText } from "./mention.js
 import { flowOwners } from "./flow.js";
 import { sumAk, akWrite, countFields, countOf, baseTitle } from "./routine.js";
 import { linkInbox } from "./links.js";
-import { askInbox, asideInbox, planPass, planBack, planRet, planDrop, planExec, canAct, canBack, canRet, pickOk, bossLoop, moreText, MORE_MAX, hqOf, traceOf, traceLeft, mateOwner } from "./aiask.js";   // AI 승인 (2026-10-12) · Aside 담당 PC (2026-10-15)
+import { askInbox, asideInbox, planPass, planBack, planRet, planDrop, planExec, canAct, canBack, canRet, pickOk, bossLoop, moreText, MORE_MAX, hqOf, traceOf, traceLeft, mateOwner, isHQ } from "./aiask.js";   // AI 승인 (2026-10-12) · Aside 담당 PC (2026-10-15)
 import { mateOf, boardOf, brandL, qtyDefs, canReq, reqDoc, reqId } from "../../marketing-hub/crew.js";
+import { repSlots, repId, canWriteSec, secPeople, snapOf, cycleOf, monOf, CYCLE_L, repInbox } from "./aireport.js";   // AI 크루 보고서 (2026-10-15)
 import { lagInbox, applyKpiOv, kpiEditWrite, newKpiId } from "./kpi2.js";
 import { dayIdFx, dayIdAk, openIdAk, dayBase, dayAdd, dayFix, roundTap, qtyToGoal, akSubsOf } from "./rec.js";
 import { akQidOfWeek, akWeekKey } from "../../pour-os/src/actionKpi.js";
@@ -100,6 +101,8 @@ export function useData(on, full = true) {
       // 맡긴 일(aireqs · 2026-10-15 "ai팀원에게 업무요청을 별도로해서 진행도 가능") — 열린 것(대기·하는 중) + 최근 7일 바뀐 것 · 못 읽어도 앱은 그대로
       fb.listen("aireqs", ["state", "in", ["open", "doing"]], put("aiReqOpen"), (e) => console.warn("[v2] 맡긴 일 못 읽음:", e)),
       fb.listen("aireqs", ["updatedAt", ">=", since14], put("aiReqRecent"), (e) => console.warn("[v2] 맡긴 일(최근) 못 읽음:", e)),
+      // AI 크루 보고서(aireports · 2026-10-15 · 크루마다 기간마다 한 장 · 해마다 50장 남짓) — 못 읽어도 앱은 그대로
+      fb.listen("aireports", null, put("aireports"), (e) => console.warn("[v2] AI 크루 보고서 못 읽음:", e)),
     ];
     return () => subs.forEach((u) => u && u());
   }, [on, full]);
@@ -138,7 +141,7 @@ export function useData(on, full = true) {
       // AI 승인(2026-10-12): asks = 열린 것 + 최근 7일(같은 id 는 열린 쪽) · mates = AI 팀원 덧칠 {id: 문서} · aiInbox = '확인할 것' 줄(model.todayView 가 부름 · 순환 import 피하려고 D 로)
       ai: (() => { const m = new Map(); (S.aiRecent || []).forEach((x) => m.set(x.id, x)); (S.aiOpen || []).forEach((x) => m.set(x.id, x));
         const rq = new Map(); (S.aiReqRecent || []).forEach((x) => rq.set(x.id || x._doc, x)); (S.aiReqOpen || []).forEach((x) => rq.set(x.id || x._doc, x));
-        return { reqs: [...rq.values()].sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || ""))), asks: [...m.values()], mates: Object.fromEntries((S.aimates || []).map((x) => [x.id || x._doc, x])), boards: Object.fromEntries((S.aiboards || []).map((x) => [x.id || x._doc, x])), ready: S.aimates !== undefined }; })(), aiInbox: askInbox, asideInbox };
+        return { reqs: [...rq.values()].sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || ""))), asks: [...m.values()], mates: Object.fromEntries((S.aimates || []).map((x) => [x.id || x._doc, x])), boards: Object.fromEntries((S.aiboards || []).map((x) => [x.id || x._doc, x])), reports: Object.fromEntries((S.aireports || []).map((x) => [x.id || x._doc, x])), ready: S.aimates !== undefined }; })(), aiInbox: askInbox, asideInbox, aiRepInbox: repInbox };
   }, [S, akQ, dayK]);
   return [D, err];
 }
@@ -703,6 +706,80 @@ export function useActs(D, cu, setToast, idx = null) {
       const before = (was && was.n) || q.n;
       log("aiQty", { col: "aimates", targetId: mateId, label: `${m.name} · ${q.l} ${before} → ${want}${q.u}` });
       setToast({ text: `${m.name} · ${q.l} ${want}${q.u} · 다음 실행부터`, undo: () => A.mateQty(mateId, key, before) });
+      return true;
+    },
+    // ── AI 크루 보고서 (aireport.js · 2026-10-15 사장님 "본부장은 승인 없이 리드에게 매주 금요일 보고받음 · 크루 칸별 · 실행 · 결과(유입·전환) · 다음(AI 피드백 + 사람)") ──
+    //   pour-os/v2/aireports/{크루}-{기간 시작} · 칸 글은 칸마다 따로(점 경로)라 두 사람이 다른 칸을 써도 안 겹침 · 기록 log 는 더하기만 · 지우지 않음
+    //   f = {note, plan} 저장 · {done: true} 숫자 확인하고 다 썼어요 · {done: false} 다시 고치기 — 담당·같이 쓰는 사람(할 일 담당)·리드·관리자 · 보낸 칸은 못 고침
+    aiRepSec: async (crewId, p, mateId, f) => {
+      const m = repSlots(crewId).find((x) => x.id === mateId); if (!m || !p) return false;
+      if (!canWriteSec(D, cu, m)) { setToast({ text: "그 칸 담당·리드·관리자만 써요" }); return false; }
+      const id = repId(crewId, p), at = nowIso(), me = { by: cu.id, byName: cu.name, at }, sec = { edit: me };
+      if (f.note !== undefined) sec.note = String(f.note || "").trim().slice(0, 600);
+      if (f.plan !== undefined) sec.plan = String(f.plan || "").trim().slice(0, 1500);
+      if (f.done !== undefined) sec.done = f.done ? me : null;
+      const entry = { at, by: cu.id, byName: cu.name, act: f.done ? "done" : f.done === false ? "undone" : "edit", mate: mateId };
+      let r;
+      try { r = await fb.txDoc("aireports", id, (cur) => { if ((((cur && cur.secs) || {})[mateId] || {}).sent) return { ret: "sent" };
+          return { ret: "ok", write: cur ? { ...Object.fromEntries(Object.entries(sec).map(([k, v]) => [`secs.${mateId}.${k}`, v])), updatedAt: at, log: fb.arrayUnion(entry) }
+            : { crew: crewId, cycle: p.cycle, start: p.start, end: p.end, due: p.due, secs: { [mateId]: sec }, leads: {}, read: null, createdAt: at, updatedAt: at, log: [entry] } }; }); }
+      catch (e) { fail("보고서")(e); return false; }
+      if (r === "sent") { setToast({ text: "이미 본부장에게 보낸 칸이에요 · 고칠 게 있으면 리드에게 말해 주세요" }); return false; }
+      const ld = secPeople(D, m).lead;
+      log("aiRep", { col: "aireports", targetId: id, label: `${m.name} 칸 · ${f.done ? "다 썼어요" : f.done === false ? "다시 고치기" : "저장"}` });
+      setToast({ text: f.done ? `${m.name} 칸 다 썼어요${ld && ld !== cu.id ? ` · ${nameOf(D.users, ld)}님이 본부장에게 보내요` : ""}` : f.done === false ? "다시 고칠 수 있어요" : "저장했어요" });
+      return true;
+    },
+    //   [본부장에게 보내기] — 리드(칸 담당 위 첫 리드)·관리자 · 그때 숫자를 얼림(snap · 본부장은 이걸 봄) · 한마디 leads.<나> · 5초 되돌리기
+    //   rows = [{m, d}] 화면이 지금 계산한 칸 숫자 (aireport.secData)
+    aiRepSend: async (crewId, p, rows, note) => {
+      const id = repId(crewId, p), at = nowIso(), me = { by: cu.id, byName: cu.name, at };
+      const mine = (rows || []).filter(({ m }) => { const ld = secPeople(D, m).lead; return ld === cu.id || (ld && isMaster(cu)); });   // 담당 미정 칸은 안 보냄 · 관리자는 대신 보낼 수 있음(기록에 이름)
+      if (!mine.length) { setToast({ text: "내가 보낼 칸이 없어요" }); return false; }
+      let ids = [];
+      try { await fb.txDoc("aireports", id, (cur) => { ids = []; const secs = (cur && cur.secs) || {}, w = {}, made = {};
+          mine.forEach(({ m, d }) => { const s0 = secs[m.id] || {}; if (s0.sent) return; ids.push(m.id); const snap = JSON.parse(JSON.stringify(snapOf(d, s0)));
+            if (cur) { w[`secs.${m.id}.sent`] = me; w[`secs.${m.id}.snap`] = snap; } else made[m.id] = { sent: me, snap }; });
+          if (!ids.length) return {};
+          const ln = { note: String(note || "").trim().slice(0, 600), at, byName: cu.name }, entry = { at, by: cu.id, byName: cu.name, act: "send", mates: ids };
+          return { write: cur ? { ...w, [`leads.${cu.id}`]: ln, sentAt: at, updatedAt: at, log: fb.arrayUnion(entry) }
+            : { crew: crewId, cycle: p.cycle, start: p.start, end: p.end, due: p.due, secs: made, leads: { [cu.id]: ln }, read: null, sentAt: at, createdAt: at, updatedAt: at, log: [entry] } }; }); }
+      catch (e) { fail("보고 보내기")(e); return false; }
+      if (!ids.length) { setToast({ text: "이미 다 보냈어요" }); return false; }
+      const names = ids.map((x) => (mateOf(x) || { name: x }).name).join("·");
+      log("aiRepSend", { col: "aireports", targetId: id, label: `${names} 칸 → 본부장` });
+      setToast({ text: `본부장에게 보냈어요 · ${ids.length}칸 (${names})`, undo: () => A.aiRepUnsend(crewId, p, ids, at) });
+      return true;
+    },
+    // 보내기 되돌리기 (5초) — 내가 보낸 그대로일 때만 (그사이 본부장이 읽었어도 칸은 다시 '담당 확인'으로)
+    aiRepUnsend: async (crewId, p, ids, sentAt) => {
+      const id = repId(crewId, p), at = nowIso(); let n = 0;
+      try { await fb.txDoc("aireports", id, (cur) => { n = 0; if (!cur) return {}; const w = {};
+          ids.forEach((mid) => { const s0 = ((cur.secs || {})[mid]) || {}; if (s0.sent && s0.sent.at === sentAt && s0.sent.by === cu.id) { w[`secs.${mid}.sent`] = null; w[`secs.${mid}.snap`] = null; n++; } });
+          return n ? { write: { ...w, updatedAt: at, log: fb.arrayUnion({ at, by: cu.id, byName: cu.name, act: "unsend", mates: ids }) } } : {}; }); }
+      catch (e) { fail("보내기 되돌리기")(e); return false; }
+      setToast({ text: n ? "보내기를 되돌렸어요" : "그사이 바뀌어 되돌리지 못했어요" });
+      return n > 0;
+    },
+    // [읽었어요] — 본부장·관리자 · 한마디(선택) · 그 뒤 또 보낸 칸이 있으면 다시 '보고 도착'
+    aiRepRead: async (crewId, p, note) => {
+      if (!isHQ(D.users, cu.id) && !isMaster(cu)) { setToast({ text: "본부장·관리자만 읽음 표시를 해요" }); return false; }
+      const id = repId(crewId, p), at = nowIso(), rd = { by: cu.id, byName: cu.name, at, note: String(note || "").trim().slice(0, 600) };
+      try { await fb.txDoc("aireports", id, (cur) => (cur ? { write: { read: rd, updatedAt: at, log: fb.arrayUnion({ at, by: cu.id, byName: cu.name, act: "read", ...(rd.note ? { text: rd.note } : {}) }) } } : {})); }
+      catch (e) { fail("읽음")(e); return false; }
+      log("aiRepRead", { col: "aireports", targetId: id, label: `AI 크루 보고 읽음${rd.note ? " · " + rd.note.slice(0, 40) : ""}` });
+      setToast({ text: rd.note ? "읽음 · 한마디를 남겼어요" : "읽었어요" });
+      return true;
+    },
+    // 보고 주기 (관리자 · 2026-10-15 "한동안 주간 · 점차 1개월로") — settings/aicrew.reportCycle = {cycle, from(이번 주 월요일)} · 5초 되돌리기
+    aiRepCycle: async (cycle) => {
+      if (!isMaster(cu)) { setToast({ text: "보고 주기는 관리자가 정해요" }); return false; }
+      if (!CYCLE_L[cycle]) return false;
+      const was = cycleOf(D), at = nowIso(); if (was.cycle === cycle) return true;
+      const v = { cycle, from: monOf(ymd(new Date())), at, by: cu.id, byName: cu.name };
+      try { await fb.merge("settings", "aicrew", { reportCycle: v }); } catch (e) { fail("보고 주기")(e); return false; }
+      log("aiRepCycle", { col: "settings", targetId: "aicrew", label: `AI 크루 보고 ${CYCLE_L[was.cycle]} → ${CYCLE_L[cycle]}` });
+      setToast({ text: `AI 크루 보고 = ${CYCLE_L[cycle]} · 마감은 그 기간 마지막 금요일`, undo: () => fb.merge("settings", "aicrew", { reportCycle: { cycle: was.cycle, from: was.from, at: nowIso(), by: cu.id, byName: cu.name } }).catch(fail("되돌리기")) });
       return true;
     },
     // 확정 규칙(고도화): 담당·관리자가 더함 → AI 가 실행 전마다 읽음(team_link.py rules) · 지우지 않고 끄기만

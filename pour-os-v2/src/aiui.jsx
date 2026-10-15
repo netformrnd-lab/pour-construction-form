@@ -13,6 +13,7 @@ import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, inp,
 import { Thread, useItemNotes } from "./task.jsx";
 import { LS } from "./core.jsx";
 import { CREWS, GONE, crewOf, mateOf, boardOf, brandL, servesL, mateBrands, ownerKeys, fmtMetric, metricPct, metricOk, runWord, asideLaunch, asideRedoLaunch, asideFixLaunch, loginSites, planOf, qtyDefs, qtyNow, canReq, reqMates, REQ_SHAPES, REQ_PRESETS, REQ_STATE_L, reqLine, asideReqLaunch, execOf } from "../../marketing-hub/crew.js";
+import { cycleOf, periodOf, repCrews, repId, repSlots, secState, periodL, dueL, CYCLE_L } from "./aireport.js";   // AI 크루 보고 (2026-10-15)
 import { ASK_STATE_L, canAct, canBack, canRet, isProxy, pickOk, planPass, chainOf, mateOwner, actOwner, hqOf, canUpHQ, mateStats, repeatNotes, itemLine, bossOf, bossRec, bossLoop, asidePlanOf, ranOn, missedOn } from "./aiask.js";
 
 export const HUB_CREW_URL = "../marketing-hub/crew.html";   // Aside 결과 올리기 (허브)
@@ -187,7 +188,11 @@ export function AiTeamBody({ D, cu, A, open, admin }) {
     </div>
     {/* 맡긴 일(2026-10-15 "ai팀원에게 업무요청을 별도로해서 진행도 가능") — 누구나 · 보드가 있는 크루 팀원에게 */}
     {(() => { const mine = ((D.ai && D.ai.reqs) || []).filter((r) => r.by === cu.id && (r.state === "open" || r.state === "doing")).length;
-      return <Card style={{ marginTop: 10 }}><Row title="AI에게 업무 맡기기" tag={mine ? `진행 ${mine}` : null} sub="무엇을 · 몇 개 · 언제까지 → 담당 PC Aside 가 한 시간 안에 · 결과는 승인으로 와요" onClick={() => open({ type: "aiReq" })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last /></Card>; })()}
+      // AI 크루 보고(2026-10-15 "리드에게 매주 금요일 보고 · 크루 칸별") — 이번 기간 · 담당 확인 · 보냄
+      const cfg = cycleOf(D), p = periodOf(cfg, ymd(new Date())), rc = repCrews()[0], rp = rc ? ((D.ai && D.ai.reports) || {})[repId(rc.id, p)] : null, sl = rc ? repSlots(rc.id) : [];
+      const dn = sl.filter((m) => ["done", "sent"].includes(secState(rp, m.id))).length, sn = sl.filter((m) => secState(rp, m.id) === "sent").length;
+      return <Card style={{ marginTop: 10 }}><Row title="AI에게 업무 맡기기" tag={mine ? `진행 ${mine}` : null} sub="무엇을 · 몇 개 · 언제까지 → 담당 PC Aside 가 한 시간 안에 · 결과는 승인으로 와요" onClick={() => open({ type: "aiReq" })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last={!rc} />
+        {rc && <Row title={`AI 크루 보고 · ${CYCLE_L[p.cycle]}`} tag={sn === sl.length ? "보냄" : null} sub={`${periodL(p)} · ${dueL(p)} · 담당 확인 ${dn}/${sl.length} · 보냄 ${sn}/${sl.length}`} onClick={() => open({ type: "aiReport", crew: rc.id })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last />}</Card>; })()}
     <p style={{ fontSize: 12.5, color: C.sub, lineHeight: 1.6, margin: "8px 2px 0" }}>AI가 결과를 올리면 담당 → 리드 순서로 승인해요(광고비 예산·원가·판매가 조정만 본부장까지) · 실제 반영은 늘 사람이 해요 · 실행 업무엔 번호마다 흔적{myTurn ? ` · 지금 내 차례 ${myTurn}건` : ""} · <a className="v2-lblink" href={HUB_MANUAL_URL} target="_blank" rel="noopener">매뉴얼 보기 ›</a> · <a className="v2-lblink" href={HUB_ADS_URL} target="_blank" rel="noopener">광고 운영 ›</a></p>
     {(myG || (master && noneG)) && <Card style={{ marginTop: 10 }}>
       {myG && <Row title={`내 PC Aside · ${myG.runs.map((r) => `${(mateOf(r.board.mate) || {}).name} ${r.t}`).join(" · ")}`} sub="세팅 · 지금 돌리기 · 고칠 것 확인 — 담당마다 자기 PC 에서 동시에 돌아요" onClick={() => open({ type: "aiSetup" })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last={!(master && noneG)} />}

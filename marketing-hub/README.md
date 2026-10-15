@@ -105,8 +105,8 @@
   - 온유(매일 18:00)는 `05 오늘 숫자` 노트의 '🗣 고객의 소리' 칸(최근 7일 · 급함 · 표)과 [📋 온유에게 줄 표 복사]로 받는다.
 
 ## AI 승인 · AI 크루 (사용자 결정 2026-10-12 "AI팀원이 실행한것을 사람팀원에게 승인요청하고, 사람팀원은 상급자 사람에게 승인요청")
-- 승인은 **업무OS**(`pour-os-v2` · 화면·규칙은 그 폴더 CLAUDE.md 'AI 팀원 · AI 승인'): AI → 담당(사람) → 리드 → 본부장. 실행(게시·발송·가격·광고)은 늘 사람 — 최종 승인되면 담당에게 '실행' 업무
-- 저장(pour-app-new · 공개 규칙 `pour-os/{doc=**}` · 규칙 변경 없음): `pour-os/v2/aiasks/{id}` 승인 한 건 · `aimates/{AI id}` 담당·확정 규칙 · `aiboards/{보드 id}` 크루 보드 지표 · `settings/aicrew` 이번 주 집중. 모양·보드·크루 정의 = `crew.js`(업무OS·crew.html·시험이 같이 import · 시험 `node crew.test.mjs`)
+- 승인은 **업무OS**(`pour-os-v2` · 화면·규칙은 그 폴더 CLAUDE.md 'AI 팀원 · AI 승인'): AI → 담당(사람 · 할 일마다 다를 수 있음) → 리드(최종 · 2026-10-15) — 광고비 예산 조정·원가 조정·판매가 조정만 본부장까지(보드 할 일 `hq` · 관리자가 할 일마다 켜고 끔 · 리드가 [본부장에게도 올리기]). 실행(게시·발송·가격·광고)은 늘 사람 — 최종 승인되면 담당에게 '실행' 업무 · 승인 번호마다 흔적([했어요] 링크 · [안 함] 이유)을 남겨야 끝냄 · 짝지은 반복 실행이면 [했어요]마다 +1(KPI) · 본부장은 금요일 'AI 크루 보고'(크루 칸별 · 실행 · 결과 · 다음)로 받음
+- 저장(pour-app-new · 공개 규칙 `pour-os/{doc=**}` · 규칙 변경 없음): `pour-os/v2/aiasks/{id}` 승인 한 건 · `aimates/{AI id}` 담당·확정 규칙 · `aiboards/{보드 id}` 크루 보드 지표(+ `next`·`nextHist` = [다음주] AI 피드백) · `aireports/{크루}-{기간 시작}` AI 크루 보고서(업무OS 가 씀 · crew.html 은 읽기만) · `settings/aicrew` 이번 주 집중·보고 주기. 모양·보드·크루 정의 = `crew.js`(업무OS·crew.html·시험이 같이 import · 시험 `node crew.test.mjs`)
 - **`tools/team_link.py`** (볼트 `tools/` 에 같은 파일 — 고치면 둘 다 · 시험 `tests/team_link.test.mjs` 에뮬레이터)
   - `open <팀원> "<한 일>" "<노트 경로>" [날짜] [--brand pourstore|grohome|bmupq52c0]` → 노트 본문(`mkt-notes`) + 승인 한 건(`ai_<팀원>_<날짜>_<해시>` · crew = 기본 AI 팀원 base / 크루 팀원은 그 크루(`CREW` = crew.js · 시험 crew.test.mjs) · board '' · 담당 = aimates owners[브랜드] → owners._ · 쉬는 사람이면 '' = 관리자 누구나 · url = 허브 `#note-<노트 id>` · 실행 한 줄 '발행은 사람')
     - 같은 노트를 [AI에게 다시]로 돌려받았거나 아직 담당 차례면 → 새 건이 아니라 **같은 건의 다음 판**(ver+1 · 담당 차례 · 돌려받은 말 비움 · 기록 redo) — 읽은 때(updateTime) 그대로일 때만 쓰는 `:commit`
@@ -137,6 +137,7 @@
 - **`crew.html` — Aside: AI 크루 결과 올리기** (그로홈·POUR스토어 B2C 크루 6명 보드 · 업로더·관리자 로그인)
   - 보드 고르기(`#crew-board` · 주소 `#보드id`) → 날짜(`#crew-date`) → 담당·승인 길 줄(`#crew-who`) · 고쳐서 다시 올릴 것(`#crew-redo`) · 확정 규칙(`#crew-rules`) · Aside 지시문(`#copy-guide` · 붙여 넣는 모양) → 결과 붙여 넣기(`#crew-text`: `[지표]` 키·값 · `[상태]` A: 한 줄 · `[A]`~`[F]` 요약 + 탭 표) → [미리보기](`#preview-button`) → [업무OS에 올리기](`#save-button`) → `#status-message`
   - 저장: `aiboards/{보드}` 지표·날짜별 값(merge) + 행동마다 승인 한 건(`ai_<AI>_<날짜>_<보드id+행동>` · transaction: 없으면 만듦 · 담당 차례이거나 돌려받은 것만 다음 판 · 위로 올라간 건 그대로 + 안내)
+  - 2026-10-15: 승인 첫 차례 = **할 일 담당**(`crew.ownerForAct` = 업무OS `aimates.actOwners` → 없으면 AI 담당 · 쉬는 사람이면 AI 담당 · 다시 올림도) · `#crew-who` '할 일 담당: A·D 남윤정 · B·C 김민지' · 올린 뒤 '승인 차례: 남윤정님(A) · 김민지님(B)' · 승인 건 `hq`(본부장 승인 일) · `[다음주]` 묶음(금요일 · 다음 주 할 일 3줄) → `aiboards.next`·`nextHist` · 오늘 지시문 '■ 사람이 정한 계획'(`crew.planFromReports` · 업무OS AI 크루 보고서에서 사람이 더한 계획 + 리드·본부장 한마디)
   - **맡긴 일**(2026-10-15 "ai팀원에게 업무요청을 별도로해서 진행도 가능"): 업무OS [업무 맡기기] → `pour-os/v2/aireqs` → 이 화면 '맡긴 일'(`#crew-reqs`) [이 일 하기](`#req-load-n` · 하는 중) → 결과 칸 `[R]` 묶음(요약 + 표 또는 글) → [업무OS에 올리기] = 승인 한 건(`crew.askFromReq` · act R) + 맡긴 일 완료 · 취소된 일은 안 올림 · 한 시간마다 '고칠 것 확인' 글(`asideFixLaunch`)이 맡긴 일도 처리
   - 빼는 것(crew.js): 원가·마진·제조사·공급 단가·파일 칸 · 관리자 자리 행동(노출 E) · 휴대폰 번호·메일(가림) · 모르는 지표 키
   - B2B 크루·바라스데이 크루는 초안(이름·구성·보드는 같이 정해 고침) — 보드가 생기면 같은 화면에 자동으로 나옴

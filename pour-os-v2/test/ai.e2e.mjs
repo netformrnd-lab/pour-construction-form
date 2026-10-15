@@ -377,6 +377,79 @@ ST.v2.aiasks.ai_gyeoul_20261014_ghconvC = ask({ id: 'ai_gyeoul_20261014_ghconvC'
   eq('흔적: E1 했어요 · E2 안 함(이유) · 끝냄', [t.aiTrace.E1.done, t.aiTrace.E2.skip, t.aiTrace.E2.note, t.status], [true, true, '판매자 답글 권한 없음', 'done']);
   await s.close(); }
 
+// ⑩ AI 크루 보고 (2026-10-15 사장님 "본부장은 리드에게 매주 금요일 보고받음 · 크루 칸별 · 실행 · 결과(유입·전환) · 다음(AI 피드백 + 사람)" · "한동안 주간 → 점차 1개월")
+//   금 10/16: 남윤정(겨울 담당) 칸 쓰기 → 김소연(리드) 본부장에게 보내기(되돌리기 한 번) → 허지은(본부장) 읽었어요 · 주기 월간 ↔ 주간
+Object.assign(ST.v2.aiboards['gh-conv'], { hist: { cv_mall: { '2026-10-09': 6.1, '2026-10-15': 7.4 } }, nextHist: { '2026-10-16': '- 롤러 재입고 알림 켜기\n- 상세 첫 화면 시안 2개' }, next: { text: '- 롤러 재입고 알림 켜기\n- 상세 첫 화면 시안 2개', run: '2026-10-16' } });
+const FRI = '2026-10-16T10:00:00+09:00', RID = 'b2c-2026-10-12';
+{ let s = await session('yj', { now: FRI });
+  await expand(s.pg);
+  eq('금요일: 남윤정 = 겨울 칸 쓰기 줄', await inbox(s.pg, '겨울 칸 쓰기 · B2C 크루').count(), 1);
+  await inbox(s.pg, '겨울 칸 쓰기 · B2C 크루').first().getByRole('button', { name: '쓰기', exact: true }).click(); await s.pg.waitForTimeout(600);
+  const tx = await s.S().innerText();
+  ok('보고서: 이번 주 · 다음 할 일 = 내 칸 겨울 · 칸 6개', tx.includes('이번 주') && tx.includes('10/12~10/18') && tx.includes('내 칸 겨울') && tx.includes('크루 칸 6'));
+  ok('겨울 칸: 실행 2 · 남음 1 · 흔적 2 · 안 함 1 · 전환 7.4% ← 6.1% · KPI +1 · AI 다음', tx.includes('실행 업무 끝냄 2 · 남음 1 · 흔적 2 · 안 함 1') && tx.includes('7.4% ← 6.1% · 목표 7% ✓') && tx.includes("반복 '리뷰 신고·답글' +1") && tx.includes('롤러 재입고 알림 켜기'), tx.slice(0, 900));
+  ok('다른 칸은 접힘 · 담당 미정 · 한 줄 요약', tx.includes('채널 · 봄(AI)') && tx.includes('담당 미정'));
+  await s.S().getByLabel('겨울 한 줄').fill('전환 7.4% — 상세 첫 화면 가격 노출 효과');
+  await s.S().getByLabel('겨울 다음 계획').fill('- 리뷰 이벤트 기획');
+  await shot(s.pg, 'yj-report-375'); ok('보고서 넘침 없음 375', !(await over(s.pg)));
+  await s.S().getByRole('button', { name: '겨울 다 썼어요' }).click(); await s.pg.waitForTimeout(600);
+  ok('다 썼어요 → 토스트 = 김소연님이 보냄', (await s.pg.locator('.v2-toast').innerText()).includes('겨울 칸 다 썼어요 · 김소연님이 본부장에게 보내요'));
+  ok('카드 그대로 펼침 · 다 썼어요 ✓ · 다시 고치기', (await s.S().innerText()).includes('다 썼어요 ✓ 남윤정') && (await s.S().getByRole('button', { name: '다시 고치기' }).count()) === 1);
+  await s.close();
+  const r = doc('aireports', RID);
+  eq('보고서 저장: 주간 · 기간 · 겨울 칸 글 · 담당 확인', r && [r.crew, r.cycle, r.start, r.end, r.due, r.secs.gyeoul.note, r.secs.gyeoul.plan, r.secs.gyeoul.done.by], ['b2c', 'week', '2026-10-12', '2026-10-18', '2026-10-16', '전환 7.4% — 상세 첫 화면 가격 노출 효과', '- 리뷰 이벤트 기획', 'yj']); }
+{ let s = await session('mj', { now: FRI });
+  await expand(s.pg);
+  eq('김민지(같이 쓰는 사람) = 겨울 칸은 다 써서 줄 없음', await inbox(s.pg, '겨울 칸 쓰기').count(), 0);
+  await s.close(); }
+{ let s = await session('sy', { now: '2026-10-16T15:00:00+09:00' });
+  await expand(s.pg);
+  eq('리드(김소연) = 1칸 보내기 줄', await inbox(s.pg, 'B2C 크루 1칸 → 본부장에게 보내기').count(), 1);
+  await inbox(s.pg, 'B2C 크루 1칸 → 본부장에게 보내기').first().getByRole('button', { name: '보내기', exact: true }).click(); await s.pg.waitForTimeout(600);
+  ok('다음 할 일 = 다 모였어요 · 보내기', (await s.S().innerText()).includes('담당 확인 1/1칸 · 다 모였어요'));
+  await s.pg.getByLabel('리드 한마디').fill('가격 실험 결과는 다음 주에 결정');
+  await shot(s.pg, 'sy-report-375'); ok('리드 보고서 넘침 없음 375', !(await over(s.pg)));
+  await s.pg.getByRole('button', { name: '본부장에게 보내기 · 1칸' }).click(); await s.pg.waitForTimeout(600);
+  ok('보냄 → 토스트', (await s.pg.locator('.v2-toast').innerText()).includes('본부장에게 보냈어요 · 1칸 (겨울)'));
+  await s.pg.locator('.v2-toast').getByRole('button', { name: '되돌리기' }).click(); await s.pg.waitForTimeout(600);
+  eq('되돌리기 = 다시 담당 확인', await s.pg.evaluate(() => window.__V2.v2.aireports['b2c-2026-10-12'].secs.gyeoul.sent), null);
+  await s.pg.getByRole('button', { name: '본부장에게 보내기 · 1칸' }).click(); await s.pg.waitForTimeout(600);
+  ok('보낸 칸 = 본부장에게 보냄 ✓ · 한 줄', (await s.S().innerText()).includes('본부장에게 보냄 ✓ 김소연') && (await s.S().innerText()).includes('한 줄: 전환 7.4%'));
+  await s.close();
+  const r = doc('aireports', RID);
+  eq('보냄 저장: 누가 · 얼린 숫자 · 리드 한마디', [r.secs.gyeoul.sent.by, r.secs.gyeoul.snap.doneN, r.secs.gyeoul.snap.trace.done, r.secs.gyeoul.snap.note, r.secs.gyeoul.snap.plan, r.leads.sy.note], ['sy', 2, 2, '전환 7.4% — 상세 첫 화면 가격 노출 효과', '- 리뷰 이벤트 기획', '가격 실험 결과는 다음 주에 결정']); }
+{ let s = await session('hj', { now: '2026-10-16T16:00:00+09:00', w: 1280, h: 900 });
+  await expand(s.pg);
+  eq('본부장 = 보고 도착 줄', await inbox(s.pg, 'B2C 크루 주간 보고 · 1/6칸').count(), 1);
+  await inbox(s.pg, 'B2C 크루 주간 보고 · 1/6칸').first().getByRole('button', { name: '읽기', exact: true }).click(); await s.pg.waitForTimeout(600);
+  const tx = await s.S().innerText();
+  ok('본부장 보고서: 보낸 겨울 칸 펼침 · 리드 한마디 · 읽었어요', tx.includes('본부장에게 보냄 ✓ 김소연') && tx.includes('7.4% ← 6.1%') && tx.includes('리드 한마디') && tx.includes('가격 실험 결과는 다음 주에 결정') && (await s.pg.getByRole('button', { name: '읽었어요', exact: true }).count()) === 1);
+  await s.S().getByRole('button', { name: '보고 글로 복사' }).click(); await s.pg.waitForTimeout(300);
+  const g = await boxOf(s.S, '보고 글로 복사');
+  ok('보고 글: 머리 · 겨울 칸 · 결과 · 다음 · 리드 한마디', g.startsWith('[AI 크루 주간 보고] B2C 크루 · 10/12~10/18') && g.includes('■ 전환 · 겨울(AI)') && g.includes('- 결과 자사몰 구매전환율: 7.4% ← 6.1%') && g.includes('리뷰 이벤트 기획') && g.includes('리드 한마디 (김소연)'), g.slice(0, 400));
+  await shot(s.pg, 'hj-report-1280'); ok('본부장 보고서 넘침 없음 1280', !(await over(s.pg)));
+  await s.pg.getByLabel('본부장 한마디').fill('좋아요 · 리뷰 이벤트 진행');
+  await s.pg.getByRole('button', { name: '읽었어요', exact: true }).click(); await s.pg.waitForTimeout(600);
+  // 주기: 관리자(허지은) 월간 → 다시 주간
+  await s.S().getByRole('tab', { name: '월간', exact: true }).click(); await s.pg.waitForTimeout(500);
+  ok('주기 월간 → 토스트', (await s.pg.locator('.v2-toast').innerText()).includes('AI 크루 보고 = 월간'));
+  const cyc = await s.pg.evaluate(() => window.__V2.v2.settings.aicrew.reportCycle);
+  eq('주기 저장 = 월간 · 바꾼 주 월요일 · 누가', [cyc.cycle, cyc.from, cyc.by], ['month', '2026-10-12', 'hj']);
+  await s.S().getByRole('tab', { name: '주간', exact: true }).click(); await s.pg.waitForTimeout(500);
+  await s.pg.keyboard.press('Escape'); await s.pg.waitForTimeout(300);
+  await expand(s.pg);
+  eq('읽은 뒤 = 보고 도착 줄 사라짐', await inbox(s.pg, 'B2C 크루 주간 보고').count(), 0);
+  await s.close();
+  const r = doc('aireports', RID);
+  eq('읽음 저장 · 주기 다시 주간', [r.read.by, r.read.note, doc('settings', 'aicrew').reportCycle.cycle], ['hj', '좋아요 · 리뷰 이벤트 진행', 'week']); }
+{ let s = await session('cw', { now: FRI, w: 375 });
+  await expand(s.pg);
+  eq('김채원(여름 담당 · 리드 본인) = 여름 칸 쓰기 + 보내기', [await inbox(s.pg, '여름 칸 쓰기').count(), await inbox(s.pg, 'B2C 크루 1칸 → 본부장에게 보내기').count()], [1, 1]);
+  await s.pg.locator('.v2-nav').getByRole('button', { name: '더보기' }).click(); await s.pg.waitForTimeout(300);
+  await s.pg.getByText('크루 칸별 · 실행 · 결과 · 다음 계획 · 금요일 리드 → 본부장').click(); await s.pg.waitForTimeout(500);
+  ok('더보기 › 성과 › AI 크루 보고 = 같은 화면', (await s.S().innerText()).includes('내 칸 여름'));
+  await s.close(); }
+
 ok('화면 오류 없음', errs.length === 0, errs);
 await b.close();
 console.log(`\n${n - bad}/${n} 통과 · 그림 ${SHOTS}`); if (bad) process.exit(1);

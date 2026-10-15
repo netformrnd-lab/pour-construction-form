@@ -59,7 +59,8 @@ export function MoreTab({ D, cu, A, meta, logout, open, BUILD, setToast }) {
     <Head>성과</Head>
     <Card>
       <Row title="그로스보드" sub="KPI → 프로젝트·반복 → 끝낸 일 · 나 · 우리 팀" onClick={() => open({ type: "growth" })} right={arrow} last={false} />
-      <Row title="월말 보고서" sub="브랜드별 · 프로젝트별 · 매출 · 끝낸 일" onClick={() => open({ type: "reports" })} right={arrow} last />
+      <Row title="월말 보고서" sub="브랜드별 · 프로젝트별 · 매출 · 끝낸 일" onClick={() => open({ type: "reports" })} right={arrow} last={false} />
+      <Row title="AI 크루 보고" sub="크루 칸별 · 실행 · 결과 · 다음 계획 · 금요일 리드 → 본부장" onClick={() => open({ type: "aiReport" })} right={arrow} last />
     </Card>
     <Head>문자 알림</Head>
     <SmsSettings cu={cu} setToast={setToast} />

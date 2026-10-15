@@ -519,6 +519,21 @@ export function asideLaunch(b, t) {
   ].join('\n');
 }
 // 화면 '오늘 지시문' (크루 한 명 · 보드 하나) — crew.html 이 보여 주고 [지시문 복사] · opt.qty = aimates 의 담당이 정한 횟수
+// 사람이 정한 계획 (업무OS AI 크루 보고서 pour-os/v2/aireports · 2026-10-15 "다음주는 AI 피드백 + 사람팀원이 직접 넣으면 추가 반영")
+//   그 칸을 담당이 확인했거나(done) 리드가 보낸(sent) 가장 최근 보고서의 '사람이 더함'(secs.<AI>.plan) + 리드·본부장 한마디 → 오늘 지시문 앞쪽(■ 사람이 정한 계획)
+export function planFromReports(docs, mateId) {
+  const ds = (docs || []).filter((r) => r && r.start).sort((a, b) => String(b.start).localeCompare(String(a.start)));
+  for (const r of ds) {
+    const s = ((r.secs || {})[mateId]) || {}; if (!(s.done || s.sent)) continue;
+    const lines = String(s.plan || '').split('\n').map((x) => x.trim().replace(/^[-·•]\s*/, '')).filter(Boolean);
+    Object.values(r.leads || {}).forEach((x) => { if (x && x.note) lines.push(`(리드 ${x.byName || ''}) ${x.note}`); });
+    if (r.read && r.read.note) lines.push(`(본부장 ${r.read.byName || ''}) ${r.read.note}`);
+    if (!lines.length) continue;
+    const d = (x) => String(x || '').slice(5).replace('-', '/');
+    return { from: `${d(r.start)}~${d(r.end)}`, lines: lines.map((x) => maskPII(x).slice(0, 200)).slice(0, 12) };
+  }
+  return null;
+}
 export function asideText(b, opt = {}) {
   const { m, c, head } = who(b);
   const acts = b.actions.filter((a) => !a.admin);
@@ -534,6 +549,8 @@ export function asideText(b, opt = {}) {
     "3) 화면의 '확정 규칙'은 꼭 지킨다. 화면 지시문 판이 이 글보다 새로우면 화면 지시문을 따른다.",
     '4) 여는 곳 (이 PC Aside 브라우저에 로그인돼 있음):', ...(b.logins || []).map((x) => `   - ${x.s} — ${x.w}${x.open ? ' (로그인 없음)' : ''}`),
     "   로그인이 풀려 있으면 그 일은 하지 말고 [상태]에 '막힘 — ○○ 로그인'만 쓴다 (비밀번호를 찾거나 바꾸지 않는다).", '');
+  if (opt.plan && (opt.plan.lines || []).length)   // 업무OS AI 크루 보고서에서 사람이 더한 다음 계획 (2026-10-15)
+    L.push(`■ 사람이 정한 계획 (${opt.plan.from} 보고 · 꼭 반영)`, ...opt.plan.lines.map((x) => `- ${x}`), "  → 오늘 차례인 할 일에 넣어 표로 올린다 · 오늘 못 하면 [상태]에 '계획 — 언제 할지' 한 줄", '');
   L.push('■ 1. 지표 (매번 · 화면에서 직접 확인한 숫자만 · 못 찾으면 비워 두고 [상태]에 이유)');
   b.metrics.forEach((x) => L.push(`- ${x.k} · ${x.l} (${x.u || ''}) · 어디서: ${x.src} · 기준 ${x.base == null ? '없음' : fmtMetric(x, x.base)} → 목표 ${fmtMetric(x, x.target)}${x.dir === 'down' ? ' (줄이기)' : ''}`));
   L.push('');

@@ -187,6 +187,14 @@ eq('지금 횟수 = 담당이 정한 수 → 없으면 기본 · 0·이상한 �
   const tr = K.parseCrew('[D]\n요약: 키워드\n키워드\t입찰\n롤러페인트\t500', K.boardOf('gh-traffic'));
   eq('F(광고 일일 보고서) = 외주 기간 실행 없음(보고만)', ['gh-traffic', 'gh-conv'].map((b) => K.execOf(K.actOf(b, 'F'))), ['', '']);
   eq('외주 기간 광고 할 일(쿠팡 D) = 실행 없음 → hq 도 없음', K.asksFromParse(tr, { board: 'gh-traffic', mate: 'gaeul', run: 'd' }).map((a) => [a.exec, a.hq]), [['', '']]);
+  const reps = [{ start: '2026-10-05', end: '2026-10-11', secs: { gyeoul: { plan: '- 옛 계획', done: { at: 'a' } } } },
+    { start: '2026-10-12', end: '2026-10-18', secs: { gyeoul: { plan: '- 리뷰 이벤트 기획\n· 상세 시안 010-1234-5678 확인', sent: { at: 'b' } }, yeoreum: { plan: '- 쓰는 중' } }, leads: { sy: { note: '가격 실험은 다음 주', byName: '김소연' } }, read: { note: '좋아요', byName: '허지은' } },
+    { start: '2026-10-19', end: '2026-10-25', secs: { gyeoul: { plan: '- 아직 안 확인한 계획' } } }];
+  const pl = K.planFromReports(reps, 'gyeoul');
+  eq('사람이 정한 계획 = 확인·보낸 가장 최근 보고 · 앞 기호 빼고 · 개인정보 가림 · 리드·본부장 한마디', pl, { from: '10/12~10/18', lines: ['리뷰 이벤트 기획', '상세 시안 010-****-**** 확인', '(리드 김소연) 가격 실험은 다음 주', '(본부장 허지은) 좋아요'] });
+  eq('확인 전 칸만 있으면 = 없음 · 보고서 없음 = 없음', [K.planFromReports(reps, 'yeoreum'), K.planFromReports([], 'gyeoul'), K.planFromReports(null, 'gyeoul')], [null, null, null]);
+  const TP = K.asideText(K.boardOf('gh-conv'), { plan: pl });
+  eq('지시문: 사람이 정한 계획 = 지표 앞 · 줄마다', [TP.includes('■ 사람이 정한 계획 (10/12~10/18 보고 · 꼭 반영)\n- 리뷰 이벤트 기획'), TP.indexOf('■ 사람이 정한 계획') < TP.indexOf('■ 1. 지표'), K.asideText(K.boardOf('gh-conv')).includes('사람이 정한 계획')], [true, true, false]);
   const T = K.asideText(K.boardOf('gh-conv'));
   eq('지시문: [다음주] 묶음 · 금요일만', [T.includes('[다음주]\n- (한 줄)\n- (한 줄)\n- (한 줄)'), T.includes('[다음주] = 금요일만 채운다')], [true, true]);
 }

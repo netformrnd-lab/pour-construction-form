@@ -18,6 +18,8 @@
       pour-os/v2/proposal/dailygrowth-202610 {title, at, by, json(baseline · structure · hypotheses H1~H6 · gaps_20261015)} — Aside 가 매일 갱신 · 읽기만
       기준선 vs 실제(최신 보고서 metrics → 없으면 보고서 글에서 읽음) · 가설 카드 · 현재 세팅과 제안서 구조 차이 · 규칙마다 출처 배지 [제안서 pXX]/[김송희 관리방안]/[Aside 추가]
       접기·펴기는 이 기기에만 기억(localStorage · 막히면 늘 펼침)
+  · 외주 운영 기간 (2026-10-15 사장님 "메타·네이버·쿠팡 약 2개월 외주 · 세팅 분석만 · 데이터 쌓고 매일·금요일 보고"): 맨 위 띠(adops.js AD_MODE) + [Aside 지시문 복사](asideAdsText)
+      일일 = adreports/{YYYY-MM-DD} · 주간 = adreports/{금요일}-weekly (kind 'weekly') · [변경 기록] = 외주 변경(changes) + 예전 Aside 끈 것(offs) · 보고서 고르기 = 문서 id (#id)
   · 계산 adops.js (시험 node marketing-hub/adops.test.mjs)
 -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -100,6 +102,13 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 ul.gaps{margin:0;padding-left:20px;font-size:13px;line-height:1.75}
 .rl{font-size:13px;line-height:1.7;padding:3px 0;word-break:keep-all}.rl b{color:var(--navy);margin-right:4px}
 .crit{padding:0 16px 10px;font-size:12.5px;color:var(--text-md);line-height:1.6}
+.src.s-d{background:#FCE7F3;color:#9D174D}
+.mode{background:#FFF7ED;border:1px solid #FED7AA;border-radius:var(--r);padding:12px 14px;margin-bottom:14px;font-size:13px;line-height:1.65;color:#7C2D12;word-break:keep-all}
+.mode b{color:#9A3412}.mode .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.mode button{border:1px solid #FDBA74;background:#fff;border-radius:8px;padding:7px 12px;font:inherit;font-size:12.5px;font-weight:800;color:#9A3412;cursor:pointer}
+.mode textarea{width:100%;min-height:180px;margin-top:8px;font:12px/1.5 ui-monospace,Menlo,monospace;border:1px solid #FED7AA;border-radius:8px;padding:8px}
+.kind{display:inline-block;font-size:10.5px;font-weight:800;border-radius:5px;padding:0 6px;margin-left:4px;background:#EEF2FF;color:#4338CA;vertical-align:1px}
+.fil{display:flex;gap:4px;padding:8px 10px;border-bottom:1px solid var(--border)}.fil button{flex:1;border:1px solid var(--border);background:#fff;border-radius:8px;padding:5px;font:inherit;font-size:12px;font-weight:700;color:var(--text-md);cursor:pointer}.fil button.on{background:var(--navy);border-color:var(--navy);color:#fff}
 @media (max-width:900px){.cmp,.hyps{grid-template-columns:1fr 1fr}.split{grid-template-columns:1fr}.dates{flex-direction:row;overflow-x:auto;-webkit-overflow-scrolling:touch}
   .dates button{flex:none;width:auto;max-width:200px;border-bottom:0;border-right:1px solid var(--border)}.grid2{grid-template-columns:1fr}}
 @media (max-width:700px){main{padding:12px}.top .v{font-size:20px}.md{padding:4px 12px 14px;font-size:14px}.rep-h{padding:12px}.card h3{padding:11px 12px}
@@ -122,7 +131,7 @@ ul.gaps{margin:0;padding-left:20px;font-size:13px;line-height:1.75}
   <a href="index.html" class="hub">허브</a>
   <a href="../pourstore-renewal/os2.html">업무OS</a>
 </header>
-<nav id="tabs" aria-label="광고 운영 탭"><button type="button" data-v="rep">보고서</button><button type="button" data-v="judge">메타 판정</button><button type="button" data-v="off">끈 것 기록</button></nav>
+<nav id="tabs" aria-label="광고 운영 탭"><button type="button" data-v="rep">보고서</button><button type="button" data-v="judge">메타 판정</button><button type="button" data-v="off">변경 기록</button></nav>
 <main id="app"><div class="empty">불러오는 중…</div></main>
 <script type="module">
 import * as A from './adops.js';
@@ -137,12 +146,12 @@ const todayKST=()=>C.addDays(C.yesterdayKST(),1);
 const DOW='일월화수목금토';
 const dayL=(d)=>{const x=new Date(d+'T00:00:00Z');return `${Number(d.slice(5,7))}/${Number(d.slice(8,10))}(${DOW[x.getUTCDay()]})`;};
 const atL=(t)=>{const m=t?new Date(t).getTime():0;if(!m)return '';const d=new Date(m+9*3600e3);return d.toISOString().slice(5,16).replace('T',' ').replace('-','/');};
-const S={reps:[],prop:null,propErr:'',cur:'',view:'rep',err:'',loaded:false};
+const S={reps:[],prop:null,propErr:'',cur:'',view:'rep',err:'',loaded:false,kind:'all',showText:false};
 const LSget=(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:v;}catch(e){return d;}}, LSset=(k,v)=>{try{localStorage.setItem(k,v);}catch(e){}};
 let vOpen=LSget('ads_verify_open','1')==='1';
 
 // 주소: #off = 끈 것 기록 · #judge = 메타 판정 · #YYYY-MM-DD = 그 보고서
-function fromHash(){const h=decodeURIComponent(location.hash.slice(1));if(h==='off'||h==='judge')S.view=h;else{S.view='rep';if(/^\d{4}-\d{2}-\d{2}$/.test(h))S.cur=h;}}
+function fromHash(){const h=decodeURIComponent(location.hash.slice(1));if(h==='off'||h==='judge')S.view=h;else{S.view='rep';if(h)S.cur=h;}}
 fromHash();
 window.addEventListener('hashchange',()=>{fromHash();render();});
 
@@ -157,16 +166,24 @@ async function load(){
     const snap=await db.collection('pour-os').doc('v2').collection('adreports').get();   // orderBy 안 씀 · 날짜 글로 정렬
     S.reps=A.sortReports(snap.docs.map(d=>({id:d.id,...d.data(),date:d.data().date||d.id})));
     console.log(`[adreports] ${S.reps.length}건 로드`);
-    if(!S.cur||!S.reps.some(r=>r.date===S.cur))S.cur=S.reps[0]?S.reps[0].date:'';
+    if(S.cur&&!S.reps.some(r=>r.id===S.cur)){const byDate=S.reps.find(r=>r.date===S.cur);S.cur=byDate?byDate.id:'';}   // 옛 주소 #YYYY-MM-DD 도
+    if(!S.cur)S.cur=S.reps[0]?S.reps[0].id:'';
   }catch(e){console.error('[adreports] 로드 실패:',e);S.err='보고서를 못 불러왔어요 · 인터넷 연결을 확인하고 새로고침해 주세요 ('+(e.code||e.message||e)+')';}
   await pp;S.loaded=true;render();
 }
 
+function modeBar(){
+  const M=A.AD_MODE; if(M.mode!=='outsourced')return '';
+  return `<div class="mode" id="ad-mode"><b>${esc(M.label)}</b> ${srcB(A.SRC.D)} · ${esc(M.from)}부터 ${esc(M.until)}<br>${esc(M.note)} 보고: <b>${esc(M.daily)} 일일</b> · <b>${esc(M.weekly)} 주간</b> · 이후 쌓인 데이터로 자동화 여부를 정해요.
+    <div class="row"><button type="button" id="copy-aside" aria-label="Aside 광고 지시문 복사">Aside 광고 지시문 복사</button><button type="button" id="show-aside" aria-expanded="${S.showText}">${S.showText?'지시문 접기':'지시문 보기'}</button><span>Aside 08:30 광고 예약 작업과 금요일 16:00 예약에 이 글을 그대로 넣어요 · 판 ${esc(A.ASIDE_ADS_VER)}</span></div>
+    ${S.showText?`<textarea readonly id="aside-text" aria-label="Aside 광고 지시문">${esc(A.asideAdsText())}</textarea>`:''}</div>`;
+}
 function tops(){
   const t=A.topCards(S.reps,todayKST()), last=t.last;
   return `<div class="tops">
-    <div class="top sum"><div class="l">최신 보고서${last?` · ${esc(dayL(last.date))}`:''}</div><div class="s">${last?esc(t.summary||last.title||'요약 없음'):'아직 보고서가 없어요'}</div></div>
-    ${t.offsWeek!=null?`<div class="top"><div class="l">이번 주 끈 것</div><div class="v">${t.offsWeek}<small>개</small></div></div>`:''}
+    <div class="top sum"><div class="l">최신 보고서${last?` · ${esc(dayL(last.date))}${A.isWeekly(last)?'<span class="kind">주간</span>':''}`:''}</div><div class="s">${last?esc(t.summary||last.title||'요약 없음'):'아직 보고서가 없어요'}</div></div>
+    ${(()=>{const L=A.changeLog(S.reps,todayKST());return L.has?`<div class="top"><div class="l">이번 주 외주 변경</div><div class="v">${L.rows.filter(x=>x.who!=='Aside'&&A.weekStart(x.date||'1970-01-01')===A.weekStart(todayKST())).length}<small>건</small></div></div>`
+      :t.offsWeek?`<div class="top"><div class="l">이번 주 끈 것</div><div class="v">${t.offsWeek}<small>개</small></div></div>`:'';})()}
     ${t.longtail!=null?`<div class="top"><div class="l">새 롱테일</div><div class="v">${t.longtail}<small>개</small></div></div>`:''}
   </div>`;
 }
@@ -203,47 +220,53 @@ function verify(){
 }
 function vRep(){
   if(!S.reps.length)return `<div class="card"><div class="empty">아직 올라온 보고서가 없어요 · Aside 가 매일 08:30 에 올려요</div></div>`;
-  const r=S.reps.find(x=>x.date===S.cur)||S.reps[0];
-  const list=S.reps.map(x=>`<button type="button" data-d="${esc(x.date)}" class="${x.date===r.date?'on':''}" aria-label="${esc(x.date)} 보고서"><b>${esc(dayL(x.date))}</b><span>${esc(x.summary||x.title||'')}</span></button>`).join('');
+  const shown=S.reps.filter(x=>S.kind==='all'||(S.kind==='weekly')===A.isWeekly(x)), r=S.reps.find(x=>x.id===S.cur)||shown[0]||S.reps[0], nW=S.reps.filter(A.isWeekly).length;
+  const list=shown.length?shown.map(x=>`<button type="button" data-d="${esc(x.id)}" class="${x.id===r.id?'on':''}" aria-label="${esc(x.date)} ${A.isWeekly(x)?'주간':'일일'} 보고서"><b>${esc(dayL(x.date))}${A.isWeekly(x)?'<span class="kind">주간</span>':''}</b><span>${esc(x.summary||x.title||'')}</span></button>`).join('')
+    :`<div class="empty">${S.kind==='weekly'?`아직 주간 보고서가 없어요 · 첫 주간 ${esc(dayL(nextFri()))} 16:00`:'없음'}</div>`;
   return `<div class="split">
-    <div class="card"><h3>보고서 ${S.reps.length} <span class="sub">최신순</span></h3><div class="dates" id="dates">${list}</div></div>
-    <article class="card" id="report"><div class="rep-h"><b>${esc(r.title||r.date)}</b><span class="sub">${esc(r.date)} · ${r.by==='aside'?'Aside':esc(r.by||'')} 올림${r.at?' '+esc(atL(r.at)):''} · <span class="ro">읽기 전용</span></span></div>
+    <div class="card"><h3>보고서 ${S.reps.length} <span class="sub">최신순</span></h3><div class="fil" id="kinds">${[['all','전체'],['daily','일일'],['weekly',`주간 ${nW}`]].map(([k,l])=>`<button type="button" data-k="${k}" class="${S.kind===k?'on':''}">${esc(l)}</button>`).join('')}</div><div class="dates" id="dates">${list}</div></div>
+    <article class="card" id="report"><div class="rep-h"><b>${esc(r.title||r.date)}${A.isWeekly(r)?'<span class="kind">주간</span>':''}</b><span class="sub">${esc(r.date)} · ${r.by==='aside'?'Aside':esc(r.by||'')} 올림${r.at?' '+esc(atL(r.at)):''} · <span class="ro">읽기 전용</span></span></div>
       <div class="md">${A.srcTags(C.mdLite(r.md||r.summary||''))}</div></article>
   </div>`;
 }
 function vOff(){
-  const L=A.offLog(S.reps,todayKST());
-  if(!L.has&&!L.rows.length)return `<div class="card"><div class="empty">끈 것 기록이 아직 없어요</div></div>`;
+  const L=A.changeLog(S.reps,todayKST());
+  if(!L.has&&!L.rows.length)return `<div class="card"><div class="empty">변경 기록이 아직 없어요 · 외주업체가 세팅을 바꾸면 다음 날 일일 보고서에 모여요</div></div>`;
   const cnt=`<div class="cnts"><span>이번 주<b>${L.thisWeek}</b></span><span>이번 달<b>${L.thisMonth}</b></span><span>전체<b>${L.rows.length}</b></span></div>`;
-  const wk=L.weeks.length?`<div class="tbl"><table><thead><tr><th>주</th><th class="n">끈 것</th></tr></thead><tbody>${L.weeks.slice(0,12).map(x=>`<tr><td>${esc(A.weekL(x.w))}</td><td class="n">${x.n}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">없음</div>';
-  const mo=L.months.length?`<div class="tbl"><table><thead><tr><th>월</th><th class="n">끈 것</th></tr></thead><tbody>${L.months.slice(0,12).map(x=>`<tr><td>${esc(Number(x.m.slice(5,7)))}월 <span class="sub">${esc(x.m.slice(0,4))}</span></td><td class="n">${x.n}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">없음</div>';
-  const rows=L.rows.length?`<div class="tbl"><table class="offs ct"><thead><tr><th>날짜</th><th>매체</th><th>캠페인</th><th>대상</th><th>근거</th><th>조치</th></tr></thead><tbody>${L.rows.map(x=>`<tr>
-      <td data-l="날짜" style="white-space:nowrap">${esc(x.date?dayL(x.date):'')}</td><td data-l="매체">${x.media?`<span class="med m-${esc(x.media)}">${esc(x.media)}</span>`:''}</td>
-      <td data-l="캠페인">${esc(x.campaign)}</td><td data-l="대상"><b>${esc(x.target)}</b></td><td data-l="근거">${esc(x.reason)}</td><td data-l="조치">${esc(x.action)}</td></tr>`).join('')}</tbody></table></div>`
-    :'<div class="empty">아직 끈 것이 없어요 (OFF 0건)</div>';
-  return `<div class="card"><h3>끈 것 ${L.rows.length} <span class="sub">모든 보고서의 끈 것 · 최신순 · 규칙 안 자동 OFF(Aside)</span></h3>${cnt}${rows}</div>
+  const wk=L.weeks.length?`<div class="tbl"><table><thead><tr><th>주</th><th class="n">변경</th></tr></thead><tbody>${L.weeks.slice(0,12).map(x=>`<tr><td>${esc(A.weekL(x.w))}</td><td class="n">${x.n}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">없음</div>';
+  const mo=L.months.length?`<div class="tbl"><table><thead><tr><th>월</th><th class="n">변경</th></tr></thead><tbody>${L.months.slice(0,12).map(x=>`<tr><td>${esc(Number(x.m.slice(5,7)))}월 <span class="sub">${esc(x.m.slice(0,4))}</span></td><td class="n">${x.n}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">없음</div>';
+  const rows=L.rows.length?`<div class="tbl"><table class="offs ct"><thead><tr><th>날짜</th><th>누가</th><th>매체</th><th>캠페인</th><th>대상</th><th>무엇을</th><th>메모·근거</th></tr></thead><tbody>${L.rows.map(x=>`<tr>
+      <td data-l="날짜" style="white-space:nowrap">${esc(x.date?dayL(x.date):'')}</td><td data-l="누가">${esc(x.who)}</td><td data-l="매체">${x.media?`<span class="med m-${esc(x.media)}">${esc(x.media)}</span>`:''}</td>
+      <td data-l="캠페인">${esc(x.campaign)}</td><td data-l="대상"><b>${esc(x.target)}</b></td><td data-l="무엇을">${esc(x.what)}</td><td data-l="메모·근거">${esc(x.note)}</td></tr>`).join('')}</tbody></table></div>`
+    :'<div class="empty">아직 외주 변경이 없어요</div>';
+  return `<div class="card"><h3>변경 기록 ${L.rows.length} <span class="sub">외주가 바꾼 세팅(일일 보고서 changes) · 최신순 · 10/15 이전 Aside 끈 것 포함</span></h3>${cnt}${rows}</div>
     <div class="grid2"><div class="card"><h3>주간 <span class="sub">월요일 시작</span></h3>${wk}</div><div class="card"><h3>월간</h3>${mo}</div></div>`;
 }
 function nextFri(){const t=todayKST(),d=new Date(t+'T00:00:00Z'),add=(5-d.getUTCDay()+7)%7;return C.addDays(t,add);}
 function vJudge(){
   const J=A.judgeLog(S.reps);
-  const crit=`<div class="crit">기준 ${srcB(A.SRC.P)} 금요일 16:00 · 증액 350%+ 2주 → 예산 +20% · 유지 200~350% → 소재 1안 교체 · 종료 180% 미만 2주 → OFF · 구매 10건 전 보류 — 판정 담당 = 넷폼 퍼포먼스 마케터 ${srcB(A.SRC.P)} · 판정표 초안 = 겨울 ${srcB(A.SRC.A)}</div>`;
+  const crit=`<div class="crit">기준 ${srcB(A.SRC.P)} 금요일 16:00 · 증액 350%+ 2주 → 예산 +20% · 유지 200~350% → 소재 1안 교체 · 종료 180% 미만 2주 → OFF · 구매 10건 전 보류 — 외주 운영 기간 판정 = 외주업체 ${srcB(A.SRC.D)} · 제안서 기준과 비교 = 겨울(Aside) ${srcB(A.SRC.A)} · 제안서 원래 판정 담당 = 넷폼 퍼포먼스 마케터 ${srcB(A.SRC.P)}</div>`;
   const cnt=`<div class="cnts">${A.JUDGE.map(j=>`<span>${j}<b>${J.count[j]}</b></span>`).join('')}<span>기준과 다름<b style="color:${J.diff?'var(--red)':'inherit'}">${J.diff}</b></span></div>`;
-  const rows=J.rows.length?`<div class="tbl"><table class="ct"><thead><tr><th>날짜</th><th>캠페인</th><th>대상</th><th class="n">ROAS 14일</th><th class="n">ROAS 7일</th><th class="n">구매</th><th>판정</th><th>근거</th><th>제안서 기준</th><th>비교</th></tr></thead><tbody>${J.rows.map(x=>`<tr>
+  const rows=J.rows.length?`<div class="tbl"><table class="ct"><thead><tr><th>날짜</th><th>캠페인</th><th>대상</th><th class="n">ROAS 14일</th><th class="n">ROAS 7일</th><th class="n">구매</th><th>외주 판정</th><th>근거</th><th>제안서 기준</th><th>비교</th></tr></thead><tbody>${J.rows.map(x=>`<tr>
       <td data-l="날짜" style="white-space:nowrap">${esc(x.date?dayL(x.date):'')}</td><td data-l="캠페인">${esc(x.campaign)}</td><td data-l="대상"><b>${esc(x.target)}</b></td>
       <td data-l="ROAS 14일" class="n">${pctL(x.roas14)}</td><td data-l="ROAS 7일" class="n">${pctL(x.roas)}</td><td data-l="구매" class="n">${x.purchases==null?'—':x.purchases}</td>
-      <td data-l="판정">${x.verdict?`<span class="st s-${esc(x.verdict)}">${esc(x.verdict)}</span>`:esc(x.verdictRaw)}</td><td data-l="근거">${esc(x.reason)}</td>
+      <td data-l="외주 판정">${x.verdict?`<span class="st s-${esc(x.verdict)}">${esc(x.verdict)}</span>`:esc(x.verdictRaw)}</td><td data-l="근거">${esc(x.reason)}</td>
       <td data-l="제안서 기준">${x.expect?`<span class="st s-${esc(x.expect)}">${esc(x.expect)}</span> `:''}<span class="sub">${esc(x.expectWhy)}</span></td><td data-l="비교"><span class="st s-${esc(x.match)}">${esc(x.match)}</span></td></tr>`).join('')}</tbody></table></div>`
-    :`<div class="empty">아직 판정이 없어요 · 첫 금요일 판정 ${esc(dayL(nextFri()))} 16:00<br><span class="sub">보고서에 judges 칸이나 '판정' 칸이 있는 표가 오면 여기에 모여요</span></div>`;
+    :`<div class="empty">아직 판정이 없어요 · 첫 금요일 판정 ${esc(dayL(nextFri()))} 16:00<br><span class="sub">금요일 주간 보고서의 judges 칸(또는 '판정' 칸이 있는 표)이 여기에 모여요</span></div>`;
   return `<div class="card"><h3>메타 판정 ${J.rows.length} <span class="sub">모든 보고서 · 최신순 · 판정 vs 제안서 기준</span></h3>${crit}${cnt}${rows}</div>`;
 }
 function render(){
   document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===S.view));
   if(!S.loaded)return;
-  const body=S.err?`<div class="msg" role="alert">${esc(S.err)}</div>`:verify()+tops()+(S.view==='off'?vOff():S.view==='judge'?vJudge():vRep());
-  $('#app').innerHTML=body+`<p class="foot">Aside 가 매일 08:30 메타·쿠팡·네이버 광고 일일 보고서를 올려요 · 이 화면은 읽기만 해요<br>실행: 규칙 안 자동 OFF = Aside ${srcB(A.SRC.A)} · 예산·목표 = 본부장 ${srcB(A.SRC.P)} · 쿠팡 = 본부장님 · 네이버 = 링크프라이스 ${srcB(A.SRC.P)}</p>`;
+  const body=S.err?`<div class="msg" role="alert">${esc(S.err)}</div>`:modeBar()+verify()+tops()+(S.view==='off'?vOff():S.view==='judge'?vJudge():vRep());
+  $('#app').innerHTML=body+`<p class="foot">Aside 가 매일 08:30 일일 · 금요일 16:00 주간 광고 보고서를 올려요 · 이 화면은 읽기만 해요<br>실행: 외주 운영 기간 메타·네이버·쿠팡 = 외주업체 ${srcB(A.SRC.D)} · Aside = 분석·보고만 · 예산·목표 = 본부장 ${srcB(A.SRC.P)}</p>`;
 }
 document.addEventListener('click',(e)=>{
+  if(e.target.closest('#show-aside')){S.showText=!S.showText;render();return;}
+  if(e.target.closest('#copy-aside')){const b=e.target.closest('#copy-aside'),txt=A.asideAdsText();
+    const done=(ok)=>{b.textContent=ok?'복사했어요':'복사가 막혔어요 · 지시문 보기에서 길게 눌러 복사';if(!ok){S.showText=true;render();}};
+    try{navigator.clipboard.writeText(txt).then(()=>done(true),(err)=>{console.error('[복사] 실패:',err);done(false);});}catch(err){console.error('[복사] 실패:',err);done(false);}return;}
+  const k=e.target.closest('#kinds button');if(k){S.kind=k.dataset.k;const first=S.reps.find(x=>S.kind==='all'||(S.kind==='weekly')===A.isWeekly(x));if(first)S.cur=first.id;render();return;}
   if(e.target.closest('#vtoggle')){vOpen=!vOpen;LSset('ads_verify_open',vOpen?'1':'0');render();return;}
   const t=e.target.closest('#tabs button');if(t){S.view=t.dataset.v;history.replaceState(null,'',S.view!=='rep'?'#'+S.view:(S.cur?'#'+S.cur:location.pathname));render();window.scrollTo(0,0);return;}
   const d=e.target.closest('#dates button');if(d){S.cur=d.dataset.d;history.replaceState(null,'','#'+S.cur);render();

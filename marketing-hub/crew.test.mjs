@@ -28,7 +28,7 @@ Object.values(K.BOARDS).forEach((b) => b.actions.forEach((a) => { a.cols.forEach
   if (!a.admin) a.s.forEach((s) => /원가|공급\s*단가|공급가|매입|제조사/.test(s) && leak.push(b.id + a.c + ' ' + s)); }));
 eq('원가·제조사·공급 단가 없음', leak, []);
 eq('관리자 자리 행동 = 노출 E 하나', Object.values(K.BOARDS).flatMap((b) => b.actions.filter((a) => a.admin).map((a) => b.id + a.c)), ['gh-expE']);
-// 실행은 사람: '승인…' 단계는 담당·사람이 함 · 실행 한 줄도 담당 (광고 F = 규칙 안 자동 OFF 만 Aside · 구조 변경은 본부장님 — 2026-10-15 사장님 승인)
+// 실행은 사람: '승인…' 단계는 담당·사람이 함 · 실행 한 줄도 담당 (광고 F = 외주 운영 기간 · 실행은 외주업체 · 외주에 전할 말은 담당 — 2026-10-15 사장님)
 const auto = [];
 Object.values(K.BOARDS).forEach((b) => b.actions.forEach((a) => { a.s.filter((s) => /^승인/.test(s)).forEach((s) => !/담당|사람/.test(s) && auto.push(b.id + a.c + ' ' + s));
   if (a.exec && !(a.report === 'ads' ? /담당|본부장/ : /담당/).test(a.exec)) auto.push(b.id + a.c + ' exec ' + a.exec);
@@ -116,7 +116,8 @@ eq('Aside 가 못 따르는 말 없음 (영상 생성하기 버튼 · 토요일 
   eq('지시문 모양 그대로 → 지표 8 · 상태 6(F 포함) · 할 일 표 머리 5(F 는 보고서라 표 없음)', [pp.metrics.length, Object.keys(pp.status).length, Object.keys(pp.acts).length, pp.acts.D.cols, pp.warn, pp.unknown], [8, 6, 5, ['캠페인·키워드', '현재', '제안', '근거', '예상 효과'], [], []]);
   eq('예약 글: 짧게 · 이 화면 지시문을 그대로 · 주소', [L.length < 700, L.includes(`${K.HUB_CREW}#gh-traffic`), L.includes("'오늘 지시문'"), L.startsWith('[AI 크루 · 가을 (유입마케터) · 그로홈 유입 보드] 평일 09:00')], [true, true, true, true]);
   eq('오늘의집 지시문에 런칭 체크리스트(보기만)', K.asideText(K.boardOf('gh-ohou')).includes('■ 참고: 11/9(월) 신제품 4종 런칭 체크리스트'), true);
-  eq('지시문 F = 08:30 광고 보고서 화면 · 이 루틴은 안 끔 · 표 없음', [t.includes('F. 쿠팡·네이버 CPC 일일 판정 + 롱테일 관리 — 언제: 매일 08:30'), t.includes('marketing-hub/ads.html 에서 오늘 보고서를 보고 [상태] F 에 한 줄만'), t.includes('이 루틴에서는 광고를 끄거나 바꾸지 않는다'), /\n\[F\]\n/.test(t), /\n\[F\]\n/.test(K.asideText(K.boardOf('gh-conv'))), K.asideText(K.boardOf('gh-rep')).includes('08:30 광고')], [true, true, true, false, false, false]);
+  eq('지시문 F = 08:30 광고 보고서 화면 · 이 루틴은 안 끔 · 표 없음', [t.includes('F. 쿠팡·네이버 외주 운영 분석 + 롱테일 기록 — 언제: 매일 08:30'), t.includes('marketing-hub/ads.html 에서 오늘 보고서를 보고 [상태] F 에 한 줄만'), t.includes('이 루틴에서는 광고를 끄거나 바꾸지 않는다'), /\n\[F\]\n/.test(t), /\n\[F\]\n/.test(K.asideText(K.boardOf('gh-conv'))), K.asideText(K.boardOf('gh-rep')).includes('08:30 광고')], [true, true, true, false, false, false]);
+  eq('외주 운영 기간: 쿠팡·네이버·메타 광고 할 일엔 ★ 바꿀 안 안 만듦 · 지킬 것 한 줄 · 다른 할 일엔 없음', [(t.match(/★ 외주 운영 기간/g) || []).length, (K.asideText(K.boardOf('gh-exp')).match(/★ 외주 운영 기간/g) || []).length, t.includes('이 루틴도 08:30 광고 루틴도 광고를 끄거나 바꾸지 않는다'), K.asideText(K.boardOf('gh-rep')).includes('★ 외주'), Object.values(K.BOARDS).flatMap((b) => b.actions.filter((a) => a.adMedia).map((a) => b.id + a.c + a.adMedia))], [2, 1, true, false, ['gh-expC메타', 'gh-trafficD쿠팡', 'gh-trafficE네이버']]);
   eq('붙여 넣기 F 도 읽음 ([상태] F · [F] 표 · 번호 F1)', (() => { const q = K.parseCrew('[상태]\nF: OFF 2개\n[F]\n매체\t대상\n쿠팡\t방수 페인트', K.boardOf('gh-traffic')); return [q.status.F, q.acts.F.items]; })(), ['OFF 2개', [{ n: 'F1', c: { 매체: '쿠팡', 대상: '방수 페인트' } }]]);
   eq('예약 글 시각 = 그 PC 계획', K.asideLaunch(K.boardOf('gh-rep'), '10:00').split('\n')[0], '[AI 크루 · 우주 (재구매마케터) · 그로홈 재구매 보드] 평일 10:00');
 }
@@ -142,6 +143,25 @@ eq('지금 횟수 = 담당이 정한 수 → 없으면 기본 · 0·이상한 �
   const r = K.asideRedoLaunch(ask), f = K.asideFixLaunch([K.boardOf('gh-conv'), K.boardOf('gh-rep')]);
   eq('바로 고치기 글 = 그 보드 주소 · 그 건 · 더 만들기 2줄 · 지킬 것', [r.includes(`${K.HUB_CREW}#gh-conv`), r.includes('2026-10-15 B 줄 [이전 판 불러오기]'), r.includes('맨 아래에 2줄을 더한다'), r.includes('원가·마진·제조사'), K.asideRedoLaunch({ board: 'x' })], [true, true, true, true, '']);
   eq('고칠 것 확인 글 = 그 PC 보드 모두 · 없으면 건너뜀 · 새 일 안 함', [f.includes('#gh-conv') && f.includes('#gh-rep'), f.includes('없으면 그 보드는 건너뛴다'), f.includes('새 일은 하지 않는다')], [true, true, true]);
+}
+
+// 맡긴 일 (2026-10-15 사장님 "ai팀원에게 업무요청을 별도로해서 진행도 가능했으면") — aireqs → crew.html [이 일 하기] → [R] → 승인 한 건
+{
+  eq('맡길 수 있는 AI = 보드가 있는 크루 6명 (초안 크루·원형 빼고)', [K.reqMates().map((m) => m.name), K.canReq('dandan'), K.canReq('luna')], [['봄', '여름', '가을', '겨울', '하늘', '우주'], false, false]);
+  eq('자주 맡기는 일 = 맡길 수 있는 AI 마다', Object.keys(K.REQ_PRESETS).sort(), K.reqMates().map((m) => m.id).sort());
+  const id = K.reqId('gyeoul', 1760500000000, 'x9z'), r = K.reqDoc({ id, mate: 'gyeoul', title: '  상세 이탈 진단 010-1234-5678 ', body: '참고 a@b.com', shape: '표', n: '3', due: '2026-10-17', by: 'sy', byName: '김소연', at: 'T' });
+  eq('맡긴 일 문서: 보드·브랜드 · 개인정보 가림 · 대기', [r.id, r.board, r.brand, r.title, r.body, r.shape, r.n, r.due, r.state, r.askId, r.log[0].act], [id, 'gh-conv', 'grohome', '상세 이탈 진단 010-****-****', '참고 (메일 가림)', '표', 3, '2026-10-17', 'open', '', 'req']);
+  eq('이상한 값 = 비움', [K.reqDoc({ id: 'q', mate: 'bom', shape: '그림', n: -2, due: '내일' }).shape, K.reqDoc({ id: 'q', mate: 'bom', n: 0 }).n, K.reqDoc({ id: 'q', mate: 'bom', due: '내일' }).due], ['', null, '']);
+  eq('결과 승인 id = 맡긴 일마다 하나(다시 올려도 같은 건)', K.reqAskId(r), `ai_gyeoul_rq_${id.slice('rq_gyeoul_'.length)}`);
+  eq('한 줄', K.reqLine(r), '표 · 3개 · 10/17까지 · 김소연 맡김');
+  const txt = K.reqToPaste(r).replace('요약: (한 줄)', '요약: 이탈 지점 3곳').split('\n').filter((l) => !/^\(맡긴 일/.test(l)).join('\n') + '\n상단 리뷰\t리뷰가 맨 끝\t스크롤 85%\thttp://x';
+  const p = K.parseCrew(txt, K.boardOf('gh-conv'));
+  eq('[R] 읽기 = 번호 R1 · 보드 할 일 승인엔 안 섞임', [p.acts.R.sum, p.acts.R.items.map((x) => x.n), K.asksFromParse(p, { board: 'gh-conv', mate: 'gyeoul', run: '2026-10-16' }).length], ['이탈 지점 3곳', ['R1'], 0]);
+  const a = K.askFromReq(r, p.acts.R, { run: '2026-10-16', at: 'T2', owner: 'yj' });
+  eq('결과 → 승인 한 건: 담당 차례 · 실행 없음 · 맡긴 사람', [a.id, a.act, a.board, a.title, a.state, a.to, a.exec, a.req, a.reqBy, a.reqByName, a.items.length, a.src], [K.reqAskId(r), 'R', 'gh-conv', '맡긴 일 · 상세 이탈 진단 010-****-****', 'wait', 'yj', '', id, 'sy', '김소연', 1, 'crew-req']);
+  eq('다시 올림(AI에게 다시) = 승인 건의 req·reqBy 로도', K.askFromReq({ mate: 'gyeoul', id: a.req, req: a.req, reqBy: 'sy', reqTitle: '상세', board: 'gh-conv' }, p.acts.R, { run: 'd' }).id, a.id);
+  const L = K.asideReqLaunch(r), F = K.asideFixLaunch([K.boardOf('gh-conv')]), T = K.asideText(K.boardOf('gh-conv'));
+  eq('Aside 글: 바로 하기 · 한 시간마다 확인 · 오늘 지시문에 맡긴 일', [L.includes(`${K.HUB_CREW}#gh-conv`), L.includes('[이 일 하기]'), L.includes('원가·마진·제조사'), F.includes("'맡긴 일'이 있으면 하나씩"), F.includes('없으면 그 보드는 건너뛴다'), T.includes("'맡긴 일'(사람이 업무OS에서 따로 맡긴 일)")], [true, true, true, true, true, true]);
 }
 
 // 2026-10-14 하루·포리·에코 쉼 → 여름 (아침 루틴) · team_link.py(볼트 사본도 같은 파일) CREW·GONE 과 같게

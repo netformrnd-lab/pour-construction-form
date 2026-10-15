@@ -1,6 +1,6 @@
 // node src/aiask.test.mjs — AI 승인 계산 (AI → 담당 → 리드 → 본부장 · 저장 없음)
 import * as X from "./aiask.js";
-import { askDoc } from "../../marketing-hub/crew.js";
+import { askDoc, askFromReq, reqDoc } from "../../marketing-hub/crew.js";
 let n = 0, bad = 0;
 const eq = (name, got, want) => { n++; const ok = JSON.stringify(got) === JSON.stringify(want); if (!ok) { bad++; console.log("✗", name, "\n  got ", JSON.stringify(got), "\n  want", JSON.stringify(want)); } else console.log("✓", name); };
 
@@ -114,5 +114,16 @@ eq("모두 담당 있으면 미정 줄 없음", X.asideInbox(DA(yb, Object.fromE
 eq("쉬는 사람이 담당이면 미정으로", X.asidePlanOf(DA({}, { gyeoul: { owners: { _: "old" } } })).map((g) => g.owner), [""]);
 eq("안 돎 판단 = 세팅 시트와 같은 계산", [X.missedOn(yb["gh-conv"], "09:00", W11), X.missedOn(yb["gh-rep"], "10:00", W11), X.missedOn(null, "09:00", W11), X.missedOn(yb["gh-conv"], "09:00", new Date("2026-10-17T15:00:00"))], [true, false, false, false]);
 eq("그날 올렸나", [X.ranOn({ at: at("2026-10-14T00:10:00") }, "2026-10-14"), X.ranOn({ at: at("2026-10-13T23:50:00") }, "2026-10-14"), X.ranOn(null, "2026-10-14")], [true, false, false]);
+
+// 맡긴 일 결과 (2026-10-15) — 맡긴 사람(담당 아님)에게 판마다 한 번 · 담당이면 승인 줄만
+{
+  const rq = reqDoc({ id: "rq_gyeoul_x1", mate: "gyeoul", title: "상세 이탈 진단", by: "cw", byName: "김채원", at: "2026-10-12T01:00:00.000Z" });
+  const ra = askFromReq(rq, { sum: "3곳", items: [{ n: "R1", c: { 항목: "리뷰" } }], cols: ["항목"] }, { run: "2026-10-12", at: "2026-10-12T03:00:00.000Z", owner: "yj" });
+  const nw = new Date("2026-10-12T05:00:00.000Z");
+  eq("맡긴 사람 = '맡긴 일 결과' 한 줄 (승인 대기)", X.askInbox([ra], U, "cw", {}, nw).map((x) => [x.kind, x.tag, x.title, x.text, x.aiId]), [["aiDone", "맡긴 일 결과", "맡긴 일 · 상세 이탈 진단", "남윤정님 승인 대기 · 결과 먼저 보기", ra.id]]);
+  eq("담당 = 승인 줄만 (맡긴 일 결과 줄 없음)", X.askInbox([ra], U, "yj", {}, nw).map((x) => x.tag), ["AI 승인 요청"]);
+  eq("읽으면 사라짐 · 다음 판이면 다시", [X.askInbox([ra], U, "cw", { ["ar:" + ra.id + ":1"]: true }, nw).length, X.askInbox([{ ...ra, ver: 2 }], U, "cw", { ["ar:" + ra.id + ":1"]: true }, nw).length], [0, 1]);
+  eq("최종 승인 뒤", X.askInbox([{ ...ra, state: "ok", okBy: "hj", okAt: "2026-10-12T04:00:00.000Z", updatedAt: "2026-10-12T04:00:00.000Z" }], U, "cw", {}, nw).map((x) => x.text), ["최종 승인됐어요"]);
+}
 
 console.log(`\n${n - bad}/${n} 통과`); if (bad) process.exit(1);

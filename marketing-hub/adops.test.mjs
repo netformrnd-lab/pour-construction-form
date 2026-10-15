@@ -44,7 +44,7 @@ const pdoc = { title: '데일리그로스 메타 운영 제안서(2026.10.15) �
   gaps_20261015: ['메타 캠페인 3단 구조 아님', '구매자 제외 타겟 없음'], source_rule: '[제안서 pXX] / [김송희 관리방안] / [Aside 추가]' }) };
 const P = A.parseProposal(pdoc);
 eq('제안서: 기준선 · 가설 · 차이 · 차이 날짜', [P.baseline.meta_roas_sep, P.hypotheses.map((h) => h.id), P.gaps, P.gapsAt, P.structure.live], [286, ['H1', 'H2', 'H3'], ['메타 캠페인 3단 구조 아님', '구매자 제외 타겟 없음'], '20261015', '2026-11-02']);
-eq('제안서: 역할·규칙 기본값 · 출처', [P.roles.length, P.rules.map((r) => r.src)], [4, ['제안서', '제안서', '김송희 관리방안', 'Aside 추가']]);
+eq('제안서: 역할·규칙 기본값 · 출처', [P.roles.length, P.rules.map((r) => r.src)], [4, ['제안서', '제안서', '김송희 관리방안', '사장님 결정']]);
 eq('제안서: 칸이 문서 바로 아래 + 쪽수', A.parseProposal({ baseline: '{"meta_roas_sep":290}', pages: { judge: 14 }, hypotheses: [] }).rules.find((r) => r.k === 'judge').page + '|' + A.parseProposal({ baseline: '{"meta_roas_sep":290}' }).baseline.meta_roas_sep, '14|290');
 eq('가설 상태 · 개수', [A.hypStatus('진행 중'), A.hypStatus(''), A.hypCount(P.hypotheses)], ['진행', '미시작', { 미시작: 1, 진행: 1, 통과: 1, 미달: 0, 보류: 0 }]);
 eq('출처 배지', [A.srcTags('a [제안서 p23] b [김송희 관리방안] [Aside 추가] [링크]'), A.srcText('제안서', 23), A.srcText('제안서', null), A.countSrcTags('[제안서 p3][제안서][Aside 추가]')],
@@ -65,5 +65,19 @@ eq('판정 로그: 숫자 칸 + 본문 표 · 최신순 · 일치/다름', JL.ro
   [['2026-10-23', 'T3 A1', 410, 8, '보류', '보류', '일치'], ['2026-10-16', '위닝 6', 362, 31, '증액', '증액', '일치'], ['2026-10-16', 'T2', 150, 12, '유지', '종료', '다름']]);
 eq('판정 로그: 개수 · 다름', [JL.count, JL.diff], [{ 증액: 1, 유지: 1, 종료: 0, 보류: 1 }, 1]);
 eq('판정 로그: 첫 보고서 = 없음', A.judgeLog([{ date: '2026-10-15', md: '| 매체 | 계정 |\n|---|---|\n| 쿠팡 | x |' }]).rows, []);
+
+// 외주 운영 기간 (2026-10-15 사장님 "약 2개월간 다른 외주업체 이용 … 세팅등록한것을 분석만해서 데이터 쌓고 보고해. 매일, 매주 금요일마다 보고해")
+eq('외주 기간 · 출처 배지 사장님 결정', [A.AD_MODE.mode, A.AD_MODE.media, A.srcKind('사장님 결정'), A.srcTags('[사장님 결정]')], ['outsourced', ['메타', '네이버', '쿠팡'], 'd', '<span class="src s-d">사장님 결정</span>']);
+eq('광고 몫: 가을·겨울 = 끄거나 바꾸지 않음 · 실행 = 외주', ['gaeul', 'gyeoul'].map((k) => [/끄거나 바꾸지 않음/.test(A.AD_ROLES[k].does), /자동 OFF/.test(A.AD_ROLES[k].does), /외주업체/.test(A.AD_ROLES[k].exec)]), [[true, false, true], [true, false, true]]);
+const wk = [{ id: '2026-10-16', date: '2026-10-16' }, { id: '2026-10-16-weekly', date: '2026-10-16', kind: 'weekly' }, { id: '2026-10-17', date: '2026-10-17' }, { id: 'x주간', date: '2026-10-09' }];
+eq('주간 보고서: 같은 날이면 주간 먼저 · id 에 주간도', [A.sortReports(wk).map((r) => r.id), A.isWeekly(wk[3])], [['2026-10-17', '2026-10-16-weekly', '2026-10-16', 'x주간'], true]);
+const ch = [{ id: '2026-10-16', date: '2026-10-16', changes: JSON.stringify([{ media: 'meta', campaign: '① 신규', target: '세트A', what: '예산', before: '일 10만', after: '일 12만', note: '학습 끝' }, '쿠팡 B 캠페인 키워드 30개 추가']) },
+  { id: '2026-10-16-weekly', date: '2026-10-16', kind: 'weekly', changes: '[{"what":"겹침"}]' }, { id: '2026-10-15', date: '2026-10-15', offs: '[{"media":"coupang","target":"방수 페인트","reason":"주문 0"}]' }];
+const CL = A.changeLog(ch, '2026-10-16');
+eq('변경 기록: 외주 변경 + 예전 Aside 끈 것 · 주간 보고서는 뺌', CL.rows.map((r) => [r.date, r.who, r.media, r.target, r.what]),
+  [['2026-10-16', '외주', '메타', '세트A', '예산 · 일 10만 → 일 12만'], ['2026-10-16', '외주', '', '', '쿠팡 B 캠페인 키워드 30개 추가'], ['2026-10-15', 'Aside', '쿠팡', '방수 페인트', 'OFF']]);
+eq('변경 기록: 이번 주 · 칸 있음', [CL.thisWeek, CL.has, A.changeLog([{ date: '2026-10-15', offs: '[]' }], '2026-10-15').has], [3, true, false]);
+{ const t = A.asideAdsText();
+  eq('Aside 지시문: 끄지 않음 · 일일·주간 · 칸 이름 · 제안서 문서 갱신', [t.includes('광고를 끄거나 켜지 않는다'), t.includes('pour-os/v2/adreports/{YYYY-MM-DD}'), t.includes('-weekly · kind: "weekly"'), ['metrics(JSON 글)', 'changes(JSON 글)', 'judges(JSON 글)', 'offs: "[]"'].every((k) => t.includes(k)), t.includes('pour-os/v2/proposal/dailygrowth-202610')], [true, true, true, true, true]); }
 
 console.log(`\n${n - bad}/${n} 통과`); if (bad) process.exit(1);

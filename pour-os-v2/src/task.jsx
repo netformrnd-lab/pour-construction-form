@@ -1,6 +1,7 @@
 // 업무OS v2 — 업무 보기 · 고정업무 보기 · 대화 · 파일
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import * as fb from "./fb.js";
+import { viewOnlyOn } from "./viewonly.js";
 import {
   ymd, addDays, ddays, ddayLabel, md, hm, ago, dayTitle, WD, isMaster, activeUsers, nameOf, STATUS_L, isDone, isOneOff, isMine, ownersOf, dueOf,
   fxIsMine, fxDueOn, fxMeDone, fxCount, fxTime, fxLabel, fxSubs, fxRecurL, fxDoneWord, fxCheckPatch, fxPeople, fxHit, fxWeekDays, fxIds, FX_WD, monthEndWorkday,
@@ -374,8 +375,9 @@ function NoteEdit({ D, cu, A, n, itemId, onDone }) {
       <TBtn v="solid" disabled={busy || U.busy || (!text.trim() && !keep.length && !U.rows.length)} onClick={() => save()} style={{ minWidth: 64, height: 36 }}>{busy || U.busy ? "저장 중" : "저장"}</TBtn></div>
   </div>;
 }
-// readOnly: 없앤 업무를 링크로 열었을 때 — 대화는 보이지만 새로 쓰기·답글·고치기 없음
-export function Thread({ D, cu, A, notes, itemId, ctx, rec, onRec, cfg, link, hl, readOnly }) {
+// readOnly: 없앤 업무를 링크로 열었을 때 · 보기 모드(팀원 화면 읽기만 · 2026-10-15) — 대화는 보이지만 새로 쓰기·답글·고치기 없음
+export function Thread({ D, cu, A, notes, itemId, ctx, rec, onRec, cfg, link, hl, readOnly: ro0 }) {
+  const readOnly = ro0 || !!viewOnlyOn();
   const [got, setGot] = useState(null), [miss, setMiss] = useState(false), [hlOn, setHlOn] = useState(""), hlDone = useRef(false);
   const all = got && !notes.some((n) => n.id === got.id) ? [...notes, got] : notes;
   const th = threads(all, itemId);

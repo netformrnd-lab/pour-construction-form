@@ -9,6 +9,7 @@ import {
   projLabelOf,
 } from "./model.js";
 import { LAUNCH_PHASES, LAUNCH_BRANDS, planNewLaunch, userByName, phaseOf } from "./launch.js";
+import { viewTarget, viewLink } from "./viewas.js";
 import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, Toast, inp, useLocal, useAutoFocus, Linked } from "./ui.jsx";
 import { openTask } from "./task.jsx";
 
@@ -71,7 +72,7 @@ export function RiskSheet({ D, cu, open, onBack, onClose }) {
     {rows.length === 0 && <Card style={{ marginTop: 12 }}><Empty>위험한 업무가 없어요</Empty></Card>}
   </Sheet>;
 }
-export function PersonSheet({ D, cu, A, open, onBack, onClose, id, setToast }) {
+export function PersonSheet({ D, cu, A, open, onBack, onClose, id, setToast, view }) {
   const u = D.users.find((x) => x.id === id); const [ask, setAsk] = useState(false), [all, setAll] = useState(false);
   if (!u) return <Sheet title="사람" kind="사람" onBack={onBack} onClose={onClose}><Empty>찾지 못했어요</Empty></Sheet>;
   const now = new Date(), key = ymd(now), s = personStat(D, u.id, key), ot = onTimeOf(D, u.id, now), wl = workloadOf(D, u.id, now);
@@ -83,6 +84,10 @@ export function PersonSheet({ D, cu, A, open, onBack, onClose, id, setToast }) {
   const L = ({ a, empty, render }) => <Card>{a.length === 0 ? <Empty>{empty}</Empty> : a.map((x, i) => render(x, i === a.length - 1))}</Card>;
   return <Sheet title={u.name} kind="사람" path="팀원 보기" onBack={onBack} onClose={onClose} foot={<Big onClick={() => open({ type: "add", preset: { assigneeId: u.id } })}>{u.name}님에게 업무 맡기기</Big>}>
     <div style={{ marginTop: 12, padding: "10px 12px", background: C.soft, borderRadius: 12, fontSize: 13, color: C.ink }}>보기만 하는 화면이에요. 댓글은 내 이름({cu.name})으로 남아요.</div>
+    {/* 팀원 화면 보기(보기 모드 · 2026-10-15): 리드·본부장·관리자 → 이 사람이 보는 화면 그대로(읽기만) · 관리자 화면에서는 팀 앱으로 */}
+    {(() => { const me = (view && view.by) || cu; if (u.id === me.id || !viewTarget(D.users, me, u.id)) return null;
+      return <div style={{ marginTop: 8 }}>{view && view.go ? <TBtn onClick={() => view.go(u.id)}>{u.name}님 화면 그대로 보기 ›</TBtn>
+        : <a href={viewLink(u.id)} style={{ fontSize: 13.5, fontWeight: 800, color: C.navy }}>{u.name}님 화면 그대로 보기 (팀 앱) ›</a>}</div>; })()}
     <div style={{ fontSize: 14, color: C.sub, margin: "12px 2px 0", lineHeight: 1.6 }}>진행 {s.inprog} · 열린 업무 {s.open}{s.late ? ` · 지남 ${s.late}` : ""} · 오늘 고정 {s.fxDone}/{s.fxTotal}{ot.pct != null ? ` · 기한 지킴 ${ot.pct}% (최근 30일 ${ot.n}건${ot.miss ? ` · 못 끝낸 ${ot.miss}건 포함` : ""})` : ""}{s.last ? ` · 마지막 활동 ${ago(s.last)}` : ""}</div>
     <Head>앞으로 2주 마감</Head>
     <div className="v2-strip" aria-label="2주 일정">{wl.week.map((d) => <div key={d.date} className={"v2-day" + (d.wd === "토" || d.wd === "일" ? " we" : "")} style={{ cursor: "default" }}><span>{d.date === key ? "오늘" : md(d.date)}</span><span>{d.wd}</span><b className={d.list.length >= 5 ? "hv" : ""}>{d.list.length ? d.list.length + "건" : "-"}</b></div>)}</div>

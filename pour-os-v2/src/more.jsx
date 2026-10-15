@@ -16,7 +16,8 @@ import { allMates } from "../../marketing-hub/crew.js";
 const BTN_ON = { background: C.navy, color: "#fff", borderColor: C.navy };
 const ASG = [["review", "확인해 주세요", true], ["dueReq", "기한 조정 요청", true], ["blocked", "막힘", true], ["late", "기한 지남", true], ["risk", "곧 마감인데 시작 전", true], ["notAck", "아직 안 받음", true], ["doing", "진행 중", true], ["waiting", "받고 대기 중", false], ["done", "최근 7일 끝남", false]];
 
-export function MoreTab({ D, cu, A, meta, logout, open, BUILD, setToast }) {
+export function MoreTab({ D, cu, A, meta, logout, open, BUILD, setToast, view }) {
+  const ro = !!(view && view.by);   // 보기 모드(리드·본부장·관리자가 이 사람 화면을 읽기만 · 2026-10-15)
   const [ask, setAsk] = useState(""), [start, setStart] = useLocal(LS("start-" + cu.id), "today"), [news, setNews] = useLocal(LS("news3-" + cu.id), true);
   const G = assignedByMe(D, cu.id, new Date()), gN = Object.values(G).reduce((a, b) => a + b.length, 0), urgent = G.review.length + G.dueReq.length + G.blocked.length;
   const myFx = D.tasks.filter((t) => t.isFixed && !t.paused && fxIsMine(t, cu.id)).length, myN = { today: myNotesOf(D, cu.id, ymd(new Date()), "today").length };
@@ -29,8 +30,13 @@ export function MoreTab({ D, cu, A, meta, logout, open, BUILD, setToast }) {
       <b>바뀐 점</b> · 팀 탭이 없어지고 달력이 생겼어요. 동료가 지금 하는 일은 달력 오른쪽 위 [나 ▾], 프로젝트의 '지금 → 다음', 업무의 '앞 일 · 다음 일'에서 봐요. 팀 전체 현황은 관리자 화면에 있어요.
       <div><TBtn onClick={() => setNews(false)}>알겠어요</TBtn></div></Card>}
     <Head>나</Head>
-    <Card><Row title={cu.name} sub={isMaster(cu) ? "관리자" : "팀원"} last={false} />
-      <Row title="다른 사람으로 쓰기" sub="이 기기에서 나가고 이름을 다시 골라요" onClick={() => setAsk("out")} right={arrow} last /></Card>
+    {ro ? <Card><Row title={cu.name} tag="보기 모드" sub={`${view.by.name}님이 보는 중 · 읽기만 · 눌러도 저장 안 돼요`} last={false} />
+        <Row title="다른 사람 화면" sub="이름을 다시 골라요" onClick={() => open({ type: "viewAs" })} right={arrow} last={false} />
+        <Row title="내 화면으로" sub={`${view.by.name}님 화면으로 돌아가요`} onClick={view.exit} right={arrow} last /></Card>
+      : <Card><Row title={cu.name} sub={isMaster(cu) ? "관리자" : "팀원"} last={false} />
+        {/* 팀원 화면 보기(2026-10-15 "리드부터는 … 일반 보기모드를 이름 선택해서") — 리드·본부장·관리자 */}
+        {view && view.go && <Row title="팀원 화면 보기" sub="이름을 고르면 그 사람이 보는 화면 그대로 · 읽기만" onClick={() => open({ type: "viewAs" })} right={arrow} last={false} />}
+        <Row title="다른 사람으로 쓰기" sub="이 기기에서 나가고 이름을 다시 골라요" onClick={() => setAsk("out")} right={arrow} last /></Card>}
     <Head>내 일</Head>
     <Card>
       <Row title={`내가 맡긴 일 ${gN}`} tag={urgent ? `처리할 것 ${urgent}` : null} sub="확인 요청 · 기한 조정 · 막힘 · 아직 안 받음" onClick={() => open({ type: "assigned" })} right={arrow} last={false} />
@@ -62,11 +68,13 @@ export function MoreTab({ D, cu, A, meta, logout, open, BUILD, setToast }) {
       <Row title="월말 보고서" sub="브랜드별 · 프로젝트별 · 매출 · 끝낸 일" onClick={() => open({ type: "reports" })} right={arrow} last={false} />
       <Row title="AI 크루 보고" sub="크루 칸별 · 실행 · 결과 · 다음 계획 · 금요일 리드 → 본부장" onClick={() => open({ type: "aiReport" })} right={arrow} last />
     </Card>
+    {/* 문자 알림(번호)·첫 화면·관리자 칸은 본인 것 — 보기 모드에선 숨김 */}
+    {ro ? <Card style={{ marginTop: 18 }}><Empty>문자 알림·첫 화면 설정은 본인만 봐요</Empty></Card> : <>
     <Head>문자 알림</Head>
     <SmsSettings cu={cu} setToast={setToast} />
     <Head>앱을 열면 먼저</Head>
-    <div style={{ margin: "0 0 4px" }}><Seg items={[["today", "오늘"], ["calendar", "달력"]]} value={start} onChange={setStart} /></div>
-    {isMaster(cu) && <><Head>관리자</Head><Card><a href="./os2-admin.html" style={{ textDecoration: "none" }}><Row title="관리자 화면" sub="팀 달력 · 사람별 일정 · 프로젝트 위험 · 한꺼번에 정리 · 가져오기" right={arrow} last={false} /></a>
+    <div style={{ margin: "0 0 4px" }}><Seg items={[["today", "오늘"], ["calendar", "달력"]]} value={start} onChange={setStart} /></div></>}
+    {isMaster(cu) && !ro && <><Head>관리자</Head><Card><a href="./os2-admin.html" style={{ textDecoration: "none" }}><Row title="관리자 화면" sub="팀 달력 · 사람별 일정 · 프로젝트 위험 · 한꺼번에 정리 · 가져오기" right={arrow} last={false} /></a>
       {/* Firebase 사용량(2026-10-11) — 3시간마다 측정 · 10만 원 넘으면 문자 · 월요일 주간 보고 (GitHub firebase-usage.yml) */}
       <a href="../firebase-usage.html" style={{ textDecoration: "none" }}><Row title="Firebase 사용량" sub="오늘 읽기·쓰기 / 무료 한도 · 이번 달 예상 요금" right={arrow} last /></a></Card></>}
     <Head>시험판 안내</Head>

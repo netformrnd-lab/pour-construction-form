@@ -48,11 +48,12 @@ const P_KEEP = ["id", "_doc", "status", "assigneeId", "collaboratorIds", "dueDat
   "createdAt", "createdBy", "updatedAt", "deleted", "archived", "secret", "lbProject", "skipItems", "dash", "holdUntil", "heldBy", "finishedAt", "doneAt", "wfId", "group", "lbTrash"];
 export const lockProj = (p) => ({ ...pick(p, P_KEEP), title: LOCK_P, memo: "", now: null, statusLog: [], locked: true });
 
-// 목록 하나(서버에서 따로 읽은 업무들)를 화면용으로
+// 목록 하나(서버에서 따로 읽은 업무들)를 화면용으로 — 보기 모드(redactAs)면 그 사람 기준 + 연 사람 기준 둘 다
 export function viewTasks(list, D, u = D.viewer) {
-  if (seeAll(u)) return list;
-  const pm = new Map((D.projects || []).map((p) => [p.id, p]));
-  return (list || []).map((t) => (taskSeen(t, pm.get(t.projectId) || null, u.id, D.tasks) ? t : lockTask(t)));
+  const one = (l, x) => { if (seeAll(x)) return l; const pm = new Map((D.projects || []).map((p) => [p.id, p]));
+    return (l || []).map((t) => (taskSeen(t, pm.get(t.projectId) || null, x.id, D.tasks) ? t : lockTask(t))); };
+  const out = one(list, u);
+  return D.viewBy && u === D.viewer ? one(out, D.viewBy) : out;
 }
 
 // 데이터 전체 → 이 사람이 볼 화면 데이터 (+ lockedT · lockedP 번호 모음)
@@ -75,6 +76,14 @@ export function redact(D, u) {
     tasks: D.tasks.map((t) => (lockedT.has(t.id) ? lockTask(t) : t)),
     notes: (D.notes || []).filter((n) => !hidden(n.itemId)),
     log: (D.log || []).filter((l) => !logHidden(l)) };
+}
+// 보기 모드(viewas.js · 2026-10-15 리드·본부장·관리자가 팀원 화면을 읽기만): 그 사람(as)이 보는 화면 중 연 사람(by)도 볼 수 있는 것만
+//   기밀은 두 사람 중 하나라도 못 보면 '기밀 업무' · 숨긴 번호(lockedT·lockedP)는 둘을 합침 · viewer = 그 사람 · viewBy = 연 사람(따로 읽는 목록도 둘 다 · viewTasks)
+export function redactAs(D, by, as) {
+  const a = redact(D, as);
+  if (seeAll(by) || !D.ready) return { ...a, viewer: as || null, viewBy: by || null };
+  const b = redact(a, by);
+  return { ...b, lockedT: new Set([...a.lockedT, ...b.lockedT]), lockedP: new Set([...a.lockedP, ...b.lockedP]), viewer: as || null, viewBy: by || null };
 }
 // 기록·댓글 목록(서버에서 따로 읽은 것)에서 숨길 것 빼기
 export function viewLogs(list, D) { const T = D.lockedT || new Set(), P = D.lockedP || new Set(); return (list || []).filter((l) => !(T.has(l.targetId) || P.has(l.targetId) || P.has(l.projectId) || (Array.isArray(l.ids) && l.ids.some((id) => T.has(id))))); }

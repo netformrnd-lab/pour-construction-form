@@ -60,4 +60,23 @@ ok("프로젝트 책임자 끄기(secret.deny): 끈 책임자는 '기밀 업무'
   assert.equal(S.redact(D([P()], [T(off)]), U.boss).tasks[0].title, "인수 가격 협상");
   assert.equal(S.redact(D([P()], [T(off)]), U.a).tasks[0].title, "인수 가격 협상");
 });
+ok("보기 모드(redactAs): 그 사람이 보는 것 중 연 사람도 볼 수 있는 것만 · 숨긴 번호는 합침 · 따로 읽는 목록도 둘 다", () => {
+  // t1 = a 담당 기밀(허용 c) · t2 = lead 만 보는 기밀(허용 b 아님) · t3 = 공개
+  const d = D([P()], [T(sec(["c"])), T({ id: "t2", title: "책임자 메모", assigneeIds: ["lead"], assigneeId: "lead", ...sec() }), T({ id: "t3", title: "공개 업무", assigneeIds: ["b"], assigneeId: "b" })]);
+  // 관리자(boss)가 b 화면: b 가 못 보는 t1·t2 는 기밀 · t3 그대로
+  let v = S.redactAs(d, U.boss, U.b);
+  assert.equal(v.tasks.find((t) => t.id === "t1").title, S.LOCK_T); assert.equal(v.tasks.find((t) => t.id === "t3").title, "공개 업무");
+  assert.equal(v.viewer.id, "b"); assert.equal(v.viewBy.id, "boss");
+  // 리드(lead)가 a 화면: a 는 t1 을 봄 · lead 도 프로젝트 책임자라 봄 → 보임 · t2 는 a 가 못 봄 → 기밀
+  v = S.redactAs(d, U.lead, U.a);
+  assert.equal(v.tasks.find((t) => t.id === "t1").title, "인수 가격 협상"); assert.equal(v.tasks.find((t) => t.id === "t2").title, S.LOCK_T);
+  // b 가 a 화면(가정): a 는 t1 을 보지만 b 는 못 봄 → 기밀 (연 사람보다 더 보이지 않음)
+  v = S.redactAs(d, U.b, U.a);
+  assert.equal(v.tasks.find((t) => t.id === "t1").title, S.LOCK_T); assert.ok(v.lockedT.has("t1")); assert.ok(v.lockedT.has("t2"));
+  assert.ok(!v.notes.some((x) => x.itemId === "task:t1"));
+  assert.equal(S.viewTasks([T({ id: "old", ...sec() })], v)[0].title, S.LOCK_T);   // 따로 읽은 기밀(담당 a · b 못 봄) → 기밀
+  assert.equal(S.viewTasks([T({ id: "old2", ...sec(["b"]) })], v)[0].title, "인수 가격 협상");   // a 담당 · b 허용 → 둘 다 봄
+  // 둘 다 관리자면 원래 데이터
+  assert.equal(S.redactAs(d, U.boss, { ...U.lead, master: true }).tasks.find((t) => t.id === "t2").title, "책임자 메모");
+});
 console.log(`${n}개 모두 통과`);

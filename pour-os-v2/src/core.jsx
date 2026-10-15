@@ -185,16 +185,17 @@ export function useBoot() {
 //   쓰기는 바뀐 키만 합치기(merge) → 폰과 PC가 동시에 읽어도 서로 안 지움 · [안 읽음으로] = 그 키만 deleteField
 //   이 기기 처음 한 번: 서버 답을 받은 뒤 예전 방식(이 기기에만 저장)으로 읽은 것을 서버에 올림 (pour-os2-seen-up-<나> = 올린 때)
 //   서버를 못 읽어도(구독 실패) 이 기기 사본으로 예전처럼 동작
-export function useSeen(uid) {
+//   ro(보기 모드 · 2026-10-15): 그 사람의 서버 읽음만 읽어 그대로 보여 줌 — 서버·이 기기 어디에도 쓰지 않음(누르면 이 화면에서만 바뀜)
+export function useSeen(uid, ro = false) {
   const KEY = LS("seen-" + uid), UP = LS("seen-up-" + uid);
   const lsGet = (k) => { try { return localStorage.getItem(k); } catch (_) { return null; } };
-  const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (_) { /* 저장소 막힘 → 이번 화면만 */ } };
-  const readLocal = () => { try { const v = JSON.parse(lsGet(KEY) || "{}"); return v && typeof v === "object" ? v : {}; } catch (_) { return {}; } };
+  const lsSet = (k, v) => { if (ro) return; try { localStorage.setItem(k, v); } catch (_) { /* 저장소 막힘 → 이번 화면만 */ } };
+  const readLocal = () => { if (ro) return {}; try { const v = JSON.parse(lsGet(KEY) || "{}"); return v && typeof v === "object" ? v : {}; } catch (_) { return {}; } };
   const [view, setView] = useState(readLocal);
   const cur = useRef(view), mig = useRef(""), sig = useRef("");   // mig: "" 아직 · "busy" 올리는 중 · "ok" 올림(이 기기) · "fail" 이번엔 못 올림(다음에 열 때 다시)
   const show = (v) => { const j = JSON.stringify(v); cur.current = v; if (j === sig.current) return; sig.current = j; setView(v); lsSet(KEY, j); };   // 같은 값(서버 확인 알림 등)이면 다시 그리지 않음
   useEffect(() => {
-    let alive = true; cur.current = readLocal(); sig.current = JSON.stringify(cur.current); setView(cur.current); mig.current = lsGet(UP) ? "ok" : "";
+    let alive = true; cur.current = readLocal(); sig.current = JSON.stringify(cur.current); setView(cur.current); mig.current = ro || lsGet(UP) ? "ok" : "";
     const un = fb.listenOne("seen", uid, (d, fromCache) => {
       if (!alive) return;
       const ids = (d && d.ids && typeof d.ids === "object") ? d.ids : {};
@@ -209,13 +210,14 @@ export function useSeen(uid) {
         .catch((e) => { console.error("[v2 읽음] 이 기기 읽음 서버로 올리기 실패 · 다음에 열 때 다시:", e); mig.current = "fail"; });
     }, (e) => console.warn("[v2 읽음] 서버 읽음 못 읽음 · 이 기기 것만:", e));
     return () => { alive = false; un(); };
-  }, [uid]);
+  }, [uid, ro]);
   // setSeen(새 값 또는 (지금 값) => 새 값) — 예전 useLocal 과 같은 모양 · 바뀐 키만 서버로
   const setSeen = (upd) => {
     const c = cur.current, next = typeof upd === "function" ? upd(c) : upd;
     const at = nowIso(), DEL = fb.deleteField(), ids = seenPatch(c, next, at, DEL);
     if (!ids) return;
     show(applySeen(c, ids, (v) => v === DEL));
+    if (ro) return;
     fb.merge("seen", uid, { id: uid, ids, at }).catch((e) => console.error("[v2 읽음] 서버 저장 실패 · 이 기기엔 남음:", e));
   };
   return [view, setSeen];

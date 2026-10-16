@@ -54,7 +54,8 @@ export function inboxFns(D, A, open, setSeen) {
     if (x.kind === "lagDue") return open({ type: "lagInput", ym: x.ym });   // 월말 결과 KPI 넣기 (kpiui.jsx)
     if (x.kind === "turnLate") return open({ type: "task", id: x.taskId, focus: "talk" });
     if (x.kind === "aiGroup") return open({ type: "aiMate", id: x.mate });   // AI 승인 (2026-10-12): 같은 AI 여러 건 → 그 AI 한 장
-    if (x.kind === "aiSetup" || x.kind === "aiMiss") return open({ type: "aiSetup" });   // 내 PC Aside 세팅 · 오늘 안 돎 (2026-10-15)
+    if (x.kind === "aiSetup" || x.kind === "aiMiss" || x.kind === "aiMissLong") return open({ type: "aiSetup", ...(x.owner !== undefined ? { owner: x.owner } : {}) });   // 내 PC Aside 세팅 · 안 돎 (2026-10-15) · 담당 미정 크루·2일 넘게 = 그 PC (2026-10-17 멈춤 감시)
+    if (x.kind === "aiRoutine") return open({ type: "aiMate", id: x.mate });   // 아침 루틴 안 올라옴 (2026-10-17) → 그 AI 한 장 '오늘 아침 루틴' · 사장님께 보낼 글
     if (x.kind === "aiOwnerless") return open({ type: "aiTeam" });   // AI 크루 담당 미정 → AI 팀원(관리자 [담당 한꺼번에 정하기])
     if (x.kind === "adsAside") { window.open(HUB_ADS, "_blank", "noopener"); return; }   // 광고 Aside 예약 글 (2026-10-17) → 광고 운영 화면 맨 위 [예약 글 복사]
     if (x.kind === "aiRep") return open({ type: "aiReport", crew: x.crew, start: x.start, id: `${x.crew}-${x.start}` });   // AI 크루 보고 (2026-10-15): 칸 쓰기 · 보내기 · 읽기
@@ -83,6 +84,8 @@ export function inboxFns(D, A, open, setSeen) {
     if (x.kind === "adsAside") return <Act onClick={() => A.adsAsideDone()} style={BTN_ON}>넣었어요</Act>;
     if (x.kind === "aiSetup") return <Act onClick={() => openInbox(x)} style={BTN_ON}>세팅</Act>;
     if (x.kind === "aiMiss") return <Act onClick={() => openInbox(x)} style={BTN_ON}>지금 돌리기</Act>;
+    if (x.kind === "aiStuck") return <Act onClick={() => openInbox(x)} style={BTN_ON}>{x.text.includes("바로 고치기") ? "바로 고치기" : "알리기"}</Act>;   // AI 고치는 중 반나절 넘음 (2026-10-17)
+    if (x.kind === "aiRoutine") return <Act onClick={() => openInbox(x)} style={BTN_ON}>알리기</Act>;
     if (x.kind === "aiOwnerless") return <Act onClick={() => openInbox(x)}>정하기</Act>;
     if (x.kind === "aiRep") return <Act onClick={() => openInbox(x)} style={BTN_ON}>{x.btn || "보기"}</Act>;
     return <Act onClick={() => openInbox(x)}>보기</Act>; };

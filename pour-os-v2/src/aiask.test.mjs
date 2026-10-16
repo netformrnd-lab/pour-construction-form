@@ -73,7 +73,7 @@ eq("리드 = 확인 요청", X.askInbox(asks, U, "sy", {}, now).map((x) => [x.ki
 eq("담당 = 수정 요청(빨강) + 최종 승인 알림", X.askInbox(asks, U, "yj", {}, now).map((x) => [x.kind, x.tag, !!x.red, x.text]), [["ai", "수정 요청", true, "김소연: 근거를 쿠팡 기준으로"], ["aiDone", "최종 승인", false, "실행 업무가 생겼어요 · 사람이 반영해 주세요"]]);
 eq("읽은 최종 승인은 안 보임", X.askInbox(asks, U, "yj", { ["ao:f1" + "2026-10-12T02:00:00.000Z"]: true }, now).length, 1);
 eq("팀원은 남의 것 안 보임", X.askInbox(asks, U, "yr", {}, now), []);
-const many = [1, 2, 3, 4, 5].map((i) => ({ ...a0, id: "m" + i, title: "결과 " + i }));
+const many = ["A", "B", "C", "D", "E"].map((c, i) => ({ ...a0, id: "m" + i, act: c, title: "결과 " + (i + 1) }));   // 할 일이 다른 결과 5건 (같은 할 일이면 '이전 결과'로 묶임 · 아래)
 const g = X.askInbox(many, U, "yj", {}, now);
 eq("같은 AI 4건 넘으면 한 줄", [g.length, g[0].kind, g[0].title, g[0].mate], [1, "aiGroup", "겨울 결과 5건", "gyeoul"]);
 
@@ -95,8 +95,10 @@ eq("더 만들기 없음 · 상한 · 음수", ["more" in b.fields.back, "more" 
 eq("더 만들기는 고칠 점이 아님 · 따로 셈", (() => { const S2 = X.mateStats([{ ...a0, ...bm.fields, updatedAt: T1, log: [...a0.log, bm.entry] }, { ...a0, id: "y", ...b.fields, updatedAt: T1, log: [b.entry] }], "gyeoul", "2026-10-11"); return [S2.redo, S2.more, S2.notes.map((x) => x.text)]; })(), [2, 1, ["경쟁사 3곳 더"]]);
 
 // Aside 담당 PC — '확인할 것' (기기 시각 = 한국 · 10/14 수 · 10/17 토 · 10/9 한글날)
-const DA = (boards, mates, settings) => ({ users: U, settings: settings || [{ id: "adsAside", ver: "2026-10-16" }], ai: { ready: true, mates: mates || { gyeoul: { owners: { grohome: "yj" } }, uju: { owners: { _: "yj" } } }, boards: boards || {} } });   // 광고 예약 글은 넣은 것으로 (아래 따로 시험)
 const at = (s) => new Date(s).toISOString();
+const RT = (day, hm = "07:01") => ({ id: "ai_yeoreum_rt_" + day + hm, mate: "yeoreum", src: "tool", board: "", act: "", state: "wait", to: "", createdAt: at(`${day}T${hm}:00`), updatedAt: at(`${day}T${hm}:00`) });   // 아침 루틴 노트 승인 (team_link open)
+const DA = (boards, mates, settings, asks) => ({ users: U, settings: settings || [{ id: "adsAside", ver: "2026-10-16" }], ai: { ready: true, mates: mates || { gyeoul: { owners: { grohome: "yj" } }, uju: { owners: { _: "yj" } } }, boards: boards || {},
+  asks: asks || ["2026-10-14", "2026-10-17", "2026-10-09"].map((d) => RT(d)) } });   // 광고 예약 글은 넣은 것으로 · 아침 루틴은 돈 것으로 (아래 따로 시험)
 const W11 = new Date("2026-10-14T11:00:00");
 eq("담당 묶음 = 같은 PC 한 시간씩 · 미정은 맨 뒤", X.asidePlanOf(DA()).map((g) => [g.owner, g.runs.map((r) => r.board.id + " " + r.t)]),
   [["yj", ["gh-conv 09:00", "gh-rep 10:00"]], ["", ["gh-traffic 09:00", "gh-ohou 10:00", "gh-exp 11:00", "gh-aov 12:00"]]]);
@@ -191,6 +193,73 @@ eq("그날 올렸나", [X.ranOn({ at: at("2026-10-14T00:10:00") }, "2026-10-14")
   eq("쉬는 AI 담당 미정 = 관리자 '확인할 것'에 없음 · 사람에게 넘어간 것(to)은 그대로 · 지금 AI 는 그대로", X.askInbox(all, U, "sy", {}, now).map((x) => x.aiId).sort(), ["ai_eco_20261014_z", "ai_yeoreum_20261015_w"]);
   eq("정리 목록 = 쉬는 AI 담당 미정만 (최근 것 먼저)", X.goneWaits(all).map((a) => a.id), ["ai_haru_20261014_x", "ai_pori_20261013_y"]);
   eq("내 차례 수도 같게 (관리자 김소연 2 = 에코(내 차례) + 여름(담당 미정))", [X.myTurnN(all, me("sy")), X.myTurnN(all, me("ran")), X.myTurnN(all, me("yj"))], [2, 1, 0]);
+}
+
+// 멈춤 감시 (2026-10-17 사장님 고름 "멈춤 감시") — 승인 지연(평일 1일 빨강 · 2일 상급자) · AI 고치는 중(반나절) · 이전 결과 정리 · AI 안 돎(담당 미정 · 2일 넘게 · 아침 루틴)
+{
+  const L = (s) => new Date(s);   // 기기 시각 (한국) · 10/9 금 한글날 · 10/17 토
+  const w = (t) => ({ ...a0, id: "w_" + t, updatedAt: at(t), createdAt: at(t) });
+  eq("기다린 평일: 월 10시 들어옴 → 월 0 · 화 1 · 수 2", [X.waitWd(w("2026-10-12T10:00:00"), L("2026-10-12T17:00:00")), X.waitWd(w("2026-10-12T10:00:00"), L("2026-10-13T08:00:00")), X.waitWd(w("2026-10-12T10:00:00"), L("2026-10-14T08:00:00"))], [0, 1, 2]);
+  eq("18시 뒤·주말에 들어온 건 다음 평일부터 · 공휴일은 안 셈", [X.waitWd(w("2026-10-16T19:00:00"), L("2026-10-19T09:00:00")), X.waitWd(w("2026-10-17T10:00:00"), L("2026-10-20T09:00:00")), X.waitWd(w("2026-10-08T10:00:00"), L("2026-10-12T09:00:00"))], [0, 1, 1]);
+  eq("일하는 시간: 월 17:30 → 화 10:00 = 90분 · 화 12:30 = 240분 · 금 17:00 → 월 09:30 = 90분(주말 안 셈)", [X.workMin(at("2026-10-12T17:30:00"), L("2026-10-13T10:00:00")), X.workMin(at("2026-10-12T17:30:00"), L("2026-10-13T12:30:00")), X.workMin(at("2026-10-16T17:00:00"), L("2026-10-19T09:30:00"))], [90, 240, 90]);
+
+  const lt = w("2026-10-12T10:00:00"), nowW = L("2026-10-14T10:00:00");
+  const ib = X.askInbox([lt], U, "yj", {}, nowW)[0];
+  eq("평일 2일째 = 빨강 · 위로(ord) · 글 앞에 '평일 2일째'", [ib.kind, ib.red, ib.ord, ib.text.split(" · ")[0]], ["ai", true, X.ORD_LATE, "평일 2일째"]);
+  eq("오늘 들어온 건 보통 줄", (() => { const x = X.askInbox([w("2026-10-14T09:00:00")], U, "yj", {}, nowW)[0]; return [x.red, "ord" in x]; })(), [false, false]);
+  eq("상급자 = '승인 밀림' 한 줄", X.askInbox([lt], U, "sy", {}, nowW).map((x) => [x.kind, x.title, x.aiId, x.red, x.keep]), [["aiLate", "남윤정님 AI 승인 1건 · 평일 2일째", lt.id, true, undefined]]);
+  eq("관리자도 = 한 줄로 모아(상급자 줄과 따로 · id alm) · 관리자 아닌 팀원은 안 봄 · 1일째는 아직", [X.askInbox([lt], U, "hj", {}, nowW).map((x) => [x.kind, x.id, x.title]), X.askInbox([lt], U, "ran", {}, nowW).length, X.askInbox([lt], U, "yr", {}, nowW).length, X.askInbox([lt], U, "sy", {}, L("2026-10-13T10:00:00"))],
+    [[["aiLate", "alm:yj:2026-10-14", "남윤정님 AI 승인 1건 · 평일 2일째"]], 1, 0, []]);
+  eq("내가 상급자면 내 줄만 (관리자 모음엔 안 넣음)", X.askInbox([lt], U, "sy", {}, nowW).map((x) => x.id), ["al:yj:2026-10-14"]);
+  eq("읽으면 오늘 하루 안 보임 · 다음 날 다시", [X.askInbox([lt], U, "sy", { "al:yj:2026-10-14": true }, nowW).length, X.askInbox([lt], U, "sy", { "al:yj:2026-10-14": true }, L("2026-10-15T09:00:00")).length, X.askInbox([lt], U, "hj", { "alm:yj:2026-10-14": true }, nowW).length], [0, 1, 0]);
+  const top = { ...lt, id: "lt_top", to: "hj", step: 2, path: ["yj", "sy"] };
+  eq("상급자 없는 사람(본부장) = 관리자 모두 · 본인·팀원 빼고", ["sy", "ran", "sh", "hj", "yj"].map((u) => X.askInbox([top], U, u, {}, nowW).filter((x) => x.kind === "aiLate").length), [1, 1, 1, 0, 0]);
+  eq("상급자가 쉬는 사람이면 관리자에게 · '상급자 없음'", X.askInbox([{ ...lt, id: "lt_gm", to: "gm" }], U, "ran", {}, nowW).map((x) => [x.title, x.text.endsWith("상급자 없음")]), [["김민지님 AI 승인 1건 · 평일 2일째", true]]);
+  eq("관리자 = 여러 명이면 한 줄 '승인 밀림 n명' · 가장 오래 기다린 승인으로", X.askInbox([lt, { ...lt, id: "lt_gm", to: "gm", updatedAt: at("2026-10-08T10:00:00") }], U, "ran", {}, nowW).map((x) => [x.title, x.text, x.aiId]), [["AI 승인 밀림 2명 · 길게는 평일 3일째", "김민지 1건 · 남윤정 1건", "lt_gm"]]);
+  const lateMany = many.map((x) => ({ ...x, updatedAt: at("2026-10-12T10:00:00") }));
+  eq("같은 AI 묶음에 늦은 것 = 빨강·위로·'늦은 것 n건'", (() => { const x = X.askInbox(lateMany, U, "yj", {}, nowW)[0]; return [x.kind, x.red, x.ord, x.text.split(" · ")[0]]; })(), ["aiGroup", true, X.ORD_LATE, "늦은 것 5건"]);
+
+  const bk = { ...a0, id: "bk1", state: "back", to: "", owner: "yj", back: { text: "다시", by: "yj", byName: "남윤정", at: at("2026-10-14T09:00:00") }, updatedAt: at("2026-10-14T09:00:00") };
+  const n14 = L("2026-10-14T14:00:00");
+  eq("AI 고치는 중 = 일하는 시간 4시간(반나절) 넘으면 담당에게", [X.askInbox([bk], U, "yj", {}, L("2026-10-14T12:00:00")).length, X.askInbox([bk], U, "yj", {}, n14).map((x) => [x.kind, x.tag, x.red, x.text.split(" · ")[0]])], [0, [["aiStuck", "AI 고치는 중", true, "보낸 뒤 일하는 시간 5시간째 그대로"]]]);
+  eq("보드 건 = [바로 고치기] · 노트 건 = 사장님께 보낼 글", [X.askInbox([bk], U, "yj", {}, n14)[0].text.split(" · ")[1], X.askInbox([{ ...bk, board: "" }], U, "yj", {}, n14)[0].text.split(" · ")[1]], ["누르면 [바로 고치기] 글", "누르면 사장님께 보낼 글"]);
+  eq("담당 미정이면 관리자 · 다른 팀원은 안 봄 · 읽으면 오늘 하루", [X.askInbox([{ ...bk, owner: "" }], U, "ran", {}, n14).length, X.askInbox([bk], U, "yr", {}, n14).length, X.askInbox([bk], U, "yj", { "ab:bk1:1:2026-10-14": true }, n14).length], [1, 0, 0]);
+  eq("사장님께 보낼 글 (고칠 것 확인)", X.stuckAlert(bk, n14), "[업무OS] 겨울(AI)에게 다시 보낸 '전환 보드 B · 유리블러 가격' — 일하는 시간 5시간째 그대로예요 · Claude 예약 작업 'AI 크루 고칠 것 확인' 확인 부탁드려요");
+
+  const v = (id, t, extra = {}) => ({ ...a0, id, createdAt: at(t), updatedAt: at(t), log: [{ at: at(t), act: "ask" }], ...extra });
+  const p1 = v("p1", "2026-10-14T09:00:00"), p2 = v("p2", "2026-10-15T09:00:00"), p3 = v("p3", "2026-10-16T09:00:00"), n16 = L("2026-10-16T10:00:00");
+  const ci = X.askInbox([p1, p2, p3], U, "yj", {}, n16);
+  eq("같은 할 일 = 가장 새 결과 한 줄 + '이전 결과 2건' (지난 것의 늦음은 안 셈)", [ci.length, ci[0].aiId, ci[0].text.split(" · ").pop(), ci[0].red], [1, "p3", "이전 결과 2건", false]);
+  eq("상급자 밀림도 가장 새 결과로만 셈", X.askInbox([p1, p2, p3], U, "sy", {}, n16), []);
+  eq("AI 가 고쳐 다시 올린 판(redo)이 가장 새 결과", X.askInbox([{ ...p1, ver: 2, log: [...p1.log, { at: at("2026-10-16T09:30:00"), act: "redo" }] }, p3], U, "yj", {}, n16).map((x) => x.aiId), ["p1"]);
+  eq("할 일·상품·브랜드가 다르면 따로 · 맡긴 일(R)·노트(보드 없음)·위 단계는 안 묶음", X.waitHeads([p2, p3, v("q1", "2026-10-15T09:00:00", { act: "C" }), v("q2", "2026-10-15T09:00:00", { prod: "다른 상품" }), v("q3", "2026-10-15T09:00:00", { brand: "pourstore" }),
+    v("q4", "2026-10-15T09:00:00", { act: "R" }), v("q5", "2026-10-15T09:00:00", { board: "", act: "" }), v("q6", "2026-10-15T09:00:00", { step: 1, to: "sy" })]).heads.size, 7);
+  eq("상급자가 돌려보낸 지난 결과(수정 요청)는 안 묶음 · 따로 빨강", X.askInbox([{ ...p1, ret: { text: "근거", byName: "김소연", at: at("2026-10-15T09:00:00") } }, p3], U, "yj", {}, n16).map((x) => [x.aiId, x.tag]), [["p1", "수정 요청"], ["p3", "AI 승인 요청"]]);
+  eq("내 차례 수도 지난 결과는 하나로", [X.myTurnN([p1, p2, p3], me("yj")), X.myTurnN([p1, p2, p3, v("q9", "2026-10-15T09:00:00", { act: "C" })], me("yj"))], [1, 2]);
+  eq("승인 한 장: 지난 결과(최근 것 먼저) · 더 새 결과", [X.prevWaits([p1, p2, p3], p3).map((x) => x.id), X.newerOf([p1, p2, p3], p1).id, X.newerOf([p1, p2, p3], p3), X.prevWaits([p1, p2, { ...p3, step: 1 }], { ...p3, step: 1 }).map((x) => x.id)], [["p2", "p1"], "p3", null, ["p2", "p1"]]);
+  const up3 = { ...p3, step: 1, to: "sy", path: ["yj"] };   // 가장 새 결과를 담당이 승인해 위로 올림 → 남은 지난 결과 줄에 '더 새 결과 있음'
+  eq("더 새 결과가 위로 올라감 = 남은 지난 결과 줄에 '더 새 결과 있음 · 정리해 주세요' · 묶음은 그 아래 것까지", (() => { const r = X.askInbox([p1, p2, up3], U, "yj", {}, n16); return [r.length, r[0].aiId, r[0].text.split(" · ").slice(-3)]; })(), [1, "p2", ["이전 결과 1건", "더 새 결과 있음", "정리해 주세요"]]);
+}
+// AI 안 돎 — 담당 미정 크루 · 평일 2일 넘게 · 아침 루틴 (멈춤 감시 ④)
+{
+  const un = { "gh-traffic": { at: at("2026-10-13T09:05:00") } };   // 가을 = 담당 미정 → 관리자 PC 에서 돌던 것
+  eq("담당 미정 크루가 안 올림 = 관리자에게 한 줄 · 팀원엔 없음", [X.asideInbox(DA(un), "ran", W11).filter((x) => x.kind === "aiMiss").map((x) => [x.id, x.title, x.owner]), X.asideInbox(DA(un), "yj", W11).filter((x) => x.kind === "aiMiss").length],
+    [[["amu:gh-traffic:2026-10-14", "오늘 가을(AI)가 아직 안 올렸어요", ""]], 0]);
+  const lg = { "gh-conv": { at: at("2026-10-08T09:05:00") }, "gh-rep": { at: at("2026-10-14T10:05:00") } };   // 겨울(남윤정 PC) = 10/8 뒤로 안 올림 (10/9 한글날 빼고)
+  eq("담당 = '평일 n일째'", X.asideInbox(DA(lg), "yj", W11).filter((x) => x.kind === "aiMiss").map((x) => x.title), ["겨울(AI)가 평일 3일째 안 올렸어요"]);
+  eq("평일 2일 넘게 = 관리자 한 줄 (그 PC · 일수)", X.asideInbox(DA(lg), "ran", W11).filter((x) => x.kind === "aiMissLong").map((x) => [x.title, x.text, x.owner]), [["Aside 평일 2일 넘게 안 돎 · 1명", "겨울(남윤정 PC) 3일째 · 그 PC·Aside 를 확인해 주세요", "yj"]]);
+  eq("관리자 줄은 읽으면 오늘 하루 숨김 · 담당 줄(처리해야 사라짐)은 그대로", [X.asideInbox(DA(lg), "ran", W11, { "aml:gh-conv:2026-10-14": true }).filter((x) => x.kind === "aiMissLong").length, X.asideInbox(DA(lg), "yj", W11, { "am:gh-conv:2026-10-14": true }).filter((x) => x.kind === "aiMiss").length], [0, 1]);
+  eq("다음 평일 아침(예약 전)에도 지난 평일 못 올린 것", X.asideInbox(DA({ "gh-conv": { at: at("2026-10-13T09:05:00") }, "gh-rep": { at: at("2026-10-14T10:05:00") } }), "yj", new Date("2026-10-15T08:00:00")).filter((x) => x.kind === "aiMiss").map((x) => x.title), ["겨울(AI)가 지난 평일(10/14)에 안 올렸어요"]);
+  eq("안 올린 평일 수 = 쉬는 날엔 0", [X.missDays(lg["gh-conv"], "09:00", W11), X.missDays(lg["gh-conv"], "09:00", new Date("2026-10-17T15:00:00")), X.missDays(null, "09:00", W11)], [3, 0, 0]);
+
+  const rm = (asks, uid, t, mates, seen) => X.asideInbox(DA({}, mates, undefined, asks), uid, new Date(t), seen).filter((x) => x.kind === "aiRoutine").map((x) => [x.id, x.title]);
+  const yeo = { yeoreum: { owners: { _: "cw" } } };
+  eq("아침 루틴: 09:30 전엔 없음 · 지나면 여름 담당·관리자 · 다른 팀원 없음", [rm([], "cw", "2026-10-14T09:20:00", yeo), rm([], "cw", "2026-10-14T09:31:00", yeo), rm([], "ran", "2026-10-14T09:31:00", yeo).length, rm([], "yr", "2026-10-14T09:31:00", yeo).length],
+    [[], [["amr:yeoreum:2026-10-14", "오늘 여름(AI) 아침 루틴이 아직 안 올라왔어요"]], 1, 0]);
+  eq("오늘 올라옴 = 없음 · 자정 넘어 늦게 올라온 전날 몫은 안 셈 · 쉬는 날·멈춘 루틴(routineOff) = 없음 · 읽으면 오늘 하루", [rm([RT("2026-10-14")], "cw", "2026-10-14T10:00:00", yeo), rm([RT("2026-10-14", "00:09")], "cw", "2026-10-14T10:00:00", yeo).length,
+    rm([], "cw", "2026-10-17T10:00:00", yeo), rm([], "cw", "2026-10-14T10:00:00", { yeoreum: { owners: { _: "cw" }, routineOff: true } }), rm([], "cw", "2026-10-14T10:00:00", yeo, { "amr:yeoreum:2026-10-14": true })], [[], 1, [], [], []]);
+  eq("쉬는 AI(포리) 이름으로 올라온 노트도 셈 · 보드 결과는 안 셈", [rm([{ ...RT("2026-10-14"), mate: "pori" }], "cw", "2026-10-14T10:00:00", yeo), rm([{ ...RT("2026-10-14"), board: "gh-exp", src: "crew" }], "cw", "2026-10-14T10:00:00", yeo).length], [[], 1]);
+  eq("사장님께 보낼 글 (아침 루틴)", X.routineAlert("여름", new Date("2026-10-14T10:00:00")), "[업무OS] 여름(AI) 아침 루틴이 오늘 10/14(수) 09:30까지 안 올라왔어요 · Claude 예약 작업 'AI 콘텐츠 아침 (여름 · B2C 크루)' 확인 부탁드려요");
 }
 
 console.log(`\n${n - bad}/${n} 통과`); if (bad) process.exit(1);

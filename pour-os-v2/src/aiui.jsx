@@ -8,7 +8,7 @@
 // 계산 aiask.js · 정의 marketing-hub/crew.js · 쓰기 core.jsx(useActs aiPass·aiBack·aiRet·aiDrop·mateOwnerSet·mateRule·setBoss·setBosses)
 import { useEffect, useMemo, useState } from "react";
 import * as fb from "./fb.js";
-import { md, hm, ago, ymd, addDays, isMaster, nameOf, activeUsers } from "./model.js";
+import { md, hm, ago, ymd, addDays, isMaster, nameOf, activeUsers, isOffDay } from "./model.js";
 import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, inp, Linked, useLocal } from "./ui.jsx";
 import { Thread, useItemNotes } from "./task.jsx";
 import { LS } from "./core.jsx";
@@ -16,7 +16,8 @@ import { RtSelect } from "./airtui.jsx";   // AI 크루 ↔ 반복 실행 (2026-
 import { isFxKey, fxIdOf, NO_ACT } from "./airt.js";
 import { CREWS, GONE, crewOf, mateOf, boardOf, brandL, servesL, mateBrands, ownerKeys, fmtMetric, metricPct, metricOk, runWord, asideLaunch, asideRedoLaunch, asideFixLaunch, loginSites, planOf, qtyDefs, qtyNow, canReq, reqMates, REQ_SHAPES, REQ_PRESETS, REQ_STATE_L, reqLine, asideReqLaunch, execOf } from "../../marketing-hub/crew.js";
 import { cycleOf, periodOf, repCrews, repId, repSlots, secState, periodL, dueL, CYCLE_L } from "./aireport.js";   // AI 크루 보고 (2026-10-15)
-import { ASK_STATE_L, canAct, canBack, canRet, isProxy, pickOk, planPass, chainOf, mateOwner, actOwner, hqOf, canUpHQ, mateStats, repeatNotes, itemLine, bossOf, bossRec, bossLoop, asidePlanOf, ranOn, missedOn, goneWaits, GONE_DROP, myTurnN } from "./aiask.js";
+import { ASK_STATE_L, canAct, canBack, canRet, isProxy, pickOk, planPass, chainOf, mateOwner, actOwner, hqOf, canUpHQ, mateStats, repeatNotes, itemLine, bossOf, bossRec, bossLoop, asidePlanOf, ranOn, missedOn, goneWaits, GONE_DROP, myTurnN,
+  waitWd, workMin, prevWaits, newerOf, routineRanOn, routineMisses, routineAlert, stuckAlert, LATE_WD, BACK_MIN, PREV_DROP, ROUTINE_AT, ROUTINE_CHECK } from "./aiask.js";   // 멈춤 감시 (2026-10-17)
 
 export const HUB_CREW_URL = "../marketing-hub/crew.html";   // Aside 결과 올리기 (허브)
 export const HUB_MANUAL_URL = "../marketing-hub/ai-manual.html", HUB_ADS_URL = "../marketing-hub/ads.html";   // AI 팀 매뉴얼 · 광고 운영 (2026-10-15 · 읽기 전용 · Aside 가 씀)
@@ -80,10 +81,18 @@ function ItemCard({ it, cols, card, on, can, onToggle, last }) {
 const LOG_W = { ask: "올림", redo: "고쳐서 다시 올림", up: "승인 →", ok: "최종 승인", back: "AI에게 다시", ret: "돌려보냄", no: "안 함", undo: "되돌림" };
 const REASONS = ["이번엔 안 함", "중복", "근거 부족", "브랜드와 안 맞음", "시기 아님"];
 
+// 오늘 아침 루틴 (2026-10-17 멈춤 감시) — 올라온 노트 승인 · 09:30 까지 안 올라오면 빨강 + 사장님께 보낼 글 (아침 루틴은 사장님 Claude 예약 작업 · 팀원은 알리기만)
+function RoutineToday({ D, m }) {
+  const now = new Date(), key = ymd(now), miss = routineMisses(D, now).some((x) => x.mate === m.id);
+  const got = ((D.ai && D.ai.asks) || []).filter((a) => routineRanOn(a, m.id, key)).sort((p, q) => String(p.createdAt).localeCompare(String(q.createdAt)));
+  return <Banner red={miss}><b>오늘 아침 루틴</b> · {isOffDay(key) ? "쉬는 날이라 안 돌아요" : got.length ? `${hm(got[0].createdAt)} 올라옴 · 승인 ${got.length}건` : miss ? <b style={{ color: C.red }}>{ROUTINE_CHECK}까지 안 올라왔어요</b> : `평일 ${ROUTINE_AT} 예약 · 아직 (${ROUTINE_CHECK}까지 기다려요)`}
+    {miss && <><div style={{ fontSize: 12.5, color: C.sub, marginTop: 4 }}>아침 루틴은 사장님 Claude 예약 작업이에요 · 막혔을 수 있으니 이 글을 사장님께 보내 주세요</div>
+      <div style={{ marginTop: 8 }}><CopyText text={routineAlert(m.name, now)} label="사장님께 보낼 글 복사" /></div></>}</Banner>;
+}
 export function AiAskSheet({ D, cu, A, open, onBack, onClose, id, focus, note }) {
   const a = useAsk(D, id);
   const notes = useItemNotes(D, aiNoteId(id));
-  const [pick0, setPick] = useState(null), [mode, setMode] = useState(""), [txt, setTxt] = useState(""), [busy, setBusy] = useState(false), [showLog, setShowLog] = useState(false), [more, setMore] = useState(2);
+  const [pick0, setPick] = useState(null), [mode, setMode] = useState(""), [txt, setTxt] = useState(""), [busy, setBusy] = useState(false), [showLog, setShowLog] = useState(false), [more, setMore] = useState(2), [prevAsk, setPrevAsk] = useState(false);
   useEffect(() => { if (focus !== "talk") return; const h = setTimeout(() => { const el = document.getElementById("v2-ai-talk"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 150); return () => clearTimeout(h); }, [focus, !!a]);
   if (a === undefined || a === null) return <Sheet title="AI 승인" kind="AI 승인" onBack={onBack} onClose={onClose}><Empty>불러오는 중…</Empty></Sheet>;
   if (a === false) return <Sheet title="AI 승인" kind="AI 승인" onBack={onBack} onClose={onClose}><Empty>이 승인 요청을 찾지 못했어요</Empty></Sheet>;
@@ -96,6 +105,11 @@ export function AiAskSheet({ D, cu, A, open, onBack, onClose, id, focus, note })
   const go = async (fn) => { if (busy) return; setBusy(true); try { const ok = await fn(); if (ok) { setMode(""); setTxt(""); setPick(null); } } finally { setBusy(false); } };
   const passL = `${items.length ? `고른 ${pick.length}개 ` : ""}${pv && pv.next ? `승인 → ${nextN}님께` : "최종 승인"}`;
   const exT = a.execTask ? (D.tasks || []).find((t) => t.id === a.execTask) : null;
+  // 멈춤 감시 (2026-10-17): 평일 n일째 기다림 · 같은 할 일의 이전 결과 / 더 새 결과 · AI 가 반나절 넘게 못 고침
+  const nowD = new Date(), allAsks = (D.ai && D.ai.asks) || [], lateWd = a.state === "wait" ? waitWd(a, nowD) : 0;
+  const pw = a.state === "no" ? [] : prevWaits(allAsks, a), pwMine = pw.filter((x) => canAct(x, cu)), nw = a.state === "wait" && !(a.step > 0) ? newerOf(allAsks, a) : null;
+  const stuckMin = a.state === "back" ? workMin((a.back && a.back.at) || a.updatedAt, nowD) : 0;
+  const dropPrev = async () => { setPrevAsk(false); await go(() => A.aiDropMany(pwMine, PREV_DROP)); };
   const foot = can ? <><Big disabled={busy || !pickOk(a, pick)} onClick={() => go(() => A.aiPass(a, items.length ? pick : null))}>{passL}</Big>
       {upOk && <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, fontSize: 12.5, color: C.sub, flexWrap: "wrap" }}><span style={{ flex: "1 1 160px" }}>리드에서 끝나는 일이에요 · 본부장 확인이 필요하면</span><TBtn disabled={busy || !pickOk(a, pick)} onClick={() => go(() => A.aiPass(a, items.length ? pick : null, true))}>본부장에게도 올리기</TBtn></div>}
       {proxy && <div style={{ fontSize: 12.5, color: C.sub, marginTop: 6 }}>관리자로 대신 눌러요 · 지금 차례는 {nameOf(D.users, a.to)}님 · 기록엔 내 이름이 남아요</div>}</>
@@ -112,11 +126,22 @@ export function AiAskSheet({ D, cu, A, open, onBack, onClose, id, focus, note })
       <span style={{ fontSize: 12.5, color: C.mute }}>{a.run ? md(a.run) + " 실행" : ""}{a.createdAt ? ` · ${ago(a.createdAt)}` : ""}</span>
     </div>
     <div style={{ marginTop: 10 }}><ChainLine a={a} users={D.users} hq={hq} /></div>
+    {lateWd >= LATE_WD && <Banner red><b>평일 {lateWd}일째 기다리는 중</b> · {a.to ? `${nameOf(D.users, a.to)}님 차례` : "담당 미정 · 관리자 누구나"}
+      {a.to && a.to !== cu.id && <div style={{ fontSize: 12.5, color: C.sub, marginTop: 4 }}>물어보려면 아래 대화에 @{nameOf(D.users, a.to)}</div>}</Banner>}
+    {nw && <Banner><b>더 새 결과가 있어요</b> · {nw.run ? md(nw.run) + " 실행 · " : ""}{ASK_STATE_L[nw.state] || nw.state}{nw.state === "wait" && nw.step > 0 ? ` · ${nw.step + 1}단계` : ""} · 같은 할 일이에요
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}><TBtn onClick={() => open({ type: "aiask", id: nw.id })}>새 결과 보기 ›</TBtn>
+        {can && <TBtn disabled={busy} onClick={() => go(() => A.aiDrop(a, PREV_DROP))}>이것은 지난 결과로 정리</TBtn>}</div></Banner>}
+    {!nw && pw.length > 0 && <Banner><b>같은 할 일의 이전 결과 {pw.length}건이 아직 대기 중</b> · 이 결과가 가장 새것이에요
+      <div style={{ fontSize: 12.5, color: C.sub, marginTop: 2 }}>{pw.slice(0, 3).map((x) => (x.run ? md(x.run) : "") + (x.to && x.to !== a.to ? ` · ${nameOf(D.users, x.to)}님 차례` : "")).join(" · ")}{pw.length > 3 ? ` 외 ${pw.length - 3}건` : ""}</div>
+      {pwMine.length > 0 && <div style={{ marginTop: 8 }}><TBtn disabled={busy} onClick={() => setPrevAsk(true)}>이전 결과 {pwMine.length}건 정리</TBtn></div>}</Banner>}
+    {prevAsk && <Ask title="이전 결과 정리" body={`같은 할 일의 이전 결과 ${pwMine.length}건을 '안 함'으로 정리할까요?\n이유: ${PREV_DROP}\n기록이 남고, 한 건씩 열어 보면 무엇이었는지 그대로 있어요.`} yes="정리" onNo={() => setPrevAsk(false)} onYes={dropPrev} />}
     {a.ret && a.state === "wait" && <Banner red><b>수정 요청</b> · {a.ret.byName} · {ago(a.ret.at)}<div style={{ whiteSpace: "pre-wrap" }}><Linked text={a.ret.text} /></div>
       <div style={{ fontSize: 12.5, color: C.sub, marginTop: 4 }}>번호를 다시 고르거나 AI에게 다시 보내 주세요</div></Banner>}
     {a.state === "back" && a.back && <Banner><b>{m.name}(AI)에게 {a.back.more ? `더 만들기 ${a.back.more}개` : "다시 보냄"}</b> · {a.back.byName} · {ago(a.back.at)}<div style={{ whiteSpace: "pre-wrap" }}>{a.back.text}</div>
+      {stuckMin >= BACK_MIN && <div style={{ color: C.red, fontWeight: 700, marginTop: 6 }}>일하는 시간 {Math.floor(stuckMin / 60)}시간째 그대로예요 · {b ? "담당 PC·Aside 가 켜져 있는지 확인하고 아래 글을 붙여 넣어 주세요" : "확인 루틴(사장님 Claude 예약 작업)이 막혔을 수 있어요"}</div>}
       {b ? <div style={{ marginTop: 8 }}><div style={{ fontSize: 12.5, color: C.sub, marginBottom: 6 }}>바로 고치게 하려면 담당 PC Aside 에 이 글을 붙여 넣어요 · 고칠 것 확인을 한 시간마다 걸어 뒀으면 그때 고쳐요</div><CopyText text={asideRedoLaunch(a)} label="바로 고치기 — Aside 글 복사" /></div>
-        : <div style={{ fontSize: 12.5, color: C.sub, marginTop: 6 }}>{m.name}(AI)가 평일 10~17시엔 한 시간 안에 고쳐 다시 올려요 · 그 밖엔 다음 날 아침 06:50</div>}</Banner>}
+        : <div style={{ fontSize: 12.5, color: C.sub, marginTop: 6 }}>{m.name}(AI)가 평일 10~17시엔 한 시간 안에 고쳐 다시 올려요 · 그 밖엔 다음 날 아침 06:50</div>}
+      {!b && stuckMin >= BACK_MIN && <div style={{ marginTop: 8 }}><CopyText text={stuckAlert(a, nowD)} label="사장님께 보낼 글 복사" /></div>}</Banner>}
     {a.state === "no" && <Banner><b>안 함</b> · {a.noByName} · {a.noAt ? ago(a.noAt) : ""}{a.noReason ? <div>{a.noReason}</div> : null}</Banner>}
     {a.state === "ok" && <Banner><b>최종 승인</b> · {a.okByName} · {a.okAt ? `${md(ymd(new Date(a.okAt)))} ${hm(a.okAt)}` : ""}{a.exec ? <div>실제 반영은 사람이 해요 · '실행' 업무에서 번호마다 흔적을 남기고 끝내 주세요</div> : null}
       {a.trace && Object.keys(a.trace).length > 0 && <div style={{ marginTop: 6 }}>{Object.entries(a.trace).filter(([, v]) => v).sort(([x], [y]) => x.localeCompare(y)).map(([n, v]) => <div key={n} style={{ fontSize: 13, lineHeight: 1.6 }}>
@@ -173,7 +198,8 @@ export function AiTeamBody({ D, cu, A, open, admin }) {
   const ownerL = (id, brand) => { const o = mateOwner(mates[id], brand, D.users); return o ? nameOf(D.users, o) : "담당 미정"; };
   const ownersL = (id) => { const ks = ownerKeys(id); if (ks.length < 2) return ownerL(id, ks[0] || ""); const names = [...new Set(ks.map((x) => ownerL(id, x)))]; return names.length === 1 ? names[0] : ks.map((x) => `${x ? brandL(x) : "기본"} ${ownerL(id, x)}`).join(" · "); };
   const show = (id) => scope === "all" || mineIds.includes(id);
-  const stat = (id) => { const s = mateStats(asks, id, since); return [s.wait ? `대기 ${s.wait}` : "", s.back ? `고치는 중 ${s.back}` : "", s.ok ? `이번 주 승인 ${s.ok}` : "", s.redo ? `다시 ${s.redo}` : ""].filter(Boolean).join(" · "); };
+  const nowL = new Date(), lateOf = (id) => asks.filter((x) => x.mate === id && x.state === "wait" && waitWd(x, nowL) >= LATE_WD).length;   // 평일 1일 넘게 기다린 것 (멈춤 감시 2026-10-17)
+  const stat = (id) => { const s = mateStats(asks, id, since), lt = lateOf(id); return [s.wait ? `대기 ${s.wait}${lt ? ` (늦음 ${lt})` : ""}` : "", s.back ? `고치는 중 ${s.back}` : "", s.ok ? `이번 주 승인 ${s.ok}` : "", s.redo ? `다시 ${s.redo}` : ""].filter(Boolean).join(" · "); };
   const setFocus = async (crewId, slot) => { try { await fb.merge("settings", "aicrew", { focus: { [crewId]: slot }, at: new Date().toISOString(), by: cu.id, byName: cu.name }); } catch (e) { console.error("[v2] 이번 주 집중 저장 실패:", e); A.toast("저장 실패 · 인터넷 연결을 확인해 주세요"); } };
   const users = activeUsers(D.users);
   const OwnerPick = ({ id, brand }) => { const cur = mateOwner(mates[id], brand, D.users);
@@ -307,6 +333,7 @@ export function AiMateSheet({ D, cu, A, open, onBack, onClose, id }) {
       {m.from && m.from.length > 0 && <div>원형 · {m.from.map((f) => (mateOf(f) || {}).name || f).join(" · ")} <span style={{ color: C.mute }}>(파생 · 짐작)</span></div>}
       {m.admin && <div style={{ color: C.text }}>관리자 자리 일(원가·제조사)이라 업무OS 승인으로 올리지 않아요 · 마진 대시보드에서</div>}
     </div>
+    {m.routine && <RoutineToday D={D} m={m} />}
     {b && pl && canRule && <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
       <CopyText text={asideLaunch(b, pl.t)} label="지금 돌리기 — Aside 글 복사" solid />
       <TBtn onClick={() => open({ type: "aiSetup", owner: pl.owner })}>{pl.owner === cu.id ? "내 PC 세팅 ›" : "그 PC 세팅 ›"}</TBtn></div>}

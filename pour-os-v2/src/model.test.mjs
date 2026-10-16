@@ -747,6 +747,20 @@ ok("확인할 것: 같은 대화의 새 댓글은 한 줄 '새 댓글 n'(열면 
   assert.ok(!M.todayView(D, "a", now, { "nt:n1": true, "nt:n2": true }).inbox.some((x) => x.kind === "note" && x.taskId === "t1"));
   assert.equal(M.groupNotes([{ id: "x", kind: "note", title: "하나" }])[0].title, "하나");
 });
+// 줄 ord (2026-10-17 멈춤 감시) — 늦은 AI 승인(aiask.ORD_LATE 1.15) = 보통 AI 승인 위 · 승인 밀림 1.16 · AI 고치는 중 1.18 · AI 크루 보고(1.1) 다음
+ok("확인할 것: 줄 ord 가 있으면 그 순서 (늦은 AI 승인 · 승인 밀림 · AI 고치는 중 · 아침 루틴 안 돎)", () => {
+  const now = new Date("2026-10-16T09:40:00");
+  const D = { users: [{ id: "a", name: "가" }], projects: [], tasks: [], notes: [], ai: { asks: [] },
+    aiInbox: () => [{ kind: "ai", tag: "AI 승인 요청", id: "ai:new", title: "새것", at: "2026-10-16T08:00:00", keep: true },
+      { kind: "ai", tag: "AI 승인 요청", id: "ai:old", title: "늦은 것", at: "2026-10-12T08:00:00", keep: true, red: true, ord: 1.15 },
+      { kind: "aiStuck", tag: "AI 고치는 중", id: "ab:x", title: "고치는 중", at: "2026-10-16T07:00:00" },
+      { kind: "aiLate", tag: "승인 밀림", id: "al:x", title: "밀림", at: "2026-10-13T08:00:00" }],
+    asideInbox: (_D, _u, _n, seen) => (seen["amr:x"] ? [] : [{ kind: "aiRoutine", tag: "AI 안 돎", id: "amr:x", title: "아침 루틴", at: "2026-10-16T06:50:00" }]),
+    aiRepInbox: () => [{ kind: "aiRep", tag: "주간 보고", id: "rep:x", title: "보고", at: "2026-10-16T00:00:00", keep: true }] };
+  assert.deepEqual(M.todayView(D, "a", now, {}).inbox.map((x) => x.title), ["보고", "늦은 것", "밀림", "고치는 중", "새것", "아침 루틴"]);
+  assert.ok(!M.todayView(D, "a", now, { "amr:x": true }).inbox.some((x) => x.kind === "aiRoutine"));   // Aside 줄도 읽음(seen)을 받음
+  assert.deepEqual(M.readInbox(D, "a", now, { "amr:x": true }).map((x) => x.id), ["amr:x"]);              // 읽은 알림에 다시
+});
 // 올린 파일 빼기 (2026-10-16 "삭제는 다음날 넘어가면 못하게 막아") — 올린 사람 · 올린 날만 · 모르는 예전 파일은 못 뺌
 ok("올린 파일 빼기: 올린 사람만 · 올린 날만", () => {
   const at = "2026-10-16T01:00:00.000Z", day = M.ymd(new Date(at)), f = { by: "a", uploadedAt: at };

@@ -641,6 +641,19 @@ export function useActs(D, cu, setToast, idx = null) {
       if (!canAct(a, cu)) { setToast({ text: "지금 내 차례가 아니에요" }); return false; }
       return aiWrite(a, planDrop(a, cu, String(reason || "").trim(), nowIso()), "aiNo", `${a.title} · 안 함${reason ? " · " + reason : ""}`, "안 하기로 했어요");
     },
+    // 여러 건 '안 함' 한 번에 (2026-10-17 멈춤 감시 · 승인 한 장 [이전 결과 n건 정리]) — 문서마다 연 때 본 차례 그대로일 때만 · 기록 1건 · 5초 되돌리기
+    aiDropMany: async (list, reason) => {
+      const xs = (list || []).filter((a) => canAct(a, cu)); if (!xs.length) { setToast({ text: "지금 내 차례인 것이 없어요" }); return false; }
+      const at = nowIso(), why = String(reason || "").trim(), pls = xs.map((a) => ({ a, pl: planDrop(a, cu, why, at) }));
+      let r; try { r = await fb.patchManyIf(pls.map(({ a, pl }) => ({ key: "aiasks", id: a.id, expect: pl.expect, fields: { ...pl.fields, log: fb.arrayUnion(pl.entry) } }))); }
+      catch (e) { fail("AI 승인")(e); return false; }
+      const ok = pls.filter(({ a }) => !r.skipped.includes(a.id));
+      if (!ok.length) { setToast({ text: "그사이 다른 사람이 먼저 처리했어요 · 지금 상태를 다시 봐 주세요" }); return false; }
+      log("aiNo", { col: "aiasks", targetId: ok.length === 1 ? ok[0].a.id : "", ids: ok.map(({ a }) => a.id), label: `${ok[0].a.mateName || "AI"} · 지난 결과 ${ok.length}건 · 안 함${why ? " · " + why : ""}` });
+      const ops = ok.map(({ a, pl }) => ({ key: "aiasks", id: a.id, wrote: { ...pl.fields }, prev: prevOf(a, pl.fields) }));
+      setToast({ text: `${ok.length}건을 '안 함'으로 정리했어요${r.skipped.length ? ` · ${r.skipped.length}건은 그사이 바뀌어 그대로` : ""}`, undo: () => undoMany(ops, `지난 결과 ${ops.length}건 정리`, "aiUndo") });
+      return true;
+    },
     // AI 담당 정하기(관리자 · key = '_' 기본 또는 브랜드 id) — 그 AI 의 열린 승인 중 담당 차례인 것(옛 담당·담당 미정)은 새 담당에게 같이
     mateOwnerSet: async (mateId, key, uid) => {
       if (!isMaster(cu)) { setToast({ text: "AI 담당은 관리자가 정해요" }); return false; }

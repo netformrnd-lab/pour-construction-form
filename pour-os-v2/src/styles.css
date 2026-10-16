@@ -798,3 +798,8 @@ input[type="date"].v2-sel::-webkit-date-and-time-value { text-align: left; min-h
 .v2-tplown .t { flex: 1 1 auto; min-width: 0; font-size: 13.5px; color: #1B2333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .v2-tplown .v2-sel { flex: 0 0 auto; max-width: 46%; }
 .v2-tplsum b, .v2-tplprev b { color: #0F1F5C; }
+/* 구매 품의 요청 (2026-10-16 · apprui.jsx) */
+.v2-apprtag { display: inline-block; font-size: 12px; font-weight: 800; padding: 3px 9px; border-radius: 7px; background: #EEF1F8; color: #24386B; white-space: nowrap; }
+.v2-apprtag[data-done="1"] { background: #EAF4EE; color: #2F7D57; }
+.v2-apprtag[data-done="0"] { background: #24386B; color: #fff; }
+.v2-apprform textarea, .v2-apprform input { max-width: 100%; }

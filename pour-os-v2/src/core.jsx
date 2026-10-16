@@ -23,6 +23,7 @@ import { parseMentions, smsTarget, smsOpen, smsDue, smsText } from "./mention.js
 import { flowOwners } from "./flow.js";
 import { sumAk, akWrite, countFields, countOf, baseTitle } from "./routine.js";
 import { linkInbox } from "./links.js";
+import { apprInbox, apprMerge } from "./appr.js";   // 구매 품의 요청 (2026-10-16)
 import { askInbox, asideInbox, planPass, planBack, planRet, planDrop, planExec, canAct, canBack, canRet, pickOk, bossLoop, moreText, MORE_MAX, hqOf, traceOf, traceLeft, mateOwner, isHQ, launchTaskOf } from "./aiask.js";   // AI 승인 (2026-10-12) · Aside 담당 PC (2026-10-15)
 import { mateOf, boardOf, brandL, qtyDefs, canReq, reqDoc, reqId } from "../../marketing-hub/crew.js";
 import { repSlots, repId, canWriteSec, secPeople, snapOf, cycleOf, monOf, CYCLE_L, repInbox } from "./aireport.js";   // AI 크루 보고서 (2026-10-15)
@@ -103,6 +104,9 @@ export function useData(on, full = true) {
       fb.listen("aireqs", ["updatedAt", ">=", since14], put("aiReqRecent"), (e) => console.warn("[v2] 맡긴 일(최근) 못 읽음:", e)),
       // AI 크루 보고서(aireports · 2026-10-15 · 크루마다 기간마다 한 장 · 해마다 50장 남짓) — 못 읽어도 앱은 그대로
       fb.listen("aireports", null, put("aireports"), (e) => console.warn("[v2] AI 크루 보고서 못 읽음:", e)),
+      // 구매 품의 요청(appr.js · 2026-10-16 · pour-os/approval-requests/items = 독립 화면 approval-requests.html 과 같은 문서): 품의 전 전부 + 최근 30일 바뀐 것 — 못 읽어도 앱은 그대로
+      fb.listenAppr(["status", "==", "품의전"], put("apprOpen"), (e) => { console.warn("[v2] 품의 요청 못 읽음:", e); setS((s) => ({ ...s, apprOpen: [] })); }),
+      fb.listenAppr(["updatedAt", ">=", since30], put("apprRecent"), (e) => { console.warn("[v2] 품의 요청(최근) 못 읽음:", e); setS((s) => ({ ...s, apprRecent: [] })); }),
     ];
     return () => subs.forEach((u) => u && u());
   }, [on, full]);
@@ -141,7 +145,9 @@ export function useData(on, full = true) {
       // AI 승인(2026-10-12): asks = 열린 것 + 최근 7일(같은 id 는 열린 쪽) · mates = AI 팀원 덧칠 {id: 문서} · aiInbox = '확인할 것' 줄(model.todayView 가 부름 · 순환 import 피하려고 D 로)
       ai: (() => { const m = new Map(); (S.aiRecent || []).forEach((x) => m.set(x.id, x)); (S.aiOpen || []).forEach((x) => m.set(x.id, x));
         const rq = new Map(); (S.aiReqRecent || []).forEach((x) => rq.set(x.id || x._doc, x)); (S.aiReqOpen || []).forEach((x) => rq.set(x.id || x._doc, x));
-        return { reqs: [...rq.values()].sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || ""))), asks: [...m.values()], mates: Object.fromEntries((S.aimates || []).map((x) => [x.id || x._doc, x])), boards: Object.fromEntries((S.aiboards || []).map((x) => [x.id || x._doc, x])), reports: Object.fromEntries((S.aireports || []).map((x) => [x.id || x._doc, x])), ready: S.aimates !== undefined }; })(), aiInbox: askInbox, asideInbox, aiRepInbox: repInbox };
+        return { reqs: [...rq.values()].sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || ""))), asks: [...m.values()], mates: Object.fromEntries((S.aimates || []).map((x) => [x.id || x._doc, x])), boards: Object.fromEntries((S.aiboards || []).map((x) => [x.id || x._doc, x])), reports: Object.fromEntries((S.aireports || []).map((x) => [x.id || x._doc, x])), ready: S.aimates !== undefined }; })(), aiInbox: askInbox, asideInbox, aiRepInbox: repInbox,
+      // 구매 품의 요청(2026-10-16): list = 품의 전 + 최근 30일(지운 것 빼고 · 최근 것 먼저) · apprInbox = '확인할 것' 줄(model.todayView 가 부름)
+      appr: { list: apprMerge(S.apprRecent, S.apprOpen), ready: S.apprOpen !== undefined && S.apprRecent !== undefined }, apprInbox };
   }, [S, akQ, dayK]);
   return [D, err];
 }

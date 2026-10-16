@@ -8,12 +8,13 @@
 - 신제품 보드 바로 읽기(core.syncNewLaunch): 두 앱 모두 로그인 뒤 한 번 버전1 `pour-os/launch-board/products` 를 읽어 v2 에 없는 제품(lb_<id>)만 프로젝트·항목으로 새로 만듦. 이미 있는 제품·항목은 덮지 않음(바뀐 출시일·체크는 관리자 설정 › 신제품 보드 다시 가져오기). 쓰기 전 v2 프로젝트를 서버에서 다시 확인 · 기록에 남김
 - 빌드: `cd pour-os-v2 && ./build.sh` (실사용 → os2.html, 관리자 → os2-admin.html, 공유 보고서(report.html · src/report-main.jsx) → os2-report.html 셋 다 복사)
   (node_modules 는 `../pour-os/node_modules` 심볼릭 링크 — 같은 패키지)
-- 테스트: `node src/model.test.mjs` · `launch.test.mjs` · `turn.test.mjs` · `views.test.mjs` · `flow.test.mjs` · `routine.test.mjs` · `aiask.test.mjs` · `aireport.test.mjs` · `seensync.test.mjs` 등 src/*.test.mjs (계산). 화면 시험은 가짜 저장 장치로만 — 실제 Firestore 에 쓰지 않음 (test/ · 아래 'AI 팀원 · AI 승인' 마지막 줄).
+- 테스트: `node src/model.test.mjs` · `launch.test.mjs` · `turn.test.mjs` · `views.test.mjs` · `flow.test.mjs` · `routine.test.mjs` · `aiask.test.mjs` · `aireport.test.mjs` · `seensync.test.mjs` · `appr.test.mjs` 등 src/*.test.mjs (계산). 화면 시험은 가짜 저장 장치로만 — 실제 Firestore 에 쓰지 않음 (test/ · 아래 'AI 팀원 · AI 승인' 마지막 줄).
 
 ## v1 보호 (가장 중요)
 - 쓰기는 오직 `pour-os/v2/**` 와 Storage `task-attachments/v2/**`. v1 문서(`pour-os/state-*`, `pour-os/ak-notes/c`)는 **읽기만**.
 - 기기 저장 이름도 `pour-os2-…` 로 따로 (v1 `pour-os-…` 와 안 겹침).
 - 보안규칙 `pour-os/{doc=**}` · `task-attachments/**` 안이라 **규칙 변경 없음**.
+- **구매 품의 요청(`pour-os/approval-requests/items/{id}`)은 v2 밖 예외 쓰기 경로** (사용자 결정 2026-10-16) — 독립 화면 `approval-requests.html` 과 같은 문서를 업무OS 도 읽고 씀(새 요청 · 품의 완료 · 담당 · 고치기 · 지움 표시 deleted) · fb.listenAppr/fetchAppr/addAppr/patchApprIf 만 · 규칙 변경 없음(pour-os/{doc=**} 안)
 - **광고 일일 보고서(`pour-os/v2/adreports/{YYYY-MM-DD}`)·AI 매뉴얼(`pour-os/v2/aimanuals/{id}`)·제안서 검증(`pour-os/v2/proposal/dailygrowth-202610`)은 Aside 전용 쓰기 경로** — 업무OS·허브·Claude 는 읽기만(쓰지·고치지·지우지 않음) · 보기 = 허브 `marketing-hub/ads.html`·`ai-manual.html` (더보기 › AI 팀원 아래 · AI 팀원 화면 '매뉴얼 보기 ›' · 2026-10-15)
 
 ## 저장 구조
@@ -202,12 +203,22 @@
 - 저장 0건: 쓰기 잠금(viewonly.setViewOnly · App.Shell 이 그리기 전에 켬 · 로그인 화면이면 끔) → fb.js·test/fb.fake.js 쓰기 함수 14개 맨 앞 guardWrite 가 막음(직접 쓰는 화면 조각 포함) · 바꾸는 버튼 = viewas.viewActs(A 를 감쌈 · 저장 없이 '보기 모드 · ○○님 화면이라 바꾸지 않았어요' · 진척·기록 같은 저절로 부름은 조용히) · 읽음(useSeen ro) = 서버·이 기기에 안 씀 · 댓글 칸·답글 숨김(Thread readOnly) · 더보기의 문자 알림·첫 화면·관리자·'다른 사람으로 쓰기' 숨김 · 그로홈 매출 새로 읽기 안 함
 - 한계: 화면에서만(보안규칙 그대로) · 보는 동안엔 이 기기의 내 자동 쓰기(신제품 대시보드 반영 등)도 잠깐 멈췄다가 내 화면으로 오면 다시
 
+## 구매 품의 요청 (사용자 결정 2026-10-16 "윤미니는 하이웍스를 쓸 수 없어요 · 담당자가 대신 올리고 [품의 완료]로 닫는 흐름" · appr.js · apprui.jsx · 시험 appr.test.mjs · test/appr.e2e.mjs)
+- 저장 = `pour-os/approval-requests/items/{id}` (독립 화면 `../approval-requests.html` 과 같은 문서 · 칸 {requester, requesterId?, assignee?, assigneeId?, topic, docType, title, body, status '품의전'|'품의완료', doneBy, doneById?, doneAt, doneMemo, createdAt, updatedAt, deleted, deletedAt, source?}) · 구독 = 품의 전 전부 + 최근 30일 바뀐 것(core.useData → D.appr.list) · 못 읽어도 앱은 그대로
+- 담당(assignee): 요청자가 누구든 기본 **김송희**(APPR_DEFAULT_ASSIGNEE) · 칸이 없는 예전 문서도 김송희로 봄 · 사람 찾기 = assigneeId → 없으면 이름이 똑같은 1명 · 바꾸기 = 요청자·담당·관리자(품의 전일 때) → 그 사람 '확인할 것'
+- 요청자: 더보기 › 내 일 › **품의 요청**(맨 위 줄 · 꼬리표 '품의 전 n'/'맡은 것 n') → [＋ 품의 요청 쓰기] 이 시트 안에서(새 창 없음) · 요청자 = 로그인한 사람 자동 · 주제 · 문서 종류(결제 방법) · 제목 · 본문 [양식 넣기] · 담당(기본 김송희) → 내 요청 목록에 품의 전/품의 완료 · 완료한 사람 · 메모 · 30일 넘은 것은 [30일 넘은 요청도 보기](요청자 이름으로 조회) · 품의 전이면 고치기·지우기(지움 표시)
+- 담당: '확인할 것' **품의 요청 n건**(keep · 품의 전이 남아 있는 동안 · [처리하기] → 시트 '내가 맡은 것' 오래된 것부터) + **새 품의 요청** 한 건씩(읽음 체계 · 7일 · 읽으면 더보기 › 읽은 알림) → 한 건 시트: 제목·본문 [복사] → 하이웍스에 붙여 넣고 → 메모(선택) + [✓ 품의 완료] (서버 지금 값이 품의 전일 때만 · patchApprIf) · 되돌리기 = 담당·관리자
+- 요청자 알림: 품의 완료되면 '확인할 것'에 **품의 완료**(읽음 체계 · 7일 · 완료한 사람 · 메모) → 누르면 그 요청 한 건
+- 관리자: 시트 [모두] 탭 = 품의 전 전부 + 최근 30일 · 담당으로 거르기 · 관리자 화면 '나에게 온 것'에도 같은 줄(내가 담당일 때) · 아래 '요청함 전체 화면 ›' = 독립 화면
+- 보기 모드: 쓰기·담당 바꾸기·고치기·지우기 버튼 없음 + 저장 장치가 막음(guardWrite)
+- 독립 화면 approval-requests.html: 담당 칸(쓰기 · 기본 김송희) · 목록·상세에 담당 · '담당 전체 ▾' 거르기 · 상세 '담당 바꾸기' · 담당 고르기 목록 = 업무OS 사람(pour-os/v2/users 읽기만 · 쉬는 사람 빼고) · 품의 완료 때 doneById 도 (업무OS 요청자 알림에서 '내가 끝낸 건 빼기'에 씀)
+
 ## 로그인
 - 사람 고르기 → PIN 4자리(처음이면 정하기). 해시는 v1 과 같은 계산(`pour-os-pin:<id>:<pin>`) → 마스터의 기존 PIN 그대로.
 - 5번 틀리면 5분 잠금. 마스터가 사람 보기에서 PIN 초기화.
 
 ## 파일
-- 공용: `aiask.js`·`aiui.jsx`(AI 승인 · AI 팀원 · 정의는 ../marketing-hub/crew.js) · `aitrace.jsx`(실행 업무 흔적) · `aireport.js`·`aireport.jsx`(AI 크루 보고) · `tpl.js`·`tplui.jsx`(견본 · 예상 소요 연결 tpl.LX/projEstimate) · `roadui.jsx`(프로젝트 단계(로드) 조각: RoadEdit · RoadBox · StageSortCard · CatRoadAsk) · `search.js`·`searchui.jsx`(찾기) · `report.js`·`reportui.jsx`·`reportview.jsx`(월말 보고서) · `growth.js`·`growthui.jsx`(그로스보드 v2) · `core.jsx`(로그인·구독·useActs 쓰기·다시 가져오기) · `model.js`(계산) · `launch.js`(신제품·순서표·공휴일 기한) · `turn.js`(앞 일 → 내 차례, 저장 안 함) · `views.js`(달력 칸·사람×주·출시 줄·정리 묶음) · `flow.js`(흐름으로 만들기) · `cal.jsx`(월 달력) · `pick.jsx`(고르기 목록·한꺼번에 바꾸기) · `sheets.jsx`(시트 길잡이) · `task.jsx` · `project.jsx` · `mindmap.jsx`(마인드맵 [계층 | 마인드맵]·결정 업무) · `mmlayout.js`(마인드맵 자리 계산) · `svgpng.js`(SVG → PNG 저장 · 글자 폭 · 협업 맵과 공용) · `files.jsx`(파일 미리 보기·올리기 진행) · `ui.jsx`
+- 공용: `appr.js`·`apprui.jsx`(구매 품의 요청 · 2026-10-16) · `aiask.js`·`aiui.jsx`(AI 승인 · AI 팀원 · 정의는 ../marketing-hub/crew.js) · `aitrace.jsx`(실행 업무 흔적) · `aireport.js`·`aireport.jsx`(AI 크루 보고) · `tpl.js`·`tplui.jsx`(견본 · 예상 소요 연결 tpl.LX/projEstimate) · `roadui.jsx`(프로젝트 단계(로드) 조각: RoadEdit · RoadBox · StageSortCard · CatRoadAsk) · `search.js`·`searchui.jsx`(찾기) · `report.js`·`reportui.jsx`·`reportview.jsx`(월말 보고서) · `growth.js`·`growthui.jsx`(그로스보드 v2) · `core.jsx`(로그인·구독·useActs 쓰기·다시 가져오기) · `model.js`(계산) · `launch.js`(신제품·순서표·공휴일 기한) · `turn.js`(앞 일 → 내 차례, 저장 안 함) · `views.js`(달력 칸·사람×주·출시 줄·정리 묶음) · `flow.js`(흐름으로 만들기) · `cal.jsx`(월 달력) · `pick.jsx`(고르기 목록·한꺼번에 바꾸기) · `sheets.jsx`(시트 길잡이) · `task.jsx` · `project.jsx` · `mindmap.jsx`(마인드맵 [계층 | 마인드맵]·결정 업무) · `mmlayout.js`(마인드맵 자리 계산) · `svgpng.js`(SVG → PNG 저장 · 글자 폭 · 협업 맵과 공용) · `files.jsx`(파일 미리 보기·올리기 진행) · `ui.jsx`
 - 실사용: `App.jsx` · `today.jsx` · `schedule.jsx`(달력 탭) · `more.jsx`
 - 관리자: `admin/*` (AdminApp · Glance · People · Collab · PersonAdmin · Projects · Tidy · Settings · MoyImport(모여라딜 최신 가져오기) · common · admin.css) · 협업 맵 계산 `collab.js` · 모여라딜 가져오기 계산 `moysync.js`
 - 시트 머리(시안 A · ui.Sheet kind/path/onPath/head): 네이비 띠 + 오른쪽 흰 종류 칩(업무 · 고정업무 · 프로젝트/신제품 프로젝트 · 사람 · 일 넘기기) + 어디 속한 건지(업무 = '프로젝트 · 이름 ›' 누르면 그 프로젝트) + 큰 제목(2줄까지). 제목은 머리에만(본문엔 위험·중요도 칩만)

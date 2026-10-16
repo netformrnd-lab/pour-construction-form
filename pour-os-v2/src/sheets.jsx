@@ -10,6 +10,7 @@ import { LockSheet } from "./secretui.jsx";
 import { TplSaveSheet, TplBoxSheet, TplSheet, TplNewSheet } from "./tplui.jsx";
 import { AiAskSheet, AiMateSheet, AiTeamSheet, AiSetupSheet, AiReqSheet } from "./aiui.jsx";
 import { AiReportSheet } from "./aireport.jsx";
+import { ApprSheet, ApprOneSheet } from "./apprui.jsx";
 import { Sheet, Empty } from "./ui.jsx";
 
 // extra: { [type]: (props, s) => element } — 관리자 앱 등에서 시트 종류를 덧붙일 때
@@ -46,6 +47,9 @@ function route(s, p, extra) {
   if (s.type === "aiTeam") return <AiTeamSheet {...p} />;
   if (s.type === "aiSetup") return <AiSetupSheet {...p} owner={s.owner} />;   // 내 PC Aside 세팅 (2026-10-15)
   if (s.type === "aiReq") return <AiReqSheet {...p} mate={s.mate} />;   // AI에게 업무 맡기기 (2026-10-15)
+  // 구매 품의 요청 (2026-10-16 · apprui.jsx · 두 앱 같은 시트): 목록(내 요청 · 내가 맡은 것 · 모두) · 한 건
+  if (s.type === "appr") return <ApprSheet {...p} s={s} />;
+  if (s.type === "apprOne") return <ApprOneSheet {...p} id={s.id} item={s.item} />;
   if (s.type === "aiReport") return <AiReportSheet {...p} crew={s.crew} start={s.start} />;   // AI 크루 보고서 (2026-10-15 · 크루 칸별 · 금요일 리드 → 본부장)
   return null;
 }

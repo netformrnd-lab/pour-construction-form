@@ -11,8 +11,8 @@
 //   pour-os/v2/aimates/{AI id}  담당·규칙 덧칠 {owners:{_ 기본, 브랜드 id: 사람}, actOwners:{할 일 글자: 사람}, actHq:{할 일 글자: true|false}, actAk:{할 일 글자: 반복 실행 id}, rules[], paused, hist[]}
 //   users.bossId  상급자 (관리자 › 사람)
 //   최종 승인 + 실행 한 줄(exec) → 담당에게 '실행' 업무(tasks · aiAsk = 승인 id) — 실제 반영은 늘 사람 (2026-10-11)
-import { isMaster, nameOf, teamOf, isOffDay, ymd } from "./model.js";
-import { mateOf, crewOf, brandL, asidePlan, loginSites, actOf, launchRows, launchRowOf, GONE } from "../../marketing-hub/crew.js";
+import { isMaster, nameOf, teamOf, isOffDay, ymd, addDays, nextWorkday, wdBetween } from "./model.js";
+import { CREWS, mateOf, crewOf, brandL, asidePlan, loginSites, actOf, launchRows, launchRowOf, GONE } from "../../marketing-hub/crew.js";
 import { ASIDE_ADS_LAUNCH_VER } from "../../marketing-hub/adops.js";   // 광고 Aside 예약 글 판 (2026-10-17)
 
 export const ASK_STATE_L = { wait: "승인 대기", back: "AI가 고치는 중", ok: "최종 승인", no: "안 함" };
@@ -136,23 +136,35 @@ export function chainOf(a, users, hq) {
 
 // '확인할 것' 줄 (todayView 가 D.aiInbox 로 부름) — 지금 내 차례인 것 · 담당 미정은 관리자 누구나 · 같은 AI 3건 넘으면 한 줄로
 //   최종 승인·안 함은 담당에게 한 번(읽음 = 사라짐 · 7일)
+//   멈춤 감시(2026-10-17 · 아래 '멈춤 감시'): 평일 1일 넘게 기다린 줄 = 빨강 '평일 n일째' + 위로 · 같은 할 일의 지난 결과는 최신 줄 하나('이전 결과 n건')
+//     · 평일 2일 넘게 한 사람에게 멈춘 승인 = 그 사람 상급자(사람마다)·관리자(한 줄로)에게 '승인 밀림' · AI 가 반나절 넘게 못 고친 것 = 담당에게 'AI 고치는 중'
 export const AI_GROUP_MIN = 4;
 export function askInbox(asks, users, uid, seen = {}, now = new Date()) {
   const me = actU(users, uid); if (!me) return [];
-  const master = isMaster(me), since = new Date(now - 7 * 864e5).toISOString(), mine = [], rows = [];
+  const master = isMaster(me), since = new Date(now - 7 * 864e5).toISOString(), key = ymd(now), mine = [], rows = [];
+  const myTurn = (a) => a.state === "wait" && !(!a.to && GONE[a.mate]) && (a.to === uid || (!a.to && master));
+  const { heads, older } = waitHeads((asks || []).filter((a) => a && a.id && myTurn(a)));   // 같은 할 일의 지난 결과 → 최신 줄 하나
   (asks || []).forEach((a) => {
     if (!a || !a.id) return;
     const ai = `${a.mateName || "AI"} (AI)`;
     // 쉬는 AI(하루·포리·에코 · crew.GONE · 2026-10-14)가 올린 담당 미정 승인은 '확인할 것'에 안 띄움 — 관리자 모두에게 같은 줄이 쌓여 할 일이 묻힘(2026-10-15 페르소나 시험)
     //   → AI 팀원 화면 '쉬는 AI 승인 대기'에서 열어 보거나 [모두 안 함]으로 정리 · 링크(#a-)로는 그대로 열림
     if (a.state === "wait" && !a.to && GONE[a.mate]) return;
-    if (a.state === "wait" && (a.to === uid || (!a.to && master))) {
+    if (myTurn(a) && heads.has(a.id)) {
       const n = (a.items || []).length, pk = Array.isArray(a.pick) ? a.pick.length : 0, prev = a.step > 0 ? nameOf(users, (a.path || [])[(a.path || []).length - 1]) : "";
+      const wd = waitWd(a, now), late = wd >= LATE_WD, prevN = (older.get(a.id) || []).length, newer = prevKey(a) ? newerOf(asks, a) : null;   // 더 새 결과가 위로 올라갔거나 끝났으면 이것은 지난 결과
       const tag = a.ret ? "수정 요청" : a.step > 0 ? "확인 요청" : "AI 승인 요청";
       const text = a.ret ? `${a.ret.byName}: ${a.ret.text}`
         : a.step > 0 ? ["승인하고 넘김", n ? `${pk}개 고름` : "", `${ai} 결과`].filter(Boolean).join(" · ")
         : [brandL(a.brand), n ? `제안 ${n}개 · 번호 골라 승인` : "확인하고 승인", (a.ver || 1) > 1 ? `${a.ver}번째로 다시 올림` : "", !a.to ? "담당 미정 · 관리자 누구나" : ""].filter(Boolean).join(" · ");
-      mine.push({ kind: "ai", tag, red: !!a.ret, id: `ai:${a.id}:${a.ver || 1}:${a.step || 0}:${a.to || "-"}`, aiId: a.id, mate: a.mate, title: a.title, whoName: a.step > 0 && prev ? prev : ai, at: a.updatedAt || a.createdAt, text, keep: true, _ret: !!a.ret });
+      mine.push({ kind: "ai", tag, red: !!a.ret || late, ...(late ? { ord: ORD_LATE } : {}), id: `ai:${a.id}:${a.ver || 1}:${a.step || 0}:${a.to || "-"}`, aiId: a.id, mate: a.mate, title: a.title, whoName: a.step > 0 && prev ? prev : ai, at: a.updatedAt || a.createdAt,
+        text: [late ? `평일 ${wd}일째` : "", text, prevN ? `이전 결과 ${prevN}건` : "", newer ? "더 새 결과 있음 · 정리해 주세요" : ""].filter(Boolean).join(" · "), keep: true, _ret: !!a.ret, _late: late });
+    }
+    // AI 가 고치는 중인데 일하는 시간 반나절(BACK_MIN) 넘음 → 담당(없으면 관리자) · 읽음 = 오늘 하루 (멈춤 감시 ②)
+    if (a.state === "back" && (a.owner === uid || (!a.owner && master))) {
+      const from = (a.back && a.back.at) || a.updatedAt, mins = workMin(from, now), id = `ab:${a.id}:${a.ver || 1}:${key}`;
+      if (mins >= BACK_MIN && !seen[id]) rows.push({ kind: "aiStuck", tag: "AI 고치는 중", red: true, id, aiId: a.id, mate: a.mate, title: a.title, whoName: ai, at: from,
+        text: `보낸 뒤 일하는 시간 ${Math.floor(mins / 60)}시간째 그대로 · ${a.board ? "누르면 [바로 고치기] 글" : "누르면 사장님께 보낼 글"}` });
     }
     // 맡긴 일 결과 (2026-10-15 · crew.askFromReq) — 맡긴 사람이 담당이 아니면 판마다 한 번 (7일 · 읽음 = 사라짐) · 담당이면 위 승인 줄로 충분
     if (a.req && a.reqBy === uid && a.owner !== uid && (a.updatedAt || a.createdAt || "") >= since && !seen["ar:" + a.id + ":" + (a.ver || 1)])
@@ -163,12 +175,30 @@ export function askInbox(asks, users, uid, seen = {}, now = new Date()) {
     if (a.owner === uid && a.state === "no" && a.noBy !== uid && (a.noAt || "") >= since && !seen["an:" + a.id + a.noAt])
       rows.push({ kind: "aiDone", tag: "안 함", id: "an:" + a.id + a.noAt, aiId: a.id, title: a.title, whoName: a.noByName, at: a.noAt, text: a.noReason || "안 하기로 했어요" });
   });
-  // 같은 AI 의 승인 대기(돌려받은 것 빼고)가 많으면 한 줄 → 그 AI 한 장
+  // 같은 AI 의 승인 대기(돌려받은 것 빼고)가 많으면 한 줄 → 그 AI 한 장 · 늦은 것이 있으면 빨강·위로
   const by = {}; mine.forEach((x) => { if (!x._ret) (by[x.mate] = by[x.mate] || []).push(x); });
   const grouped = new Set();
-  Object.entries(by).forEach(([mate, g]) => { if (g.length < AI_GROUP_MIN) return; g.forEach((x) => grouped.add(x.id)); const m = mateOf(mate) || { name: mate };
-    rows.push({ kind: "aiGroup", tag: "AI 승인 요청", id: `ag:${mate}:${g.length}`, mate, title: `${m.name} 결과 ${g.length}건`, whoName: `${m.name} (AI)`, at: g.map((x) => x.at || "").sort().pop(), text: g.slice(0, 2).map((x) => x.title).join(" · ") + (g.length > 2 ? ` 외 ${g.length - 2}건` : ""), keep: true }); });
-  return [...mine.filter((x) => !grouped.has(x.id)).map(({ _ret, ...x }) => x), ...rows];
+  Object.entries(by).forEach(([mate, g]) => { if (g.length < AI_GROUP_MIN) return; g.forEach((x) => grouped.add(x.id)); const m = mateOf(mate) || { name: mate }, lateN = g.filter((x) => x._late).length;
+    rows.push({ kind: "aiGroup", tag: "AI 승인 요청", red: lateN > 0, ...(lateN ? { ord: ORD_LATE } : {}), id: `ag:${mate}:${g.length}`, mate, title: `${m.name} 결과 ${g.length}건`, whoName: `${m.name} (AI)`, at: g.map((x) => x.at || "").sort().pop(),
+      text: (lateN ? `늦은 것 ${lateN}건 · ` : "") + g.slice(0, 2).map((x) => x.title).join(" · ") + (g.length > 2 ? ` 외 ${g.length - 2}건` : ""), keep: true }); });
+  // 승인 밀림 (멈춤 감시 ① · "2평일 상급자·관리자") — 한 사람 차례에서 평일 ESC_WD(2)일 넘게 멈춘 승인
+  //   → 그 사람 상급자 = 사람마다 한 줄 · 관리자 = 한 줄로 모아(내가 상급자인 사람·나 빼고 · 상급자가 없거나 쉬어도 여기) · 지난 결과는 빼고 셈 · 누르면 가장 오래 기다린 승인 · 읽음 = 오늘 하루
+  const byTo = new Map(), stalls = [];
+  (asks || []).forEach((a) => { if (a && a.id && a.state === "wait" && a.to && a.to !== uid) { if (!byTo.has(a.to)) byTo.set(a.to, []); byTo.get(a.to).push(a); } });
+  byTo.forEach((list, to) => { const hs = waitHeads(list).heads, late = list.filter((a) => hs.has(a.id)).map((a) => ({ a, wd: waitWd(a, now) })).filter((x) => x.wd >= ESC_WD)
+      .sort((p, q) => q.wd - p.wd || String(waitFrom(p.a)).localeCompare(String(waitFrom(q.a))));
+    if (late.length) stalls.push({ to, boss: bossOf(to, users), late }); });
+  stalls.sort((p, q) => q.late[0].wd - p.late[0].wd || String(waitFrom(p.late[0].a)).localeCompare(String(waitFrom(q.late[0].a))));   // 오래 멈춘 사람 먼저
+  const lateRow = (st, id) => { const nm = nameOf(users, st.to) || "담당", top = st.late[0];
+    return { kind: "aiLate", tag: "승인 밀림", red: true, id, aiId: top.a.id, who: st.to, whoName: `${nm}님 차례`, at: waitFrom(top.a), title: `${nm}님 AI 승인 ${st.late.length}건 · 평일 ${top.wd}일째`,
+      text: st.late.slice(0, 2).map((x) => x.a.title).join(" · ") + (st.late.length > 2 ? ` 외 ${st.late.length - 2}건` : "") + (st.boss ? "" : " · 상급자 없음") }; };
+  stalls.forEach((st) => { const id = `al:${st.to}:${key}`; if (st.boss === uid && !seen[id]) rows.push(lateRow(st, id)); });
+  const ms = master ? stalls.filter((st) => st.boss !== uid) : [], mid = `alm:${ms.map((st) => st.to).sort().join(",")}:${key}`;
+  if (ms.length && !seen[mid]) { if (ms.length === 1) rows.push(lateRow(ms[0], mid));
+    else { const top = ms.flatMap((st) => st.late).sort((p, q) => q.wd - p.wd || String(waitFrom(p.a)).localeCompare(String(waitFrom(q.a))))[0];
+      rows.push({ kind: "aiLate", tag: "승인 밀림", red: true, id: mid, aiId: top.a.id, whoName: "AI 승인", at: waitFrom(top.a), title: `AI 승인 밀림 ${ms.length}명 · 길게는 평일 ${top.wd}일째`,
+        text: ms.map((st) => `${nameOf(users, st.to) || "담당"} ${st.late.length}건`).join(" · ") }); } }
+  return [...mine.filter((x) => !grouped.has(x.id)).map(({ _ret, _late, ...x }) => x), ...rows];
 }
 
 // AI 한 명 성과 (최근 since 이후 · 고도화용): 승인 · AI 에게 다시 · 돌려받음 · 안 함 · 대기 · 고치는 중
@@ -218,9 +248,74 @@ export const ranOn = (v, key) => !!(v && v.at) && ymd(new Date(v.at)) === key;  
 // 오늘 안 돎: 평일 · 예전엔 올렸는데(처음 세팅 전은 아님) 오늘은 아직 · 예약 시각 + 90분 지남 ('확인할 것' · 세팅 시트가 같이 씀)
 export const missedOn = (v, t, now = new Date()) => { const key = ymd(now); return !isOffDay(key) && !!(v && v.at) && !ranOn(v, key) && hmOf(now) >= addMin(t, MISS_AFTER); };
 export const adsAsideVer = (D) => (((D && D.settings) || []).find((x) => x && (x.id || x._doc) === "adsAside") || {}).ver || "";   // 광고 Aside 예약 글 넣은 판 (settings/adsAside)
-export function asideInbox(D, uid, now = new Date()) {
+
+// ── 멈춤 감시 (2026-10-17 사장님 고름 · 볼트 세션 점검: AI 승인 '확인할 것'에 나이 조건이 없음 · 쉬는 AI 4건 72~96시간째 · 여름 2건 최종까지 42시간
+//    · 담당 미정 보드는 안 돌아도 아무에게도 안 감 · 아침 루틴은 감지 없음(10/16 GitHub 막힘 → 다음 날 00:09 에야 올라감)) ──
+//   ① 승인 대기: 그 사람 차례가 된 날(쉬는 날·18시 뒤에 들어온 건 다음 평일) 다음 날부터 평일 LATE_WD(1)일 = 그 줄 빨강 '평일 n일째' + 위로(ord)
+//      · ESC_WD(2)일 = 그 사람 상급자에게 '승인 밀림'(사람마다) + 관리자에게 한 줄로 모아 (askInbox)
+//   ② AI 가 고치는 중(back): 보낸 뒤 일하는 시간(평일 09~18시) BACK_MIN(4시간 = 반나절) = 담당에게 'AI 고치는 중' (askInbox)
+//   ③ 같은 AI·보드·할 일(·상품·브랜드)의 담당 단계 대기 = 가장 새 결과 줄 하나 + '이전 결과 n건' → 승인 한 장 [이전 결과 정리](안 함 · PREV_DROP · 사람이 누름)
+//      · 맡긴 일(R)·아침 루틴 노트(보드 없음)는 날마다 다른 글이라 안 묶음
+//   ④ AI 안 돎 (asideInbox): 담당 미정 크루가 안 올려도 관리자에게 · 평일 MISS_ESC(2)일 넘게 안 올린 보드는 관리자에게 · 아침 루틴이 09:30 까지 안 올라오면 여름 담당·관리자에게
+export const LATE_WD = 1, ESC_WD = 2, BACK_MIN = 240, MISS_ESC = 2, WORK_FROM = "09:00", WORK_TO = "18:00", ROUTINE_AT = "06:50", ROUTINE_CHECK = "09:30";
+export const ORD_LATE = 1.15;   // 늦은 AI 승인 줄 = 보통 AI 승인(1.2) 위 (model.todayView 정렬 · ord)
+export const PREV_DROP = "새 결과가 와서 지난 결과로 정리";
+// 그 사람 차례가 된 때 — 승인·돌려보냄·다시 올림·담당 바뀜이 모두 updatedAt 을 새로 씀 (흔적·댓글은 안 씀)
+export const waitFrom = (a) => (a && (a.updatedAt || a.createdAt)) || "";
+// 차례가 시작된 날: 쉬는 날·퇴근(18시) 뒤에 들어온 건 다음 평일부터
+const dayFrom = (iso) => { const d = new Date(iso); if (!iso || isNaN(d)) return ""; const k = ymd(d); return isOffDay(k) || hmOf(d) >= WORK_TO ? nextWorkday(addDays(k, 1)) : k; };
+// 기다린 평일 수 (차례가 시작된 날 다음 날부터 오늘까지 · 쉬는 날 빼고) — 0 = 오늘 들어옴
+export const waitWd = (a, now = new Date()) => { const k = dayFrom(waitFrom(a)); return k ? wdBetween(k, ymd(now)) : 0; };
+// 일하는 시간(평일 09~18시)으로 몇 분 지났나 — 밤·주말·공휴일은 안 셈
+export function workMin(fromIso, now = new Date()) {
+  const f = new Date(fromIso); if (!fromIso || isNaN(f) || now <= f) return 0;
+  let n = 0;
+  for (let k = ymd(f), i = 0; k <= ymd(now) && i < 62; k = addDays(k, 1), i++) { if (isOffDay(k)) continue;
+    const s = Math.max(+new Date(`${k}T${WORK_FROM}:00`), +f), e = Math.min(+new Date(`${k}T${WORK_TO}:00`), +now); if (e > s) n += (e - s) / 6e4; }
+  return Math.round(n);
+}
+// 결과가 올라온 때 (처음 올림 · AI 가 고쳐 다시 올림 — 돌려보냄·담당 바뀜은 아님)
+export const resultAt = (a) => { const ls = ((a && a.log) || []).filter((l) => l && (l.act === "ask" || l.act === "redo")).map((l) => String(l.at || "")).sort(); return ls.pop() || String((a && a.createdAt) || ""); };
+// 같은 할 일 열쇠 (보드 할 일 · 맡긴 일(R)·아침 루틴 노트는 날마다 다른 글이라 없음) · prevKey = 그중 담당 단계 대기만 (묶음·정리 대상)
+const actKey = (a) => (a && a.board && a.act && a.act !== "R" ? [a.mate, a.board, a.act, a.prod || "", a.brand || ""].join("|") : "");
+const prevKey = (a) => (a && a.state === "wait" && !(a.step > 0) && !a.ret ? actKey(a) : "");   // 상급자가 돌려보낸 것(수정 요청)은 안 묶음 · 따로 보임
+// 대기 목록 → heads(줄로 보일 것 = 할 일마다 가장 새 결과 · 안 묶는 것은 모두) · older(가장 새 것 id → 지난 결과들 · 최근 것 먼저)
+export function waitHeads(list) {
+  const g = new Map(), heads = new Set(), older = new Map();
+  (list || []).forEach((a) => { const k = prevKey(a); if (!k) { heads.add(a.id); return; } if (!g.has(k)) g.set(k, []); g.get(k).push(a); });
+  g.forEach((xs) => { const s = xs.slice().sort((p, q) => resultAt(q).localeCompare(resultAt(p)) || String(q.id).localeCompare(String(p.id))); heads.add(s[0].id); if (s.length > 1) older.set(s[0].id, s.slice(1)); });
+  return { heads, older };
+}
+// 승인 한 장: 같은 할 일의 지난 결과(이것보다 먼저 올라와 아직 담당 단계 대기 · 최근 것 먼저) / 더 새 결과(상태 상관없이 가장 새것 — 위로 올라갔거나 끝난 것도)
+export const prevWaits = (asks, a) => { const k = actKey(a), t = resultAt(a); return k ? (asks || []).filter((x) => x && x.id !== a.id && prevKey(x) === k && resultAt(x) < t).sort((p, q) => resultAt(q).localeCompare(resultAt(p))) : []; };
+export const newerOf = (asks, a) => { const k = actKey(a), t = resultAt(a); return k ? (asks || []).filter((x) => x && x.id !== a.id && actKey(x) === k && resultAt(x) > t).sort((p, q) => resultAt(q).localeCompare(resultAt(p)))[0] || null : null; };
+// Aside 안 올린 평일 수 — 마지막으로 올린 날 다음 날~어제(평일) + 오늘(예약 + 90분 지났는데 아직이면) · 한 번도 안 올렸으면 0(세팅 안내 몫) · 쉬는 날엔 0(안 알림)
+export const missDays = (v, t, now = new Date()) => { const key = ymd(now); if (!v || !v.at || isOffDay(key)) return 0; const last = ymd(new Date(v.at)), y = addDays(key, -1);
+  return (y > last ? wdBetween(last, y) : 0) + (missedOn(v, t, now) ? 1 : 0); };
+// 오늘 전 마지막 평일 (안 돎 제목 '지난 평일(10/16)')
+const prevWd = (key) => { let k = addDays(key, -1); for (let i = 0; i < 14 && isOffDay(k); i++) k = addDays(k, -1); return k; };
+const mdK = (k) => `${Number(k.slice(5, 7))}/${Number(k.slice(8, 10))}`;
+// 줄 시각: 오늘 못 올린 것 = 오늘 예약 시각 · 지난 평일부터 = 마지막으로 올린 때 ('3일 전')
+const missAt = (v, t, n, now) => (n === 1 && missedOn(v, t, now) ? `${ymd(now)}T${t}:00` : (v && v.at) || `${ymd(now)}T${t}:00`);
+const missTitle = (name, n, today, key) => (n === 1 ? (today ? `오늘 ${name}(AI)가 아직 안 올렸어요` : `${name}(AI)가 지난 평일(${mdK(prevWd(key))})에 안 올렸어요`) : `${name}(AI)가 평일 ${n}일째 안 올렸어요`);
+// 아침 루틴(Claude 예약 작업 · crew 크루 팀원 routine = 여름 · 평일 06:50) — 그날 올라온 노트 승인 (05시 뒤에 만든 것 · 자정 넘어 늦게 올라온 전날 몫은 빼고)
+export const routineRanOn = (a, mid, key) => !!a && (a.mate === mid || GONE[a.mate] === mid) && a.src === "tool" && !a.board && !!a.createdAt && ymd(new Date(a.createdAt)) === key && hmOf(new Date(a.createdAt)) >= "05:00";
+// 오늘 아침 루틴이 안 올라온 AI (평일 · 09:30 지남) → [{mate, name, owner}] · aimates.{AI}.routineOff = true 면 안 봄(사장님이 루틴을 멈췄을 때)
+export function routineMisses(D, now = new Date()) {
+  const key = ymd(now); if (isOffDay(key) || hmOf(now) < ROUTINE_CHECK || !D || !D.ai || !D.ai.ready) return [];
+  const asks = D.ai.asks || [], mates = D.ai.mates || {};
+  return CREWS.flatMap((c) => c.members).filter((m) => m.routine && !(mates[m.id] || {}).routineOff && !asks.some((a) => routineRanOn(a, m.id, key)))
+    .map((m) => ({ mate: m.id, name: m.name, owner: mateOwner(mates[m.id], "", D.users) }));
+}
+// 사장님께 보낼 글 — 아침 루틴·'고칠 것 확인'은 사장님 Claude 예약 작업이라 팀원은 알리기만
+const DOW_L = ["일", "월", "화", "수", "목", "금", "토"], mdw = (d) => `${d.getMonth() + 1}/${d.getDate()}(${DOW_L[d.getDay()]})`;
+export const routineAlert = (name, now = new Date()) => `[업무OS] ${name}(AI) 아침 루틴이 오늘 ${mdw(now)} ${ROUTINE_CHECK}까지 안 올라왔어요 · Claude 예약 작업 'AI 콘텐츠 아침 (${name} · B2C 크루)' 확인 부탁드려요`;
+export const stuckAlert = (a, now = new Date()) => `[업무OS] ${a.mateName || "AI"}(AI)에게 다시 보낸 '${a.title}' — 일하는 시간 ${Math.floor(workMin((a.back && a.back.at) || a.updatedAt, now) / 60)}시간째 그대로예요 · Claude 예약 작업 'AI 크루 고칠 것 확인' 확인 부탁드려요`;
+
+// seen = 읽음 (오늘 하루만 띄우는 줄: 관리자 '평일 2일 넘게 안 돎' · '아침 루틴 안 올라옴')
+export function asideInbox(D, uid, now = new Date(), seen = {}) {
   const me = actU(D.users, uid); if (!me || !D.ai || !D.ai.ready) return [];
-  const plan = asidePlanOf(D), bv = D.ai.boards || {}, key = ymd(now), out = [];
+  const plan = asidePlanOf(D), bv = D.ai.boards || {}, key = ymd(now), out = [], master = isMaster(me);
   const nm = (b) => (mateOf(b.mate) || {}).name || b.mate;
   const g = plan.find((x) => x.owner === uid);
   if (g) {
@@ -228,13 +323,28 @@ export function asideInbox(D, uid, now = new Date()) {
     if (fresh.length) out.push({ kind: "aiSetup", tag: "AI 크루 세팅", id: `as:${uid}:${fresh.map((r) => r.board.id).join(",")}`, whoName: "AI 크루", at: key + "T00:00:00", keep: true,
       title: `내 PC Aside 세팅 · ${g.runs.map((r) => `${nm(r.board)} ${r.t}`).join(" · ")}`,
       text: `처음 한 번 · 예약 ${g.runs.length}개 · 로그인 ${loginSites(g.runs.map((r) => r.board)).length + 1}곳 · 세팅하면 평일마다 내 PC 에서 돌아요` });
-    g.runs.forEach((r) => { if (!missedOn(bv[r.board.id], r.t, now)) return;
-      out.push({ kind: "aiMiss", tag: "Aside 안 돎", red: true, id: `am:${r.board.id}:${key}`, board: r.board.id, whoName: `${nm(r.board)} (AI)`, at: `${key}T${r.t}:00`, keep: true,
-        title: `오늘 ${nm(r.board)}(AI)가 아직 안 올렸어요`, text: `${r.t} 예약 · PC·Aside 가 켜져 있는지 확인 · [지금 돌리기]로 바로` }); });
+    // 안 돎: 오늘(예약 + 90분) 또는 지난 평일에 못 올림 (2026-10-17 · 예전엔 그날만 → 다음 날 아침엔 안 보였음)
+    g.runs.forEach((r) => { const n = missDays(bv[r.board.id], r.t, now); if (!n) return;
+      out.push({ kind: "aiMiss", tag: "Aside 안 돎", red: true, id: `am:${r.board.id}:${key}`, board: r.board.id, owner: uid, whoName: `${nm(r.board)} (AI)`, at: missAt(bv[r.board.id], r.t, n, now), keep: true,
+        title: missTitle(nm(r.board), n, missedOn(bv[r.board.id], r.t, now), key), text: `${r.t} 예약 · PC·Aside 가 켜져 있는지 확인 · [지금 돌리기]로 바로` }); });
   }
-  if (isMaster(me)) { const un = plan.find((x) => !x.owner);
+  if (master) { const un = plan.find((x) => !x.owner);
     if (un) out.push({ kind: "aiOwnerless", tag: "AI 크루 담당", id: `ao:${un.runs.map((r) => r.board.id).join(",")}`, whoName: "AI 크루", at: key + "T00:00:00", keep: true,
-      title: `AI 크루 담당 미정 ${un.runs.length}명`, text: `${un.runs.map((r) => nm(r.board)).join(" · ")} · 담당을 정하면 그 사람 PC 에서 돌고 세팅 안내가 가요` }); }
+      title: `AI 크루 담당 미정 ${un.runs.length}명`, text: `${un.runs.map((r) => nm(r.board)).join(" · ")} · 담당을 정하면 그 사람 PC 에서 돌고 세팅 안내가 가요` });
+    // 담당 미정 크루(관리자 PC 에서 돌던 것)도 안 돎 → 관리자 누구나 한 줄 (멈춤 감시 ④ · 예전엔 아무에게도 안 감)
+    const um = un ? un.runs.map((r) => ({ r, n: missDays(bv[r.board.id], r.t, now) })).filter((x) => x.n > 0) : [];
+    if (um.length) out.push({ kind: "aiMiss", tag: "Aside 안 돎", red: true, id: `amu:${um.map((x) => x.r.board.id).join(",")}:${key}`, board: um[0].r.board.id, owner: "", whoName: "AI 크루 (담당 미정)", at: missAt(bv[um[0].r.board.id], um[0].r.t, um[0].n, now), keep: true,
+      title: um.length > 1 ? `담당 미정 크루 ${um.length}명이 안 올렸어요` : missTitle(nm(um[0].r.board), um[0].n, missedOn(bv[um[0].r.board.id], um[0].r.t, now), key),
+      text: `${um.map((x) => `${nm(x.r.board)}${x.n > 1 ? ` ${x.n}일째` : ""}`).join(" · ")} · 관리자 PC Aside 확인 · 담당을 정하면 그 사람에게 알려요` });
+    // 평일 MISS_ESC(2)일 넘게 안 올린 보드(담당 있음 · 내 것 빼고) → 관리자 누구나 한 줄 · 읽음 = 오늘 하루
+    const lg = plan.filter((x) => x.owner && x.owner !== uid).flatMap((x) => x.runs.map((r) => ({ owner: x.owner, r, n: missDays(bv[r.board.id], r.t, now) }))).filter((x) => x.n >= MISS_ESC);
+    const lid = `aml:${lg.map((x) => x.r.board.id).join(",")}:${key}`;
+    if (lg.length && !seen[lid]) out.push({ kind: "aiMissLong", tag: "Aside 안 돎", red: true, id: lid, board: lg[0].r.board.id, owner: lg[0].owner, whoName: "AI 크루", at: (bv[lg[0].r.board.id] || {}).at,
+      title: `Aside 평일 ${MISS_ESC}일 넘게 안 돎 · ${lg.length}명`, text: `${lg.map((x) => `${nm(x.r.board)}(${nameOf(D.users, x.owner) || "?"} PC) ${x.n}일째`).join(" · ")} · 그 PC·Aside 를 확인해 주세요` }); }
+  // 아침 루틴(Claude 예약 작업)이 09:30 까지 안 올라옴 → 그 AI 담당·관리자 · 읽음 = 오늘 하루 (멈춤 감시 ④)
+  routineMisses(D, now).forEach((x) => { if (x.owner !== uid && !master) return; const id = `amr:${x.mate}:${key}`; if (seen[id]) return;
+    out.push({ kind: "aiRoutine", tag: "AI 안 돎", red: true, id, mate: x.mate, whoName: `${x.name} (AI)`, at: `${key}T${ROUTINE_AT}:00`,
+      title: `오늘 ${x.name}(AI) 아침 루틴이 아직 안 올라왔어요`, text: `평일 ${ROUTINE_AT} 블로그 원고·재배포 · Claude 예약 작업이 막혔을 수 있어요 · 누르면 사장님께 보낼 글` }); });
   // 광고 Aside 예약 글 (2026-10-17 사장님 "어사이드에게 예약글 넣어서 진행하는거 까먹을것같은데 os 확인할것에 나오게해줘")
   //   settings/adsAside.ver 가 지금 예약 글 판(adops.ASIDE_ADS_LAUNCH_VER)보다 옛것이면 관리자 누구나 한 줄(keep) · 누르면 광고 운영 화면 · [넣었어요] = core.adsAsideDone
   if (isMaster(me) && String(adsAsideVer(D)) < ASIDE_ADS_LAUNCH_VER)
@@ -247,6 +357,7 @@ export function asideInbox(D, uid, now = new Date()) {
 export const goneWaits = (asks) => (asks || []).filter((a) => a && a.state === "wait" && !a.to && GONE[a.mate]).sort((p, q) => String(q.createdAt || "").localeCompare(String(p.createdAt || "")));
 export const GONE_DROP = "쉬는 AI · 같은 일은 B2C 크루 여름이 매일 새로 올려요";
 // 지금 내 차례 승인 수 (더보기 'AI 팀원' 꼬리표 · AI 팀원 화면) — 쉬는 AI 담당 미정은 뺌 (askInbox 와 같게)
-export const myTurnN = (asks, cu) => (asks || []).filter((x) => x && x.state === "wait" && !(!x.to && GONE[x.mate]) && (x.to === cu.id || (!x.to && isMaster(cu)))).length;
+//   같은 할 일의 지난 결과는 가장 새 결과 하나로 셈 ('확인할 것'과 같게 · 2026-10-17 멈춤 감시)
+export const myTurnN = (asks, cu) => waitHeads((asks || []).filter((x) => x && x.id && x.state === "wait" && !(!x.to && GONE[x.mate]) && (x.to === cu.id || (!x.to && isMaster(cu))))).heads.size;
 // AI 팀원 한 명이 지금 어디서 일하나 (화면 머리)
 export const mateWhere = (mateId) => { const c = crewOf(mateId); return c ? c.name : "기본 AI 팀원 (원형)"; };

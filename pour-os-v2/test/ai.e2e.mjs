@@ -508,6 +508,93 @@ ST.v2.aiasks.ai_yeoreum_20261016_ghexpF_타일카펫 = ask({ id: 'ai_yeoreum_202
   eq('게시 2개 → 신제품 2/5 · 실행 업무 끝냄', [lt.title, x.status], ['디맨드젠 광고 (2/5)', 'done']);
   await s.close(); }
 
+// ⑫ 멈춤 감시 (2026-10-17 사장님 고름) — 10/19(월) 10:00 · 김민지 = 우주 B 평일 3일째(빨강·위로) · C 지난 결과 정리(+되돌리기) · D AI 고치는 중 5시간
+//   김송희(상급자) = '승인 밀림' · 김채원(여름 담당) = 아침 루틴 안 올라옴 → 사장님께 보낼 글 · 노트 고치는 중 · 허지은(관리자) = 담당 미정 크루 안 돎 · 2일 넘게 안 돎
+const MON = '2026-10-19T10:00:00+09:00';
+ST.v2.aiasks.ai_uju_20261014_ghrepB = ask({ id: 'ai_uju_20261014_ghrepB', at: '2026-10-14T01:00:00.000Z', run: '2026-10-14', mate: 'uju', brand: 'grohome', board: 'gh-rep', act: 'B', owner: 'mj', title: '재구매 보드 B · 늦은 결과', cols: ['채널'], items: [{ n: 'B1', c: { 채널: '자사몰' } }], exec: '승인되면 담당이 알림톡을 보낸다' });
+ST.v2.aiasks.ai_uju_20261015_ghrepC = ask({ id: 'ai_uju_20261015_ghrepC', at: '2026-10-15T01:00:00.000Z', run: '2026-10-15', mate: 'uju', brand: 'grohome', board: 'gh-rep', act: 'C', owner: 'mj', title: '재구매 보드 C · 지난 결과', exec: '승인되면 담당이 쿠폰을 만든다' });
+ST.v2.aiasks.ai_uju_20261019_ghrepC = ask({ id: 'ai_uju_20261019_ghrepC', at: '2026-10-19T00:10:00.000Z', run: '2026-10-19', mate: 'uju', brand: 'grohome', board: 'gh-rep', act: 'C', owner: 'mj', title: '재구매 보드 C · 새 결과', exec: '승인되면 담당이 쿠폰을 만든다' });
+const BK = { text: '근거를 더', by: 'mj', byName: '김민지', at: '2026-10-16T05:00:00.000Z' };   // 금 14:00 → 월 10:00 = 일하는 시간 5시간
+ST.v2.aiasks.ai_uju_20261016_ghrepD = { ...ask({ id: 'ai_uju_20261016_ghrepD', at: '2026-10-16T01:00:00.000Z', run: '2026-10-16', mate: 'uju', brand: 'grohome', board: 'gh-rep', act: 'D', owner: 'mj', title: '재구매 보드 D · 고치는 중' }), state: 'back', to: '', back: BK, updatedAt: BK.at };
+ST.v2.aiasks.ai_yeoreum_20261016_note = { ...ask({ id: 'ai_yeoreum_20261016_note', at: '2026-10-15T22:00:00.000Z', run: '2026-10-16', mate: 'yeoreum', owner: 'cw', title: '여름 · 블로그 원고 3', src: 'tool' }), state: 'back', to: '', back: { ...BK, by: 'cw', byName: '김채원' }, updatedAt: BK.at };
+ST.v2.aiboards['gh-conv'].at = '2026-10-14T00:10:00.000Z';   // 겨울(남윤정 PC) 수 09:10 뒤로 안 올림 → 목·금 = 평일 2일
+ST.v2.aiboards['gh-traffic'] = { id: 'gh-traffic', board: 'gh-traffic', at: '2026-10-15T00:05:00.000Z' };   // 가을(담당 미정 · 관리자 PC) 목 뒤로 안 올림
+{ let s = await session('mj', { now: MON });
+  await expand(s.pg);
+  const rows = await s.pg.locator('.v2-page [role=button]').allInnerTexts();
+  const iLate = rows.findIndex((t) => t.includes('늦은 결과')), iNew = rows.findIndex((t) => t.includes('새 결과'));
+  ok('늦은 승인 = 평일 3일째 · 보통 승인보다 위', iLate >= 0 && iNew > iLate && rows[iLate].includes('평일 3일째'), rows.slice(0, 6));
+  eq('같은 할 일 = 새 결과 한 줄 + 이전 결과 1건 · 지난 결과 줄은 없음', [await inbox(s.pg, '재구매 보드 C · 새 결과').count(), (await inbox(s.pg, '재구매 보드 C · 새 결과').first().innerText()).includes('이전 결과 1건'), await inbox(s.pg, '재구매 보드 C · 지난 결과').count()], [1, true, 0]);
+  eq('AI 고치는 중 반나절 넘음 = 한 줄 · [바로 고치기]', [await inbox(s.pg, '재구매 보드 D · 고치는 중').count(), await inbox(s.pg, '재구매 보드 D · 고치는 중').first().getByRole('button', { name: '바로 고치기', exact: true }).count()], [1, 1]);
+  await shot(s.pg, 'mj-stall-375'); ok('멈춤 감시 줄 넘침 없음 375', !(await over(s.pg)));
+  await inbox(s.pg, '재구매 보드 D · 고치는 중').first().getByRole('button', { name: '바로 고치기', exact: true }).click(); await s.pg.waitForTimeout(500);
+  ok('고치는 중 한 장: 일하는 시간 5시간째 · 바로 고치기 글', (await s.S().innerText()).includes('일하는 시간 5시간째 그대로예요') && (await s.S().getByRole('button', { name: '바로 고치기 — Aside 글 복사' }).count()) === 1);
+  await s.pg.keyboard.press('Escape'); await s.pg.waitForTimeout(300);
+  await inbox(s.pg, '재구매 보드 B · 늦은 결과').first().click(); await s.pg.waitForTimeout(500);
+  ok('늦은 승인 한 장: 평일 3일째 기다리는 중 · 내 차례', (await s.S().innerText()).includes('평일 3일째 기다리는 중 · 김민지님 차례'));
+  await s.pg.keyboard.press('Escape'); await s.pg.waitForTimeout(300);
+  await inbox(s.pg, '재구매 보드 C · 새 결과').first().click(); await s.pg.waitForTimeout(500);
+  ok('새 결과 한 장: 이전 결과 1건 대기 · [이전 결과 1건 정리]', (await s.S().innerText()).includes('같은 할 일의 이전 결과 1건이 아직 대기 중') && (await s.S().getByRole('button', { name: '이전 결과 1건 정리' }).count()) === 1);
+  await shot(s.pg, 'mj-prev-375'); ok('이전 결과 한 장 넘침 없음 375', !(await over(s.pg)));
+  await s.S().getByRole('button', { name: '이전 결과 1건 정리' }).click(); await s.pg.waitForTimeout(300);
+  await s.pg.getByRole('alertdialog').getByRole('button', { name: '정리', exact: true }).click(); await s.pg.waitForTimeout(800);
+  let d = await s.pg.evaluate(() => window.__V2.v2.aiasks.ai_uju_20261015_ghrepC);
+  eq('정리 → 지난 결과만 안 함 · 이유 · 새 결과는 그대로', [d.state, d.noReason, d.noBy, (await s.pg.evaluate(() => window.__V2.v2.aiasks.ai_uju_20261019_ghrepC.state))], ['no', '새 결과가 와서 지난 결과로 정리', 'mj', 'wait']);
+  ok('정리 토스트 · 되돌리기', (await s.pg.locator('.v2-toast').innerText()).includes("1건을 '안 함'으로 정리했어요"));
+  await s.pg.locator('.v2-toast').getByRole('button', { name: '되돌리기' }).click(); await s.pg.waitForTimeout(800);
+  d = await s.pg.evaluate(() => window.__V2.v2.aiasks.ai_uju_20261015_ghrepC);
+  eq('되돌리기 → 다시 대기 · 내 차례', [d.state, d.to, d.noReason], ['wait', 'mj', null]);
+  await s.close(); }
+{ let s = await session('mj', { now: MON });   // 지난 결과를 열면 '더 새 결과' → [새 결과 보기] · [이것은 지난 결과로 정리]
+  await s.pg.evaluate(() => { location.hash = '#a-ai_uju_20261015_ghrepC'; }); await s.pg.waitForTimeout(800);
+  ok('지난 결과 한 장: 더 새 결과 있음 · 새 결과 보기 · 이것은 지난 결과로 정리', (await s.S().innerText()).includes('더 새 결과가 있어요') && (await s.S().getByRole('button', { name: '이것은 지난 결과로 정리' }).count()) === 1);
+  await s.S().getByRole('button', { name: '이것은 지난 결과로 정리' }).click(); await s.pg.waitForTimeout(700);
+  eq('한 건 정리 = 안 함', (await s.pg.evaluate(() => window.__V2.v2.aiasks.ai_uju_20261015_ghrepC)).state, 'no');
+  await s.close(); }
+{ let s = await session('sh', { now: MON });
+  await expand(s.pg);
+  const r = inbox(s.pg, '김민지님 AI 승인');
+  ok('상급자(김송희) = 승인 밀림 · 평일 3일째', (await r.count()) === 1 && /평일 3일째/.test(await r.first().innerText()), await r.count());
+  await r.first().click(); await s.pg.waitForTimeout(500);
+  ok('밀림 줄 → 가장 오래 기다린 승인 · 대화로 물어보기 안내', (await s.S().innerText()).includes('재구매 보드 B · 늦은 결과') && (await s.S().innerText()).includes('물어보려면 아래 대화에 @김민지'));
+  await s.pg.keyboard.press('Escape'); await s.pg.waitForTimeout(400);
+  eq('한 번 보면 오늘 하루 안 보임', await inbox(s.pg, '김민지님 AI 승인').count(), 0);
+  await s.close(); }
+{ let s = await session('cw', { now: MON });
+  await expand(s.pg);
+  eq('여름 담당(김채원) = 아침 루틴 안 올라옴 · 노트 고치는 중(알리기)', [await inbox(s.pg, '오늘 여름(AI) 아침 루틴이 아직 안 올라왔어요').count(), await inbox(s.pg, '여름 · 블로그 원고 3').filter({ hasText: '사장님께 보낼 글' }).count()], [1, 1]);
+  await inbox(s.pg, '오늘 여름(AI) 아침 루틴이 아직 안 올라왔어요').first().getByRole('button', { name: '알리기', exact: true }).click(); await s.pg.waitForTimeout(500);
+  ok('[알리기] → 여름 한 장 · 09:30까지 안 올라왔어요', (await s.S().innerText()).includes('오늘 아침 루틴') && (await s.S().innerText()).includes('09:30까지 안 올라왔어요'));
+  await s.S().getByRole('button', { name: '사장님께 보낼 글 복사' }).click(); await s.pg.waitForTimeout(300);
+  eq('사장님께 보낼 글', await boxOf(s.S, '사장님께 보낼 글 복사'), "[업무OS] 여름(AI) 아침 루틴이 오늘 10/19(월) 09:30까지 안 올라왔어요 · Claude 예약 작업 'AI 콘텐츠 아침 (여름 · B2C 크루)' 확인 부탁드려요");
+  await shot(s.pg, 'cw-routine-375'); ok('아침 루틴 한 장 넘침 없음 375', !(await over(s.pg)));
+  await s.pg.keyboard.press('Escape'); await s.pg.waitForTimeout(300);
+  await inbox(s.pg, '여름 · 블로그 원고 3').filter({ hasText: '사장님께 보낼 글' }).first().getByRole('button', { name: '알리기', exact: true }).click(); await s.pg.waitForTimeout(500);
+  await s.S().getByRole('button', { name: '사장님께 보낼 글 복사' }).click(); await s.pg.waitForTimeout(300);
+  ok('노트 고치는 중 → 사장님께 보낼 글 (고칠 것 확인)', (await boxOf(s.S, '사장님께 보낼 글 복사')).includes("Claude 예약 작업 'AI 크루 고칠 것 확인'"));
+  await s.close();
+  ST.v2.aiasks.ai_yeoreum_20261019_rt = ask({ id: 'ai_yeoreum_20261019_rt', at: '2026-10-18T22:02:00.000Z', run: '2026-10-19', mate: 'yeoreum', owner: 'cw', title: '여름 · 블로그 원고 3', src: 'tool' });   // 07:02 올라옴
+  s = await session('cw', { now: MON });
+  await expand(s.pg);
+  eq('아침 루틴이 올라오면 줄 없음', await inbox(s.pg, '아침 루틴이 아직 안 올라왔어요').count(), 0);
+  await s.pg.locator('.v2-nav').getByRole('button', { name: '더보기' }).click(); await s.pg.waitForTimeout(300);
+  await s.pg.getByText(/^AI 팀원 · 내가 맡은 AI/).click(); await s.pg.waitForTimeout(500);
+  await s.S().getByText('여름 · 노출마케터').first().click(); await s.pg.waitForTimeout(500);
+  ok('여름 한 장: 오늘 아침 루틴 07:02 올라옴', (await s.S().innerText()).includes('07:02 올라옴 · 승인 1건'));
+  await s.close(); }
+{ let s = await session('hj', { now: MON, w: 1280, h: 900 });
+  await expand(s.pg);
+  eq('관리자 = 담당 미정 크루 안 돎(가을) · 2일 넘게 안 돎(겨울 · 남윤정 PC)', [await inbox(s.pg, '가을(AI)가 지난 평일(10/16)에 안 올렸어요').count(), (await inbox(s.pg, 'Aside 평일 2일 넘게 안 돎').count()) && (await inbox(s.pg, 'Aside 평일 2일 넘게 안 돎').first().innerText()).includes('겨울(남윤정 PC) 2일째')], [1, true]);
+  await shot(s.pg, 'hj-stall-1280'); ok('관리자 멈춤 감시 넘침 없음 1280', !(await over(s.pg)));
+  await inbox(s.pg, '가을(AI)가 지난 평일(10/16)에 안 올렸어요').first().getByRole('button', { name: '지금 돌리기', exact: true }).click(); await s.pg.waitForTimeout(500);
+  ok('[지금 돌리기] → 담당 미정 · 관리자 PC 세팅 시트', (await s.S().innerText()).includes('담당 미정 크루는 관리자 PC 한 곳에서'));
+  await s.close(); }
+{ let s = await session('yj', { now: MON, w: 768, h: 1000 });
+  await expand(s.pg);
+  eq('겨울 담당(남윤정) = 평일 2일째 안 올렸어요', await inbox(s.pg, '겨울(AI)가 평일 2일째 안 올렸어요').count(), 1);
+  ok('768 넘침 없음', !(await over(s.pg)));
+  await s.close(); }
+
 ok('화면 오류 없음', errs.length === 0, errs);
 await b.close();
 console.log(`\n${n - bad}/${n} 통과 · 그림 ${SHOTS}`); if (bad) process.exit(1);

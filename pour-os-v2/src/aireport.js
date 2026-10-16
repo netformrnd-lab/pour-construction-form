@@ -12,6 +12,7 @@ import { addDays, ymd, md, nameOf, isMaster, isDone, isRemoved } from "./model.j
 import { CREWS, GONE, mateOf, boardOf, fmtMetric, metricOk } from "../../marketing-hub/crew.js";
 import { mateOwner, bossOf, isLeadU, isHQ, MAX_UP } from "./aiask.js";
 import { doneDay, dayOfIso } from "./report.js";
+import { isFxKey, fxIdOf } from "./airt.js";
 
 export const CYCLE_L = { week: "주간", "2week": "2주", month: "월간" };
 export const CYCLE_FROM = "2026-10-12";   // 첫 보고 기간 (월요일)
@@ -87,7 +88,8 @@ export function secData(D, m, p, pv, asks) {
   const mdoc = (D.ai && D.ai.mates && D.ai.mates[m.id]) || {}, items = (D.ak && D.ak.items) || [];
   const ak = [...new Set(Object.values(mdoc.actAk || {}).filter(Boolean))].map((id) => { const it = items.find((x) => x.id === id);
     const n = tasks.filter((t) => t.aiAk === id).reduce((s, t) => s + Object.values(t.aiTrace || {}).filter((r) => r && r.done && inP(r.date)).length, 0);
-    return { id, name: it ? it.name : id, n }; });
+    const ft = !it && isFxKey(id) ? ((D.tasks || []).find((x) => x.id === fxIdOf(id)) || null) : null;   // 정한 날 체크 짝 (2026-10-16)
+    return { id, name: it ? it.name : ft ? ft.title : id, n }; });
   // ④ 다음 — AI [다음주] (aiboards.nextHist · 이번 기간 안에서 마지막)
   const nh = bv.nextHist || {}, nd = Object.keys(nh).filter(inP).sort().pop() || "";
   return { mate: m.id, name: m.name, slot: m.slot, role: m.role, board: b.id, title: b.title,

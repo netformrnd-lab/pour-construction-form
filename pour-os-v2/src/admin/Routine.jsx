@@ -12,6 +12,8 @@ import {
 import { C, Chip, Seg, TBtn, Card, Empty, useLocal, Ask } from "../ui.jsx";
 import { LS } from "../core.jsx";
 import { sumAk, periodWeeks, akByOf, brandName } from "../routine.js";
+import { AiPairPanel, rtRows } from "../airtui.jsx";   // AI 크루 ↔ 반복 실행 (2026-10-16)
+import { rtPairs, rtKey } from "../airt.js";
 import { qtyCfg, qtySum, qtyText } from "../rec.js";
 
 // 버전1 문서 하나 실시간 읽기 (d: undefined = 불러오는 중, null = 없음)
@@ -30,10 +32,11 @@ const tile = (l, d, t, sub) => <div className="a-rtile"><span className="l">{l}<
 // 2단계(사용자 확정 2026-10-06): 반복 실행 = 브랜드가 문제없이 돌아가게 하는 일(브랜드 꼭 · 공통 운영 포함) · 개인 고정업무는 [개인]에서 사람별 n/m 만
 //   세그 [반복 실행 n | 개인 n] (2026-10-16 '오늘 체크 · 횟수' 칸 없앰 → 한 판) · 브랜드 없는 고정업무를 모든 브랜드에 '공통'으로 섞던 규칙은 없앰
 //   맨 위: 브랜드 안 정한 고정업무(추천 칩 · 1탭 · [추천대로 n개 정하기]) · 주기 확인 필요(그로홈에서 온 것 · [제안대로 적용])
-export function RoutineTab({ D, A, open }) {
+export function RoutineTab({ D, A, open, cu }) {
   const [sec0, setSec] = useLocal(LS("arsec"), "all"), [brand, setBrand] = useLocal(LS("arbrand"), "all"), [who, setWho] = useLocal(LS("arwho"), "all");
   const sec = sec0 === "me" ? "me" : "all";   // 예전 값('오늘 체크'·'횟수'·'고정업무') → 반복 실행 한 판
   const [wkOn, setWkOn] = useLocal(LS("arweeks"), false);   // 주별 표 펼침 (이 기기 기억)
+  const aiRows = useMemo(() => rtRows(D), [D.ak, D.tasks]);   // AI 크루 짝 후보 = 여러 번 + 정한 날 체크(개인 빼고)
   const users = activeUsers(D.users), brands = brandsWithCommon(D.brands);
   const brand1 = brand === "all" || brands.some((b) => b.id === brand) ? brand : "all";
   const inBrand = (v, def) => brand1 === "all" || (brandKey(v, D.brands) || def) === brand1;
@@ -60,6 +63,7 @@ export function RoutineTab({ D, A, open }) {
       <span style={{ flex: 1 }} /><div style={{ display: "flex", gap: 8 }}><TBtn v="solid" onClick={() => open({ type: "addRoutine" })}>+ 반복 실행</TBtn><TBtn onClick={() => open({ type: "recBook" })}>기록 보기 ›</TBtn></div>
     </div>
     {unset.length > 0 && <UnsetPanel D={D} A={A} list={unset} open={open} />}
+    {sec !== "me" && cu && <AiPairPanel D={D} cu={cu} A={A} open={open} rows={aiRows} />}
     {/* 브랜드 · 사람 칩은 한 줄(옆으로 밀기) — 폰에서 위가 길어지지 않게 */}
     <div className="v2-filterrow" style={{ marginTop: 10 }} aria-label="브랜드 · 사람 고르기">
       {sec !== "me" && <><div className="v2-chips" role="group" aria-label="브랜드"><Chip on={brand1 === "all"} onClick={() => setBrand("all")}>전체 브랜드</Chip>
@@ -147,6 +151,7 @@ function RhythmBoard({ D, fx, ak, paused, who, whoOf, keyD, open }) {
   const pairs = (t) => fxPeople(D.users, t).filter((u) => who === "all" || u === who);
   const rows = fx.filter((t) => pairs(t).length);
   const by = (rt) => rows.filter((t) => (t.recurType || "daily") === rt);
+  const P = useMemo(() => rtPairs(D.ai && D.ai.mates), [D.ai]), aiT = (k) => (P.has(k) ? ` · AI ${[...new Set(P.get(k).map((p) => p.mateName))].join("·")}` : "");   // AI 크루 짝 (2026-10-16)
   const fxAll = (t) => { const ps = pairs(t); return ps.length > 0 && ps.every((u) => fxMeDone(t, u, keyD)); };
   // 시간 순서: 고른 사람의 시간(사람마다 다르게 정한 시간) → 아무 사람 중 가장 이른 시간 → 시간 없음은 맨 아래
   const tmin = (t) => Math.min(...(who === "all" ? [undefined, ...fxPeople(D.users, t)] : [who]).map((u) => fxMin(t, u)));
@@ -162,7 +167,7 @@ function RhythmBoard({ D, fx, ak, paused, who, whoOf, keyD, open }) {
     return [f.filter(fxAll).length + a.filter((it) => tot[it.id].done).length, f.length + a.length]; };
   const fxRow = (t) => { const ps = pairs(t), dn = ps.filter((u) => fxMeDone(t, u, keyD)).length;
     return <div key={"f" + t.id} className={"a-rtrow" + (dn === ps.length ? " all" : "")}>
-      <button type="button" className="a-rtname" onClick={() => open({ type: "fixed", id: t.id })}><b>{t.title}</b><small>{fxRecurL(t)}{tlab(t) ? ` ${tlab(t)}` : ""}{` · ${brandLabel(t.brand, D.brands)}`}{cyclePending(t) ? " · 주기 확인 필요" : ""}</small>
+      <button type="button" className="a-rtname" onClick={() => open({ type: "fixed", id: t.id })}><b>{t.title}</b><small>{fxRecurL(t)}{tlab(t) ? ` ${tlab(t)}` : ""}{` · ${brandLabel(t.brand, D.brands)}`}{aiT(rtKey("fx", t.id))}{cyclePending(t) ? " · 주기 확인 필요" : ""}</small>
         {(() => { const cfg = qtyCfg(t), q = cfg ? qtySum(todayRecs, t.id) : 0, m = memoN(t), f = fileN(t); return cfg || m || f ? <small className="a-rtqm">{cfg ? <b>{qtyText(cfg, q)}</b> : null}{cfg && (m || f) ? " · " : ""}{m || f ? `메모 ${m} · 파일 ${f}` : ""}</small> : null; })()}</button>
       <div className="a-rtppl">{ps.map((u) => { const ok = fxMeDone(t, u, keyD), last = fxDoneOn(t, u);
         return <span key={u} className={"a-rtp" + (ok ? " ok" : "")} title={last ? `마지막 체크 ${md(last)}` : "체크 기록 없음"}>{ok ? "✓ " : ""}{nameOf(D.users, u) || "?"}</span>; })}</div>
@@ -170,7 +175,7 @@ function RhythmBoard({ D, fx, ak, paused, who, whoOf, keyD, open }) {
     </div>; };
   const akRow = (it) => { const t = tot[it.id], ps = akPpl(it), wks = periodWeeks(it, keyD), cfg = qtyCfg(it), q = cfg ? qtySum(todayRecs, it.id) : 0;
     return <div key={"a" + it.id} className={"a-rtrow" + (t.done ? " all" : "")}>
-      <button type="button" className="a-rtname" onClick={() => open({ type: "routine", id: it.id })}><b>{it.name}</b><small>{akGoalText(it)} · {brandName(it.brand, D.brands) || "브랜드 없음"}</small>
+      <button type="button" className="a-rtname" onClick={() => open({ type: "routine", id: it.id })}><b>{it.name}</b><small>{akGoalText(it)} · {brandName(it.brand, D.brands) || "브랜드 없음"}{aiT(it.id)}</small>
         {cfg && q ? <small className="a-rtqm">오늘 <b>{qtyText(cfg, q)}</b></small> : null}</button>
       <div className="a-rtppl">{ps.length ? ps.map((u) => { const k = akByOf(docs, it, wks, u);
         return <span key={u} className={"a-rtp" + (k > 0 ? " on" : "")} title={`${nameOf(D.users, u) || "?"} 이번 기간 ${k}`}>{nameOf(D.users, u) || "?"} {k}</span>; }) : <span className="a-rtp">담당 미정</span>}</div>

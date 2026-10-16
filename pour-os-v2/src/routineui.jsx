@@ -8,6 +8,7 @@ import { isDone, projLabelOf } from "./model.js";
 import { akTotal } from "../../pour-os/src/actionKpi.js";
 import { qtyCfg, qtyText, qtySum, akSubsOf, openIdAk, roundOn } from "./rec.js";
 import { QtyAsk, qtyAfterQ } from "./recui.jsx";
+import { AiLine } from "./airtui.jsx";
 
 const unitOf = (it) => (it.unit === "%" ? "%" : it.unit || "회");
 const plusL = (it) => (it.unit === "%" ? `+${it.step || 10}%` : "+1");
@@ -69,17 +70,18 @@ export function useAkActs({ D, cu, A, keyd }) {
 
 // 횟수 목표 한 줄 (모양 = 정한 날 체크 줄과 같은 Row · 2026-10-16) — 2줄 = '이번 주 1 / 4건' · '10월 2 / 8회' · '4분기 0 / 3건' (+ 담당 2명+ '내 몫 n' · 오늘 건수 있으면)
 //   제목 옆 체크리스트 a/b · 아래 칩(다 켜면 1회) · '셌어요 · 취소' 줄 · [건수 넣기] · 오른쪽 [+1] (실패 기준이면 [실패 +1]도) · 줄 누르면 반복 실행 시트
-export function AkRow({ r, X, cu, open, tag, dim, last }) {
+export function AkRow({ r, X, cu, open, tag, dim, last, ai }) {
   const it = r.it, t = r.tot, u = unitOf(it), cfg = qtyCfg(it), subs = akSubsOf(it, cu.id), op = X.opens.find((d) => (d.id || d._doc) === openIdAk(it.id, cu.id));
   const L = X.line && X.line.id === it.id ? X.line : null, canQty = !!cfg && !it.perFail && it.unit !== "%" && !(L && (L.ask || L.kind === "fix")), q = cfg ? X.myQty(it) : 0;   // [건수 넣기]는 늘 (묻는 중일 때만 숨김)
   const sub = <>{r.per} {it.perFail ? <>시도 <b className="v2-num">{t.n}</b> / {t.g || 0}회 · 실패 {t.fail}건 × {it.perFail}</> : <><b className="v2-num">{t.n}</b> / {t.g}{u}{t.done ? " ✓" : ""}</>}
     {r.owners >= 2 && !it.perFail ? ` · 내 몫 ${r.me}${u === "%" ? "%" : ""}` : ""}{q > 0 ? ` · 오늘 ${qtyText(cfg, q)}` : ""}</>;
   const lineEl = X.lineFor(r), dis = { disabled: !!X.busy, style: X.busy ? { opacity: 0.55 } : undefined };
-  const below = subs.length || lineEl || canQty ? <div onClick={stop} onKeyDown={stopKey}>
+  const aiEl = ai && (ai.wait.length || ai.exec.length) ? <AiLine ai={ai} open={open} /> : null;   // AI 크루가 도운 결과가 나를 기다릴 때 (2026-10-16)
+  const below = subs.length || lineEl || canQty || aiEl ? <div onClick={stop} onKeyDown={stopKey}>
     {subs.length > 0 && <div className="v2-fxchips" role="group" aria-label={`${it.name} 체크리스트 · 다 하면 1회`}>{subs.map((x) => { const on = !!(op && op.subs && op.subs[x.id]);
       return <button key={x.id} type="button" className={on ? "on" : ""} aria-pressed={on} disabled={!!X.busy} onClick={() => X.chip(r, x)}>{on ? "✓ " : ""}{x.title}</button>; })}</div>}
     {lineEl}
-    {canQty && <button type="button" className="v2-rtqbtn" onClick={() => X.askQty(r)}>건수 넣기</button>}
+    {(canQty || aiEl) && <div className="v2-rtacts">{canQty && <button type="button" className="v2-rtqbtn" onClick={() => X.askQty(r)}>건수 넣기</button>}{aiEl}</div>}
   </div> : null;
   const right = <>{it.perFail && <Act {...dis} onClick={() => X.plus(r, true)} aria-label={`${it.name} 실패 1건`}>실패 +1</Act>}
     {!subs.length && <Act {...dis} onClick={() => X.plus(r)} aria-label={`${it.name} ${plusL(it)}`}>{plusL(it)}</Act>}</>;

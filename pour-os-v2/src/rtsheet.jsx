@@ -13,13 +13,14 @@ import { periodWeeks, periodLabel, brandName } from "./routine.js";
 import { akTotal, akWho, akGoalText, akStep } from "../../pour-os/src/actionKpi.js";
 import { qtyCfg, qtyText, qtyShort, qtyToGoal, akSubsOf, openIdAk, dayIdAk, roundOn } from "./rec.js";
 import { QtyAsk, DayQty, RecList, useRecs, qtyAfterQ } from "./recui.jsx";
+import { RtAiCard } from "./airtui.jsx";   // AI 크루 ↔ 반복 실행 (2026-10-16)
 
 export function RoutineSheet(p) { return p.type === "routine" ? <AkSheet {...p} /> : <FixedSheet {...p} />; }
 const unitOf = (it) => (it.unit === "%" ? "%" : it.unit || "회");
 const plusL = (it) => (it.unit === "%" ? `+${it.step || 10}%` : "+1");
 
 
-function AkSheet({ D, cu, A, onBack, onClose, id, focus, note }) {
+function AkSheet({ D, cu, A, open, onBack, onClose, id, focus, note }) {
   const ak = D.ak || {}, it = (ak.items || []).find((x) => x.id === id);
   const notes = useItemNotes(D, id);   // 대화 itemId = 행동지표 id (버전1 메모 복사본이 이어짐)
   const [tick, setTick] = useState(0), [rec, setRec] = useState(null), [line, setLine] = useState(null), [busy, setBusy] = useState(false);
@@ -61,6 +62,7 @@ function AkSheet({ D, cu, A, onBack, onClose, id, focus, note }) {
     </Card>
     {subs.length > 0 && <><Head right={<span style={{ fontSize: 12.5, color: C.mute, fontWeight: 700 }}>{onN}/{subs.length} · 다 하면 1회</span>}>체크리스트</Head>
       <div className="v2-chips">{subs.map((x) => { const on = !!(op && op.subs && op.subs[x.id]); return <Chip key={x.id} on={on} onClick={() => (mine ? chip(x) : null)}>{on ? "✓ " : ""}{x.title}</Chip>; })}</div></>}
+    {open && <RtAiCard D={D} cu={cu} A={A} open={open} rkey={it.id} name={it.name || ""} brand={it.brand} kind="ak" owners={who} />}
     {cfg && mine && <DayQty cfg={cfg} mine={myQty} can extra={it.unit && ["건", "명", "개"].includes(it.unit) && !it.perFail ? `넣은 ${cfg.unit} 수가 목표(${akGoalText(it)})에도 더해져요` : "날짜별 기록으로 남아요 · 목표는 [+1]로 세요"}
       onAdd={(n) => once(async () => { await A.akQty(it, n, "add"); })} onSet={(n) => once(async () => { await A.akQty(it, n, "set"); })} />}
     <RecList D={D} docs={R.docs} ready={R.ready} cfg={cfg} kind="ak" notes={notes} keyd={key} onPick={(r) => { setRec({ date: r.date, uid: r.uid, qty: r.qty, runs: r.runs, name: r.name }); toTalk(); }} />

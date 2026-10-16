@@ -16,6 +16,8 @@ import { openTask, moveDue } from "./task.jsx";
 import { PickList, BulkBar, dueChips, ro } from "./pick.jsx";
 import { previewLaunchMove } from "./views.js";
 import { useAkActs, AkRow } from "./routineui.jsx";
+import { AiLine } from "./airtui.jsx";
+import { rtPairs, rtAiNow, rtKey } from "./airt.js";
 import { myRoutine, brId, brandName } from "./routine.js";
 import { QtyAsk, QtyDone } from "./recui.jsx";
 import { LS as LSK } from "./core.jsx";
@@ -152,6 +154,7 @@ const brShort = (b, brands) => (b === COMMON_BRAND.id ? COMMON_BRAND.short : bra
 export function RoutineCard({ D, cu, A, open, R, keyd }) {
   const [more, setMore] = useState(false), [doneOn, setDoneOn] = useState(false), [ask, setAsk] = useState(null), [fold, setFold] = useLocal(LSK("rtfold"), false);
   const X = useAkActs({ D, cu, A, keyd });
+  const P = useMemo(() => rtPairs(D.ai && D.ai.mates), [D.ai]), aiOf = (k) => rtAiNow(k, P.get(k), (D.ai && D.ai.asks) || [], D.tasks, cu.id);   // AI 크루 짝 (2026-10-16)
   const ak = D.ak || {}, akAll = ak.ready && (ak.items || []).length ? myRoutine(ak.items, D.users, cu.id, ak.docs, keyd) : [];
   const G = R || { left: [], done: [], total: 0 };
   if (!G.total && !akAll.length) return null;
@@ -166,20 +169,20 @@ export function RoutineCard({ D, cu, A, open, R, keyd }) {
   const shown = fold ? [] : more ? rows : rows.slice(0, Math.max(FX_OPEN_MAX, stuck + 1));   // 묻는 줄은 8개 뒤여도 보임
   const fxRow = (x) => { const t = x.t, dn = !!x.asking;
     return <Row key={"f" + t.id} dim={dn} tag={dn ? null : x.miss ? `밀림 ${md(x.miss)}` : x.late ? "시간 지남" : brTag(t.brand)} tagTone={x.late ? "red" : null} title={<FxTitle t={t} uid={cu.id} keyd={keyd} />} sub={fxLine(D, t, cu.id, keyd, true)}
-      below={<><FxChips t={t} uid={cu.id} keyd={keyd} A={A} open={open} onDone={() => qtyCfg(t) && setAsk(t.id)} /><FxQty t={t} D={D} cu={cu} A={A} ask={ask} setAsk={setAsk} keyd={keyd} /></>} onClick={() => open({ type: "fixed", id: t.id })}
+      below={<><FxChips t={t} uid={cu.id} keyd={keyd} A={A} open={open} onDone={() => qtyCfg(t) && setAsk(t.id)} /><FxQty t={t} D={D} cu={cu} A={A} ask={ask} setAsk={setAsk} keyd={keyd} /><AiLine ai={aiOf(rtKey("fx", t.id))} open={open} /></>} onClick={() => open({ type: "fixed", id: t.id })}
       right={dn ? <Act on onClick={() => { setAsk(null); A.fxToggle(t); }}>✓ 취소</Act> : <Act onClick={() => fxDone(A, t, setAsk)}>완료</Act>} last={false} />; };
   const first = rows[0], nextL = !first ? "" : first.x ? [fxTime(first.x.t, cu.id), fxLabel(first.x.t, cu.id)].filter(Boolean).join(" ") : `${first.r.it.name} · ${first.r.per} ${first.r.tot.n}/${first.r.tot.g}`;
   return <>
     <Head right={rows.length > 0 && <TBtn tone="mute" aria-expanded={!fold} onClick={() => setFold(!fold)}>{fold ? "펼치기 ▾" : "접기 ▴"}</TBtn>}>반복 실행 · {leftN ? `${leftN}개 남음` : "다 했어요 ✓"}</Head>
     <Card>
       {fold && rows.length > 0 ? <More onClick={() => setFold(false)}>다음 · {nextL} ▾</More> : <>
-        {shown.map((y) => (y.x ? fxRow(y.x) : <AkRow key={y.k} r={y.r} X={X} cu={cu} open={open} tag={brTag(y.r.it.brand)} last={false} />))}
+        {shown.map((y) => (y.x ? fxRow(y.x) : <AkRow key={y.k} r={y.r} X={X} cu={cu} open={open} tag={brTag(y.r.it.brand)} last={false} ai={aiOf(y.r.it.id)} />))}
         {rows.length > shown.length && <More onClick={() => setMore(true)}>{`${rows.length - shown.length}개 더 ▾`}</More>}
         {more && rows.length > FX_OPEN_MAX && <More onClick={() => setMore(false)}>{`${FX_OPEN_MAX}개만 보기 ▴`}</More>}
         {doneN > 0 && <More onClick={() => setDoneOn(!doneOn)}>{doneOn ? "끝낸 것 접기 ▴" : `끝낸 것 ${doneN} ▾`}</More>}
         {doneOn && G.done.filter((x) => !rows.some((y) => y.x && y.x.t.id === x.t.id)).map((x) => <Row key={"f" + x.t.id} dim title={<FxTitle t={x.t} uid={cu.id} keyd={keyd} />} sub={`${fxWhen(x.t, cu.id)} · ✓ ${hm(x.t.doneAtBy && x.t.doneAtBy[cu.id])}${fxCount(D.users, x.t, keyd)[1] > 1 ? ` · ${fxCount(D.users, x.t, keyd).join("/")}명 체크` : ""}`}
           below={<><FxChips t={x.t} uid={cu.id} keyd={keyd} A={A} open={open} />{ask !== x.t.id && <FxQty t={x.t} D={D} cu={cu} A={A} ask={ask} setAsk={setAsk} keyd={keyd} />}</>} onClick={() => open({ type: "fixed", id: x.t.id })} right={<Act on onClick={() => A.fxToggle(x.t)}>✓ 취소</Act>} />)}
-        {doneOn && akDone.map((r) => <AkRow key={"a" + r.it.id} r={r} X={X} cu={cu} open={open} dim last={false} />)}
+        {doneOn && akDone.map((r) => <AkRow key={"a" + r.it.id} r={r} X={X} cu={cu} open={open} dim last={false} ai={aiOf(r.it.id)} />)}
       </>}
     </Card>
   </>;
@@ -189,6 +192,7 @@ export function TodayTab({ D, cu, A, open, TV, T, seen, setSeen, setToast }) {
   const now = new Date(), key = TV.key;
   const up7 = useMemo(() => upcomingTurns(D, T, key, cu.id).filter((u) => u.start && u.start <= addDays(key, 6)), [D, T, key]);   // 곧 내 차례 = 7일 안에 오는 내 차례 (달력과 같은 기준)
   const [fxAsk, setFxAsk] = useState(null);   // 건수 칸 묻는 고정업무 줄
+  const Pfx = useMemo(() => rtPairs(D.ai && D.ai.mates), [D.ai]), fxAi = (t) => { const k = rtKey("fx", t.id); return rtAiNow(k, Pfx.get(k), (D.ai && D.ai.asks) || [], D.tasks, cu.id); };   // 고정업무도 AI 짝이면 (2026-10-16)
   const myToday = useMemo(() => myNotesOf(D, cu.id, key, "today").length, [D.notes, cu.id, key]);   // '오늘 내가 쓴 댓글 n ›' (있을 때만)
   const [range, setRange] = useLocal(LSK("todo-range"), "today");   // '할 일' 카드 [오늘 | 내일 | 이번 주]
   const [fxFold, setFxFold] = useLocal(LSK("fxfold"), false), fxOpen = !fxFold, [fxMore, setFxMore] = useState(false);   // 남은 고정업무는 처음부터 펼침 · 접으면 이 기기에 기억
@@ -265,7 +269,7 @@ export function TodayTab({ D, cu, A, open, TV, T, seen, setSeen, setToast }) {
           {showFx && TV.fixed.total > 0 && (fxOpen
             ? <>{openShown(fxRows, fxMore).map((x) => { const t = x.t, dn = !!x.asking;
                 return <Row key={t.id} dim={dn} tag={dn ? null : x.miss ? `밀림 ${md(x.miss)}` : x.late ? "시간 지남" : "고정"} tagTone={x.late ? "red" : null} title={<FxTitle t={t} uid={cu.id} keyd={key} />} sub={fxLine(D, t, cu.id, key)}
-                  below={<><FxChips t={t} uid={cu.id} keyd={key} A={A} open={open} onDone={() => qtyCfg(t) && setFxAsk(t.id)} /><FxQty t={t} D={D} cu={cu} A={A} ask={fxAsk} setAsk={setFxAsk} keyd={key} /></>} onClick={() => open({ type: "fixed", id: t.id })}
+                  below={<><FxChips t={t} uid={cu.id} keyd={key} A={A} open={open} onDone={() => qtyCfg(t) && setFxAsk(t.id)} /><FxQty t={t} D={D} cu={cu} A={A} ask={fxAsk} setAsk={setFxAsk} keyd={key} /><AiLine ai={fxAi(t)} open={open} /></>} onClick={() => open({ type: "fixed", id: t.id })}
                   right={dn ? <Act on onClick={() => { setFxAsk(null); A.fxToggle(t); }}>✓ 취소</Act> : <Act onClick={() => fxDone(A, t, setFxAsk)}>완료</Act>} last={false} />; })}
                 {fxRows.length > openShown(fxRows, fxMore).length && <More onClick={() => setFxMore(true)}>{`고정업무 ${fxRows.length - openShown(fxRows, fxMore).length}개 더 ▾`}</More>}
                 {fxMore && fxRows.length > FX_OPEN_MAX && <More onClick={() => setFxMore(false)}>{`${FX_OPEN_MAX}개만 보기 ▴`}</More>}

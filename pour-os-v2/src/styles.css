@@ -799,3 +799,26 @@ input[type="date"].v2-sel::-webkit-date-and-time-value { text-align: left; min-h
 .v2-apprtag[data-done="1"] { background: #EAF4EE; color: #2F7D57; }
 .v2-apprtag[data-done="0"] { background: #24386B; color: #fff; }
 .v2-apprform textarea, .v2-apprform input { max-width: 100%; }
+/* 자료 [빼기] · 붙여넣기 안내 (2026-10-16 · 오늘 내가 올린 파일만 빼요) */
+.v2-frm{flex:0 0 auto;margin-right:10px;height:30px;padding:0 10px;border-radius:8px;border:1px solid #E3C9CB;background:#fff;color:#B4383F;font:inherit;font-size:12.5px;font-weight:800;cursor:pointer}
+.v2-phint{font-size:12px;color:#8A92A3;margin:-4px 2px 8px}
+/* 개발 수정 요청 포스트잇 (2026-10-16) */
+.v2-dr-new{background:#FFF6C8;border:1px solid #EBD98B;border-radius:14px;padding:12px;box-shadow:0 2px 6px rgba(120,100,20,.08)}
+.v2-dr-new textarea{width:100%;box-sizing:border-box;border:none;background:transparent;font:inherit;font-size:15px;line-height:1.6;color:#3B3412;resize:vertical;min-height:72px;outline:none}
+.v2-dr-new textarea::placeholder{color:#9C8E50}
+.v2-dr-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
+.v2-dr-hint{font-size:12px;color:#8C7E3F;flex:1;min-width:140px}
+.v2-dr-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-top:12px}
+.v2-dr{position:relative;background:#FFF9D9;border:1px solid #EFE2A2;border-radius:12px;padding:12px 12px 10px;box-shadow:0 2px 6px rgba(120,100,20,.08);min-width:0}
+.v2-dr.done{background:#EEF6F0;border-color:#CFE5D6}
+.v2-dr .tx{font-size:14.5px;line-height:1.6;color:#3B3412;white-space:pre-wrap;overflow-wrap:anywhere}
+.v2-dr.done .tx{color:#2F4A3A}
+.v2-dr .mt{font-size:12px;color:#8C7E3F;margin-top:8px}
+.v2-dr.done .mt{color:#5B7A66}
+.v2-dr .st{display:inline-block;font-size:11.5px;font-weight:800;border-radius:6px;padding:1px 7px;margin-right:6px;background:#F3E7A8;color:#6B5A10}
+.v2-dr.done .st{background:#D6ECDD;color:#2F7D57}
+.v2-dr .rp{margin-top:8px;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,.7);font-size:13px;color:#2F4A3A;line-height:1.5}
+.v2-dr .ac{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.v2-dr .ac button{height:30px;padding:0 10px;border-radius:8px;border:1px solid #DCCB7A;background:#fff;color:#5A4B0E;font:inherit;font-size:12.5px;font-weight:800;cursor:pointer}
+.v2-dr.done .ac button{border-color:#BFDCC8;color:#2F7D57}
+@media (max-width:420px){.v2-dr-list{grid-template-columns:1fr}}

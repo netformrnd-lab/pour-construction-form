@@ -22,7 +22,7 @@ import { flowList, planFlow, flowOwners } from "./flow.js";
 import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, inp, useLocal, useAutoFocus, Linked, Clash } from "./ui.jsx";
 import { useItemNotes, Thread } from "./task.jsx";
 import { liveNotes } from "./core.jsx";
-import { FileList } from "./files.jsx";
+import { FileList, rmProps } from "./files.jsx";
 import { MindMap } from "./mindmap.jsx";
 import { projEstimate, canSaveTpl } from "./tpl.js";
 import { TplPick } from "./tplui.jsx";
@@ -315,8 +315,8 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, note,
   const OldBtn = () => old && typeof old === "object" ? <div style={{ fontSize: 12.5, color: C.mute, textAlign: "center", margin: "10px 0 0" }}>처음부터 모두 불러왔어요</div>
     : <div style={{ marginTop: 10 }}><TBtn onClick={loadOld} disabled={old === "loading"}>{old === "loading" ? "불러오는 중…" : old === "fail" ? "못 불러왔어요 · 다시 ›" : "30일보다 이전 소식·자료 불러오기 ›"}</TBtn></div>;
   const tTitle = (tid) => ((D.tasks.find((t) => t.id === tid) || (doneList || []).find((t) => t.id === tid)) || {}).title;
-  const files = [...live, ...(doneList || [])].flatMap((t) => (t.attachments || []).map((f) => ({ ...f, where: t.title })))
-    .concat(allNotes.filter((n) => { if (n.deleted) return false; const [k, ...r] = String(n.itemId).split(":"); const ref = r.join(":"); return (k === "proj" && ref === p.id) || (k === "task" && tids.includes(ref)); }).flatMap((n) => (n.files || []).map((f) => ({ ...f, byName: n.byName, uploadedAt: f.uploadedAt || n.at, where: "댓글" }))))
+  const files = [...live, ...(doneList || [])].flatMap((t) => (t.attachments || []).map((f) => ({ ...f, where: t.title, src: { kind: "task", doc: t._doc || t.id } })))
+    .concat(allNotes.filter((n) => { if (n.deleted) return false; const [k, ...r] = String(n.itemId).split(":"); const ref = r.join(":"); return (k === "proj" && ref === p.id) || (k === "task" && tids.includes(ref)); }).flatMap((n) => (n.files || []).map((f) => ({ ...f, by: n.by, byName: n.byName, uploadedAt: f.uploadedAt || n.at, where: "댓글", src: { kind: "note", doc: n._doc || n.id } }))))
     .sort((a, b) => String(b.uploadedAt || "").localeCompare(String(a.uploadedAt || "")));
   const ncount = (t) => D.notes.filter((n) => n.itemId === taskNoteId(t.id) && !n.deleted).length;
   // 항목 줄: 태그 = 위험(지남·막힘 …) → 내 차례 → 진행 중 · 부제 2줄 = 앞 일(기다리는 중일 때) · 담당 (임시)=책임자로 채움 (기본)=자주 맡던 사람
@@ -416,7 +416,7 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, note,
     {tab === "map" && <MindMap D={D} cu={cu} A={A} open={open} p={p} idx={idx} launch={launch} />}
     {tab === "news" && <><NewsFeed D={D} p={p} feed={feed} tTitle={tTitle} open={open} /><OldBtn /></>}
     {tab === "news" && <><Head>프로젝트에 한마디</Head><Thread D={D} cu={cu} A={A} notes={notes} itemId={projNoteId(p.id)} ctx={{ projectId: p.id }} link={{ kind: "p", id: p.id }} hl={note} /></>}
-    {tab === "files" && <div style={{ marginTop: 10 }}><FileList files={files} empty="모인 자료가 없어요. 업무나 댓글에 파일을 올리면 여기 모여요." /></div>}
+    {tab === "files" && <div style={{ marginTop: 10 }}><FileList files={files} empty="모인 자료가 없어요. 업무나 댓글에 파일을 올리면 여기 모여요." {...rmProps(A, cu)} /></div>}
     {tab === "files" && <OldBtn />}
     {/* 없앤 업무(누구나 없애기 · 2026-10-07) — 소식·자료 탭 맨 아래 · 처음엔 접힘 */}
     {(tab === "news" || tab === "files") && <TrashList rows={taskTrashRows(D.removedTasks, D.projects, null, p.id)} A={A} open={open} label="없앤 업무" note="되살리면 없애기 전 그대로 돌아와요(하위 업무도 같이) · 댓글·파일·기록은 그대로 있어요" />}

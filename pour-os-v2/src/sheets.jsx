@@ -12,6 +12,7 @@ import { AiAskSheet, AiMateSheet, AiTeamSheet, AiSetupSheet, AiReqSheet } from "
 import { AiReportSheet } from "./aireport.jsx";
 import { ApprSheet, ApprOneSheet } from "./apprui.jsx";
 import { Sheet, Empty } from "./ui.jsx";
+import { DevReqSheet } from "./devreq.jsx";
 
 // extra: { [type]: (props, s) => element } — 관리자 앱 등에서 시트 종류를 덧붙일 때
 // 시트마다 key(깊이·종류·id) → 업무에서 다른 업무로 넘어가도 앞 업무에 쓰던 글·고른 것·스크롤이 따라가지 않음
@@ -46,7 +47,8 @@ function route(s, p, extra) {
   if (s.type === "aiMate") return <AiMateSheet {...p} id={s.id} />;
   if (s.type === "aiTeam") return <AiTeamSheet {...p} />;
   if (s.type === "aiSetup") return <AiSetupSheet {...p} owner={s.owner} />;   // 내 PC Aside 세팅 (2026-10-15)
-  if (s.type === "aiReq") return <AiReqSheet {...p} mate={s.mate} preset={s.preset} />;   // AI에게 업무 맡기기 (2026-10-15)
+  if (s.type === "aiReq") return <AiReqSheet {...p} mate={s.mate} preset={s.preset} />;
+  if (s.type === "devreq") return <DevReqSheet {...p} app={s.app} />;   // 개발 수정 요청 포스트잇 (2026-10-16 · 팀 앱·관리자 같은 시트)   // AI에게 업무 맡기기 (2026-10-15)
   // 구매 품의 요청 (2026-10-16 · apprui.jsx · 두 앱 같은 시트): 목록(내 요청 · 내가 맡은 것 · 모두) · 한 건
   if (s.type === "appr") return <ApprSheet {...p} s={s} />;
   if (s.type === "apprOne") return <ApprOneSheet {...p} id={s.id} item={s.item} />;

@@ -6,7 +6,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as fb from "./fb.js";
 import { ymd, md, isMaster, nameOf, GH_DASH } from "./model.js";
-import { kpiDefs, kpiBoard, myKpi, lagAt, lagLatest, lagGoal, lagPct, lagMissing, lagWrite, lagBrand, canLag, fmtV, KCOLL_L, skManual, kpiEditWrite, newKpiId, goalBrandOf, mkBrand, lagDue } from "./kpi2.js";
+import { kpiDefs, kpiBoard, myKpi, lagAt, lagLatest, lagGoal, lagPct, lagMissing, lagWrite, lagBrand, canLag, fmtV, KCOLL_L, skManual, kpiEditWrite, newKpiId, goalBrandOf, mkBrand, lagDue, histShow } from "./kpi2.js";
 import { AK_FUNS } from "../../pour-os/src/actionKpi.js";
 import { refreshGhSales, GH_EVERY } from "./ghsales.js";
 import { C, Big, TBtn, Chip, Head, Card, Empty, More, Sheet, inp, useLocal } from "./ui.jsx";
@@ -256,7 +256,7 @@ export function KpiEditSheet({ D, cu, s, onBack, onClose, setToast }) {
       {it._hidden ? <TBtn onClick={() => save(false)} disabled={busy}>다시 보이기</TBtn> : <TBtn tone="mute" onClick={() => save(true)} disabled={busy}>숨기기</TBtn>}
     </div>}
     {ov && (ov.hist || []).length > 0 && <><Head>바뀐 기록</Head><Card>{(ov.hist || []).slice(-5).reverse().map((h, i, a) => <div key={i} className="v2-krow" style={{ borderBottom: i === a.length - 1 ? "none" : undefined }}>
-      <div className="s" style={{ marginTop: 0 }}>{md(ymd(new Date(h.at)))} · {h.byName} · {Object.entries(h.ch || {}).map(([k, [a0, b0]]) => k === "_hidden" ? (b0 ? "숨김" : "다시 보임") : `${FL[k] || k} ${a0 ?? "—"} → ${b0 ?? "—"}`).join(" · ")}</div></div>)}</Card></>}
+      <div className="s" style={{ marginTop: 0 }}>{md(ymd(new Date(h.at)))} · {h.byName} · {Object.entries(h.ch || {}).map(([k, [a0, b0]]) => k === "_hidden" ? (b0 ? "숨김" : "다시 보임") : `${FL[k] || k} ${histShow(a0) ?? "—"} → ${histShow(b0) ?? "—"}`).join(" · ")}</div></div>)}</Card></>}
     <p className="v2-kednote" style={{ marginTop: 14 }}>고친 것은 업무OS v2 에만 저장돼요 · 버전1 KPI 화면 값은 그대로 · 지우기 대신 숨기기</p>
   </Sheet>;
 }

@@ -7,10 +7,10 @@
 //   · 원가·마진·제조사·공급 단가는 여기·업무OS·보드에 두지 않음 (2026-10-09 '팀원들은 원가, 제조사정보 몰라야해') → 그 계산은 관리자 마진 대시보드
 //   · 2026-10-14 "포리, 하루, 에코는 없어야지" → 아침 루틴(블로그 주제·원고 3·티스토리·카페 재배포)은 B2C 크루 여름이 이어받음(member.routine) · 하루·포리·에코 = 쉼(GONE · 목록에 안 보임 · 옛 결과 이름은 그대로)
 // 할 일 hq = 본부장 승인이 필요한 일 (사용자 결정 2026-10-15 "최종승인은 리드 · 광고비 예산 조정, 원가조정, 판매가조정만 본부장 승인") — 그 밖은 리드에서 끝
-//   관리자가 업무OS AI 팀원 한 장 › 할 일마다 켜고 끔(aimates.actHq) · 실행 한 줄이 없는 보고·외주 기간 광고는 늘 리드에서 끝 (aiask.hqOf)
+//   관리자가 업무OS AI 팀원 한 장 › 할 일마다 켜고 끔(aimates.actHq) · 실행 한 줄이 없는 보고·외주 기간 광고는 늘 리드에서 끝 (aiask.hqOf · 외주 + 내부 관리(2026-10-16)부터 광고 할 일은 실행 있음 → 본부장)
 // 보드 6개 = 그로홈 AI 크루 보드(외부 공개 보드 6개 · 2026-10-12 옮김) — 기준값·목표는 그 보드에 적힌 그대로 · 마진·공급 단가 칸 뺌 · '승인되면 직접 반영' → '승인되면 담당이 반영'
 
-import { HUB_ADS, AD_MODE } from './adops.js';   // 광고 일일 보고서 화면 (F 할 일 · 2026-10-15)
+import { HUB_ADS, AD_MODE, agencyOn } from './adops.js';   // 광고 일일 보고서 화면 (F 할 일 · 2026-10-15)
 
 // 업무OS 브랜드 id → 이름 (pour-os/v2/brands)
 export const BRAND_L = { grohome: '그로홈', pourstore: 'POUR스토어', bmupq52c0: '바라스데이', bmuqo9k5u: '모여라딜' };
@@ -386,8 +386,11 @@ export function redoFields(cur, nx, owner) {
 // 외주 운영 기간(adops AD_MODE · 2026-10-15 사장님 "세팅등록한것을 분석만") — 메타·네이버·쿠팡 광고 할 일(adMedia) = 실행 없음(보고만)
 //   승인해도 '광고관리자·광고센터에서 바꾼다' 실행 업무를 만들지 않음 · 보드 글(exec)은 외주가 끝나면 그대로 다시 씀
 export const adHold = (a) => !!(a && a.adMedia && AD_MODE.mode === 'outsourced' && AD_MODE.media.includes(a.adMedia));
-//   F(광고 일일 보고서 · report:'ads')도 외주 기간엔 실행 없음 — 글은 '실행은 외주업체' 안내라 실행 업무를 만들지 않음 (2026-10-15)
-export const execOf = (a) => (!a || adHold(a) || (a.report === 'ads' && AD_MODE.mode === 'outsourced') ? '' : a.exec || '');
+// 외주 + 내부 관리 (2026-10-16 사장님 "외주 눈치볼 필요없었어 · 민지님이 분석관리해서 나에게 보고") — 광고 할 일은 다시 바꿀 안 → 승인 → 실행 업무
+//   실행 한 줄 끝에 '외주 운영 중이면 직접 바꾸거나 외주에 전한다' · 지시문엔 ★ 운영 기준(김송희 관리방안) 한 줄 · Aside 는 여전히 바꾸지 않음
+export const adPar = (a) => !!(a && a.adMedia && AD_MODE.mode === 'parallel' && AD_MODE.media.includes(a.adMedia));
+//   F(광고 일일 보고서 · report:'ads')는 외주가 운영하는 동안(외주 기간 · 외주 + 내부 관리) 실행 없음 — 08:30 광고 루틴의 보고 (2026-10-15 · 10-16)
+export const execOf = (a) => (!a || adHold(a) || (a.report === 'ads' && agencyOn()) ? '' : adPar(a) && a.exec ? `${a.exec} — 외주 운영 중이면 직접 바꾸거나 외주에 전한다 (바꾼 것은 외주와 공유)` : a.exec || '');
 // 행동 하나 = 승인 요청 하나로 (보드 붙여 넣기) — 표가 비고 요약·설명도 없으면 안 만듦 · R(맡긴 일)은 빼고 askFromReq 로
 // owner = 담당 id 또는 (할 일 글자) => 담당 id (할 일별 담당 · 2026-10-15)
 // hqIf = 그 칸에 값이 있는 줄이 있을 때만 본부장 승인 (디맨드젠 '예산' · 새 예산 = 광고비 예산 조정)
@@ -462,7 +465,7 @@ export function asideReqLaunch(req) {
 //   Aside 예약 작업 = 보드 하나에 하나 · 예약 글은 짧게(asideLaunch): crew.html#보드 를 열어 화면 '오늘 지시문'(asideText)을 그대로
 //   → 지시문을 고쳐도(이 파일) Aside 예약은 다시 안 넣어도 됨 · 판 = ASIDE_VER (지시문을 고치면 날짜를 올림)
 //   AI 몫 = 숫자 읽기 · 찾기 · 표 · 초안까지 / 사람 몫 = 승인 뒤 실행(가격·광고·쿠폰·발송·게시·상세·등록) — 할 일 단계 중 '승인…'으로 시작하는 줄은 사람 몫(stepParts)
-export const ASIDE_VER = '2026-10-15';
+export const ASIDE_VER = '2026-10-16';   // 10-16 = 광고 할 일 외주 + 내부 관리(김민지 · 바꿀 안)
 export const HUB_CREW = 'https://pour-construction-form.pages.dev/marketing-hub/crew.html';
 const DOW_L = ['일', '월', '화', '수', '목', '금', '토'];
 export const runWord = (r) => (!r ? '' : `${r.dow.join() === WD.join() ? '평일' : r.dow.length === 7 ? '매일' : r.dow.map((x) => DOW_L[x]).join('·')} ${r.t}`);
@@ -614,11 +617,13 @@ export function asideText(b, opt = {}) {
     if (a.report === 'ads') {   // 광고 일일 보고서 = 08:30 광고 루틴 몫 (2026-10-15) → 여기선 [상태] 한 줄만 · 끄기·바꾸기 안 함
       L.push(`${a.c}. ${a.t} — 언제: ${a.when}${a.k ? ` · 보는 지표: ${a.k}` : ''}`,
         `  이 할 일은 매일 08:30 광고 일일 보고서 루틴(Aside)이 한다 — 이 루틴에서는 광고를 끄거나 바꾸지 않는다.`,
-        `  오늘: ${HUB_ADS} 에서 오늘 보고서를 보고 [상태] ${a.c} 에 한 줄만 쓴다 (예: 'OFF 2개 · 새 롱테일 3개' · 보고서가 없으면 '막힘 — 오늘 광고 보고서 없음'). 표는 안 쓴다.`, '');
+        `  오늘: ${HUB_ADS} 에서 오늘 보고서를 보고 [상태] ${a.c} 에 한 줄만 쓴다 (예: '메타 ROAS 286% · 바꿀 안 2개 · 새 롱테일 3개' · 보고서가 없으면 '막힘 — 오늘 광고 보고서 없음'). 표는 안 쓴다.`, '');
       return; }
     L.push(`${a.c}. ${a.t} — 언제: ${a.when}${a.k ? ` · 보는 지표: ${a.k}` : ''}`, `  왜: ${a.w}`);
     if (adHold(a))   // 외주 운영 기간 (2026-10-15 사장님 · 약 2개월)
       L.push(`  ★ ${AD_MODE.label} (${AD_MODE.from}부터 ${AD_MODE.until}): ${a.adMedia} 광고는 외주업체가 운영 — 끄기·증액·입찰·제외 키워드 같은 바꿀 안은 만들지 않는다. 아래 단계는 외주 세팅과 성과를 읽고 표로 기록하는 데까지만 하고, 표의 '할 일'·'제안' 칸에는 '외주 세팅 그대로 · 관찰'처럼 관찰한 것만 쓴다. 비교 기준 = ${AD_MODE.basis} (광고 운영 화면 '운영 기준')`);
+    if (adPar(a))   // 외주 + 내부 관리 (2026-10-16 사장님 · 김민지)
+      L.push(`  ★ ${AD_MODE.label}: ${a.adMedia} 광고는 외주업체가 운영 중이고 ${AD_MODE.manager}가 같이 관리한다 — 바꿀 안(끄기·예산·입찰·제외 키워드·소재)을 번호로 만들되 판단 기준은 ${AD_MODE.basis}(광고 운영 화면 '운영 기준' · 보드 글의 숫자와 다르면 관리방안이 먼저) · '근거' 칸에 숫자를 꼭 쓴다 · 바꾸는 것은 승인 뒤 ${AD_MODE.manager}(직접 또는 외주에 전함) — AI 는 바꾸지 않는다`);
     if (a.qty) { const n = qtyNow({ qty: opt.qty }, a.c, a.qty.n); L.push(`  이번 몫: ${a.qty.l} ${n}${a.qty.u}${n !== a.qty.n ? ` (담당이 정함 · 기본 ${a.qty.n}${a.qty.u})` : ''} — 보드 글의 숫자보다 이 수가 먼저`); }
     a.s.forEach((s, i) => { const p = stepParts(s);
       L.push(`  ${i + 1}) ${p.ai ? p.ai : `(사람 몫 · AI는 하지 않음) ${p.human}`}${p.ai && p.human ? ` — 그다음 '${p.human}' = 사람 몫` : ''}`); });
@@ -643,7 +648,8 @@ export function asideText(b, opt = {}) {
   L.push('■ 5. 지킬 것',
     '- 실행하지 않는다: 가격·옵션 바꾸기 · 광고 켜기/끄기·예산·입찰 · 쿠폰·기획전·체험단·콜라보 신청 · DM·메일·문자·알림톡 보내기 · 게시·답글 등록 · 상세·상품 등록·수정 · 발주 · 그로홈 대시보드 등록. 모두 업무OS 승인 뒤 담당(사람)이 한다 — AI는 표와 초안까지.',
     "- '(사람 몫)' 줄은 하지 않는다 — 그 줄에 'AI가'라고 적힌 부분만 AI 몫.",
-    ...(acts.some((a) => a.report === 'ads' || a.adMedia) ? [`- ${AD_MODE.label}: 메타·네이버·쿠팡 광고는 외주업체가 운영한다 — 이 루틴도 08:30 광고 루틴도 광고를 끄거나 바꾸지 않는다 (분석·보고만).`] : []),
+    ...(acts.some((a) => a.report === 'ads' || (a.adMedia && AD_MODE.media.includes(a.adMedia))) ? [AD_MODE.mode === 'parallel' ? `- ${AD_MODE.label}: 메타·네이버·쿠팡 광고는 외주업체가 운영하고 ${AD_MODE.manager}가 같이 관리한다 — 이 루틴도 08:30 광고 루틴도 광고를 끄거나 바꾸지 않는다 (분석 + 바꿀 안까지 · 바꾸는 것은 승인 뒤 사람).`
+      : `- ${AD_MODE.label}: 메타·네이버·쿠팡 광고는 외주업체가 운영한다 — 이 루틴도 08:30 광고 루틴도 광고를 끄거나 바꾸지 않는다 (분석·보고만).`] : []),
     '- 원가·마진·공급가·매입가·제조사 이름·공급 단가는 보지도 쓰지도 않는다 (마진 확인은 관리자 마진 대시보드 몫).',
     '- 고객 이름·전화번호·주소·메일은 쓰지 않는다 — 고객 정보는 카페24·스마트스토어 안에서만 보고 숫자만 가져온다.',
     "- 숫자는 화면에서 직접 확인한 것만 쓴다 · 짐작한 값은 '추정'이라고 쓴다.",

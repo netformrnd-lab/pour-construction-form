@@ -19,6 +19,7 @@
       기준선 vs 실제(최신 보고서 metrics → 없으면 보고서 글에서 읽음) · 가설 카드 · 현재 세팅과 제안서 구조 차이 · 규칙마다 출처 배지 [제안서 pXX]/[김송희 관리방안]/[Aside 추가]
       접기·펴기는 이 기기에만 기억(localStorage · 막히면 늘 펼침)
   · 외주 운영 기간 (2026-10-15 사장님 "메타·네이버·쿠팡 약 2개월 외주 · 세팅 분석만 · 데이터 쌓고 매일·금요일 보고"): 맨 위 띠(adops.js AD_MODE) + [Aside 지시문 복사](asideAdsText)
+  · 외주 + 내부 관리 (2026-10-16 사장님 "외주 눈치볼 필요없었어 · 민지님이 분석관리해서 나에게 보고"): 띠에 김민지 → 사장님 매주 보고 · [예약 글 복사](asideAdsLaunch · 한 번만 넣음 → #aside 화면 지시문을 그대로) · [지시문 전체 복사]
       일일 = adreports/{YYYY-MM-DD} · 주간 = adreports/{금요일}-weekly (kind 'weekly') · [변경 기록] = 외주 변경(changes) + 예전 Aside 끈 것(offs) · 보고서 고르기 = 문서 id (#id)
   · 계산 adops.js (시험 node marketing-hub/adops.test.mjs)
 -->
@@ -153,7 +154,7 @@ const LSget=(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:v;}catc
 let vOpen=LSget('ads_verify_open','1')==='1';
 
 // 주소: #off = 끈 것 기록 · #judge = 메타 판정 · #YYYY-MM-DD = 그 보고서
-function fromHash(){const h=decodeURIComponent(location.hash.slice(1));if(h==='off'||h==='judge')S.view=h;else{S.view='rep';if(h)S.cur=h;}}
+function fromHash(){const h=decodeURIComponent(location.hash.slice(1));if(h==='aside'){S.view='rep';S.showText=true;return;}if(h==='off'||h==='judge')S.view=h;else{S.view='rep';if(h)S.cur=h;}}   // #aside = Aside 예약 글이 여는 주소(지시문 펼침 · 2026-10-16)
 fromHash();
 window.addEventListener('hashchange',()=>{fromHash();render();});
 
@@ -175,11 +176,12 @@ async function load(){
 }
 
 function modeBar(){
-  const M=A.AD_MODE; if(M.mode!=='outsourced')return '';
-  return `<div class="mode" id="ad-mode"><b>${esc(M.label)}</b> ${srcB(A.SRC.D)} · ${esc(M.from)}부터 ${esc(M.until)}<br>${esc(M.note)} 보고: <b>${esc(M.daily)} 일일</b> · <b>${esc(M.weekly)} 주간</b> · 이후 쌓인 데이터로 자동화 여부를 정해요.
+  const M=A.AD_MODE; if(M.mode!=='outsourced'&&M.mode!=='parallel')return '';
+  const par=M.mode==='parallel';
+  return `<div class="mode" id="ad-mode"><b>${esc(M.label)}</b> ${srcB(A.SRC.D)} · ${par?`외주 ${esc(M.from)}부터 ${esc(M.until)} · 내부 관리 ${esc(M.inhouse)}부터 <b>${esc(M.manager)}</b> → ${esc(M.reportTo)}께 매주 보고 (${esc(M.report)})`:`${esc(M.from)}부터 ${esc(M.until)}`}<br>${esc(M.note)} 보고: <b>${esc(M.daily)} 일일</b> · <b>${esc(M.weekly)} 주간</b> · ${par?`쌓인 데이터로 ${esc(M.manager)}님과 ${esc(M.reportTo)}이 기준을 고도화해요.`:'이후 쌓인 데이터로 자동화 여부를 정해요.'}
     <div class="basis" id="ad-basis"><b>운영 기준</b> ${srcB(A.SRC.K)} <span class="sub">외주 기간 (사장님 2026-10-15)</span>${A.KSH_RULES.map(r=>`<div class="rl"><b>${esc(r.m)}</b>${esc(r.t)}</div>`).join('')}</div>
-    <div class="row"><button type="button" id="copy-aside" aria-label="Aside 광고 지시문 복사">Aside 광고 지시문 복사</button><button type="button" id="show-aside" aria-expanded="${S.showText}">${S.showText?'지시문 접기':'지시문 보기'}</button><span>Aside 08:30 광고 예약 작업과 금요일 16:00 예약에 이 글을 그대로 넣어요 · 판 ${esc(A.ASIDE_ADS_VER)}</span></div>
-    ${S.showText?`<textarea readonly id="aside-text" aria-label="Aside 광고 지시문">${esc(A.asideAdsText())}</textarea>`:''}</div>`;
+    <div class="row"><button type="button" id="copy-launch" aria-label="Aside 광고 예약 글 복사">예약 글 복사</button><button type="button" id="copy-aside" aria-label="Aside 광고 지시문 복사">지시문 전체 복사</button><button type="button" id="show-aside" aria-expanded="${S.showText}">${S.showText?'지시문 접기':'지시문 보기'}</button><span>Aside 08:30 · 금 16:00 예약에 '예약 글'을 한 번만 넣어요 — 이 화면 지시문(판 ${esc(A.ASIDE_ADS_VER)})이 바뀌어도 그대로 따라와요</span></div>
+    ${S.showText?`<div class="sub" style="margin-top:8px"><b>Aside 광고 지시문</b> · 판 ${esc(A.ASIDE_ADS_VER)}</div><textarea readonly id="aside-text" aria-label="Aside 광고 지시문">${esc(A.asideAdsText())}</textarea>`:''}</div>`;
 }
 function tops(){
   const t=A.topCards(S.reps,todayKST()), last=t.last;
@@ -263,11 +265,11 @@ function render(){
   document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===S.view));
   if(!S.loaded)return;
   const body=S.err?`<div class="msg" role="alert">${esc(S.err)}</div>`:modeBar()+verify()+tops()+(S.view==='off'?vOff():S.view==='judge'?vJudge():vRep());
-  $('#app').innerHTML=body+`<p class="foot">Aside 가 매일 08:30 일일 · 금요일 16:00 주간 광고 보고서를 올려요 · 이 화면은 읽기만 해요<br>실행: 외주 운영 기간 메타·네이버·쿠팡 = 외주업체 ${srcB(A.SRC.D)} · 운영 기준 = 김송희 관리방안 ${srcB(A.SRC.K)} · Aside = 분석·보고만 · 예산·목표 = 본부장 ${srcB(A.SRC.P)}</p>`;
+  $('#app').innerHTML=body+`<p class="foot">Aside 가 매일 08:30 일일 · 금요일 16:00 주간 광고 보고서를 올려요 · 이 화면은 읽기만 해요<br>실행: ${A.AD_MODE.mode==='parallel'?`메타·네이버·쿠팡 = 외주업체 + ${esc(A.AD_MODE.manager)} (바꿀 것 직접 또는 외주에 전함)`:'외주 운영 기간 메타·네이버·쿠팡 = 외주업체'} ${srcB(A.SRC.D)} · 운영 기준 = 김송희 관리방안 ${srcB(A.SRC.K)} · Aside = ${A.AD_MODE.mode==='parallel'?'분석·바꿀 안 (끄거나 바꾸지 않음)':'분석·보고만'} · 예산·목표 = 본부장 ${srcB(A.SRC.P)}</p>`;
 }
 document.addEventListener('click',(e)=>{
   if(e.target.closest('#show-aside')){S.showText=!S.showText;render();return;}
-  if(e.target.closest('#copy-aside')){const b=e.target.closest('#copy-aside'),txt=A.asideAdsText();
+  if(e.target.closest('#copy-aside')||e.target.closest('#copy-launch')){const b=e.target.closest('#copy-aside')||e.target.closest('#copy-launch'),txt=b.id==='copy-launch'?A.asideAdsLaunch():A.asideAdsText();
     const done=(ok)=>{b.textContent=ok?'복사했어요':'복사가 막혔어요 · 지시문 보기에서 길게 눌러 복사';if(!ok){S.showText=true;render();}};
     try{navigator.clipboard.writeText(txt).then(()=>done(true),(err)=>{console.error('[복사] 실패:',err);done(false);});}catch(err){console.error('[복사] 실패:',err);done(false);}return;}
   const k=e.target.closest('#kinds button');if(k){S.kind=k.dataset.k;const first=S.reps.find(x=>S.kind==='all'||(S.kind==='weekly')===A.isWeekly(x));if(first)S.cur=first.id;render();return;}

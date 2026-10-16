@@ -24,8 +24,9 @@ import { flowOwners } from "./flow.js";
 import { sumAk, akWrite, countFields, countOf, baseTitle } from "./routine.js";
 import { linkInbox } from "./links.js";
 import { apprInbox, apprMerge } from "./appr.js";   // 구매 품의 요청 (2026-10-16)
-import { askInbox, asideInbox, planPass, planBack, planRet, planDrop, planExec, canAct, canBack, canRet, pickOk, bossLoop, moreText, MORE_MAX, hqOf, traceOf, traceLeft, mateOwner, isHQ, launchTaskOf } from "./aiask.js";   // AI 승인 (2026-10-12) · Aside 담당 PC (2026-10-15)
+import { askInbox, asideInbox, planPass, planBack, planRet, planDrop, planExec, canAct, canBack, canRet, pickOk, bossLoop, moreText, MORE_MAX, hqOf, traceOf, traceLeft, mateOwner, isHQ, launchTaskOf, adsAsideVer } from "./aiask.js";   // AI 승인 (2026-10-12) · Aside 담당 PC (2026-10-15)
 import { mateOf, boardOf, brandL, qtyDefs, canReq, reqDoc, reqId } from "../../marketing-hub/crew.js";
+import { ASIDE_ADS_LAUNCH_VER } from "../../marketing-hub/adops.js";   // 광고 Aside 예약 글 판 (2026-10-17)
 import { repSlots, repId, canWriteSec, secPeople, snapOf, cycleOf, monOf, CYCLE_L, repInbox } from "./aireport.js";   // AI 크루 보고서 (2026-10-15)
 import { NO_ACT, isFxKey, fxIdOf } from "./airt.js";   // AI 크루 ↔ 반복 실행 (2026-10-16)
 import { lagInbox, applyKpiOv, kpiEditWrite, newKpiId } from "./kpi2.js";
@@ -826,6 +827,16 @@ export function useActs(D, cu, setToast, idx = null) {
       catch (e) { fail("읽음")(e); return false; }
       log("aiRepRead", { col: "aireports", targetId: id, label: `AI 크루 보고 읽음${rd.note ? " · " + rd.note.slice(0, 40) : ""}` });
       setToast({ text: rd.note ? "읽음 · 한마디를 남겼어요" : "읽었어요" });
+      return true;
+    },
+    // 광고 Aside 예약 글 넣음 (2026-10-17 사장님 "어사이드에게 예약글 넣어서 진행하는거 까먹을것같은데 os 확인할것에 나오게해줘")
+    //   관리자 '확인할 것' 'Aside 광고 예약' [넣었어요] → settings/adsAside {ver, at, by, byName} → 그 줄이 모두에게서 사라짐 · 5초 되돌리기(예전 판으로)
+    adsAsideDone: async () => {
+      if (!isMaster(cu)) { setToast({ text: "관리자가 해요" }); return false; }
+      const at = nowIso(), was = adsAsideVer(D) || null;
+      try { await fb.merge("settings", "adsAside", { ver: ASIDE_ADS_LAUNCH_VER, at, by: cu.id, byName: cu.name }); } catch (e) { fail("광고 예약 글")(e); return false; }
+      log("edit", { col: "settings", targetId: "adsAside", label: `광고 Aside 예약 글 넣음 · 판 ${ASIDE_ADS_LAUNCH_VER}`, prev: { ver: was }, next: { ver: ASIDE_ADS_LAUNCH_VER } });
+      setToast({ text: "넣었어요 · 다음 광고 보고서(평일 08:30)부터 새 글로 돌아요", undo: () => fb.merge("settings", "adsAside", { ver: was, at: nowIso(), by: cu.id, byName: cu.name }).catch(fail("되돌리기")) });
       return true;
     },
     // 보고 주기 (관리자 · 2026-10-15 "한동안 주간 · 점차 1개월로") — settings/aicrew.reportCycle = {cycle, from(이번 주 월요일)} · 5초 되돌리기

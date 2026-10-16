@@ -2,6 +2,7 @@
 //
 // 쓰기는 오직 pour-os/v2/** 와 Storage task-attachments/v2/** 에만 한다. (v1 데이터 보호)
 // 예외(사용자 결정 2026-10 · 신제품 대시보드 양쪽 쓰기): 신제품 대시보드 pour-os/launch-board/products/* 의 단계 칸만 조건부로 (patchLaunchIf) — 지우지 않음, 쓰기 전 백업
+// 예외(사용자 결정 2026-10-16 · 구매 품의 요청함 연결): pour-os/approval-requests/items/* — 독립 화면 approval-requests.html 과 같은 문서 (새 요청 · 품의 완료 · 담당 · 고치기 · 지움 표시)
 // v1 문서(pour-os/state-*, pour-os/ak-notes/c)는 '버전1에서 가져오기' 때 읽기만 한다.
 // 보안규칙: 기존 pour-os/{doc=**} · task-attachments/** 허용 범위 안 → 규칙 변경 없음.
 import { initializeApp } from "firebase/app";
@@ -187,4 +188,21 @@ export async function txDocs(docs, fn) { guardWrite();
     const out = fn(snaps.map((s) => (s.exists() ? s.data() : null))) || {};
     (out.writes || []).forEach((w, i) => { if (!w) return; if (snaps[i].exists()) tx.update(refs[i], w); else tx.set(refs[i], { id: docs[i].id, ...w }); });
     return out.ret ?? null; });
+}
+
+// ── 구매 품의 요청 (pour-os/approval-requests/items · 2026-10-16 · appr.js) — 독립 화면 approval-requests.html 과 같은 문서 ──
+const APPR = () => collection(db, "pour-os", "approval-requests", "items");
+const apprDoc = (id) => doc(db, "pour-os", "approval-requests", "items", String(id));
+const apprQ = (w) => (!w ? APPR() : query(APPR(), where(w[0], w[1], w[2])));
+export function listenAppr(w, cb, onErr) {
+  return onSnapshot(apprQ(w), (snap) => { const items = toItems(snap); console.log(`[품의 요청${w ? " " + wTxt(w) : ""}] ${items.length}건${snap.metadata.fromCache ? " (기기 저장)" : ""}`); cb(items); },
+    (e) => { console.error("[품의 요청] 구독 실패:", e); onErr && onErr(e); });
+}
+export async function fetchAppr(w) { const snap = await getDocs(apprQ(w)); const items = toItems(snap); console.log(`[품의 요청 ${w ? wTxt(w) : "전체"}] ${items.length}건`); return items; }
+export async function addAppr(data) { guardWrite(); const r = doc(APPR()); await setDoc(r, data); return r.id; }
+// 서버 지금 값이 기대값과 같을 때만 (두 사람이 같이 [품의 완료] · 그사이 고친 것을 덮지 않게) → {ok, cur}
+export async function patchApprIf(id, expect, fields) { guardWrite();
+  try { return await runTransaction(db, async (tx) => { const r = apprDoc(id), s = await tx.get(r); const cur = s.exists() ? s.data() : null;
+      if (!fits(cur, expect)) return { ok: false, cur }; tx.update(r, fields); return { ok: true, cur }; }); }
+  catch (e) { if (!offline(e)) throw e; console.warn("[품의 요청] 확인 없이 저장(연결 끊김):", e.message); await updateDoc(apprDoc(id), fields); return { ok: true, cur: null, unchecked: true }; }
 }

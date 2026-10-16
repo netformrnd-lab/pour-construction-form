@@ -12,6 +12,7 @@ import { noteWhere } from "./search.js";
 import { tplTrashRows, canEditTpl } from "./tpl.js";
 import { mateOwner, myTurnN } from "./aiask.js";
 import { allMates } from "../../marketing-hub/crew.js";
+import { apprLists } from "./appr.js";
 
 const BTN_ON = { background: C.navy, color: "#fff", borderColor: C.navy };
 const ASG = [["review", "확인해 주세요", true], ["dueReq", "기한 조정 요청", true], ["blocked", "막힘", true], ["late", "기한 지남", true], ["risk", "곧 마감인데 시작 전", true], ["notAck", "아직 안 받음", true], ["doing", "진행 중", true], ["waiting", "받고 대기 중", false], ["done", "최근 7일 끝남", false]];
@@ -39,6 +40,9 @@ export function MoreTab({ D, cu, A, meta, logout, open, BUILD, setToast, view })
         <Row title="다른 사람으로 쓰기" sub="이 기기에서 나가고 이름을 다시 골라요" onClick={() => setAsk("out")} right={arrow} last /></Card>}
     <Head>내 일</Head>
     <Card>
+      {/* 구매 품의 요청(2026-10-16) — 하이웍스를 못 쓰는 사람이 요청 → 담당(기본 김송희)이 대신 올림 · 내 요청 상태 · 내가 맡은 것 */}
+      {(() => { const L = apprLists((D.appr && D.appr.list) || [], D.users, cu.id);
+        return <Row title="품의 요청" tag={L.wait.length ? `맡은 것 ${L.wait.length}` : L.mineWait ? `품의 전 ${L.mineWait}` : null} sub="하이웍스 품의를 담당이 대신 올려요 · 쓰기 · 내 요청 상태" onClick={() => open({ type: "appr" })} right={arrow} last={false} />; })()}
       <Row title={`내가 맡긴 일 ${gN}`} tag={urgent ? `처리할 것 ${urgent}` : null} sub="확인 요청 · 기한 조정 · 막힘 · 아직 안 받음" onClick={() => open({ type: "assigned" })} right={arrow} last={false} />
       <Row title="내 할 일 모두" sub="할 일 · 진행 · 확인 대기 · 보류 · 끝남" onClick={() => open({ type: "mine" })} right={arrow} last={false} />
       <Row title={`내 고정업무 ${myFx}`} sub="매일 · 매주 · 매월" onClick={() => open({ type: "myFixed" })} right={arrow} last={false} />

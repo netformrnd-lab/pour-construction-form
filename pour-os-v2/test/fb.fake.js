@@ -94,3 +94,17 @@ export const NO_NET = true;
 W.__MERGE = (key, id, data) => { col(key)[id] = mergeDeep(col(key)[id], data); kick(); return true; };
 W.__OTHER = (key, id, fields) => { const d = col(key)[id]; if (!d) return false; Object.entries(fields).forEach(([k, v]) => setPath(d, k, v)); kick(); return true; };
 W.__FB_FAKE = true;
+
+// 구매 품의 요청 (pour-os/approval-requests/items · 진짜는 v2 밖) — 가짜는 window.__V2.appr = {id: 문서} · 쓴 기록 key "approval-requests"
+const AK = "approval-requests";
+const apprCol = () => { const s = ST(); if (!s.appr) s.appr = {}; return s.appr; };
+const apprItems = (w) => Object.entries(apprCol()).map(([id, d]) => ({ ...clone(d), id: (d && d.id) || id, _doc: id })).filter((d) => match(d, w));
+const apprSubs = new Set();
+export function listenAppr(w, cb) { const s = { key: AK, w, cb, last: null, appr: true }; apprSubs.add(s); setTimeout(() => { if (!apprSubs.has(s)) return; const x = apprItems(w); s.last = JSON.stringify(x); cb(x); }, 0); return () => apprSubs.delete(s); }
+const apprKick = () => setTimeout(() => { save(); apprSubs.forEach((s) => { const x = apprItems(s.w), sig = JSON.stringify(x); if (sig !== s.last) { s.last = sig; s.cb(x); } }); }, 0);
+export async function fetchAppr(w) { return apprItems(w); }
+export async function addAppr(data) { guardWrite(); const id = "aq" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); apprCol()[id] = deep(data); rec("put", AK, id, data); apprKick(); return id; }
+export async function patchApprIf(id, expect, fields) { guardWrite(); const d = apprCol()[id] || null; if (!fits(d, expect)) return { ok: false, cur: clone(d) };
+  Object.entries(fields).forEach(([k, v]) => setPath(d, k, v)); rec("patch", AK, id, fields); apprKick(); return { ok: true, cur: clone(d) }; }
+// 시험 도구: 독립 화면(approval-requests.html)에서 누가 지금 새 요청을 올림 · 고침
+W.__APPR = (id, data) => { apprCol()[id] = { ...(apprCol()[id] || {}), ...clone(data) }; apprKick(); };

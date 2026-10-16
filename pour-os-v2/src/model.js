@@ -407,6 +407,7 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
   if (D.ai && D.aiInbox) D.aiInbox(D.ai.asks, users, uid, seen, now).forEach((x) => inbox.push(x));   // AI 승인 (aiask.js · 2026-10-12): 내 차례 · 담당 미정은 관리자 누구나 · 최종 승인·안 함 알림
   if (D.ai && D.asideInbox) D.asideInbox(D, uid, now).forEach((x) => inbox.push(x));
   if (D.ai && D.aiRepInbox) D.aiRepInbox(D, uid, now).forEach((x) => inbox.push(x));   // AI 크루 보고서 (aireport.js · 2026-10-15): 칸 쓰기 · 리드 보내기 · 본부장 보고 도착   // Aside 담당 PC (aiask.js · 2026-10-15): 내 PC 세팅 · 오늘 안 돎 · (관리자) 담당 미정
+  if (D.appr && D.apprInbox) D.apprInbox(D.appr.list, users, uid, seen, now).forEach((x) => inbox.push(x));   // 구매 품의 요청 (appr.js · 2026-10-16): 담당 = 품의 요청 n건 + 새 요청 · 요청자 = 품의 완료
   if (D.kpi && D.lagInbox) D.lagInbox(D.kpi.lagDefs, D.kpi.lagV2, users, uid, key, D.brands).forEach((x) => inbox.push(x));   // 월말 결과 KPI 넣기 (kpi2.js · 마스터·결과 KPI 권한)   // CRM·마진에서 온 한 줄 (links.js · 순환 import 피하려고 D 로 받음)
   const taskById = Object.fromEntries(tasks.map((t) => [t.id, t]));
   const talked = new Set((D.notes || []).filter((n) => n && n.by === uid && !n.deleted).map((n) => n.itemId));   // 내가 말한 대화 → 답이 오면 나에게도
@@ -429,7 +430,7 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
   // 같은 대화의 새 댓글 여러 개 → 한 줄 '제목 · 새 댓글 n' (2026-10-15 페르소나 시험: 팀원 '확인할 것' 22줄 중 13줄이 한두 대화의 댓글이라 할 일이 묻힘)
   //   id = 댓글 줄 id 를 | 로 이음 → 열면 모두 읽음 · 읽은 알림에서 다시 볼 때도 한 줄 · 나를 부른 댓글(@)은 따로 그대로
   groupNotes(noteRows).forEach((x) => inbox.push(x));
-  const ORDER = { feedback: 0, review: 1, aiRep: 1.1, ai: 1.2, aiGroup: 1.2, aiMiss: 1.25, aiSetup: 2.97, aiOwnerless: 2.98, aiDone: 9, dueReq: 2, help: 2.5, mention: 2.8, link: 2.9, lagDue: 2.95, blocked: 3, handed: 7.5, turnAgain: 3.5, turnLate: 4, turnOrder: 5, nextNoOwner: 6, assigned: 7, bulk: 7, launchNew: 8, holdDue: 8.5, projHoldDue: 8.5, dueRes: 9, approved: 9, unblocked: 9, pinNew: 9.5, note: 10 };
+  const ORDER = { feedback: 0, review: 1, aiRep: 1.1, ai: 1.2, aiGroup: 1.2, aiMiss: 1.25, aiSetup: 2.97, aiOwnerless: 2.98, aiDone: 9, dueReq: 2, help: 2.5, mention: 2.8, appr: 2.85, apprNew: 2.86, link: 2.9, lagDue: 2.95, blocked: 3, handed: 7.5, turnAgain: 3.5, turnLate: 4, turnOrder: 5, nextNoOwner: 6, assigned: 7, bulk: 7, launchNew: 8, holdDue: 8.5, projHoldDue: 8.5, dueRes: 9, approved: 9, unblocked: 9, pinNew: 9.5, apprDone: 9, note: 10 };
   inbox.sort((a, b) => (ORDER[a.kind] ?? 11) - (ORDER[b.kind] ?? 11) || String(b.at || "").localeCompare(String(a.at || "")));
   const userName = (id) => nameOf(users, id);
   // 끝낸 시각은 UTC(toISOString) → 기기 날짜로 바꿔 비교 (아침 9시 전에 끝낸 일도 오늘)

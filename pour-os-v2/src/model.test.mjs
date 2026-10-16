@@ -268,6 +268,12 @@ ok("7단계: 한 사람 일 한 번에 넘기기 — 묶음 · 담당 칸 · 넘
   const line = ib.filter((x) => x.kind === "bulk");
   assert.equal(line.length, 1); assert.equal(line[0].title, "가님 업무 2개 넘겨받음"); assert.equal(line[0].mine, true); assert.equal(line[0].projectId, null);
   assert.ok(!ib.some((x) => x.kind === "assigned"));   // 한 건씩 따로 안 뜸
+  // 이전 담당(가)에게 '담당 바뀜'도 묶음마다 한 줄 (2026-10-16 · 34개를 넘기면 34줄이 쌓였음) · 읽으면 모두 · 한 건만 넘긴 건 예전 줄
+  const ia = M.todayView({ users, projects, tasks: moved.map((t, i) => ({ ...t, title: "광고 " + (i + 1) })), notes: [] }, "a", new Date()).inbox.filter((x) => x.kind === "handed");
+  assert.equal(ia.length, 1); assert.equal(ia[0].title, "업무 2개 · 나님에게"); assert.equal(ia[0].id, `ho:x1${at}|ho:x2${at}`); assert.equal(ia[0].taskId, "x1"); assert.ok(ia[0].text.startsWith("가 → 나") && ia[0].text.includes("광고 1 · 광고 2"));
+  assert.equal(M.todayView({ users, projects, tasks: moved, notes: [] }, "a", new Date(), { [`ho:x1${at}`]: true, [`ho:x2${at}`]: true }).inbox.filter((x) => x.kind === "handed").length, 0);
+  const one = M.todayView({ users, projects, tasks: [{ ...moved[0], title: "하나" }], notes: [] }, "a", new Date()).inbox.filter((x) => x.kind === "handed");
+  assert.equal(one.length, 1); assert.equal(one[0].id, `ho:x1${at}`); assert.equal(one[0].title, "하나");
 });
 ok("8단계: 기한 지킴 % — 담당이 끝낸 시각 · 확인 대기 포함 · 안 끝낸 지난 일은 못 지킴", () => {
   const now = new Date("2026-10-10T10:00:00");

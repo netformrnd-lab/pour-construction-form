@@ -360,7 +360,7 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
   const myProj = new Set((D.projects || []).filter((p) => p.assigneeId === uid || (p.collaboratorIds || []).includes(uid)).map((p) => p.id));
   const projAll = new Set([...myProj, ...tasks.filter((t) => !t.isFixed && t.projectId && isMine(t, uid)).map((t) => t.projectId)]);   // 프로젝트 한마디는 그 프로젝트 업무 담당에게도 (업무 댓글은 그대로 책임자·함께)
   const since = new Date(now - 7 * 86400000).toISOString();
-  const inbox = []; const launchNew = {}, bulkNew = {};
+  const inbox = []; const launchNew = {}, bulkNew = {}, handedBulk = {};
   // '이제 내 차례' 카드에 '앞 일 마지막 말'로 보이는 댓글 하나만 댓글 줄로 또 띄우지 않음 (T.shownNotes · 없으면 예전처럼 앞 일들의 한마디)
   const shown = T && T.shownNotes instanceof Set ? T.shownNotes : null;
   const freshPreds = new Set(); if (!shown && T && T.byTask) fresh.forEach((id) => ((T.byTask.get(id) || {}).preds || []).forEach((p) => freshPreds.add(p.id)));
@@ -383,7 +383,8 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
     if (t.status === "review" && (t.reviewTo || reqOf(t)) === uid) inbox.push({ kind: "review", tag: "확인 요청", id: "rv:" + t.id, taskId: t.id, title: t.title, who: ownersOf(t)[0], at: t.reviewAt || t.updatedAt, text: "끝냈어요 · 확인해 주세요", keep: true });
     if (t.blocked && !mine && (t.blocked.to === uid || reqOf(t) === uid || dueApprover(t, D) === uid || ((D.projects || []).find((p) => p.id === t.projectId) || {}).assigneeId === uid)) inbox.push({ kind: "blocked", tag: "막힘", red: true, id: "bk:" + t.id, taskId: t.id, title: t.title, who: t.blocked.by, whoName: t.blocked.byName, at: t.blocked.at, text: t.blocked.reason, keep: true });
     if (t.ask && t.ask.kind === "help" && t.ask.to === uid) inbox.push({ kind: "help", tag: "도움 요청", id: "hp:" + t.id + t.ask.at, taskId: t.id, title: t.title, who: t.ask.by, whoName: t.ask.byName, at: t.ask.at, text: t.ask.text || "", keep: true });
-    if (t.handoff && t.handoff.by !== uid && t.handoff.at >= since && !seen["ho:" + t.id + t.handoff.at] && ((t.handoff.from || []).includes(uid) || reqOf(t) === uid) && t.handoff.to !== uid) inbox.push({ kind: "handed", tag: "담당 바뀜", id: "ho:" + t.id + t.handoff.at, taskId: t.id, title: t.title, who: t.handoff.by, whoName: t.handoff.byName, at: t.handoff.at, text: `${(t.handoff.from || []).map((x) => nameOf(users, x)).filter(Boolean).join("·") || "담당 없음"} → ${nameOf(users, t.handoff.to) || "?"}${t.handoff.note ? " · " + t.handoff.note : ""}` });
+    if (t.handoff && t.handoff.by !== uid && t.handoff.at >= since && !seen["ho:" + t.id + t.handoff.at] && ((t.handoff.from || []).includes(uid) || reqOf(t) === uid) && t.handoff.to !== uid) { const row = { kind: "handed", tag: "담당 바뀜", id: "ho:" + t.id + t.handoff.at, taskId: t.id, title: t.title, who: t.handoff.by, whoName: t.handoff.byName, at: t.handoff.at, text: `${(t.handoff.from || []).map((x) => nameOf(users, x)).filter(Boolean).join("·") || "담당 없음"} → ${nameOf(users, t.handoff.to) || "?"}${t.handoff.note ? " · " + t.handoff.note : ""}` };   // 한꺼번에 넘긴 업무(일 넘기기 · bulkId)는 아래에서 한 줄로
+      if (t.bulkId && t.handoff.all) (handedBulk[t.bulkId] = handedBulk[t.bulkId] || []).push(row); else inbox.push(row); }
     if (mine && t.status === "hold" && t.holdUntil && t.holdUntil <= key && !t.holdBy) inbox.push({ kind: "holdDue", tag: "다시 볼 날", id: "hd:" + t.id + ":" + t.holdUntil, taskId: t.id, title: t.title, who: t.heldBy, at: t.holdUntil + "T00:00:00", text: `보류${t.holdReason ? " · " + t.holdReason : ""} · ${md(t.holdUntil)}에 다시 보기로 함`, keep: true });
     if (mine && t.dueReqResult && (t.dueReqResult.at || "") >= since && !seen["dr:" + t.id + t.dueReqResult.at]) inbox.push({ kind: "dueRes", tag: t.dueReqResult.ok ? "기한 바뀜" : "기한 유지", id: "dr:" + t.id + t.dueReqResult.at, taskId: t.id, title: t.title, who: t.dueReqResult.by, whoName: t.dueReqResult.byName, at: t.dueReqResult.at, text: t.dueReqResult.ok ? `새 기한 ${md(dueOf(t))}` : t.dueReqResult.reason || "기한은 그대로예요" });
   });
@@ -394,6 +395,11 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
     const root = rm.root && rm.root !== t.id ? rmById[rm.root] : null; if (root && rmTo(root).includes(uid)) return;
     const id = "rm:" + t.id + rm.at; if (seen[id]) return; const n = (rm.kids || []).length;
     inbox.push({ kind: "removed", tag: "업무 없앰", id, taskId: t.id, title: t.title, who: rm.by, whoName: rm.byName, at: rm.at, text: `없앴어요${rm.reason ? " · " + rm.reason : ""}${n ? ` · 하위 ${n}개 같이` : ""} · 휴지통에서 되살릴 수 있어요` }); });
+  // 한꺼번에 넘긴 업무의 '담당 바뀜' = 묶음마다 한 줄 (2026-10-16 · 리드 이름의 신제품 광고 항목 34개를 넘기면 이전 담당 '확인할 것'에 34줄이 쌓였음)
+  //   id = 줄 id 를 | 로 이음 → 열면 모두 읽음 · 누르면 첫 업무 · 한 건뿐이면 예전 줄 그대로
+  Object.values(handedBulk).forEach((g) => { if (g.length < 2) return inbox.push(g[0]);
+    const f = g[0], ho = (tasks.find((t) => t.id === f.taskId) || {}).handoff || {};
+    inbox.push({ ...f, id: g.map((x) => x.id).join("|"), n: g.length, title: `업무 ${g.length}개 · ${nameOf(users, ho.to) || "?"}님에게`, text: `${f.text} · ${g.slice(0, 3).map((x) => x.title).join(" · ")}${g.length > 3 ? ` 외 ${g.length - 3}개` : ""}` }); });
   Object.entries(launchNew).forEach(([pid, g]) => { const p = (D.projects || []).find((x) => x.id === pid);
     inbox.push({ kind: "launchNew", tag: "신제품", id: "ln:" + pid, projectId: pid, title: `${p ? p.title : "신제품"} · 항목 ${g.n}개 맡김`, who: g.who, at: g.at, text: "열어서 기한을 확인하고 '받았어요'를 눌러 주세요", keep: true }); });
   Object.entries(bulkNew).forEach(([bid, g]) => { const p = (D.projects || []).find((x) => x.id === g.pid);

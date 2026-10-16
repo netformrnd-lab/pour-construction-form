@@ -31,6 +31,8 @@ import { qtyCfg, qtyText, QTY_UNITS } from "./rec.js";
 import { liveNotes, useNoteOver } from "./core.jsx";
 import { AiTraceBox } from "./aitrace.jsx";
 import { traceLeft } from "./aiask.js";
+import { RtAiCard } from "./airtui.jsx";   // AI 크루 ↔ 반복 실행 (2026-10-16)
+import { rtKey } from "./airt.js";
 
 const roP = (n) => { const c = String(n || "").slice(-1).charCodeAt(0) - 0xAC00; if (c < 0 || c > 11171) return "(으)로"; const j = c % 28; return j === 0 || j === 8 ? "로" : "으로"; };
 export const openTask = (open, t) => open({ type: t.isFixed ? "fixed" : "task", id: t.id });
@@ -480,7 +482,7 @@ export function Thread({ D, cu, A, notes, itemId, ctx, rec, onRec, cfg, link, hl
 }
 
 // ───────────────── 고정업무 보기 ─────────────────
-export function FixedSheet({ D, cu, A, onBack, onClose, id, focus, note, setToast }) {
+export function FixedSheet({ D, cu, A, open, onBack, onClose, id, focus, note, setToast }) {
   const t = useTask(D, id);
   const notes = useItemNotes(D, taskNoteId(id));
   const oldMine = useItemNotes(D, `${id}~${cu.id}`);   // 버전1 고정업무 '내 메모'(사람별 · 읽기만)
@@ -515,6 +517,7 @@ export function FixedSheet({ D, cu, A, onBack, onClose, id, focus, note, setToas
     <Head>누가 했나</Head>
     <Card>{people.length === 0 ? <Empty>담당이 없어요</Empty> : people.map((uid, i) => { const ok = fxMeDone(t, uid, key), at = t.doneAtBy && t.doneAtBy[uid];
       return <div key={uid} style={{ display: "flex", gap: 10, padding: "11px 14px", borderBottom: i < people.length - 1 ? `1px solid ${C.line}` : "none", fontSize: 14 }}><b style={{ flex: 1, color: C.text }}>{nameOf(D.users, uid) || uid}</b><span style={{ color: ok ? C.green : C.mute, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{ok ? `✓ ${hm(at)}` : `아직${fxTime(t, uid) ? ` (예정 ${fxTime(t, uid)})` : ""}`}</span></div>; })}</Card>
+    {open && !gone && sc !== "me" && <RtAiCard D={D} cu={cu} A={A} open={open} rkey={rtKey("fx", t.id)} name={t.title || ""} brand={t.brand} kind="fx" owners={people} />}
     {cfg && mine && !gone && <DayQty cfg={cfg} mine={myQty} can extra={people.length > 1 ? `모두 ${qtyText(cfg, (R.docs || []).filter((d) => d.date === key).reduce((a, d) => a + (+d.qty || 0), 0))}` : ""}
       onAdd={async (n) => { await A.fxQty(t, n, "add"); setTick((x) => x + 1); }} onSet={async (n) => { await A.fxQty(t, n, "set"); setTick((x) => x + 1); }} />}
     <RecList D={D} docs={R.docs} ready={R.ready} cfg={cfg} kind="fx" notes={notes} keyd={key} onPick={(r) => { setRec({ date: r.date, uid: r.uid, qty: r.qty, runs: r.on ? 1 : 0, name: r.name }); toTalk(); }} />

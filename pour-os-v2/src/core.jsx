@@ -27,6 +27,7 @@ import { apprInbox, apprMerge } from "./appr.js";   // 구매 품의 요청 (202
 import { askInbox, asideInbox, planPass, planBack, planRet, planDrop, planExec, canAct, canBack, canRet, pickOk, bossLoop, moreText, MORE_MAX, hqOf, traceOf, traceLeft, mateOwner, isHQ, launchTaskOf } from "./aiask.js";   // AI 승인 (2026-10-12) · Aside 담당 PC (2026-10-15)
 import { mateOf, boardOf, brandL, qtyDefs, canReq, reqDoc, reqId } from "../../marketing-hub/crew.js";
 import { repSlots, repId, canWriteSec, secPeople, snapOf, cycleOf, monOf, CYCLE_L, repInbox } from "./aireport.js";   // AI 크루 보고서 (2026-10-15)
+import { NO_ACT, isFxKey, fxIdOf } from "./airt.js";   // AI 크루 ↔ 반복 실행 (2026-10-16)
 import { lagInbox, applyKpiOv, kpiEditWrite, newKpiId } from "./kpi2.js";
 import { dayIdFx, dayIdAk, openIdAk, dayBase, dayAdd, dayFix, roundTap, qtyToGoal, akSubsOf } from "./rec.js";
 import { akQidOfWeek, akWeekKey } from "../../pour-os/src/actionKpi.js";
@@ -598,7 +599,7 @@ export function useActs(D, cu, setToast, idx = null) {
       if (!canAct(a, cu)) { setToast({ text: "지금 내 차례가 아니에요" }); return false; }
       if (!pickOk(a, pick)) { setToast({ text: "승인할 번호를 골라 주세요" }); return false; }
       const md0 = ((D.ai && D.ai.mates) || {})[a.mate] || {}, at = nowIso(), pl = planPass(a, cu, D.users, pick, at, { hq: hqOf(a, md0), up: !!up });
-      const ex = pl.final ? planExec({ ...a, ...pl.fields }, pl.fields.pick, cu, D.users, at, nextWorkday(addDays(ymd(new Date()), 1)), { ak: (md0.actAk || {})[a.act] || "", launchTask: launchTaskOf(D, a) }) : null;   // 디맨드젠 = 그 신제품 칸
+      const ex = pl.final ? planExec({ ...a, ...pl.fields }, pl.fields.pick, cu, D.users, at, nextWorkday(addDays(ymd(new Date()), 1)), { ak: (md0.actAk || {})[a.act || NO_ACT] || "", launchTask: launchTaskOf(D, a) }) : null;   // 짝 = 할 일 글자 · 글자 없는 결과(여름 아침 루틴)는 '_' (2026-10-16) · 디맨드젠 = 그 신제품 칸
       try {
         const ok = await fb.txDocs([{ key: "aiasks", id: a.id }, ...(ex ? [{ key: "tasks", id: ex.id }] : [])], (curs) => {
           const cur = curs[0]; if (!cur || !Object.keys(pl.expect).every((k) => fb.sameVal(cur[k], pl.expect[k]))) return { ret: false };
@@ -661,6 +662,7 @@ export function useActs(D, cu, setToast, idx = null) {
     //   field: actOwners(할 일 담당 · 관리자) · actHq(본부장 승인 켬 true/끔 false/보드대로 null · 관리자) · actAk(반복 실행 짝 · 관리자·AI 담당)
     //   할 일 담당을 바꾸면 그 할 일의 담당 단계 승인(대기·AI가 고치는 중)도 새 담당에게 · 5초 되돌리기
     mateActSet: async (mateId, field, act, value) => {
+      const rtName = (k) => { if (!k) return "없음"; if (isFxKey(k)) { const ft = (D.tasks || []).find((x) => x.id === fxIdOf(k)); return ft ? ft.title : "없음"; } return (((D.ak && D.ak.items) || []).find((x) => x.id === k) || {}).name || "없음"; };
       const doc = D.ai.mates[mateId] || {}, m = mateOf(mateId) || { name: mateId }, mine = Object.values(doc.owners || {}).includes(cu.id);
       if (!["actOwners", "actHq", "actAk"].includes(field) || !act) return false;
       if (!(isMaster(cu) || (field === "actAk" && mine))) { setToast({ text: field === "actAk" ? "반복 실행 짝은 그 AI 담당·관리자가 정해요" : "할 일 담당·본부장 승인은 관리자가 정해요" }); return false; }
@@ -678,10 +680,47 @@ export function useActs(D, cu, setToast, idx = null) {
           catch (e) { console.error("[v2] 할 일 담당 · 열린 승인 넘기기 실패:", e); } }
       }
       const L = field === "actOwners" ? `${act} 담당 ${who(was)}${was ? "" : "(AI 담당)"} → ${who(v)}${v ? "" : "(AI 담당)"}${moved ? ` · 열린 승인 ${moved}건 넘김` : ""}`
-        : field === "actHq" ? `${act} 본부장 승인 ${v === true ? "켬" : v === false ? "끔" : "보드대로"}` : `${act} 반복 실행 짝 ${(((D.ak && D.ak.items) || []).find((x) => x.id === v) || {}).name || "없음"}`;
+        : field === "actHq" ? `${act} 본부장 승인 ${v === true ? "켬" : v === false ? "끔" : "보드대로"}` : `${act === NO_ACT ? "아침 루틴" : act} 반복 실행 짝 ${rtName(v)}`;
       log("aiAct", { col: "aimates", targetId: mateId, label: `${m.name} · ${L}` });
       setToast({ text: `${m.name} · ${L}`, undo: () => A.mateActSet(mateId, field, act, was) });
       return true;
+    },
+    // AI 짝 한 번에 (2026-10-16 사장님 "ai크루를 활용해서 반복업무들을 해결하는건데 이거 연관해서 이용하기 좋게 세팅해줘")
+    //   관리자 반복 실행 [추천대로 짝 짓기] · 반복 실행 시트 [짝 짓기]·[짝 풀기] — list = [{mate, act, key('' = 풀기), owner?}]
+    //   aimates/{AI}.actAk.<할 일> = 반복 실행 열쇠 · 관리자이고 owner(반복 실행 담당 한 명)가 있으면 actOwners.<할 일> = 그 사람(결과 확인·실행 업무가 그 사람에게 · 열린 담당 단계 승인도 같이)
+    //   AI 마다 transaction 하나(그 AI 담당·관리자만) · 기록 hist · 5초 되돌리기(이전 값으로)
+    rtPairMany: async (list, opt = {}) => {
+      const master = isMaster(cu), at = nowIso(), mates = (D.ai && D.ai.mates) || {};
+      const can = (mid) => master || Object.values((mates[mid] || {}).owners || {}).includes(cu.id);
+      const byMate = new Map();
+      (list || []).filter((x) => x && x.mate && x.act && can(x.mate)).forEach((x) => { if (!byMate.has(x.mate)) byMate.set(x.mate, []); byMate.get(x.mate).push(x); });
+      if (!byMate.size) { setToast({ text: "AI 짝은 그 AI 담당·관리자가 정해요" }); return 0; }
+      const prev = []; let n = 0, moved = 0;
+      for (const [mid, xs] of byMate) {
+        const got = [];
+        try { await fb.txDoc("aimates", mid, (cur) => { const w = {}, ch = {}, nest = { actAk: {}, actOwners: {} }; got.length = 0;
+            xs.forEach((x) => {
+              const v = opt.undo ? x.was : x.key || null, wasAk = ((cur && cur.actAk) || {})[x.act] ?? null;
+              if (x.field !== "actOwners" && wasAk !== v) { w[`actAk.${x.act}`] = v; nest.actAk[x.act] = v; ch[`actAk.${x.act}`] = [wasAk, v]; got.push({ mate: mid, act: x.act, field: "actAk", was: wasAk }); }
+              const ov = opt.undo ? (x.field === "actOwners" ? x.was : undefined) : x.owner && master && x.act !== NO_ACT ? x.owner : undefined, wasO = ((cur && cur.actOwners) || {})[x.act] ?? null;
+              if (ov !== undefined && wasO !== ov) { w[`actOwners.${x.act}`] = ov; nest.actOwners[x.act] = ov; ch[`actOwners.${x.act}`] = [wasO, ov]; got.push({ mate: mid, act: x.act, field: "actOwners", was: wasO, now: ov }); } });
+            if (!Object.keys(w).length) return {};
+            const h = { at, by: cu.id, byName: cu.name, ch, via: opt.undo ? "rtPairUndo" : "rtPair" };
+            return { write: cur ? { ...w, updatedAt: at, hist: fb.arrayUnion(h) } : { owners: {}, rules: [], actAk: nest.actAk, actOwners: nest.actOwners, updatedAt: at, hist: [h] } }; }); }
+        catch (e) { fail("AI 짝")(e); continue; }
+        prev.push(...got); n += got.filter((g) => g.field === "actAk").length;
+        // 할 일 담당이 바뀌면 그 할 일의 담당 단계 승인(대기·AI가 고치는 중)도 새 담당에게 (mateActSet 과 같은 규칙)
+        const doc = mates[mid] || {}, bb = (boardOf((mateOf(mid) || {}).board) || {}).brand || "", fall = mateOwner(doc, bb, D.users);
+        for (const g of got.filter((x) => x.field === "actOwners")) { const old = g.was || fall, nu = g.now || fall;
+          const mv = (D.ai.asks || []).filter((x) => x.mate === mid && x.act === g.act && ((x.state === "wait" && !(x.step > 0) && (x.to === old || !x.to)) || (x.state === "back" && (x.owner === old || !x.owner))));
+          if (mv.length) { try { moved += (await fb.patchManyIf(mv.map((x) => ({ key: "aiasks", id: x.id, expect: { state: x.state, to: x.to || "", step: x.step || 0 }, fields: { ...(x.state === "wait" ? { to: nu || "" } : {}), owner: nu || "", updatedAt: at } })))).done; }
+            catch (e) { console.error("[v2] AI 짝 · 열린 승인 넘기기 실패:", e); } } }
+      }
+      if (!prev.length) { if (!opt.undo) setToast({ text: "이미 그렇게 짝 지어 있어요" }); return 0; }
+      log("aiPair", { col: "aimates", targetId: [...byMate.keys()].join(","), label: `AI 짝 ${opt.undo ? "되돌림" : `${n}개`}${moved ? ` · 열린 승인 ${moved}건 넘김` : ""}` });
+      if (!opt.undo) setToast({ text: opt.text || `AI 짝 ${n}개를 정했어요${moved ? ` · 열린 승인 ${moved}건도 넘겼어요` : ""}`, undo: () => A.rtPairMany(prev, { undo: true }) });
+      else setToast({ text: "되돌렸어요" });
+      return n;
     },
     // 흔적 (2026-10-15 사장님 "마케터들은 업무 흔적 꼭 · 어떤 포스팅·어떤 인플루언서인지 AI가 세팅 · 사람이 확인 · KPI 추적") — 실행 업무 번호마다
     //   f = {done:true, link, note} 했어요 · {skip:true, note} 안 함 · null 되돌림 → tasks.aiTrace.<번호> + aiasks.trace.<번호> + 짝지은 반복 실행 ±1(흔적 ai 칸 같이)
@@ -699,7 +738,13 @@ export function useActs(D, cu, setToast, idx = null) {
       // 디맨드젠(2026-10-15): [했어요] = 그 신제품 '디맨드젠 광고 (n/5)' +1 · 되돌리면 −1 · 이미 다 찼으면 안 셈
       if (t.aiLaunch && was !== now) { const lid = t.aiLaunchTask || launchTaskOf(D, { launch: t.aiLaunch, prod: t.aiProd }); lt = lid ? (D.tasks || []).find((x) => x.id === lid) : null;
         if (lt && !(now && targetOf(lt) && countOf(lt) >= targetOf(lt))) lc = await A.launchCount(lt, now ? 1 : -1, { via: "ai", ask: t.aiAsk, n }); }
-      const lcL = lc ? ` · 신제품 '${t.aiProd}' ${baseTitle(lt)} ${lc.n}/${lc.g}` : t.aiLaunch && was !== now && !lt ? ` · 신제품 '${t.aiProd || "?"}' 칸을 못 찾아 개수는 안 셌어요` : "";
+      const lcL0 = lc ? ` · 신제품 '${t.aiProd}' ${baseTitle(lt)} ${lc.n}/${lc.g}` : t.aiLaunch && was !== now && !lt ? ` · 신제품 '${t.aiProd || "?"}' 칸을 못 찾아 개수는 안 셌어요` : "";
+      // 정한 날 체크 짝(aiAk 'fx:업무 id' · 2026-10-16): [했어요] = 그 체크 오늘 완료(아직이고 내 체크일 때만) · 되돌려도 체크는 그대로(반복 실행에서 [✓ 취소])
+      const ft = isFxKey(t.aiAk) ? (D.tasks || []).find((x) => x.id === fxIdOf(t.aiAk) && x.isFixed) : null; let fxL = "";
+      if (ft && now && !was) {
+        if (!fxIsMine(ft, cu.id)) fxL = ` · '${fxLabel(ft, cu.id)}' 체크는 그 담당이 해요`;
+        else if (!fxMeDone(ft, cu.id, date)) { fb.patch("tasks", tdoc(ft), { ...fxCheckPatch(ft, cu.id, true, date, at, cu.name), v2At: at }).catch(fail("체크")); A.fxCheck(ft, true, date, at).catch(fail("체크 기록")); fxL = ` · '${fxLabel(ft, cu.id)}' 오늘 체크`; } }
+      const lcL = lcL0 + fxL;
       log("aiTrace", { col: "tasks", targetId: t.id, label: `${t.title} · ${n === "_" ? "" : n + " "}${val ? (val.skip ? "안 함" : "했어요") : "되돌림"}${val && val.link ? " · " + val.link : ""}` });
       setToast({ text: val ? (val.skip ? "안 한 이유를 남겼어요" : `흔적을 남겼어요${counted ? ` · 반복 '${it.name}' +1` : ""}${lcL}`) : `되돌렸어요${counted ? ` · 반복 '${it.name}' −1` : ""}${lcL}` });
       return true;

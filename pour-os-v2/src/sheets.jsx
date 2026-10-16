@@ -46,7 +46,7 @@ function route(s, p, extra) {
   if (s.type === "aiMate") return <AiMateSheet {...p} id={s.id} />;
   if (s.type === "aiTeam") return <AiTeamSheet {...p} />;
   if (s.type === "aiSetup") return <AiSetupSheet {...p} owner={s.owner} />;   // 내 PC Aside 세팅 (2026-10-15)
-  if (s.type === "aiReq") return <AiReqSheet {...p} mate={s.mate} />;   // AI에게 업무 맡기기 (2026-10-15)
+  if (s.type === "aiReq") return <AiReqSheet {...p} mate={s.mate} preset={s.preset} />;   // AI에게 업무 맡기기 (2026-10-15)
   // 구매 품의 요청 (2026-10-16 · apprui.jsx · 두 앱 같은 시트): 목록(내 요청 · 내가 맡은 것 · 모두) · 한 건
   if (s.type === "appr") return <ApprSheet {...p} s={s} />;
   if (s.type === "apprOne") return <ApprOneSheet {...p} id={s.id} item={s.item} />;

@@ -1,6 +1,7 @@
 // node marketing-hub/crew.test.mjs — AI 크루·보드 정의 · Aside 붙여 넣기 읽기 · 승인 요청 모양 시험 (Firebase 안 씀)
 import { createRequire } from 'node:module';
 import * as K from './crew.js';
+import { AD_MODE } from './adops.js';   // 외주 + 내부 관리 ↔ 예전 외주 기간 되돌려 보기 (2026-10-16)
 const C = createRequire(import.meta.url)('./core.js');
 let n = 0, bad = 0;
 const eq = (name, got, want) => { n++; const ok = JSON.stringify(got) === JSON.stringify(want); if (!ok) { bad++; console.log('✗', name, '\n  got ', JSON.stringify(got), '\n  want', JSON.stringify(want)); } else console.log('✓', name); };
@@ -117,11 +118,19 @@ eq('Aside 가 못 따르는 말 없음 (영상 생성하기 버튼 · 토요일 
   eq('예약 글: 짧게 · 이 화면 지시문을 그대로 · 주소', [L.length < 700, L.includes(`${K.HUB_CREW}#gh-traffic`), L.includes("'오늘 지시문'"), L.startsWith('[AI 크루 · 가을 (유입마케터) · 그로홈 유입 보드] 평일 09:00')], [true, true, true, true]);
   eq('오늘의집 지시문에 런칭 체크리스트(보기만)', K.asideText(K.boardOf('gh-ohou')).includes('■ 참고: 11/9(월) 신제품 4종 런칭 체크리스트'), true);
   eq('지시문 F = 08:30 광고 보고서 화면 · 이 루틴은 안 끔 · 표 없음', [t.includes('F. 쿠팡·네이버 외주 운영 분석 + 롱테일 기록 — 언제: 매일 08:30'), t.includes('marketing-hub/ads.html 에서 오늘 보고서를 보고 [상태] F 에 한 줄만'), t.includes('이 루틴에서는 광고를 끄거나 바꾸지 않는다'), /\n\[F\]\n/.test(t), /\n\[F\]\n/.test(K.asideText(K.boardOf('gh-conv'))), K.asideText(K.boardOf('gh-rep')).includes('08:30 광고')], [true, true, true, false, false, false]);
-  eq('외주 운영 기간: 쿠팡·네이버·메타 광고 할 일엔 ★ 바꿀 안 안 만듦 · 지킬 것 한 줄 · 다른 할 일엔 없음', [(t.match(/★ 외주 운영 기간/g) || []).length, (K.asideText(K.boardOf('gh-exp')).match(/★ 외주 운영 기간/g) || []).length, t.includes('이 루틴도 08:30 광고 루틴도 광고를 끄거나 바꾸지 않는다'), K.asideText(K.boardOf('gh-rep')).includes('★ 외주'), Object.values(K.BOARDS).flatMap((b) => b.actions.filter((a) => K.adHold(a)).map((a) => b.id + a.c + a.adMedia))], [2, 1, true, false, ['gh-expC메타', 'gh-trafficD쿠팡', 'gh-trafficE네이버']]);
+  // 외주 + 내부 관리 (2026-10-16 사장님 "외주 눈치볼 필요없었어 · 민지님이 분석관리해서 나에게 보고") — 광고 할 일은 다시 바꿀 안 + 실행 · ★ 기준 한 줄 · Aside 는 여전히 안 바꿈
+  eq('외주 + 내부 관리: 쿠팡·네이버·메타 광고 할 일엔 ★ 기준 한 줄(바꿀 안 만듦 · 근거 숫자 · 바꾸는 건 김민지) · 지킬 것 한 줄 · 다른 할 일엔 없음', [(t.match(/★ 외주 \+ 내부 관리/g) || []).length, (K.asideText(K.boardOf('gh-exp')).match(/★ 외주 \+ 내부 관리/g) || []).length, t.includes('바꿀 안(끄기·예산·입찰·제외 키워드·소재)을 번호로 만들되 판단 기준은 김송희 관리방안'), t.includes('이 루틴도 08:30 광고 루틴도 광고를 끄거나 바꾸지 않는다 (분석 + 바꿀 안까지'), K.asideText(K.boardOf('gh-rep')).includes('★ 외주'), Object.values(K.BOARDS).flatMap((b) => b.actions.filter((a) => K.adPar(a)).map((a) => b.id + a.c + a.adMedia)), Object.values(K.BOARDS).flatMap((b) => b.actions.filter((a) => K.adHold(a)).map((a) => b.c))], [2, 1, true, true, false, ['gh-expC메타', 'gh-trafficD쿠팡', 'gh-trafficE네이버'], []]);
   { const q = K.parseCrew('[C]\n요약: 관찰\n캠페인·키워드\t현재\n쿠팡 B\t외주 세팅 그대로\n[D]\n캠페인·키워드\t현재\t제안\n방수 페인트\t1만\t외주 세팅 그대로 · 관찰\n[E]\n키워드\t현재 순위\n롤러페인트\t3', K.boardOf('gh-traffic'));
     const ex = Object.fromEntries(K.asksFromParse(q, { board: 'gh-traffic', mate: 'gaeul', run: '2026-10-16' }).map((a) => [a.act, a.exec]));
-    eq('외주 운영 기간: 쿠팡 D·네이버 E 승인 = 실행 업무 없음(보고만) · 광고 아닌 C 는 그대로 · 지시문도 보고만', [ex.D, ex.E, ex.C, t.includes('승인 뒤 사람이 할 일: 없음 (외주 운영 기간 · 보고만)'), K.execOf(K.actOf('gh-exp', 'C')), K.execOf(K.actOf('gh-exp', 'A')).length > 0],
-      ['', '', '승인되면 담당이 윙에서 통합을 신청한다', true, '', true]); }
+    const P = ' — 외주 운영 중이면 직접 바꾸거나 외주에 전한다 (바꾼 것은 외주와 공유)';
+    eq('외주 + 내부 관리: 쿠팡 D·네이버 E·메타 C 승인 = 실행 업무(직접 또는 외주에) · 광고 아닌 C 는 그대로 · 지시문 실행 줄도', [ex.D, ex.E, ex.C, t.includes(`승인 뒤 사람이 할 일: 승인되면 담당이 쿠팡 광고센터에 반영한다${P}`), K.execOf(K.actOf('gh-exp', 'C')), K.execOf(K.actOf('gh-exp', 'A')).length > 0],
+      [`승인되면 담당이 쿠팡 광고센터에 반영한다${P}`, `승인되면 담당이 네이버 검색광고 입찰을 반영한다${P}`, '승인되면 담당이 윙에서 통합을 신청한다', true, `승인된 번호만 담당이 광고관리자에서 바꾼다${P}`, true]);
+    // 예전 외주 운영 기간(분석·보고만 · 2026-10-15)으로 되돌리면 — mode 만 바꾸면 예전 규칙 그대로
+    const M0 = { mode: AD_MODE.mode, label: AD_MODE.label }; Object.assign(AD_MODE, { mode: 'outsourced', label: '외주 운영 기간 · 분석·보고만' });
+    try { const t0 = K.asideText(K.boardOf('gh-traffic')), ex0 = Object.fromEntries(K.asksFromParse(q, { board: 'gh-traffic', mate: 'gaeul', run: '2026-10-16' }).map((a) => [a.act, a.exec]));
+      eq('(되돌리면) 외주 운영 기간: 광고 할 일 = 실행 없음 · ★ 바꿀 안 안 만듦 · 지시문 보고만 · F 도 보고만', [ex0.D, ex0.E, ex0.C, (t0.match(/★ 외주 운영 기간/g) || []).length, t0.includes('승인 뒤 사람이 할 일: 없음 (외주 운영 기간 · 보고만)'), t0.includes('(분석·보고만).'), K.execOf(K.actOf('gh-exp', 'C')), K.execOf(K.actOf('gh-conv', 'F'))],
+        ['', '', '승인되면 담당이 윙에서 통합을 신청한다', 2, true, true, '', '']); }
+    finally { Object.assign(AD_MODE, M0); } }
   eq('붙여 넣기 F 도 읽음 ([상태] F · [F] 표 · 번호 F1)', (() => { const q = K.parseCrew('[상태]\nF: OFF 2개\n[F]\n매체\t대상\n쿠팡\t방수 페인트', K.boardOf('gh-traffic')); return [q.status.F, q.acts.F.items]; })(), ['OFF 2개', [{ n: 'F1', c: { 매체: '쿠팡', 대상: '방수 페인트' } }]]);
   eq('예약 글 시각 = 그 PC 계획', K.asideLaunch(K.boardOf('gh-rep'), '10:00').split('\n')[0], '[AI 크루 · 우주 (재구매마케터) · 그로홈 재구매 보드] 평일 10:00');
 }
@@ -185,8 +194,8 @@ eq('지금 횟수 = 담당이 정한 수 → 없으면 기본 · 0·이상한 �
   eq('승인 건 hq = 실행 있는 본부장 승인 일만', asks.map((a) => [a.act, a.hq]), [['A', ''], ['B', '판매가 조정'], ['C', '']]);
   eq('담당 하나(글자) 넘기기도 그대로', K.asksFromParse(p, { board: 'gh-conv', mate: 'gyeoul', run: 'd', owner: 'yj' }).map((a) => a.owner), ['yj', 'yj', 'yj']);
   const tr = K.parseCrew('[D]\n요약: 키워드\n키워드\t입찰\n롤러페인트\t500', K.boardOf('gh-traffic'));
-  eq('F(광고 일일 보고서) = 외주 기간 실행 없음(보고만)', ['gh-traffic', 'gh-conv'].map((b) => K.execOf(K.actOf(b, 'F'))), ['', '']);
-  eq('외주 기간 광고 할 일(쿠팡 D) = 실행 없음 → hq 도 없음', K.asksFromParse(tr, { board: 'gh-traffic', mate: 'gaeul', run: 'd' }).map((a) => [a.exec, a.hq]), [['', '']]);
+  eq('F(광고 일일 보고서) = 외주가 운영하는 동안 실행 없음(보고만)', ['gh-traffic', 'gh-conv'].map((b) => K.execOf(K.actOf(b, 'F'))), ['', '']);
+  eq('외주 + 내부 관리 광고 할 일(쿠팡 D) = 실행 있음 → 본부장 승인 일(광고비 예산 조정)', K.asksFromParse(tr, { board: 'gh-traffic', mate: 'gaeul', run: 'd' }).map((a) => [!!a.exec, a.hq]), [[true, '광고비 예산 조정']]);
   const reps = [{ start: '2026-10-05', end: '2026-10-11', secs: { gyeoul: { plan: '- 옛 계획', done: { at: 'a' } } } },
     { start: '2026-10-12', end: '2026-10-18', secs: { gyeoul: { plan: '- 리뷰 이벤트 기획\n· 상세 시안 010-1234-5678 확인', sent: { at: 'b' } }, yeoreum: { plan: '- 쓰는 중' } }, leads: { sy: { note: '가격 실험은 다음 주', byName: '김소연' } }, read: { note: '좋아요', byName: '허지은' } },
     { start: '2026-10-19', end: '2026-10-25', secs: { gyeoul: { plan: '- 아직 안 확인한 계획' } } }];

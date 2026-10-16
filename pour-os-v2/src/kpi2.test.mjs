@@ -1,6 +1,6 @@
 // node src/kpi2.test.mjs — KPI 화면 계산 (kpi2.js)
 import assert from "node:assert/strict";
-import { kpiDefs, kpiBoard, myKpi, lagAt, lagLatest, lagDue, lagInbox, lagWrite, won, fmtV, ghSalesRows, applyKpiOv, visibleDefs, kpiEditWrite, skManual } from "./kpi2.js";
+import { kpiDefs, kpiBoard, myKpi, lagAt, lagLatest, lagDue, lagInbox, lagWrite, won, fmtV, ghSalesRows, applyKpiOv, visibleDefs, kpiEditWrite, skManual, histShow } from "./kpi2.js";
 let n = 0; const ok = (name, fn) => { fn(); n++; console.log("✓", name); };
 const brands = [{ id: "pourstore", name: "POUR스토어" }, { id: "grohome", name: "그로홈" }, { id: "bmupq52c0", name: "바라스데이" }];
 const users = [{ id: "songhee", name: "김송희" }, { id: "ran", name: "이란" }, { id: "minji", name: "김민지", master: false }];
@@ -125,5 +125,16 @@ ok("반복 실행 없애기(2026-10-07): hidden + removed → _hidden·_removed 
   assert.equal(w.hidden, true); assert.equal(w.created, false); assert.deepEqual(w.hist[0].ch, { _hidden: [false, true] });
   const back = kpiEditWrite({ ...w, removed: rm }, "actionKPIs", "a1", {}, false, { id: "songhee", name: "김송희" }, "t2", { id: "a1" });
   assert.equal(back.hidden, false); assert.equal(back.hist.length, 2);
+});
+ok("기록(hist) 바뀐 값에 배열 안 배열 없음 (2026-10-16 · Firestore 는 배열 안 배열을 못 씀 → 반복 실행 담당·체크리스트 고치기가 통째로 실패) · 목록은 {list} · 화면 글은 그대로", () => {
+  const nested = (v) => (Array.isArray(v) ? v.some((x) => Array.isArray(x) || nested(x)) : v && typeof v === "object" ? Object.values(v).some(nested) : false);
+  const cu = { id: "claude", name: "Claude" }, base = { id: "ak_ad", name: "고객 타겟 광고 진행", who: ["songhee"], whoNames: ["송희"] };
+  const w = kpiEditWrite(null, "actionKPIs", "ak_ad", { who: ["minji"], whoNames: ["김민지"] }, undefined, cu, "t", base);
+  assert.equal(nested(w), false); assert.deepEqual(w.fields.who, ["minji"]); assert.deepEqual(w.hist[0].ch.who, [{ list: ["songhee"] }, { list: ["minji"] }]);
+  const s = kpiEditWrite(w, "actionKPIs", "ak_ad", { subs: [{ id: "s1", title: "메타" }, { id: "s2", title: "쿠팡" }] }, undefined, cu, "t2", base);
+  assert.equal(nested(s), false); assert.deepEqual(s.hist[1].ch.subs, [null, { list: [{ id: "s1", title: "메타" }, { id: "s2", title: "쿠팡" }] }]);
+  const old = { fields: {}, hist: [{ at: "t0", ch: { who: [["a"], ["b"]] } }] };   // 예전에 잘못 들어간 기록도 다음 쓰기 때 고쳐서 씀
+  const r = kpiEditWrite(old, "actionKPIs", "ak_ad", { goal: 3 }, undefined, cu, "t3", base); assert.equal(nested(r), false); assert.deepEqual(r.hist[0].ch.who, [{ list: ["a"] }, { list: ["b"] }]);
+  assert.equal(histShow({ list: ["songhee", "minji"] }), "songhee, minji"); assert.equal(histShow({ list: [{ id: "s1", title: "메타" }] }), "메타"); assert.equal(histShow(3), 3); assert.equal(histShow(null), null);
 });
 console.log(`${n}개 모두 통과`);

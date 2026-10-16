@@ -47,14 +47,18 @@ export function visibleDefs(K) {
 export const pctAuto = (sk, projects) => !!sk && sk.unit === "%" && !sk.manualOverride && (projects || []).some((p) => p && !p.deleted && p.subKPIId === sk.id);
 export const skManual = (sk, projects) => !!sk && !pctAuto(sk, projects) && !sk.crmSynced && !sk._auto && !(sk.mainKPIId === "mk2" && sk.unit === "원" && !sk.manualOverride) && !sk.launchCount && !(sk.unit === "원" && sk.salesAuto !== false && salesChOf(sk).length && sk.mainKPIId !== "mk2");
 // 저장 칸 (txDoc) — next: 바꿀 칸 {칸: 값} · hide: true/false/undefined · base: 버전1 원래 항목(없으면 새로 만듦)
+//   hist.ch = {칸: [이전, 이후]} — 값이 목록(반복 실행 담당 who · 체크리스트 subs …)이면 {list: […]} 로 감쌈 (2026-10-16 · Firestore 는 배열 안 배열을 못 써서 저장이 통째로 실패했음)
+export const histV = (v) => (Array.isArray(v) ? { list: v } : v ?? null);
+export const histShow = (v) => (v && typeof v === "object" && Array.isArray(v.list) ? v.list.map((x) => (x && typeof x === "object" ? x.title || x.name || x.id || "" : x)).join(", ") : v);
+const safeH = (h) => (h && h.ch && Object.values(h.ch).some((x) => Array.isArray(x) && x.some(Array.isArray)) ? { ...h, ch: Object.fromEntries(Object.entries(h.ch).map(([k, x]) => [k, Array.isArray(x) ? x.map(histV) : x])) } : h);
 export function kpiEditWrite(cur, coll, id, next, hide, cu, at, base) {
   const prev = { ...(base || {}), ...((cur && cur.fields) || {}) }, ch = {};
-  Object.entries(next || {}).forEach(([k, v]) => { if (!fb_same(prev[k], v)) ch[k] = [prev[k] ?? null, v]; });
+  Object.entries(next || {}).forEach(([k, v]) => { if (!fb_same(prev[k], v)) ch[k] = [histV(prev[k]), histV(v)]; });
   if (hide !== undefined && !!(cur && cur.hidden) !== !!hide) ch._hidden = [!!(cur && cur.hidden), !!hide];
   if (!Object.keys(ch).length) return null;
   const fields = { ...((cur && cur.fields) || {}) }; Object.keys(ch).forEach((k) => { if (k !== "_hidden") fields[k] = next[k]; });
   const h = { at, by: cu.id, byName: cu.name, ch };
-  const w = { coll, fields, hidden: hide !== undefined ? !!hide : !!(cur && cur.hidden), hist: [...((cur && cur.hist) || []), h].slice(-100), at, by: cu.id, byName: cu.name };
+  const w = { coll, fields, hidden: hide !== undefined ? !!hide : !!(cur && cur.hidden), hist: [...((cur && cur.hist) || []).map(safeH), h].slice(-100), at, by: cu.id, byName: cu.name };
   if (!cur) w.created = !base;
   return w;
 }

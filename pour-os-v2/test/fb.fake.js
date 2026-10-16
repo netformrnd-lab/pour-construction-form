@@ -31,6 +31,11 @@ function setPath(doc, path, v) {
 function deep(v) { if (isSp(v)) return v.__del ? undefined : applyV(undefined, v); if (v && typeof v === "object" && !Array.isArray(v)) { const o = {}; Object.entries(v).forEach(([k, x]) => { const y = deep(x); if (y !== undefined) o[k] = y; }); return o; } return clone(v); }
 function mergeDeep(cur, v) { const o = { ...(cur || {}) }; Object.entries(v || {}).forEach(([k, x]) => { if (x && x.__del) delete o[k]; else if (isSp(x)) o[k] = applyV(o[k], x); else if (x && typeof x === "object" && !Array.isArray(x)) o[k] = mergeDeep(o[k] && typeof o[k] === "object" ? o[k] : {}, x); else o[k] = clone(x); }); return o; }
 
+// 진짜 Firestore 처럼 배열 안 배열은 거절 (2026-10-16 · 반복 실행 덧칠 기록 hist 의 [이전 목록, 이후 목록]이 실제로는 저장 실패였는데 가짜 저장 장치가 받아 줘서 시험이 못 잡았음)
+function noNest(v, where, inArr) {
+  if (Array.isArray(v)) { if (inArr) throw new Error(`시험: Nested arrays are not supported (${where})`); v.forEach((x) => noNest(x, where, true)); return; }
+  if (v && typeof v === "object") { if (v.__au || v.__ar) { (v.__au || v.__ar).forEach((x) => noNest(x, where, true)); return; } Object.values(v).forEach((x) => noNest(x, where, false)); }
+}
 const valAt = (d, p) => String(p).split(".").reduce((o, k) => (o == null ? undefined : o[k]), d);
 const stable = (v) => JSON.stringify(v === undefined ? null : v, (k, x) => (x && typeof x === "object" && !Array.isArray(x) ? Object.keys(x).sort().reduce((o, kk) => ((o[kk] = x[kk]), o), {}) : x));
 export const sameVal = (a, b) => stable(a) === stable(b);
@@ -59,15 +64,15 @@ const rec = (op, key, id, data) => { ST().writes.push({ op, key, id, data: clone
 export async function getOne(key, id) { const d = col(key)[id]; return d ? { ...clone(d), id: d.id || id } : null; }
 export async function fetchWhere(key, w) { const f = W.__FETCH_FAIL; if (f && f.test(key)) { W.__FETCH_FAIL = null; throw new Error("시험: 읽기 실패 " + key); } (ST().fetches = ST().fetches || []).push({ key, w }); return items(key, w); }
 export async function getMeta() { return clone(ST().meta); }
-export async function setMeta(data) { guardWrite(); ST().meta = mergeDeep(ST().meta, data); save(); }
-export async function put(key, id, data) { guardWrite(); col(key)[id] = deep(data); rec("put", key, id, data); kick(); }
-export async function merge(key, id, data) { guardWrite(); col(key)[id] = mergeDeep(col(key)[id], data); rec("merge", key, id, data); kick(); }
-export async function patch(key, id, fields) { guardWrite(); const d = col(key)[id]; if (!d) throw new Error(`시험: 없는 문서 ${key}/${id}`); Object.entries(fields).forEach(([k, v]) => setPath(d, k, v)); rec("patch", key, id, fields); kick(); }
-export async function putMany(ops, onProgress, opt) { guardWrite(); ops.forEach((o) => { col(o.key)[o.id] = opt && opt.merge ? mergeDeep(col(o.key)[o.id], o.data) : deep(o.data); rec("put", o.key, o.id, o.data); }); onProgress && onProgress(ops.length, ops.length); kick(); }
+export async function setMeta(data) { guardWrite(); noNest(data, "meta"); ST().meta = mergeDeep(ST().meta, data); save(); }
+export async function put(key, id, data) { guardWrite(); noNest(data, `${key}/${id}`); col(key)[id] = deep(data); rec("put", key, id, data); kick(); }
+export async function merge(key, id, data) { guardWrite(); noNest(data, `${key}/${id}`); col(key)[id] = mergeDeep(col(key)[id], data); rec("merge", key, id, data); kick(); }
+export async function patch(key, id, fields) { guardWrite(); noNest(fields, `${key}/${id}`); const d = col(key)[id]; if (!d) throw new Error(`시험: 없는 문서 ${key}/${id}`); Object.entries(fields).forEach(([k, v]) => setPath(d, k, v)); rec("patch", key, id, fields); kick(); }
+export async function putMany(ops, onProgress, opt) { guardWrite(); ops.forEach((o) => noNest(o.data, `${o.key}/${o.id}`)); ops.forEach((o) => { col(o.key)[o.id] = opt && opt.merge ? mergeDeep(col(o.key)[o.id], o.data) : deep(o.data); rec("put", o.key, o.id, o.data); }); onProgress && onProgress(ops.length, ops.length); kick(); }
 export async function patchMany(ops, onProgress) { guardWrite(); for (const o of ops) await patch(o.key, o.id, o.fields); onProgress && onProgress(ops.length, ops.length); }
 export async function patchIf(key, id, expect, fields) { guardWrite(); const d = col(key)[id] || null; if (!fits(d, expect)) return { ok: false, cur: clone(d) }; await patch(key, id, fields); return { ok: true, cur: clone(d) }; }
 export async function patchManyIf(ops) { guardWrite(); let done = 0; const skipped = []; for (const o of ops) { const d = col(o.key)[o.id]; if (fits(d, o.expect)) { await patch(o.key, o.id, o.fields); done++; } else skipped.push(o.id); } return { done, skipped }; }
-export async function createMissing(ops) { guardWrite(); let made = 0, skipped = 0; ops.forEach((o) => { if (col(o.key)[o.id]) skipped++; else { col(o.key)[o.id] = deep(o.data); rec("put", o.key, o.id, o.data); made++; } }); kick(); return { made, skipped }; }
+export async function createMissing(ops) { guardWrite(); ops.forEach((o) => noNest(o.data, `${o.key}/${o.id}`)); let made = 0, skipped = 0; ops.forEach((o) => { if (col(o.key)[o.id]) skipped++; else { col(o.key)[o.id] = deep(o.data); rec("put", o.key, o.id, o.data); made++; } }); kick(); return { made, skipped }; }
 export async function txDoc(key, id, fn) { guardWrite(); const cur = col(key)[id] ? clone(col(key)[id]) : null, out = fn(cur) || {};
   if (out.write) { if (cur) await patch(key, id, out.write); else await put(key, id, { id, ...out.write }); } return out.ret ?? null; }
 export async function txDocs(docs, fn) { guardWrite(); const curs = docs.map((d) => (col(d.key)[d.id] ? clone(col(d.key)[d.id]) : null)), out = fn(curs) || {};
@@ -103,8 +108,8 @@ const apprSubs = new Set();
 export function listenAppr(w, cb) { const s = { key: AK, w, cb, last: null, appr: true }; apprSubs.add(s); setTimeout(() => { if (!apprSubs.has(s)) return; const x = apprItems(w); s.last = JSON.stringify(x); cb(x); }, 0); return () => apprSubs.delete(s); }
 const apprKick = () => setTimeout(() => { save(); apprSubs.forEach((s) => { const x = apprItems(s.w), sig = JSON.stringify(x); if (sig !== s.last) { s.last = sig; s.cb(x); } }); }, 0);
 export async function fetchAppr(w) { return apprItems(w); }
-export async function addAppr(data) { guardWrite(); const id = "aq" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); apprCol()[id] = deep(data); rec("put", AK, id, data); apprKick(); return id; }
-export async function patchApprIf(id, expect, fields) { guardWrite(); const d = apprCol()[id] || null; if (!fits(d, expect)) return { ok: false, cur: clone(d) };
+export async function addAppr(data) { guardWrite(); noNest(data, AK); const id = "aq" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); apprCol()[id] = deep(data); rec("put", AK, id, data); apprKick(); return id; }
+export async function patchApprIf(id, expect, fields) { guardWrite(); noNest(fields, `${AK}/${id}`); const d = apprCol()[id] || null; if (!fits(d, expect)) return { ok: false, cur: clone(d) };
   Object.entries(fields).forEach(([k, v]) => setPath(d, k, v)); rec("patch", AK, id, fields); apprKick(); return { ok: true, cur: clone(d) }; }
 // 시험 도구: 독립 화면(approval-requests.html)에서 누가 지금 새 요청을 올림 · 고침
 W.__APPR = (id, data) => { apprCol()[id] = { ...(apprCol()[id] || {}), ...clone(data) }; apprKick(); };

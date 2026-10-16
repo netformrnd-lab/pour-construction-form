@@ -13,6 +13,8 @@ const pa = pairActs("yeoreum").map((a) => a.c), pg = pairActs("gyeoul").map((a) 
 ck("짝 지을 할 일: 여름 = 아침 루틴 + 실행 있는 것 (E 발굴은 실행 없음)", pa[0] === NO_ACT && pa.includes("A") && pa.includes("D") && !pa.includes("E"), pa);
 ck("짝 지을 할 일: 겨울 F(외주 보고) · 우주 A(자동 측정) 빠짐", !pg.includes("F") && pg.includes("C") && pg.includes("E") && !pu.includes("A") && pu.includes("E"), { pg, pu });
 ck("쉬는 AI(포리)는 없음", pairActs("pori").length === 0);
+const pga = pairActs("gaeul").map((a) => a.c);
+ck("광고 할 일(외주 + 내부 관리 · 2026-10-16): 여름 C 메타 · 가을 D 쿠팡·E 네이버 짝 지을 수 있음 · F 광고 보고는 빠짐", pa.includes("C") && pga.includes("D") && pga.includes("E") && !pga.includes("F"), { pa, pga });
 // 3. 짝 목록
 const mates = { gyeoul: { actAk: { C: "ak_gh_detail", E: "" } }, yeoreum: { actAk: { [NO_ACT]: "ak_c_b2c", A: "fx:f9" } }, pori: { actAk: { A: "ak_x" } }, uju: { actAk: { Z: "ak_y" } } };
 const P = rtPairs(mates);

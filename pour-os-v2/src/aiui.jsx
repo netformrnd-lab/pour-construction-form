@@ -262,7 +262,7 @@ function BoardView({ D, cu, A, b, open, asks, doc }) {
               {master && <label style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}><b style={{ color: C.ink, minWidth: 74 }}>이 할 일 담당</b>
                 <select value={((doc && doc.actOwners) || {})[a.c] || ""} onChange={(e) => A.mateActSet(b.mate, "actOwners", a.c, e.target.value)} aria-label={`${a.c} 할 일 담당`} style={{ ...inp, width: "auto", maxWidth: 180, padding: "6px 8px", fontSize: 13 }}>
                   <option value="">AI 담당 그대로 ({nameOf(D.users, mateOwner(doc, b.brand, D.users)) || "미정"})</option>{users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></label>}
-              {master && a.exec && <label style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}><b style={{ color: C.ink, minWidth: 74 }}>본부장 승인</b>
+              {master && execOf(a) && <label style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}><b style={{ color: C.ink, minWidth: 74 }}>본부장 승인</b>
                 <select value={(() => { const x = ((doc && doc.actHq) || {})[a.c]; return x === true ? "on" : x === false ? "off" : ""; })()} onChange={(e) => A.mateActSet(b.mate, "actHq", a.c, e.target.value === "on" ? true : e.target.value === "off" ? false : null)} aria-label={`${a.c} 본부장 승인`} style={{ ...inp, width: "auto", maxWidth: 220, padding: "6px 8px", fontSize: 13 }}>
                   <option value="">기본 ({a.hq ? `받음 · ${a.hq}` : "리드에서 끝"})</option><option value="on">받음</option><option value="off">안 받음 (리드에서 끝)</option></select></label>}
               {execOf(a) && <label style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}><b style={{ color: C.ink, minWidth: 74 }}>반복 실행 짝</b>

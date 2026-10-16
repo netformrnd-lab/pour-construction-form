@@ -741,3 +741,14 @@ ok("확인할 것: 같은 대화의 새 댓글은 한 줄 '새 댓글 n'(열면 
   assert.ok(!M.todayView(D, "a", now, { "nt:n1": true, "nt:n2": true }).inbox.some((x) => x.kind === "note" && x.taskId === "t1"));
   assert.equal(M.groupNotes([{ id: "x", kind: "note", title: "하나" }])[0].title, "하나");
 });
+// 올린 파일 빼기 (2026-10-16 "삭제는 다음날 넘어가면 못하게 막아") — 올린 사람 · 올린 날만 · 모르는 예전 파일은 못 뺌
+ok("올린 파일 빼기: 올린 사람만 · 올린 날만", () => {
+  const at = "2026-10-16T01:00:00.000Z", day = M.ymd(new Date(at)), f = { by: "a", uploadedAt: at };
+  assert.equal(M.fileDay(f), day);
+  assert.equal(M.canRmFile(f, "a", day), true);
+  assert.equal(M.canRmFile(f, "b", day), false);   // 남이 올린 것
+  assert.equal(M.canRmFile(f, "a", M.addDays(day, 1)), false);   // 다음 날
+  assert.equal(M.canRmFile({ by: "a" }, "a", day), false);   // 날짜 모름
+  assert.equal(M.canRmFile({ uploadedAt: at }, "a", day), false);   // 올린 사람 모름
+  assert.equal(M.canRmFile({ by: "a", uploadedAt: "x" }, "a", day), false);
+});

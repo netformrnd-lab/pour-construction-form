@@ -234,6 +234,19 @@
 - 사람 고르기 → PIN 4자리(처음이면 정하기). 해시는 v1 과 같은 계산(`pour-os-pin:<id>:<pin>`) → 마스터의 기존 PIN 그대로.
 - 5번 틀리면 5분 잠금. 마스터가 사람 보기에서 PIN 초기화.
 
+## 붙여넣기 첨부 · 올린 파일 빼기 (사용자 요청 2026-10-16 "댓글이나 업무, 프로젝트에 파일첨부에 사진첨부 시 복붙으로도 넣을 수 있게하고 파일 넣은것을 삭제하고 재첨부 가능하게해. 단, 삭제는 다음날 넘어가면 못하게 막아. 악의로 없애는것을 방지위함" · files.jsx · 시험 model.test · test/files.e2e.mjs)
+- 붙여넣기(files.pasteFiles): 클립보드 파일(캡처 = 'image.png' → '붙여넣은 사진 MMDD-hhmmss.png') · 댓글 쓰기·댓글 고치기·수정 요청 글 칸 onPaste = 그 글에 붙음(글도 같이 있으면 글은 그대로 붙여짐) · 글 칸 밖에서 붙여넣기 = 그 시트 자료로 바로 올림(files.usePasteFiles · 맨 위 시트만 · 업무 = 누구나 · 고정업무·반복 실행 = 담당·관리자) · PC(마우스) 화면만 안내 '캡처는 Ctrl+V 로 바로 붙여요'(PASTE_HINT)
+- 빼기(model.canRmFile · fileDay): 올린 사람만 · 올린 날(한국 날짜) 안에만 · 올린 사람·날짜를 모르는 예전 파일은 못 뺌 — 업무·고정업무 파일 · 반복 실행 자료 · 댓글 사진 · 프로젝트 자료 탭 줄마다 [빼기](files.FileList canRm/onRm = files.rmProps · 보기 모드·없앤 것엔 없음) · 아래 안내 '오늘 내가 올린 파일만 [빼기] · 다음 날부터는 그대로 남아요'
+- 저장(core.fileRemove · 파일마다 src {kind task|note|ak, doc}): transaction 으로 서버 지금 목록(tasks.attachments · notes.files · kpidefs.files)에서 같은 파일(path · 없으면 url)만 빼고 removedFiles[]{…, removedAt, removedBy, removedByName} · 저장소 파일은 지우지 않음 · 5초 되돌리기 · 다시 올리면 새로 붙음
+- 댓글 고치기의 붙은 파일 [빼기]도 쓴 사람 · 올린 날만(아니면 '올린 날만 빼요') — 고친 댓글은 이전 판(파일 포함)이 남음
+
+## 개발 수정 요청 포스트잇 (사용자 요청 2026-10-16 "업무os 개발 수정 요청하는곳 만들어줘. 관리자페이지에도. 아주 간단히 메모 포스트잇형식으로 텍스트 넣고 추가로 희망 시 빠른 전달을 위해 사진 캡처 복붙으로 바로 첨부" · devreq.jsx · 시험 test/files.e2e.mjs)
+- 들어오는 곳: 팀 앱 더보기 › 업무OS › '개발 수정 요청' · 관리자 머리 [수정 요청](600px 넘는 화면 · 좁으면 숨김) · 관리자 설정 시트 첫 줄 — 같은 시트(sheets 'devreq' · app team|admin)
+- 맨 위 노란 포스트잇: 글(2000자) + 캡처 붙여넣기(글 칸 안·밖) · [+ 사진] · [붙이기] → pour-os/v2/devreqs/{id} {id, text, files[], by, byName, at, app, state 'open', updatedAt}(core.devReqAdd · 누구나) · 사진은 Storage task-attachments/v2/devreq/
+- 판: [열린 것 n | 반영함 n] · 최근 것 먼저 · 노란 포스트잇(반영함은 연두) · 사진 작게(누르면 크게) · '열림 · 남윤정 · 10/16 14:00 · 관리자 화면' · 반영하면 '반영함 ✓ · 누가' + '답 · …' · 넉 달 것만 읽음(at ≥)
+- [반영함]·[다시 열기] = 관리자 · [떼기] = 쓴 사람(그날 안)·관리자 = removed{at,by,byName}(지우지 않음) · 5초 되돌리기 (core.devReqSet)
+- **개발(Claude)**: 업무OS 일을 시작할 때 `python3 pour-os-v2/tools/devreqs.py list` 로 열린 요청부터 본다(사진 주소 같이) → 고쳐 머지한 뒤 `python3 pour-os-v2/tools/devreqs.py done <id> "<무엇을 고쳤는지 한 줄>"` = 화면에 '반영함 ✓ · 답'
+
 ## 파일
 - 공용: `appr.js`·`apprui.jsx`(구매 품의 요청 · 2026-10-16) · `aiask.js`·`aiui.jsx`(AI 승인 · AI 팀원 · 정의는 ../marketing-hub/crew.js) · `aitrace.jsx`(실행 업무 흔적) · `aireport.js`·`aireport.jsx`(AI 크루 보고) · `tpl.js`·`tplui.jsx`(견본 · 예상 소요 연결 tpl.LX/projEstimate) · `roadui.jsx`(프로젝트 단계(로드) 조각: RoadEdit · RoadBox · StageSortCard · CatRoadAsk) · `search.js`·`searchui.jsx`(찾기) · `report.js`·`reportui.jsx`·`reportview.jsx`(월말 보고서) · `growth.js`·`growthui.jsx`(그로스보드 v2) · `core.jsx`(로그인·구독·useActs 쓰기·다시 가져오기) · `model.js`(계산) · `launch.js`(신제품·순서표·공휴일 기한) · `turn.js`(앞 일 → 내 차례, 저장 안 함) · `views.js`(달력 칸·사람×주·출시 줄·정리 묶음) · `flow.js`(흐름으로 만들기) · `cal.jsx`(월 달력) · `pick.jsx`(고르기 목록·한꺼번에 바꾸기) · `sheets.jsx`(시트 길잡이) · `task.jsx` · `project.jsx` · `mindmap.jsx`(마인드맵 [계층 | 마인드맵]·결정 업무) · `mmlayout.js`(마인드맵 자리 계산) · `svgpng.js`(SVG → PNG 저장 · 글자 폭 · 협업 맵과 공용) · `files.jsx`(파일 미리 보기·올리기 진행) · `ui.jsx`
 - 실사용: `App.jsx` · `today.jsx` · `schedule.jsx`(달력 탭) · `more.jsx`

@@ -11,7 +11,7 @@ import {
   scopeFields, brandLabel, cycleFields, FX_WD, isRemoved, fxRemoveFields, fxRestoreFields, canRemoveFx, canRemoveAk, canRenameFx, canRenameTask, canRemoveNote, canRestoreNote, scopeOf,
   canFinish, canRemoveTask, canRestoreTask, taskKids, taskRemoveFields, canRemoveProj, canRestoreProj, projRemoveFields, projTaskRemoveFields, projTaskBack,
   roadOf, catRoad, builtinRoad, cleanRoad, sameRoad, roadToStore, roadProblem, roadSwitchPlan, phaseOfTask, stageName, noStageL, canSetPhase, canEditRoad, isFlowProj, isLaunchProj, catName, projCat, roadOwn,
-  canSetEst, EST_MAX, canMoveProj, phaseNowOf, isGhProj, projLabel, canRenameProj,
+  canSetEst, EST_MAX, canMoveProj, phaseNowOf, isGhProj, projLabel, canRenameProj, canRmFile,
 } from "./model.js";
 import { canEditTpl, canSaveTpl, TPL_MAX, TPL_NAME_MAX } from "./tpl.js";
 import { planLaunchImport, relaunch, isTempOwner, LAUNCH_ITEMS, targetOf } from "./launch.js";
@@ -1068,6 +1068,48 @@ export function useActs(D, cu, setToast, idx = null) {
     addFiles: async (t, files) => { try { const up = []; for (const f of files) up.push(f && f.url && f.path ? f : await fb.upload("task-" + t.id, f));
       await fb.patch("tasks", tdoc(t), { attachments: fb.arrayUnion(...up.map((x) => ({ ...x, by: cu.id, byName: cu.name }))), updatedAt: nowIso(), updatedBy: cu.id, v2At: nowIso() }); log("edit", { col: "tasks", targetId: t.id, projectId: t.projectId || "", label: `${t.title} · 파일 ${up.length}개 올림` }); setToast({ text: `파일 ${up.length}개 올렸어요` }); return true; }
       catch (e) { fail("파일")(e); return false; } },
+    // 올린 파일 빼기 (2026-10-16 사장님 "파일 넣은것을 삭제하고 재첨부 가능하게해. 단, 삭제는 다음날 넘어가면 못하게 막아. 악의로 없애는것을 방지위함")
+    //   f.src = {kind 'task'|'note'|'ak', doc} (자료 목록이 붙임) · 올린 사람만 · 올린 날 안에만(model.canRmFile · 동작에서도 막음)
+    //   목록에서만 빼고 지우지 않음(저장소 파일 그대로 · 문서 removedFiles[] 에 누가·언제) · transaction(서버 지금 목록에서 같은 파일만) · 5초 되돌리기 · 다시 올리면 새로 붙음
+    fileRemove: async (f) => {
+      const s0 = f && f.src, key = s0 && ({ task: "tasks", note: "notes", ak: "kpidefs" })[s0.kind], field = s0 && s0.kind === "task" ? "attachments" : "files";
+      if (!key || !s0.doc) return false;
+      if (!canRmFile(f, cu.id, ymd(new Date()))) { setToast({ text: "오늘 내가 올린 파일만 뺄 수 있어요 · 다음 날부터는 그대로 남아요" }); return false; }
+      const at = nowIso(), same = (x) => !!x && (f.path ? x.path === f.path : x.url === f.url);
+      let hit = null;
+      try { hit = await fb.txDoc(key, s0.doc, (c) => { const arr = (c && c[field]) || [], h = arr.find(same); if (!h) return { ret: null };
+          return { write: { [field]: arr.filter((x) => !same(x)), removedFiles: fb.arrayUnion({ ...h, removedAt: at, removedBy: cu.id, removedByName: cu.name }), updatedAt: at, ...(key === "tasks" ? { v2At: at } : {}) }, ret: h }; }); }
+      catch (e) { fail("파일 빼기")(e); return false; }
+      if (!hit) { setToast({ text: "이미 빠진 파일이에요" }); return false; }
+      log("edit", { col: key, targetId: s0.doc, label: `파일 뺌 · ${f.name || "파일"}` });
+      setToast({ text: `파일을 뺐어요 · ${f.name || "파일"} · 다시 올릴 수 있어요`, undo: async () => {
+        try { await fb.txDoc(key, s0.doc, (c) => { const arr = (c && c[field]) || []; return arr.some(same) ? {} : { write: { [field]: [...arr, hit], updatedAt: nowIso() } }; }); setToast({ text: "되돌렸어요" }); }
+        catch (e) { fail("되돌리기")(e); } } });
+      return true;
+    },
+    // 개발 수정 요청 포스트잇 (2026-10-16 사장님 "업무os 개발 수정 요청하는곳 만들어줘. 관리자페이지에도. 아주 간단히 메모 포스트잇형식으로 텍스트 넣고 추가로 희망 시 빠른 전달을 위해 사진 캡처 복붙으로 바로 첨부")
+    //   pour-os/v2/devreqs/{id} {id, text, files[], by, byName, at, app 'team'|'admin', state 'open'|'done', doneAt·doneBy·doneByName·reply, removed?} · 누구나
+    //   개발(Claude)이 pour-os-v2/tools/devreqs.py 로 읽고 반영 뒤 [반영함](done + 답 한 줄) · 관리자도 화면에서 [반영함]·[다시 열기] · 쓴 사람은 그날 안에 [떼기](지우지 않음 · removed)
+    devReqAdd: async ({ text, files, app }) => {
+      const t = String(text || "").trim().slice(0, 2000), fs = (files || []).filter((x) => x && x.url).slice(0, 10).map((x) => ({ ...x, by: cu.id, byName: cu.name }));
+      if (!t && !fs.length) { setToast({ text: "무엇을 고치면 좋을지 한 줄이나 캡처를 붙여 주세요" }); return null; }
+      const at = nowIso(), id = newId("dr"), doc = { id, text: t || "(사진)", files: fs, by: cu.id, byName: cu.name, at, app: app === "admin" ? "admin" : "team", state: "open", updatedAt: at };
+      try { await fb.put("devreqs", id, doc); } catch (e) { fail("수정 요청")(e); return null; }
+      log("add", { col: "devreqs", targetId: id, label: `개발 수정 요청 · ${doc.text.slice(0, 60)}` });
+      setToast({ text: "수정 요청을 붙였어요 · 반영되면 '반영함'으로 바뀌어요" });
+      return doc;
+    },
+    devReqSet: async (r, act) => {
+      const at = nowIso(), mine = r.by === cu.id, today = ymd(new Date()), sameDay = String(r.at || "") && ymd(new Date(r.at)) === today;
+      const f = act === "done" ? (isMaster(cu) ? { state: "done", doneAt: at, doneBy: cu.id, doneByName: cu.name } : null)
+        : act === "open" ? (isMaster(cu) ? { state: "open", doneAt: null, doneBy: null, doneByName: null } : null)
+        : act === "remove" ? ((mine && sameDay) || isMaster(cu) ? { removed: { at, by: cu.id, byName: cu.name } } : null) : null;
+      if (!f) { setToast({ text: act === "remove" ? "쓴 사람은 그날 안에만 뗄 수 있어요" : "반영 표시는 관리자가 해요" }); return false; }
+      const prev = Object.fromEntries(Object.keys(f).map((k) => [k, r[k] === undefined ? null : r[k]]));
+      try { await fb.patch("devreqs", r.id, { ...f, updatedAt: at }); } catch (e) { fail("수정 요청")(e); return false; }
+      setToast({ text: act === "done" ? "반영함으로 바꿨어요" : act === "open" ? "다시 열었어요" : "포스트잇을 뗐어요", undo: () => fb.patch("devreqs", r.id, { ...prev, updatedAt: nowIso() }).catch(fail("되돌리기")) });
+      return true;
+    },
     // 고정업무 체크 — 내 칸만 바꾸고, 체크 기록(누가 몇 시)을 따로 남김
     //   기록 문서는 merge (다시 체크하거나 취소해도 그날 문서의 다른 칸(건수·체크리스트 기록 등)을 지우지 않음)
     fxCheck: (t, on, key, at) => fb.merge("checks", `${t.id}~${cu.id}~${key}`, { kind: "fx", taskId: t.id, itemId: t.id, uid: cu.id, name: cu.name, date: key, ym: key.slice(0, 7), wk: weekStart(key), at, on }),

@@ -8,7 +8,8 @@ import { C, Big, TBtn, Chip, Seg, Head, Card, Empty, Sheet, inp, Linked, Clash }
 import { ymd, ago, isMaster, activeUsers, nameOf, newId, brandsWithCommon, brandKey, canRemoveAk } from "./model.js";
 import { RemoveAsk, RemovedNote } from "./trash.jsx";
 import { FixedSheet, Thread, useItemNotes, QtyCfgEdit, NameClash } from "./task.jsx";
-import { FileList, useUploads, UpList, UpBtn } from "./files.jsx";
+import { FileList, useUploads, UpList, UpBtn, usePasteFiles, rmProps, PASTE_HINT } from "./files.jsx";
+import { viewOnlyOn } from "./viewonly.js";
 import { periodWeeks, periodLabel, brandName } from "./routine.js";
 import { akTotal, akWho, akGoalText, akStep } from "../../pour-os/src/actionKpi.js";
 import { qtyCfg, qtyText, qtyShort, qtyToGoal, akSubsOf, openIdAk, dayIdAk, roundOn } from "./rec.js";
@@ -26,6 +27,7 @@ function AkSheet({ D, cu, A, open, onBack, onClose, id, focus, note }) {
   const [tick, setTick] = useState(0), [rec, setRec] = useState(null), [line, setLine] = useState(null), [busy, setBusy] = useState(false);
   const [editMemo, setEditMemo] = useState(false), [memo, setMemo] = useState(""), [memoBase, setMemoBase] = useState(null), [clash, setClash] = useState(null);
   const U = useUploads(A, "ak-" + id, (metas) => A.akFiles(it, metas));
+  const pasteRef = useRef(null); usePasteFiles(pasteRef, (fs) => { const x = ((D.ak && D.ak.items) || []).find((y) => y.id === id); if (x && (akWho(D.users, x).includes(cu.id) || isMaster(cu))) U.start(fs.slice(0, 10)); }, !viewOnlyOn());   // 캡처 붙여넣기 → 이 반복 실행 자료 (담당·관리자 · 2026-10-16)
   const R = useRecs(D, id, tick);
   const toTalk = () => setTimeout(() => { const el = document.getElementById("v2-rt-talk"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 80);
   useEffect(() => { if (focus === "talk" && it) toTalk(); }, [focus, !!it]);
@@ -49,7 +51,7 @@ function AkSheet({ D, cu, A, open, onBack, onClose, id, focus, note }) {
   const saveQty = (n) => once(async () => { const L = line, r = await A.akQty(it, n, "add", { incl: !!L && (L.kind === "plus" || L.kind === "round") }); if (r) setLine({ ...L, ask: false, saved: myQty + n }); });
   const desc = it.desc || "", descAt = it.descAt || null;
   const saveMemo = async (force) => { const r = await A.akDesc(it, memo, memoBase, force === true); if (r && r.conflict) setClash(r.cur); else if (r && r.ok) { setClash(null); setEditMemo(false); } };
-  const files = [...(it._files || []).map((f) => ({ ...f, where: "반복 실행" })), ...notes.filter((n) => !n.deleted).flatMap((n) => (n.files || []).map((f) => ({ ...f, by: n.by, byName: n.byName, uploadedAt: f.uploadedAt || n.at, where: "댓글" })))];
+  const files = [...(it._files || []).map((f) => ({ ...f, where: "반복 실행", src: { kind: "ak", doc: it.id } })), ...notes.filter((n) => !n.deleted).flatMap((n) => (n.files || []).map((f) => ({ ...f, by: n.by, byName: n.byName, uploadedAt: f.uploadedAt || n.at, where: "댓글", src: { kind: "note", doc: n._doc || n.id } })))];
   const canFiles = mine || master;
   return <Sheet title="반복 실행" kind="반복 실행" head={it.name} path={`반복 실행 · ${brandName(it.brand, D.brands) || "브랜드 없음"} · ${akGoalText(it)}${it.paused ? " · 멈춤" : ""}`} onBack={onBack} onClose={onClose}
     foot={mine && !it.paused ? <Big disabled={busy} onClick={plus}>{plusL(it)}</Big> : null}>
@@ -71,9 +73,10 @@ function AkSheet({ D, cu, A, open, onBack, onClose, id, focus, note }) {
       <div style={{ display: "flex", gap: 8, marginTop: 8 }}><Big tone="white" onClick={() => setEditMemo(false)} style={{ flex: 1, height: 44 }}>취소</Big><Big onClick={saveMemo} style={{ flex: 1, height: 44 }}>메모 저장</Big></div>
       {clash && <Clash who={clash.memoByName} at={clash.memoAt} text={clash.memo} onMerge={() => { setMemo(`${clash.memo || ""}\n\n${memo}`.trim()); setMemoBase(clash.memoAt || null); setClash(null); }} onMine={() => saveMemo(true)} />}</div>
     : <Card style={{ padding: "12px 14px" }}><div style={{ fontSize: 14.5, color: desc ? C.text : C.mute, whiteSpace: "pre-wrap", lineHeight: 1.65, wordBreak: "break-word" }}>{desc ? <Linked text={desc} /> : "적어 둔 하는 법이 없어요"}</div>{descAt && <div style={{ marginTop: 6, fontSize: 12, color: C.mute }}>{it.descByName || nameOf(D.users, it.descBy)} · {ago(descAt)} 고침</div>}</Card>}
-    <Head right={canFiles && <UpBtn U={U} />}>자료 {files.length}</Head>
+    <div ref={pasteRef} /><Head right={canFiles && <UpBtn U={U} />}>자료 {files.length}</Head>
+    {canFiles && PASTE_HINT && <div className="v2-phint">{PASTE_HINT}</div>}
     <UpList U={U} style={{ marginBottom: 8 }} />
-    <FileList files={files} />
+    <FileList files={files} {...rmProps(A, cu)} />
     <div id="v2-rt-talk" style={{ scrollMarginTop: 8 }}><Head>대화</Head></div>
     <Thread D={D} cu={cu} A={A} notes={notes} itemId={it.id} ctx={{}} link={{ kind: "r", id: it.id }} hl={note} rec={rec ? { date: rec.date, uid: rec.uid, qty: rec.qty, runs: rec.runs } : null} onRec={setRec} cfg={cfg} />
     <AkMore it={it} D={D} cu={cu} A={A} mine={mine} master={master} onGone={() => (onBack || onClose)()} />

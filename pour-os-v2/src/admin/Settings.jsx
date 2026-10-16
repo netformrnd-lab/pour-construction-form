@@ -16,7 +16,7 @@ const KIND_L = { launch: "버전1 신제품 보드 다시 가져오기", all: "�
 const NAVY_BTN = { background: C.navy, color: "#fff", borderColor: C.navy };
 const itemName = (id) => (LAUNCH_ITEMS.find((i) => i.id === id) || {}).name || id;
 
-export function SettingsSheet({ D, cu, A, meta, setMeta, logout, onBack, onClose, setToast, holJ }) {
+export function SettingsSheet({ D, cu, A, meta, setMeta, logout, onBack, onClose, setToast, holJ, open }) {
   const [st, setSt] = useState(null);   // {kind, step:'plan'|'ready'|'run'|'err', plan, n, total, msg}
   const [ask, setAsk] = useState(""), [caps, setCaps] = useState({}), [busy, setBusy] = useState(false), [showAfter, setShowAfter] = useState(false), [showHol, setShowHol] = useState(false);
   const c = (meta && meta.counts) || {};
@@ -69,6 +69,8 @@ export function SettingsSheet({ D, cu, A, meta, setMeta, logout, onBack, onClose
   const addComp = () => { if (!cd || !cn.trim() || cBusy) return; saveComp(cd, cn.trim(), `${md(cd)} ${cn.trim()} 넣음`); setCd(""); setCn(""); };
   const last = holJ && holJ.last;
   return <Sheet title="설정" onBack={onBack} onClose={onClose}>
+    {/* 개발 수정 요청 (2026-10-16 · 좁은 화면에선 머리 [수정 요청]이 숨어서 여기 첫 줄) */}
+    {open && <Card style={{ marginTop: 12 }}><Row title="개발 수정 요청" sub="불편한 점 · 고칠 점을 포스트잇으로 · 캡처는 붙여넣기로 바로" onClick={() => open({ type: "devreq", app: "admin" })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last /></Card>}
     <BulkCodes D={D} cu={cu} A={A} setToast={setToast} />
     <Head>신제품 대시보드 연결</Head>
     <LaunchOwnerSync D={D} cu={cu} A={A} setToast={setToast} />

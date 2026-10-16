@@ -3,7 +3,8 @@
 //   올리기: 파일마다 진행 막대('n/m 올리는 중 · 45%') · 올리는 동안 버튼 잠금 · 실패한 파일만 [다시] (이미 올린 파일은 다시 안 올림)
 import { useEffect, useRef, useState } from "react";
 import { C, TBtn, Card, Empty } from "./ui.jsx";
-import { ymd, md } from "./model.js";
+import { ymd, md, canRmFile } from "./model.js";
+import { viewOnlyOn } from "./viewonly.js";
 
 const stop = (e) => e.stopPropagation();
 export const fileKind = (f) => { const t = String((f && f.type) || ""), n = String((f && f.name) || "").toLowerCase();
@@ -68,13 +69,18 @@ export function NoteFiles({ files }) {
 }
 
 // 자료 목록 (업무 · 고정업무 · 반복 실행 · 프로젝트 자료 탭) — 같은 미리 보기
-export function FileList({ files, empty = "올린 자료가 없어요" }) {
+//   canRm·onRm(2026-10-16 사장님 "파일 넣은것을 삭제하고 재첨부 가능하게 · 단, 삭제는 다음날 넘어가면 못하게 막아 · 악의로 없애는것을 방지")
+//   = 줄마다 [빼기](오늘 내가 올린 파일만 · model.canRmFile) → core.fileRemove(목록에서만 빼고 지우지 않음 · 5초 되돌리기) · 다시 올리면 됨
+export function FileList({ files, empty = "올린 자료가 없어요", canRm, onRm }) {
   const [setV, view] = useView();
   const imgs = (files || []).filter((f) => f && f.url && fileKind(f) === "img");
-  return <Card>{!files || files.length === 0 ? <Empty>{empty}</Empty> : files.map((f, i) => <FileRow key={i} f={f} last={i === files.length - 1}
-    onOpen={fileKind(f) === "img" ? () => setV({ imgs, at: Math.max(0, imgs.indexOf(f)) }) : fileKind(f) === "pdf" ? () => setV({ pdf: f }) : null} />)}{view}</Card>;
+  const anyRm = !!onRm && (files || []).some((f) => canRm && canRm(f));
+  return <Card>{!files || files.length === 0 ? <Empty>{empty}</Empty> : files.map((f, i) => <FileRow key={(f.path || f.url || "") + i} f={f} last={i === files.length - 1 && !anyRm}
+    onOpen={fileKind(f) === "img" ? () => setV({ imgs, at: Math.max(0, imgs.indexOf(f)) }) : fileKind(f) === "pdf" ? () => setV({ pdf: f }) : null}
+    onRm={onRm && canRm && canRm(f) ? () => onRm(f) : null} />)}
+    {anyRm && <div style={{ padding: "8px 14px", fontSize: 12, color: C.mute, background: "#fff", lineHeight: 1.5 }}>오늘 내가 올린 파일만 [빼기] · 다음 날부터는 그대로 남아요 · 잘못 올렸으면 빼고 다시 올려요</div>}{view}</Card>;
 }
-export function FileRow({ f, last, onOpen }) {
+export function FileRow({ f, last, onOpen, onRm }) {
   const k = fileKind(f), [bad, setBad] = useState(false);
   const sub = [f.byName, f.where, f.uploadedAt ? md(ymd(new Date(f.uploadedAt))) : "", fileSize(f.size)].filter(Boolean).join(" · ");
   const inner = <>
@@ -83,8 +89,40 @@ export function FileRow({ f, last, onOpen }) {
     <span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontSize: 14, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</span><span style={{ display: "block", fontSize: 12, color: C.mute, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sub}</span></span>
     <span style={{ color: C.navy, fontSize: 13, fontWeight: 800, flex: "0 0 auto" }}>{k === "img" && !bad ? "크게 보기 ›" : k === "pdf" ? "미리보기 ›" : "열기 ›"}</span></>;
   const st = { display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 14px", border: "none", borderBottom: last ? "none" : `1px solid ${C.line}`, background: "#fff", textDecoration: "none", color: C.text, font: "inherit", textAlign: "left", cursor: "pointer" };
-  return onOpen && !(k === "img" && bad) ? <button type="button" onClick={onOpen} style={st}>{inner}</button> : <a href={f.url} target="_blank" rel="noopener noreferrer" style={st}>{inner}</a>;
+  const main = onOpen && !(k === "img" && bad) ? <button type="button" onClick={onOpen} style={onRm ? { ...st, borderBottom: "none", flex: 1, minWidth: 0 } : st}>{inner}</button>
+    : <a href={f.url} target="_blank" rel="noopener noreferrer" style={onRm ? { ...st, borderBottom: "none", flex: 1, minWidth: 0 } : st}>{inner}</a>;
+  if (!onRm) return main;
+  return <div style={{ display: "flex", alignItems: "center", background: "#fff", borderBottom: last ? "none" : `1px solid ${C.line}` }}>{main}
+    <button type="button" className="v2-frm" onClick={onRm} aria-label={`${f.name || "파일"} 빼기`}>빼기</button></div>;
 }
+// 붙여넣기(Ctrl+V · 캡처)로 첨부 (2026-10-16 사장님 "사진첨부 시 복붙으로도 넣을 수 있게") — 클립보드의 파일들 · 캡처 사진은 이름이 'image.png' 라 '붙여넣은 사진 1016-1432.png' 로
+const p2 = (n) => String(n).padStart(2, "0");
+export function pasteFiles(e) {
+  const dt = e && e.clipboardData; if (!dt) return [];
+  let fs = [...(dt.files || [])];
+  if (!fs.length) fs = [...(dt.items || [])].filter((it) => it && it.kind === "file").map((it) => it.getAsFile()).filter(Boolean);
+  if (!fs.length) return [];
+  const d = new Date(), stamp = `${p2(d.getMonth() + 1)}${p2(d.getDate())}-${p2(d.getHours())}${p2(d.getMinutes())}${p2(d.getSeconds())}`;
+  return fs.map((f, i) => { if (!/^image\//.test(f.type || "") || (f.name && !/^image\.\w+$/i.test(f.name))) return f;
+    const ext = (String(f.type).split("/")[1] || "png").replace("jpeg", "jpg").replace(/\W.*$/, "");
+    try { return new File([f], `붙여넣은 사진 ${stamp}${fs.length > 1 ? "-" + (i + 1) : ""}.${ext}`, { type: f.type }); } catch (err) { return f; } });
+}
+// 글 칸이 아닌 곳에서 붙여넣기 → 그 시트 자료로 (맨 위 시트만 · 글 칸(댓글·메모)에 커서가 있으면 그 칸 몫)
+export function usePasteFiles(ref, onFiles, on = true) {
+  const cb = useRef(onFiles); cb.current = onFiles;
+  useEffect(() => { if (!on) return undefined;
+    const h = (e) => { if (e.defaultPrevented) return; const t = e.target, tag = t && t.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (t && t.isContentEditable)) return;
+      const el = ref.current, sheets = document.querySelectorAll(".v2-sheet"), top = sheets[sheets.length - 1];
+      if (!el || !el.isConnected || (top && !top.contains(el))) return;
+      const fs = pasteFiles(e); if (!fs.length) return;
+      e.preventDefault(); cb.current(fs); };
+    document.addEventListener("paste", h); return () => document.removeEventListener("paste", h); }, [on]);
+}
+// 자료 목록 [빼기] 연결 (보기 모드·읽기만이면 없음) — 파일마다 src 가 있어야 core.fileRemove 가 찾음
+export const rmProps = (A, cu, off) => (off || !A || !cu || viewOnlyOn() ? {} : { canRm: (f) => !!(f && f.src) && canRmFile(f, cu.id, ymd(new Date())), onRm: (f) => A.fileRemove(f) });
+// 붙여넣기 안내 (PC · 마우스가 있는 화면만)
+export const PASTE_HINT = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(pointer: fine)").matches ? "캡처는 Ctrl+V 로 바로 붙여요" : "";
 
 // ── 올리기 진행 ──
 // useUploads(A, target, save?) — 파일마다 {k, f, name, size, p(0~1), st 'wait'|'up'|'ok'|'fail'|'savefail', meta}

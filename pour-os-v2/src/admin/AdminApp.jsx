@@ -104,6 +104,7 @@ function AdminMain({ B }) {
           <span style={{ flex: 1 }} />
           <TBtn onClick={() => open({ type: "search" })} aria-label="찾기 · 업무 · 프로젝트 · 댓글">찾기</TBtn>
           <button type="button" className={"a-inbox" + (TV.inbox.length ? " on" : "")} onClick={() => open({ type: "inbox" })}>나에게 온 것 <b>{TV.inbox.length}</b></button>
+          <TBtn className="a-devreq" onClick={() => open({ type: "devreq", app: "admin" })} aria-label="개발 수정 요청 포스트잇">수정 요청</TBtn>
           <TBtn onClick={() => open({ type: "settings" })}>설정</TBtn>
           <a href={MY_URL} className="a-mylink">내 화면으로 ›</a>
         </div>

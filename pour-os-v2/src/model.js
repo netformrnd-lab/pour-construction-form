@@ -150,6 +150,10 @@ export const fxRemoveFields = (t, cu, at) => ({ removed: { at, by: cu.id, byName
 export const fxRestoreFields = (t) => ({ removed: null, paused: !!(t && t.removed && t.removed.prevPaused) });
 // 이름 고치기(사용자 요청 2026-10-07): 공통 이름(task.title · 횟수 목표는 덧칠 fields.name) — 권한은 없애기와 같음(개인 = 본인·관리자 · 반복 실행·미정 = 관리자)
 export const canRenameFx = (t, cu) => canRemoveFx(t, cu);
+// 올린 파일 빼기 (2026-10-16 사장님 "파일 넣은것을 삭제하고 재첨부 가능하게해. 단, 삭제는 다음날 넘어가면 못하게 막아. 악의로 없애는것을 방지위함")
+//   올린 사람만 · 올린 날(이 기기 날짜 = 한국) 안에만 · 올린 사람이나 날짜를 모르는 예전 파일은 못 뺌 · 빼도 지우지 않음(core.fileRemove → removedFiles[])
+export const fileDay = (f) => { const t = f && f.uploadedAt ? new Date(f.uploadedAt) : null; return t && !isNaN(t) ? ymd(t) : ""; };
+export const canRmFile = (f, uid, key) => !!f && !!uid && f.by === uid && !!fileDay(f) && fileDay(f) === key;
 // 휴지통 줄: 고정업무(removedFx) + 여러 번 하는 반복 실행(akRemoved · _removed · 2026-10-16 말 '반복 실행'으로 통일) → [{kind, id, name, sub, by, byName, at, x}] 최근 것 먼저
 //   uid 를 주면 그 사람 개인 고정업무만 (더보기 › 내 고정업무)
 export function trashRows(removedFx, akRemoved, brands, uid) {

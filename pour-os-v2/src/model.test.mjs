@@ -752,3 +752,13 @@ ok("올린 파일 빼기: 올린 사람만 · 올린 날만", () => {
   assert.equal(M.canRmFile({ uploadedAt: at }, "a", day), false);   // 올린 사람 모름
   assert.equal(M.canRmFile({ by: "a", uploadedAt: "x" }, "a", day), false);
 });
+// 만들기 전 날짜는 밀림으로 안 셈 (2026-10-16 · 달 중간에 만든 매월 1일 · 이번 주 수요일에 만든 매주 월요일)
+ok("고정업무 밀림: 만들기 전 날짜는 안 셈", () => {
+  const m1 = { recurType: "monthly", monthDay: 1, assigneeId: "a" };
+  assert.equal(M.fxMissOf(m1, "a", "2026-10-16"), "2026-10-01");                                              // 예전 것(만든 날 모름) = 그대로 밀림
+  assert.equal(M.fxMissOf({ ...m1, createdAt: "2026-10-16T01:00:00.000Z" }, "a", "2026-10-16"), "");          // 오늘 만듦 → 10/1 은 안 셈
+  assert.equal(M.fxMissOf({ ...m1, createdAt: "2026-09-20T01:00:00.000Z" }, "a", "2026-10-16"), "2026-10-01");   // 전에 만듦 → 그대로
+  const mon = { recurType: "weekly", weekDays: ["월"], assigneeId: "a" };
+  assert.equal(M.fxMissOf({ ...mon, createdAt: "2026-10-14T01:00:00.000Z" }, "a", "2026-10-16"), "");         // 수요일에 만든 매주 월 → 이번 주 월은 안 셈
+  assert.equal(M.fxMissOf({ ...mon, createdAt: "2026-10-01T01:00:00.000Z" }, "a", "2026-10-16"), "2026-10-12");
+});

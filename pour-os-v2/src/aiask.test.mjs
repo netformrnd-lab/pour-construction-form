@@ -95,7 +95,7 @@ eq("더 만들기 없음 · 상한 · 음수", ["more" in b.fields.back, "more" 
 eq("더 만들기는 고칠 점이 아님 · 따로 셈", (() => { const S2 = X.mateStats([{ ...a0, ...bm.fields, updatedAt: T1, log: [...a0.log, bm.entry] }, { ...a0, id: "y", ...b.fields, updatedAt: T1, log: [b.entry] }], "gyeoul", "2026-10-11"); return [S2.redo, S2.more, S2.notes.map((x) => x.text)]; })(), [2, 1, ["경쟁사 3곳 더"]]);
 
 // Aside 담당 PC — '확인할 것' (기기 시각 = 한국 · 10/14 수 · 10/17 토 · 10/9 한글날)
-const DA = (boards, mates) => ({ users: U, ai: { ready: true, mates: mates || { gyeoul: { owners: { grohome: "yj" } }, uju: { owners: { _: "yj" } } }, boards: boards || {} } });
+const DA = (boards, mates, settings) => ({ users: U, settings: settings || [{ id: "adsAside", ver: "2026-10-16" }], ai: { ready: true, mates: mates || { gyeoul: { owners: { grohome: "yj" } }, uju: { owners: { _: "yj" } } }, boards: boards || {} } });   // 광고 예약 글은 넣은 것으로 (아래 따로 시험)
 const at = (s) => new Date(s).toISOString();
 const W11 = new Date("2026-10-14T11:00:00");
 eq("담당 묶음 = 같은 PC 한 시간씩 · 미정은 맨 뒤", X.asidePlanOf(DA()).map((g) => [g.owner, g.runs.map((r) => r.board.id + " " + r.t)]),
@@ -109,6 +109,11 @@ eq("오후엔 둘 다", X.asideInbox(DA(yb), "yj", new Date("2026-10-14T15:00:00
 eq("오늘 올렸으면 없음", X.asideInbox(DA({ ...yb, "gh-conv": { at: at("2026-10-14T09:10:00") } }), "yj", W11), []);
 eq("주말·공휴일은 안 돎 알림 없음", [X.asideInbox(DA(yb), "yj", new Date("2026-10-17T15:00:00")), X.asideInbox(DA(yb), "yj", new Date("2026-10-09T15:00:00"))], [[], []]);
 eq("관리자 = 담당 미정 한 줄", X.asideInbox(DA(yb), "ran", W11).map((x) => [x.kind, x.title, x.text.split(" · 담당")[0]]), [["aiOwnerless", "AI 크루 담당 미정 4명", "가을 · 봄 · 여름 · 하늘"]]);
+// 광고 Aside 예약 글 (2026-10-17 사장님 "까먹을것같은데 os 확인할것에 나오게해줘") — 관리자 누구나 한 줄(keep) · 넣은 판이 지금 판보다 옛것일 때만
+{ const k = (st, uid) => X.asideInbox(DA(yb, undefined, st), uid, W11).filter((x) => x.kind === "adsAside").map((x) => [x.id, x.title, x.keep]);
+  eq("광고 예약 글: 안 넣었으면 관리자에게 한 줄 · 팀원엔 없음", [k([], "ran"), k([], "yj")], [[["aa:2026-10-16", "새 예약 글 넣기 · 예약 2개", true]], []]);
+  eq("광고 예약 글: 넣었으면(지금 판 · 더 새 판) 없음 · 옛 판이면 다시", [k([{ id: "adsAside", ver: "2026-10-16" }], "ran"), k([{ id: "adsAside", ver: "2026-10-20" }], "ran"), k([{ id: "adsAside", ver: "2026-10-15" }], "ran").length], [[], [], 1]);
+  eq("광고 예약 글 판 읽기 (settings/adsAside · 없으면 빈 글)", [X.adsAsideVer({ settings: [{ id: "adsAside", ver: "2026-10-16" }] }), X.adsAsideVer({ settings: [] }), X.adsAsideVer({})], ["2026-10-16", "", ""]); }
 eq("담당 아님·준비 전·없는 사람 = 없음", [X.asideInbox(DA(yb), "yr", W11), X.asideInbox({ users: U, ai: { ready: false } }, "yj", W11), X.asideInbox(DA(), "nobody", W11)], [[], [], []]);
 eq("모두 담당 있으면 미정 줄 없음", X.asideInbox(DA(yb, Object.fromEntries(["bom", "yeoreum", "gaeul", "gyeoul", "haneul", "uju"].map((m) => [m, { owners: { _: "cw" } }]))), "ran", W11), []);
 eq("쉬는 사람이 담당이면 미정으로", X.asidePlanOf(DA({}, { gyeoul: { owners: { _: "old" } } })).map((g) => g.owner), [""]);

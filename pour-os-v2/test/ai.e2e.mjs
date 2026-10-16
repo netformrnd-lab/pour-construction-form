@@ -186,6 +186,12 @@ const boxOf = (S, label) => S().getByLabel(label + ' 글').inputValue().catch(()
   await inbox(s.pg, 'AI 크루 담당 미정 4명').first().getByRole('button', { name: '정하기', exact: true }).click(); await s.pg.waitForTimeout(500);
   ok('[정하기] → AI 팀원 (담당 한꺼번에 정하기)', (await s.S().getByRole('button', { name: '담당 한꺼번에 정하기' }).count()) === 1);
   await s.pg.keyboard.press('Escape'); await s.pg.waitForTimeout(300);
+  // 광고 Aside 예약 글 (2026-10-17 사장님 "까먹을것같은데 os 확인할것에 나오게해줘") — 관리자 한 줄(keep) → [넣었어요] → 사라짐 · settings/adsAside 판
+  const AA = '새 예약 글 넣기 · 예약 2개';
+  eq('관리자 오늘: 광고 Aside 예약 글 넣기 한 줄 · 꼬리표', [await inbox(s.pg, AA).count(), await inbox(s.pg, AA).first().getByText('Aside 광고', { exact: true }).count() > 0], [1, true]);
+  await inbox(s.pg, AA).first().getByRole('button', { name: '넣었어요', exact: true }).click(); await s.pg.waitForTimeout(600);
+  const aa = await s.pg.evaluate(() => (window.__V2.v2.settings || {}).adsAside || null);
+  eq('[넣었어요] → 줄 사라짐 · settings/adsAside 판·누가', [await inbox(s.pg, AA).count(), aa && aa.ver, aa && aa.by], [0, '2026-10-16', 'hj']);
   await inbox(s.pg, '쿠팡 유리블러').first().click(); await s.pg.waitForTimeout(500);
   eq('본부장 버튼 = 최종 승인', await s.S().getByRole('button', { name: '고른 1개 최종 승인' }).count(), 1);
   await shot(s.pg, 'hj-ask-1280'); ok('승인 한 장 넘침 없음 1280', !(await over(s.pg)));

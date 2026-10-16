@@ -24,6 +24,7 @@ import { LS as LSK } from "./core.jsx";
 import { myNotesOf } from "./more.jsx";
 import { qtyCfg, qtySum, qtyText } from "./rec.js";
 import { LINK_APP } from "./links.js";
+import { HUB_ADS } from "../../marketing-hub/adops.js";   // 광고 운영 화면 (Aside 광고 예약 알림)
 
 const BTN_ON = { background: C.navy, color: "#fff", borderColor: C.navy };
 // 빠른 기한 버튼은 모두 pick.jsx dueChips (쉬는 날 빼고 · 버튼에 날짜까지)
@@ -55,6 +56,7 @@ export function inboxFns(D, A, open, setSeen) {
     if (x.kind === "aiGroup") return open({ type: "aiMate", id: x.mate });   // AI 승인 (2026-10-12): 같은 AI 여러 건 → 그 AI 한 장
     if (x.kind === "aiSetup" || x.kind === "aiMiss") return open({ type: "aiSetup" });   // 내 PC Aside 세팅 · 오늘 안 돎 (2026-10-15)
     if (x.kind === "aiOwnerless") return open({ type: "aiTeam" });   // AI 크루 담당 미정 → AI 팀원(관리자 [담당 한꺼번에 정하기])
+    if (x.kind === "adsAside") { window.open(HUB_ADS, "_blank", "noopener"); return; }   // 광고 Aside 예약 글 (2026-10-17) → 광고 운영 화면 맨 위 [예약 글 복사]
     if (x.kind === "aiRep") return open({ type: "aiReport", crew: x.crew, start: x.start, id: `${x.crew}-${x.start}` });   // AI 크루 보고 (2026-10-15): 칸 쓰기 · 보내기 · 읽기
     if (x.kind === "appr") return open({ type: "appr", tab: "asg" });   // 구매 품의 요청 (2026-10-16): 품의 요청 n건 → 내가 맡은 것
     if (x.apprId) return open({ type: "apprOne", id: x.apprId });   // 새 품의 요청 · 품의 완료 → 그 요청 한 건
@@ -78,6 +80,7 @@ export function inboxFns(D, A, open, setSeen) {
     if (x.kind === "nextNoOwner") return <Act onClick={() => openInbox(x)}>정하기</Act>;
     if (x.kind === "ai" || x.kind === "aiGroup") return <Act onClick={() => openInbox(x)} style={BTN_ON}>{x.tag === "수정 요청" ? "고치기" : "승인하기"}</Act>;
     if (x.kind === "appr") return <Act onClick={() => openInbox(x)} style={BTN_ON}>처리하기</Act>;
+    if (x.kind === "adsAside") return <Act onClick={() => A.adsAsideDone()} style={BTN_ON}>넣었어요</Act>;
     if (x.kind === "aiSetup") return <Act onClick={() => openInbox(x)} style={BTN_ON}>세팅</Act>;
     if (x.kind === "aiMiss") return <Act onClick={() => openInbox(x)} style={BTN_ON}>지금 돌리기</Act>;
     if (x.kind === "aiOwnerless") return <Act onClick={() => openInbox(x)}>정하기</Act>;

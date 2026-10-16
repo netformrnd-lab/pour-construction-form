@@ -121,6 +121,8 @@ export function asideAdsText() {
     '■ 다 올리면: https://pour-construction-form.pages.dev/marketing-hub/ads.html 에서 오늘(금요일이면 주간) 보고서가 보이는지 확인하고 끝.'].join('\n');
 }
 // 예약 글 (짧게 · 한 번만 넣음) — 매일 08:30 · 금 16:00 예약 둘 다 이 글 → 화면(ads.html#aside) 지시문을 그대로 따름 · 지시문을 고쳐도 다시 안 넣음
+//   예약 글 판 = 이 짧은 글 자체가 바뀔 때만 올림 → 업무OS 관리자 '확인할 것'에 'Aside 광고 예약 · 새 예약 글 넣기'가 다시 뜸(settings/adsAside.ver 보다 새로우면 · [넣었어요]로 닫음 · 2026-10-17 사장님 "까먹을것같은데 os 확인할것에 나오게해줘")
+export const ASIDE_ADS_LAUNCH_VER = '2026-10-16';
 export function asideAdsLaunch() {
   return [`[광고 보고서 · Aside] 평일 ${AD_MODE.daily.replace('매일 ', '')} 일일 · ${AD_MODE.weekly} 주간 (금요일 16:00 예약은 주간)`,
     `1) ${HUB_ADS}#aside 를 연다 (로그인 없음).`,

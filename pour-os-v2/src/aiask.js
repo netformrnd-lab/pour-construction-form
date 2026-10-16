@@ -13,6 +13,7 @@
 //   최종 승인 + 실행 한 줄(exec) → 담당에게 '실행' 업무(tasks · aiAsk = 승인 id) — 실제 반영은 늘 사람 (2026-10-11)
 import { isMaster, nameOf, teamOf, isOffDay, ymd } from "./model.js";
 import { mateOf, crewOf, brandL, asidePlan, loginSites, actOf, launchRows, launchRowOf, GONE } from "../../marketing-hub/crew.js";
+import { ASIDE_ADS_LAUNCH_VER } from "../../marketing-hub/adops.js";   // 광고 Aside 예약 글 판 (2026-10-17)
 
 export const ASK_STATE_L = { wait: "승인 대기", back: "AI가 고치는 중", ok: "최종 승인", no: "안 함" };
 export const MAX_UP = 5;   // 길이 이보다 길게 이어지지 않게 (상급자 고리·잘못 넣은 값 막기)
@@ -216,6 +217,7 @@ const hmOf = (d) => `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinu
 export const ranOn = (v, key) => !!(v && v.at) && ymd(new Date(v.at)) === key;   // 그날 올렸나 (기기 시각 = 한국)
 // 오늘 안 돎: 평일 · 예전엔 올렸는데(처음 세팅 전은 아님) 오늘은 아직 · 예약 시각 + 90분 지남 ('확인할 것' · 세팅 시트가 같이 씀)
 export const missedOn = (v, t, now = new Date()) => { const key = ymd(now); return !isOffDay(key) && !!(v && v.at) && !ranOn(v, key) && hmOf(now) >= addMin(t, MISS_AFTER); };
+export const adsAsideVer = (D) => (((D && D.settings) || []).find((x) => x && (x.id || x._doc) === "adsAside") || {}).ver || "";   // 광고 Aside 예약 글 넣은 판 (settings/adsAside)
 export function asideInbox(D, uid, now = new Date()) {
   const me = actU(D.users, uid); if (!me || !D.ai || !D.ai.ready) return [];
   const plan = asidePlanOf(D), bv = D.ai.boards || {}, key = ymd(now), out = [];
@@ -233,6 +235,11 @@ export function asideInbox(D, uid, now = new Date()) {
   if (isMaster(me)) { const un = plan.find((x) => !x.owner);
     if (un) out.push({ kind: "aiOwnerless", tag: "AI 크루 담당", id: `ao:${un.runs.map((r) => r.board.id).join(",")}`, whoName: "AI 크루", at: key + "T00:00:00", keep: true,
       title: `AI 크루 담당 미정 ${un.runs.length}명`, text: `${un.runs.map((r) => nm(r.board)).join(" · ")} · 담당을 정하면 그 사람 PC 에서 돌고 세팅 안내가 가요` }); }
+  // 광고 Aside 예약 글 (2026-10-17 사장님 "어사이드에게 예약글 넣어서 진행하는거 까먹을것같은데 os 확인할것에 나오게해줘")
+  //   settings/adsAside.ver 가 지금 예약 글 판(adops.ASIDE_ADS_LAUNCH_VER)보다 옛것이면 관리자 누구나 한 줄(keep) · 누르면 광고 운영 화면 · [넣었어요] = core.adsAsideDone
+  if (isMaster(me) && String(adsAsideVer(D)) < ASIDE_ADS_LAUNCH_VER)
+    out.push({ kind: "adsAside", tag: "Aside 광고", id: `aa:${ASIDE_ADS_LAUNCH_VER}`, whoName: "광고 운영", at: ASIDE_ADS_LAUNCH_VER + "T00:00:00", keep: true,
+      title: "새 예약 글 넣기 · 예약 2개", text: "누르면 광고 운영 → 맨 위 [예약 글 복사] → Aside '매일 08:30' · '금 16:00' 예약 글을 통째로 바꾸고 [넣었어요] · 한 번만 하면 지시문이 바뀌어도 그대로" });
   return out;
 }
 

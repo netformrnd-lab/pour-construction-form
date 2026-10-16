@@ -6,7 +6,7 @@ import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask,
 import { V1_URL, LS } from "./core.jsx";
 import { SmsSettings } from "./smsui.jsx";
 import { myRoutine, brandName } from "./routine.js";
-import { akWho } from "../../pour-os/src/actionKpi.js";
+import { akWho, akGoalText } from "../../pour-os/src/actionKpi.js";
 import { fileKind } from "./files.jsx";
 import { noteWhere } from "./search.js";
 import { tplTrashRows, canEditTpl } from "./tpl.js";
@@ -117,15 +117,15 @@ export function MyFixedSheet({ D, cu, A, open, onBack, onClose }) {
   const sortF = (a) => [...a].sort((x, y) => (RT[x.recurType || "daily"] ?? 0) - (RT[y.recurType || "daily"] ?? 0) || String(fxTime(x, cu.id) || "99").localeCompare(String(fxTime(y, cu.id) || "99")));
   const live = all.filter((t) => !t.paused), paused = all.filter((t) => t.paused);
   const mine = sortF(live.filter((t) => scopeOf(t) !== "brand")), rt = sortF(live.filter((t) => scopeOf(t) === "brand"));
-  // 횟수 목표 반복 실행(버전1 행동지표 + v2 에서 만든 것 · 덧칠 D.ak.items) 중 내가 담당 — 누르면 반복 실행 시트
+  // 기간 안 여러 번 하는 반복 실행(버전1 행동지표 + v2 에서 만든 것 · 덧칠 D.ak.items) 중 내가 담당 — 누르면 반복 실행 시트 · 줄 2줄 = '이번 주 1 / 4건' (2026-10-16 '횟수 목표' 말 뺌)
   const ak = D.ak || {}, akRows = myRoutine(ak.items || [], D.users, cu.id, ak.docs || {}, key);
   const akPaused = (ak.items || []).filter((it) => it && it.paused && it.active !== false && !it.deleted && akWho(D.users, it).includes(cu.id));
   const rtN = rt.length + akRows.length;
   const akRow = (r, i, a) => { const it = r.it, u = it.unit === "%" ? "%" : it.unit || "회";
     return <Row key={"ak" + it.id} title={it.name} tag={r.tot.done ? "✓" : null}
-      sub={[`횟수 목표 · ${r.per} ${it.perFail ? `시도 ${r.tot.n} / ${r.tot.g || 0}회` : `${r.tot.n} / ${r.tot.g}${u}`}`, brandName(it.brand, D.brands) || ""].filter(Boolean).join(" · ")}
+      sub={[`${r.per} ${it.perFail ? `시도 ${r.tot.n} / ${r.tot.g || 0}회` : `${r.tot.n} / ${r.tot.g}${u}`}`, brandName(it.brand, D.brands) || ""].filter(Boolean).join(" · ")}
       onClick={() => open({ type: "routine", id: it.id })} last={i === a.length - 1} />; };
-  const row = (t, i, a) => <Row key={t.id} title={fxLabel(t, cu.id)} sub={[fxRecurL(t), fxTime(t, cu.id) || "시간 상관없음", scopeOf(t) === "brand" ? brandLabel(t.brand, D.brands) : scopeOf(t) === "unset" ? "브랜드 미정" : ""].filter(Boolean).join(" · ")}
+  const row = (t, i, a) => <Row key={t.id} title={fxLabel(t, cu.id)} sub={[[fxRecurL(t), fxTime(t, cu.id)].filter(Boolean).join(" "), scopeOf(t) === "brand" ? brandLabel(t.brand, D.brands) : scopeOf(t) === "unset" ? "브랜드 미정" : ""].filter(Boolean).join(" · ")}
     tag={fxMeDone(t, cu.id, key) ? "✓" : null} onClick={() => open({ type: "fixed", id: t.id })} last={i === a.length - 1} />;
   return <Sheet title={`내 고정업무 ${all.length}`} onBack={onBack} onClose={onClose} foot={<Big onClick={() => open({ type: "addFixed" })}>+ 고정업무</Big>}>
     <div style={{ fontSize: 12.5, color: C.sub, marginTop: 12, lineHeight: 1.6 }}>고정업무 = 내가 빠뜨리지 않으려고 쓰는 알림이에요 · 반복 실행 = 브랜드 운영이라 관리자가 정해요</div>
@@ -133,7 +133,7 @@ export function MyFixedSheet({ D, cu, A, open, onBack, onClose }) {
     <Card>{mine.length ? mine.map(row) : <Empty>아직 없어요 · 아래 [+ 고정업무]로 만들어요</Empty>}</Card>
     {rtN > 0 && <><Head>내가 맡은 반복 실행 {rtN}</Head><Card>{rt.map((t, i) => row(t, i, akRows.length ? [...rt, ...akRows] : rt))}{akRows.map((r, i) => akRow(r, i, akRows))}</Card></>}
     {paused.length + akPaused.length > 0 && <><Head>멈춤 {paused.length + akPaused.length}</Head><Card>{paused.map((t, i) => <Row key={t.id} dim title={fxLabel(t, cu.id)} sub={fxRecurL(t)} onClick={() => open({ type: "fixed", id: t.id })} last={!akPaused.length && i === paused.length - 1} />)}
-      {akPaused.map((it, i) => <Row key={"ak" + it.id} dim title={it.name} sub="횟수 목표 · 멈춤" onClick={() => open({ type: "routine", id: it.id })} last={i === akPaused.length - 1} />)}</Card></>}
+      {akPaused.map((it, i) => <Row key={"ak" + it.id} dim title={it.name} sub={`${akGoalText(it)} · 멈춤`} onClick={() => open({ type: "routine", id: it.id })} last={i === akPaused.length - 1} />)}</Card></>}
     <TrashList rows={trashRows(D.removedFx, null, D.brands, cu.id)} A={A} open={open} label="없앤 고정업무" note="되살리면 없애기 전 그대로 돌아와요 · 지난 체크·메모·파일은 그대로 있어요" />
   </Sheet>;
 }

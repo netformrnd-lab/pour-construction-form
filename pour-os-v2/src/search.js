@@ -5,6 +5,7 @@
 //  · 기밀: 화면 D(secret.redact 뒤)에서 잠긴 것(locked)은 아예 안 넣음 · 따로 읽은 지난 업무·댓글도 같은 규칙(secret.taskSeen)
 import { nameOf, ownersOf, isMine, dueOf, md, STATUS_L, projStLabel, brandLabel, scopeOf, fxIsMine, fxIds, fxRecurL, isMaster, trashRows, isRemoved, projLabel } from "./model.js";
 import { taskSeen, seeAll, lockTask } from "./secret.js";
+import { akGoalText } from "../../pour-os/src/actionKpi.js";
 
 // 띄어쓰기 없애고 소문자로
 export const norm = (s) => String(s || "").toLowerCase().replace(/\s+/g, "");
@@ -124,7 +125,7 @@ export function searchAll(D, q0, opt = {}) {
     if (mine && !me) return;
     const who = (it.whoNames && it.whoNames.length ? it.whoNames : names(D, ids)).join(", "), br = brandLabel(it.brand, D.brands);
     const field = has(it.name, q) ? "title" : has(who, q) ? "who" : br && has(br, q) ? "where" : null; if (!field) return;
-    rtPush({ key: "a:" + it.id, kind: "ak", id: it.id, title: it.name || "", field, where: `횟수 목표 · ${br || "브랜드"}`, who, stat: it.active === false ? "멈춤" : "", sort: "0" + (it.name || ""), go: { type: "routine", id: it.id } });
+    rtPush({ key: "a:" + it.id, kind: "ak", id: it.id, title: it.name || "", field, where: `반복 실행 · ${br || "브랜드"}`, who, stat: it.active === false || it.paused ? "멈춤" : akGoalText(it), sort: "0" + (it.name || ""), go: { type: "routine", id: it.id } });
   });
   // 없앤 것(휴지통) — 볼 수 있는 사람만 (관리자 = 전부 · 팀원 = 내 개인 고정업무만 · model.trashRows 와 같음)
   const tr = master ? trashRows(D.removedFx, D.ak && D.ak.removed, D.brands) : trashRows(D.removedFx, null, D.brands, uid);

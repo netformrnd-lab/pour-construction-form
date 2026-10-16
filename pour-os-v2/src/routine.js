@@ -59,6 +59,8 @@ export function periodLabel(it, key) {
 }
 const addD = (ymd, n) => { const d = new Date(ymd + "T00:00:00"); d.setDate(d.getDate() + n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
 const akMine = (docs, it, wk, uid) => { const v = ((((docs || {})[akQidOfWeek(wk)] || {}).w || {})[wk] || {})[it.id]; return Math.max(0, +((v && v.by) || {})[uid] || 0); };
+// 한 사람이 그 기간(주 목록)에 한 수 — 관리자 반복 실행 한 판 '남윤정 2' 칸
+export const akByOf = (docs, it, weeks, uid) => (weeks || []).reduce((s, w) => s + akMine(docs, it, w.key, uid), 0);
 export { akVal };
 
 // 브랜드(사용자 결정 2026-10-05 '브랜드가 다르면 별도로'): 둘 다 브랜드가 있으면 같은 브랜드끼리만 짝 · 한쪽이라도 브랜드가 없으면 짝 가능

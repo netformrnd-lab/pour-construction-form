@@ -1,16 +1,17 @@
-// 관리자 · 반복 실행 — 버전1 '반복 실행' 화면 모양: [전체 | 고정업무 | 행동지표] · 브랜드 · 사람
-//  고정업무(v2 업무 isFixed): 매일=오늘 · 매주=이번 주 · 매월=이번 달 체크 수 (사람마다 1칸)
-//  행동지표(AARRR): 정의 = 버전1 state-actionKPIs · 주별 실적 = 버전1 kpi-act-YYYY-Qn(읽기만) + 업무OS 오늘 화면 [+1] 기록(pour-os/v2/kpiact) 합계
+// 관리자 · 반복 실행 — [반복 실행 n | 개인 n] · 브랜드 · 사람 (2026-10-16 사장님 "오늘체크와 횟수 구분된게 혼란스럽고 어렵게 느껴져" → 종류로 안 나눔)
+//  한 판(RhythmBoard) = 얼마나 자주로 묶음: 매일 · 매주 · 매월 · 분기 — 정한 날 체크(v2 고정업무 scope brand)와 기간 안 여러 번(행동지표)이 같은 줄 모양
+//  주별 표(AkBoard · 접힘) = 여러 번 하는 것의 지난 주·지난 달 (버전1 '반복 실행' 표 모양 · AARRR)
+//  행동지표 정의 = 버전1 state-actionKPIs · 주별 실적 = 버전1 kpi-act-YYYY-Qn(읽기만) + 업무OS 오늘 화면 [+1] 기록(pour-os/v2/kpiact) 합계
 import { useEffect, useMemo, useState } from "react";
 import * as fb from "../fb.js";
-import { ymd, md, activeUsers, nameOf, fxPeople, fxMeDone, fxRecurL, fxDueOn, fxDoneOn, fxMin, fxIds, scopeOf, scopeRec, brandsWithCommon, brandLabel, brandKey, cyclePending, cycleGuess, countHint, COMMON_BRAND, trashRows } from "../model.js";
+import { ymd, md, addDays, weekStart, activeUsers, nameOf, fxPeople, fxMeDone, fxRecurL, fxDueOn, fxDoneOn, fxMin, fxIds, scopeOf, scopeRec, brandsWithCommon, brandLabel, brandKey, cyclePending, cycleGuess, countHint, COMMON_BRAND, trashRows } from "../model.js";
 import { TrashList } from "../trash.jsx";
 import {
   AK_FUNS, AK_CYC, akYmd, akWeeksIn, akQuarterWeeks, akQidOfMonth, akVal, akWeekDone, akTotal, akCountable, akFullWeek, akPartial, akPeriodEnd, akGoalText, akWho, akOrder, akLink,
 } from "../../../pour-os/src/actionKpi.js";
 import { C, Chip, Seg, TBtn, Card, Empty, useLocal, Ask } from "../ui.jsx";
 import { LS } from "../core.jsx";
-import { sumAk } from "../routine.js";
+import { sumAk, periodWeeks, akByOf, brandName } from "../routine.js";
 import { qtyCfg, qtySum, qtyText } from "../rec.js";
 
 // 버전1 문서 하나 실시간 읽기 (d: undefined = 불러오는 중, null = 없음)
@@ -27,11 +28,12 @@ const tile = (l, d, t, sub) => <div className="a-rtile"><span className="l">{l}<
   <div className="track"><i style={{ width: `${t ? Math.min(100, (d / t) * 100) : 0}%` }} /></div>{sub && <span className="s">{sub}</span>}</div>;
 
 // 2단계(사용자 확정 2026-10-06): 반복 실행 = 브랜드가 문제없이 돌아가게 하는 일(브랜드 꼭 · 공통 운영 포함) · 개인 고정업무는 [개인]에서 사람별 n/m 만
-//   세그 [전체 | 오늘 체크 n | 횟수 n | 개인 n] · 브랜드 없는 고정업무를 모든 브랜드에 '공통'으로 섞던 규칙은 없앰
+//   세그 [반복 실행 n | 개인 n] (2026-10-16 '오늘 체크 · 횟수' 칸 없앰 → 한 판) · 브랜드 없는 고정업무를 모든 브랜드에 '공통'으로 섞던 규칙은 없앰
 //   맨 위: 브랜드 안 정한 고정업무(추천 칩 · 1탭 · [추천대로 n개 정하기]) · 주기 확인 필요(그로홈에서 온 것 · [제안대로 적용])
 export function RoutineTab({ D, A, open }) {
   const [sec0, setSec] = useLocal(LS("arsec"), "all"), [brand, setBrand] = useLocal(LS("arbrand"), "all"), [who, setWho] = useLocal(LS("arwho"), "all");
-  const sec = sec0 === "fixed" ? "check" : sec0;   // 예전 값('고정업무') → 오늘 체크
+  const sec = sec0 === "me" ? "me" : "all";   // 예전 값('오늘 체크'·'횟수'·'고정업무') → 반복 실행 한 판
+  const [wkOn, setWkOn] = useLocal(LS("arweeks"), false);   // 주별 표 펼침 (이 기기 기억)
   const users = activeUsers(D.users), brands = brandsWithCommon(D.brands);
   const brand1 = brand === "all" || brands.some((b) => b.id === brand) ? brand : "all";
   const inBrand = (v, def) => brand1 === "all" || (brandKey(v, D.brands) || def) === brand1;
@@ -49,12 +51,12 @@ export function RoutineTab({ D, A, open }) {
   const ak = akAll.filter((it) => it.active !== false && inBrand(it.brand, "pourstore"));
   const whoOfAk = (it) => akWho(D.users, it);
   // 사람 칩: 보이는 반복 실행·행동지표(개인 세그면 개인 고정업무)에 들어 있는 사람
-  const ppl = users.filter((u) => (sec === "me" ? meAll.some((t) => fxPeople(D.users, t).includes(u.id)) : (sec !== "ak" && fx.some((t) => fxPeople(D.users, t).includes(u.id))) || (sec !== "check" && ak.some((it) => whoOfAk(it).includes(u.id)))));
+  const ppl = users.filter((u) => (sec === "me" ? meAll.some((t) => fxPeople(D.users, t).includes(u.id)) : fx.some((t) => fxPeople(D.users, t).includes(u.id)) || ak.some((it) => whoOfAk(it).includes(u.id))));
   const who1 = who === "all" || ppl.some((u) => u.id === who) ? who : "all";
   return <>
     <p className="a-hint" style={{ margin: "6px 2px 8px" }}>반복 실행 = 브랜드가 문제없이 돌아가게 하는 일 · 개인 고정업무는 [개인]에서</p>
     <div className="a-rthead">
-      <div style={{ flex: "1 1 300px", maxWidth: 520 }}><Seg items={[["all", "전체"], ["check", `오늘 체크 ${fx.length}`], ["ak", `횟수 ${ak.length}`], ["me", `개인 ${meAll.length}`]]} value={sec} onChange={setSec} /></div>
+      <div style={{ flex: "1 1 300px", maxWidth: 520 }}><Seg items={[["all", `반복 실행 ${fx.length + ak.filter((it) => !it.paused).length}`], ["me", `개인 ${meAll.length}`]]} value={sec} onChange={setSec} /></div>
       <span style={{ flex: 1 }} /><div style={{ display: "flex", gap: 8 }}><TBtn v="solid" onClick={() => open({ type: "addRoutine" })}>+ 반복 실행</TBtn><TBtn onClick={() => open({ type: "recBook" })}>기록 보기 ›</TBtn></div>
     </div>
     {unset.length > 0 && <UnsetPanel D={D} A={A} list={unset} open={open} />}
@@ -66,9 +68,11 @@ export function RoutineTab({ D, A, open }) {
       <div className="v2-chips" role="group" aria-label="사람"><Chip on={who1 === "all"} onClick={() => setWho("all")}>모든 사람</Chip>
         {ppl.map((u) => <Chip key={u.id} on={who1 === u.id} onClick={() => setWho(u.id)}>{u.name}</Chip>)}</div>
     </div>
-    {sec !== "me" && sec !== "ak" && pend.length > 0 && <CyclePanel D={D} A={A} list={pend} open={open} />}
-    {(sec === "all" || sec === "check") && <FixedBoard D={D} fx={fx} paused={rtAll.filter((t) => t.paused && inBrand(t.brand, "")).length} who={who1} keyD={key} open={open} />}
-    {(sec === "all" || sec === "ak") && <AkBoard D={D} items={ak} ready={def.d !== undefined} err={def.err} who={who1} whoOf={whoOfAk} open={open} />}
+    {sec !== "me" && pend.length > 0 && <CyclePanel D={D} A={A} list={pend} open={open} />}
+    {sec !== "me" && <RhythmBoard D={D} fx={fx} ak={ak} paused={rtAll.filter((t) => t.paused && inBrand(t.brand, "")).length + ak.filter((it) => it.paused).length} who={who1} whoOf={whoOfAk} keyD={key} open={open} />}
+    {/* 주별 표 (접힘 · 이 기기 기억) — 여러 번 하는 반복 실행의 지난 주·지난 달 · 버전1 표 모양 */}
+    {sec !== "me" && ak.length > 0 && <div className="a-rtno a-rtwk"><button type="button" className="a-rtnoh" aria-expanded={wkOn} onClick={() => setWkOn(!wkOn)}>주별 표 · 여러 번 하는 반복 실행의 지난 주·지난 달 {wkOn ? "▴" : "▾"}</button>
+      {wkOn && <div className="a-rtwkb"><AkBoard D={D} items={ak} ready={def.d !== undefined} err={def.err} who={who1} whoOf={whoOfAk} open={open} /></div>}</div>}
     {sec === "me" && <MeBoard D={D} list={meAll} who={who1} keyD={key} />}
     {/* 없앤 것(휴지통 · 사용자 확정 2026-10-07) — 맨 아래 접힘 · 누가·언제 · [되살리기] = 없애기 전 그대로 */}
     <TrashList rows={trashRows(D.removedFx, D.ak && D.ak.removed, D.brands)} A={A} open={open} label="없앤 것" note="목록·오늘 화면·달성률에서 빠진 것들이에요 · 지난 체크·건수·메모·파일은 그대로 있어요 · 되살리면 없애기 전 그대로 돌아와요" />
@@ -128,8 +132,13 @@ function MeBoard({ D, list, who, keyD }) {
   </section>;
 }
 
-// ── 고정업무: 매일 · 매주 · 매월 카드 + 줄마다 사람 체크 ──
-function FixedBoard({ D, fx, paused, who, keyD, open }) {
+// ── 반복 실행 한 판 (2026-10-16) — 얼마나 자주로 묶음: 매일 · 매주 · 매월 · 분기 ──
+//   같은 줄 모양: 이름 · 언제/목표 · 브랜드 · 사람 칸 · 한 것 / 할 것 (다 되면 초록)
+//   정한 날 체크 줄 = 사람마다 ✓ · n/m명 · 여러 번 줄 = 사람마다 이번 기간 한 수 · 합계/목표 (오늘 화면 [+1] · 버전1에서 한 것도 합쳐서)
+//   묶음 안 순서 = 정한 날 체크(정한 시간 순서 · 시간 없음 아래) → 여러 번(akOrder) · 8줄 넘으면 'n개 더 보기'
+//   위 칸 4개 = 다 된 줄 / 줄 (주기 확인 전 체크 · 실패 기준인데 실패 없는 것은 뺌)
+const GROUPS = [["daily", null, "매일", "오늘"], ["weekly", "W", "매주", "이번 주"], ["monthly", "M", "매월", "이번 달"], [null, "Q", "분기", "이번 분기"]];
+function RhythmBoard({ D, fx, ak, paused, who, whoOf, keyD, open }) {
   const [more, setMore] = useState({}), [noOn, setNoOn] = useState(false);
   const todayRecs = (D.recs && D.recs.key === keyD ? D.recs.today : []) || [];   // 오늘 건수 (하루 기록 · 실시간)
   const noteFor = (t) => (D.notes || []).filter((n) => n && !n.deleted && n.itemId === "task:" + t.id);
@@ -138,30 +147,47 @@ function FixedBoard({ D, fx, paused, who, keyD, open }) {
   const pairs = (t) => fxPeople(D.users, t).filter((u) => who === "all" || u === who);
   const rows = fx.filter((t) => pairs(t).length);
   const by = (rt) => rows.filter((t) => (t.recurType || "daily") === rt);
-  const cnt = (list) => { let d = 0, n = 0; list.filter((t) => !cyclePending(t)).forEach((t) => pairs(t).forEach((u) => { n++; if (fxMeDone(t, u, keyD)) d++; })); return [d, n]; };   // 주기 확인 전(그로홈에서 온 것)은 달성률에서만 뺌
+  const fxAll = (t) => { const ps = pairs(t); return ps.length > 0 && ps.every((u) => fxMeDone(t, u, keyD)); };
   // 시간 순서: 고른 사람의 시간(사람마다 다르게 정한 시간) → 아무 사람 중 가장 이른 시간 → 시간 없음은 맨 아래
   const tmin = (t) => Math.min(...(who === "all" ? [undefined, ...fxPeople(D.users, t)] : [who]).map((u) => fxMin(t, u)));
   const tlab = (t) => { const m = tmin(t); return m >= 9999 ? "" : `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`; };
   const today = (t) => (t.recurType || "daily") !== "daily" || fxDueOn(t, keyD);
-  return <section aria-label="고정업무" className="a-rtsec">
-    <h2 className="a-rth">오늘 체크 <span>정한 날 체크 · 정한 시간 순서 · 사람마다 한 칸{paused ? ` · 멈춘 ${paused}개 빼고` : ""}</span></h2>
+  // 여러 번(행동지표): 멈춘 것·아직 시작 전인 것 빼고 · 사람을 고르면 그 사람이 담당인 것만
+  const docs = (D.ak && D.ak.docs) || {}, wkEnd = addDays(weekStart(keyD), 6);
+  const akPpl = (it) => whoOf(it).filter((u) => who === "all" || u === who);
+  const akRows = ak.filter((it) => !it.paused && akCountable(it, { end: wkEnd }) && (who === "all" || akPpl(it).length));
+  const tot = useMemo(() => Object.fromEntries(akRows.map((it) => [it.id, akTotal(docs, it, periodWeeks(it, keyD))])), [akRows.map((x) => x.id).join(), docs, keyD]);
+  const akIn = (c) => akRows.filter((it) => (["W", "M", "Q"].includes(it.cyc) ? it.cyc : "M") === c);
+  const cnt = (rt, c) => { const f = rt ? by(rt).filter(today).filter((t) => !cyclePending(t)) : [], a = c ? akIn(c).filter((it) => !tot[it.id].none) : [];
+    return [f.filter(fxAll).length + a.filter((it) => tot[it.id].done).length, f.length + a.length]; };
+  const fxRow = (t) => { const ps = pairs(t), dn = ps.filter((u) => fxMeDone(t, u, keyD)).length;
+    return <div key={"f" + t.id} className={"a-rtrow" + (dn === ps.length ? " all" : "")}>
+      <button type="button" className="a-rtname" onClick={() => open({ type: "fixed", id: t.id })}><b>{t.title}</b><small>{fxRecurL(t)}{tlab(t) ? ` ${tlab(t)}` : ""}{` · ${brandLabel(t.brand, D.brands)}`}{cyclePending(t) ? " · 주기 확인 필요" : ""}</small>
+        {(() => { const cfg = qtyCfg(t), q = cfg ? qtySum(todayRecs, t.id) : 0, m = memoN(t), f = fileN(t); return cfg || m || f ? <small className="a-rtqm">{cfg ? <b>{qtyText(cfg, q)}</b> : null}{cfg && (m || f) ? " · " : ""}{m || f ? `메모 ${m} · 파일 ${f}` : ""}</small> : null; })()}</button>
+      <div className="a-rtppl">{ps.map((u) => { const ok = fxMeDone(t, u, keyD), last = fxDoneOn(t, u);
+        return <span key={u} className={"a-rtp" + (ok ? " ok" : "")} title={last ? `마지막 체크 ${md(last)}` : "체크 기록 없음"}>{ok ? "✓ " : ""}{nameOf(D.users, u) || "?"}</span>; })}</div>
+      <span className="a-rtn">{dn}/{ps.length}</span>
+    </div>; };
+  const akRow = (it) => { const t = tot[it.id], ps = akPpl(it), wks = periodWeeks(it, keyD), cfg = qtyCfg(it), q = cfg ? qtySum(todayRecs, it.id) : 0;
+    return <div key={"a" + it.id} className={"a-rtrow" + (t.done ? " all" : "")}>
+      <button type="button" className="a-rtname" onClick={() => open({ type: "routine", id: it.id })}><b>{it.name}</b><small>{akGoalText(it)} · {brandName(it.brand, D.brands) || "브랜드 없음"}</small>
+        {cfg && q ? <small className="a-rtqm">오늘 <b>{qtyText(cfg, q)}</b></small> : null}</button>
+      <div className="a-rtppl">{ps.length ? ps.map((u) => { const k = akByOf(docs, it, wks, u);
+        return <span key={u} className={"a-rtp" + (k > 0 ? " on" : "")} title={`${nameOf(D.users, u) || "?"} 이번 기간 ${k}`}>{nameOf(D.users, u) || "?"} {k}</span>; }) : <span className="a-rtp">담당 미정</span>}</div>
+      <span className="a-rtn">{it.unit === "%" ? `${t.n}%` : `${t.n}/${t.g}`}</span>
+    </div>; };
+  const groups = GROUPS.map(([rt, c, l, w]) => ({ rt, c, l, w, list: [...(rt ? by(rt).sort((x, y) => tmin(x) - tmin(y) || String(x.title).localeCompare(String(y.title), "ko")).map((t) => ({ t })) : []), ...(c ? akIn(c).map((it) => ({ it })) : [])] }));
+  return <section aria-label="반복 실행" className="a-rtsec">
     {noOwner.length > 0 && <div className="a-rtno"><button type="button" className="a-rtnoh" aria-expanded={noOn} onClick={() => setNoOn(!noOn)}>담당 없는 고정업무 <b>{noOwner.length}</b> · 누가 할지 정해 주세요 {noOn ? "▴" : "▾"}</button>
       {noOn && noOwner.map((t) => <button key={t.id} type="button" className="a-rtname" onClick={() => open({ type: "fixed", id: t.id, focus: "owners" })}><b>{t.title}</b><small>{fxRecurL(t)} · 전 담당 {fxIds(t).map((u) => nameOf(D.users, u)).filter(Boolean).join("·") || "없음"} · 눌러서 담당 정하기</small></button>)}</div>}
-    <div className="a-rtiles">{RT.map(([rt, l, w]) => { const [d, n] = cnt(by(rt).filter(today)); return <div key={rt}>{tile(`${l} · ${w}`, d, n, n ? `${Math.round((d / n) * 100)}%` : "")}</div>; })}</div>
-    {rows.length === 0 ? <Card style={{ marginTop: 10 }}><Empty>고른 조건에 맞는 반복 실행이 없어요</Empty></Card>
-    : RT.map(([rt, l, w]) => { const a = by(rt).sort((x, y) => tmin(x) - tmin(y) || String(x.title).localeCompare(String(y.title), "ko")); if (!a.length) return null;
-      const m = more[rt], shown = m ? a : a.slice(0, 8), [d, n] = cnt(a);
-      return <div key={rt} className="a-rtgrp">
-        <div className="a-rtgh"><b>{l}</b><span>{w} {d} / {n}</span></div>
-        <div className="a-rtlist">{shown.map((t) => { const ps = pairs(t), dn = ps.filter((u) => fxMeDone(t, u, keyD)).length;
-          return <div key={t.id} className={"a-rtrow" + (dn === ps.length ? " all" : "")}>
-            <button type="button" className="a-rtname" onClick={() => open({ type: "fixed", id: t.id })}><b>{t.title}</b><small>{tlab(t) ? `${tlab(t)} · ` : "시간 없음 · "}{fxRecurL(t)}{` · ${brandLabel(t.brand, D.brands)}`}{cyclePending(t) ? " · 주기 확인 필요" : ""}</small>
-              {(() => { const cfg = qtyCfg(t), q = cfg ? qtySum(todayRecs, t.id) : 0, m = memoN(t), f = fileN(t); return cfg || m || f ? <small className="a-rtqm">{cfg ? <b>{qtyText(cfg, q)}</b> : null}{cfg && (m || f) ? " · " : ""}{m || f ? `메모 ${m} · 파일 ${f}` : ""}</small> : null; })()}</button>
-            <div className="a-rtppl">{ps.map((u) => { const ok = fxMeDone(t, u, keyD), last = fxDoneOn(t, u);
-              return <span key={u} className={"a-rtp" + (ok ? " ok" : "")} title={last ? `마지막 체크 ${md(last)}` : "체크 기록 없음"}>{ok ? "✓ " : ""}{nameOf(D.users, u) || "?"}</span>; })}</div>
-            <span className="a-rtn">{dn}/{ps.length}</span>
-          </div>; })}</div>
-        {a.length > 8 && <button type="button" className="a-rtmore" onClick={() => setMore({ ...more, [rt]: !m })}>{m ? "접기 ▴" : `${a.length - 8}개 더 보기 ▾`}</button>}
+    <div className="a-rtiles four">{GROUPS.map(([rt, c, l, w]) => { const [d, n] = cnt(rt, c); return <div key={l}>{tile(`${l} · ${w}`, d, n, n ? `${Math.round((d / n) * 100)}%` : "")}</div>; })}</div>
+    <p className="a-hint">정한 날 체크 = 사람마다 ✓ · 여러 번 하는 것 = 사람마다 이번 기간 한 수 · 오른쪽 = 한 것 / 할 것{paused ? ` · 멈춘 ${paused}개 빼고` : ""}</p>
+    {groups.every((g) => !g.list.length) ? <Card style={{ marginTop: 10 }}><Empty>고른 조건에 맞는 반복 실행이 없어요</Empty></Card>
+    : groups.map((g) => { if (!g.list.length) return null; const m = more[g.l], shown = m ? g.list : g.list.slice(0, 8), [d, n] = cnt(g.rt, g.c);
+      return <div key={g.l} className="a-rtgrp">
+        <div className="a-rtgh"><b>{g.l}</b><span>{g.w} {d} / {n}</span></div>
+        <div className="a-rtlist">{shown.map((x) => (x.t ? fxRow(x.t) : akRow(x.it)))}</div>
+        {g.list.length > 8 && <button type="button" className="a-rtmore" onClick={() => setMore({ ...more, [g.l]: !m })}>{m ? "접기 ▴" : `${g.list.length - 8}개 더 보기 ▾`}</button>}
       </div>; })}
   </section>;
 }
@@ -214,7 +240,7 @@ function AkBoard({ D, items, ready, err, who, whoOf, open }) {
       {it.cyc === "W" ? <><div className="a-akw">{WK.map((w) => cell(it, w))}</div><div className={"a-akt" + (t.done ? " done" : "")}><b>{t.n} / {t.g}</b><span>{wksFor(it).length}주 합계</span>{qtyCfg(it) && <span className="q">{m0 + 1}월 {qtyText(qtyCfg(it), qM(it))}</span>}</div></> : span(it)}
     </div>; };
   return <section aria-label="행동지표" className="a-rtsec">
-    <h2 className="a-rth">횟수 <span>행동지표 · KPI · 주기별 목표 횟수 · 기록은 팀 앱 오늘 '할 횟수' [+1] (버전1에서 한 것도 합쳐 보여요)</span></h2>
+    <h2 className="a-rth">주별 표 <span>주 n번 · 월 n번 · 분기 n번 반복 실행 · KPI(AARRR) 묶음 · 기록은 팀 앱 오늘 '반복 실행' [+1] (버전1에서 한 것도 합쳐 보여요)</span></h2>
     {err && <div className="a-rterr" role="alert">버전1 행동지표를 읽지 못했어요 ({err})</div>}
     <div className="a-rtbar">
       <div className="a-rtseg"><Seg items={[["all", "전체"], ["core", "필수"], ["add", "추가"]]} value={kind} onChange={setKind} /></div>

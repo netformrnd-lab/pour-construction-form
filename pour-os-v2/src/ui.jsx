@@ -43,8 +43,9 @@ export function Card({ children, style }) { return <div style={{ background: C.c
 // 한 줄 (누르면 보기) — 오른쪽에 실행 버튼 1개 · 기밀 대체본(secret.js '기밀 업무'·'기밀 프로젝트')이면 제목 앞에 자물쇠
 const LOCKED_RE = /(^|· )기밀 (업무|프로젝트)$/;
 // below = 부제 아래 덧붙임(고정업무 체크리스트 칩 등 · 안의 버튼은 줄 누르기로 번지지 않게 stopPropagation)
+// Enter·Space 열기는 줄 자체에 커서가 있을 때만 (안의 버튼 [완료]·[+1] 에서 누른 Enter 는 그 버튼 몫 · 2026-10-16)
 export function Row({ title, sub, sub2, right, onClick, dim, tag, tagTone, last, below }) {
-  return <div role={onClick ? "button" : undefined} tabIndex={onClick ? 0 : undefined} onClick={onClick} onKeyDown={(e) => { if (onClick && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onClick(); } }}
+  return <div role={onClick ? "button" : undefined} tabIndex={onClick ? 0 : undefined} onClick={onClick} onKeyDown={(e) => { if (onClick && e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onClick(); } }}
     style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", minHeight: 56, borderBottom: last ? "none" : `1px solid ${C.line}`, cursor: onClick ? "pointer" : "default", background: "#fff" }}>
     <div style={{ flex: 1, minWidth: 0 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>

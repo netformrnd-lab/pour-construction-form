@@ -76,7 +76,7 @@ ok("반복 실행: 정한 날 체크 · 횟수 목표 · 남의 개인 고정업
   assert.ok(!a.some((x) => x.id === "f2"));
   assert.equal(S.searchAll(view(cuB), "메일 정리", { cu: cuB }).rt[0].id, "f2");
   assert.equal(S.searchAll(view(cuBoss), "메일 정리", { cu: cuBoss }).rt[0].id, "f2");
-  const k = S.searchAll(view(cuA), "블로그", { cu: cuA }).rt[0]; assert.deepEqual(k.go, { type: "routine", id: "ak1" }); assert.equal(k.where, "횟수 목표 · POUR스토어");
+  const k = S.searchAll(view(cuA), "블로그", { cu: cuA }).rt[0]; assert.deepEqual(k.go, { type: "routine", id: "ak1" }); assert.equal(k.where, "반복 실행 · POUR스토어");
 });
 ok("없앤 것: 팀원 = 내 개인 고정업무만 '없앤 것' · 관리자 = 전부(횟수 목표 포함)", () => {
   const a = S.searchAll(view(cuA), "예전", { cu: cuA }).rt; assert.deepEqual(a.map((x) => [x.id, x.tag]), [["f9", "없앤 것"]]);

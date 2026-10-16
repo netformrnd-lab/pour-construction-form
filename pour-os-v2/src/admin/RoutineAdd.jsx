@@ -1,16 +1,19 @@
 // 관리자 · 반복 실행 [+ 반복 실행] · [기록 보기 ›] (3단계 · 사용자 확정 2026-10-06 · 시안 mockups/step13)
-//   [+ 반복 실행]: [정한 날 체크 | 횟수 목표] → 이름 · 브랜드(꼭 · 공통 운영 포함) · 담당 · 반복 또는 목표(주/월/분기 + 숫자 + 회/건) · 체크리스트 · 건수 칸
+//   [+ 반복 실행]: '얼마나 자주 해요?' [매일 · 매주 · 매월 | 주 ○번 · 월 ○번 · 분기 ○번] (2026-10-16 '정한 날 체크 | 횟수 목표' 고르기 없앰 — 자주 하는 정도만 고르면 됨)
+//     → 이름 · 브랜드(꼭 · 공통 운영 포함) · 담당 · 요일/날짜/시간 또는 몇 번(숫자 + 회/건) · 체크리스트 · 건수 칸
 //     정한 날 체크 = v2 고정업무 문서(scope 'brand') · 횟수 목표 = 덧칠 created(kpidefs · id v2k_act_… · 버전1 문서는 그대로)
 //   [기록 보기 ›]: 이번 달 날짜 × 사람(회·건) 표 · ‹ › 달 넘기기 · CSV 내려받기는 [더 하기 ▾] 안
 import { useEffect, useMemo, useState } from "react";
 import * as fb from "../fb.js";
-import { C, Big, TBtn, Chip, Seg, Card, Empty, Sheet, inp } from "../ui.jsx";
+import { C, Big, TBtn, Chip, Card, Empty, Sheet, inp } from "../ui.jsx";
 import { activeUsers, brandsWithCommon, FX_WD, md, WD } from "../model.js";
 import { recTable, recCsv, QTY_UNITS } from "../rec.js";
 
 const lab = { fontSize: 13, fontWeight: 800, color: C.ink, margin: "16px 0 6px" };
+// 얼마나 자주: 그날 한 번(정한 날 체크 · v2 고정업무) / 기간 안 여러 번(행동지표 덧칠) — 사람은 종류 말고 자주 하는 정도만 고름
+const FREQ = [["check", "daily", "매일"], ["check", "weekly", "매주"], ["check", "monthly", "매월"], ["count", "W", "주 ○번"], ["count", "M", "월 ○번"], ["count", "Q", "분기 ○번"]];
 export function AddRoutineSheet({ D, A, onBack, onClose }) {
-  const [f, setF] = useState({ kind: "check", name: "", brand: "", who: [], rt: "daily", wd: ["월"], mday: "1", time: "", cyc: "M", goal: "1", unit: "회", subs: [], qtyU: "", qtyL: "" });
+  const [f, setF] = useState({ kind: "check", name: "", brand: "", who: [], rt: "daily", wd: ["월"], mday: "1", time: "", cyc: "W", goal: "1", unit: "회", subs: [], qtyU: "", qtyL: "" });
   const [sub, setSub] = useState(""), [busy, setBusy] = useState(false);
   const set = (x) => setF({ ...f, ...x });
   const ok = f.name.trim() && f.brand && (f.kind === "count" ? +f.goal > 0 : f.rt !== "weekly" || f.wd.length > 0);
@@ -23,9 +26,10 @@ export function AddRoutineSheet({ D, A, onBack, onClose }) {
   const miss = !f.name.trim() ? "이름을 적어 주세요" : !f.brand ? "브랜드를 골라 주세요" : "";
   return <Sheet title="반복 실행 만들기" kind="반복 실행" head="반복 실행 만들기" path="반복 실행 = 브랜드가 문제없이 돌아가게 하는 일" onBack={onBack} onClose={onClose}
     foot={<><Big onClick={save} disabled={!ok || busy}>저장</Big><div style={{ fontSize: 12.5, color: C.sub, marginTop: 6, textAlign: "center" }}>{miss || "저장하면 담당의 오늘 화면 '반복 실행'에 바로 떠요"}</div></>}>
-    <div style={lab}>어떤 반복이에요</div>
-    <Seg items={[["check", "정한 날 체크"], ["count", "횟수 목표"]]} value={f.kind} onChange={(kind) => set({ kind })} />
-    <div style={{ fontSize: 12, color: C.mute, marginTop: 6 }}>{f.kind === "check" ? "CS 확인 · 발주 · 재고 · 정산처럼 정한 날에 체크해요" : "주 4건 · 월 1회처럼 기간 안에 횟수를 채워요"}</div>
+    <div style={lab}>얼마나 자주 해요?</div>
+    <div className="v2-chips" role="group" aria-label="얼마나 자주">{FREQ.map(([k, c, l]) => { const on = f.kind === k && (k === "check" ? f.rt === c : f.cyc === c);
+      return <Chip key={k + c} on={on} onClick={() => set(k === "check" ? { kind: k, rt: c } : { kind: k, cyc: c })}>{l}</Chip>; })}</div>
+    <div style={{ fontSize: 12, color: C.mute, marginTop: 6, lineHeight: 1.6 }}>{f.kind === "check" ? "정한 날에 한 번 [완료] · 예: 오전 CS 확인 · 월요일 재고 점검 · 말일 정산" : "기간 안에 여러 번 · 할 때마다 [+1] · 예: 고객안내전화 주 4건 · 블로그 월 8회"}</div>
     <div style={lab}>이름</div>
     <input value={f.name} onChange={(e) => set({ name: e.target.value })} placeholder={f.kind === "check" ? "예: 오전 CS 확인" : "예: 고객안내전화"} aria-label="반복 실행 이름" style={inp} />
     <div style={lab}>브랜드 <span style={{ color: C.mute, fontWeight: 700 }}>(꼭 골라요)</span></div>
@@ -33,16 +37,13 @@ export function AddRoutineSheet({ D, A, onBack, onClose }) {
     <div style={lab}>담당 <span style={{ color: C.mute, fontWeight: 700 }}>(여러 명 가능)</span></div>
     <div className="v2-chips" role="group" aria-label="담당">{activeUsers(D.users).map((u) => { const k = f.who.includes(u.id); return <Chip key={u.id} on={k} onClick={() => set({ who: k ? f.who.filter((x) => x !== u.id) : [...f.who, u.id] })}>{k ? "✓ " : ""}{u.name}</Chip>; })}</div>
     {f.kind === "check" ? <>
-      <div style={lab}>반복</div>
-      <Seg items={[["daily", "매일"], ["weekly", "매주"], ["monthly", "매월"]]} value={f.rt} onChange={(rt) => set({ rt })} />
-      {f.rt === "weekly" && <div className="v2-chips" style={{ marginTop: 8 }} role="group" aria-label="요일">{FX_WD.map((d) => <Chip key={d} on={f.wd.includes(d)} onClick={() => set({ wd: f.wd.includes(d) ? f.wd.filter((x) => x !== d) : FX_WD.filter((x) => x === d || f.wd.includes(x)) })}>{d}</Chip>)}</div>}
-      {f.rt === "monthly" && <select aria-label="매월 날짜" className="v2-sel" style={{ marginTop: 8 }} value={f.mday} onChange={(e) => set({ mday: e.target.value })}>
-        {[...Array(31)].map((_, i) => <option key={i} value={String(i + 1)}>{i + 1}일</option>)}<option value="end">말일 (평일 기준)</option></select>}
+      {f.rt === "weekly" && <><div style={lab}>요일</div><div className="v2-chips" role="group" aria-label="요일">{FX_WD.map((d) => <Chip key={d} on={f.wd.includes(d)} onClick={() => set({ wd: f.wd.includes(d) ? f.wd.filter((x) => x !== d) : FX_WD.filter((x) => x === d || f.wd.includes(x)) })}>{d}</Chip>)}</div></>}
+      {f.rt === "monthly" && <><div style={lab}>날짜</div><select aria-label="매월 날짜" className="v2-sel" value={f.mday} onChange={(e) => set({ mday: e.target.value })}>
+        {[...Array(31)].map((_, i) => <option key={i} value={String(i + 1)}>{i + 1}일</option>)}<option value="end">말일 (평일 기준)</option></select></>}
       <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8, flexWrap: "wrap" }}><span style={{ fontSize: 13, color: C.sub, fontWeight: 700 }}>시간 (선택)</span><input type="time" aria-label="시간" className="v2-sel" value={f.time} onChange={(e) => set({ time: e.target.value })} />{f.time && <TBtn onClick={() => set({ time: "" })}>지우기</TBtn>}</div>
     </> : <>
-      <div style={lab}>목표</div>
-      <Seg items={[["W", "주"], ["M", "월"], ["Q", "분기"]]} value={f.cyc} onChange={(cyc) => set({ cyc })} />
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+      <div style={lab}>{f.cyc === "W" ? "한 주에" : f.cyc === "M" ? "한 달에" : "한 분기에"} 몇 번?</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         <input inputMode="numeric" value={f.goal} onChange={(e) => set({ goal: e.target.value.replace(/\D/g, "") })} aria-label="목표 숫자" style={{ ...inp, width: 90, padding: "9px 12px" }} />
         {["회", "건"].map((u) => <Chip key={u} on={f.unit === u} onClick={() => set({ unit: u })}>{u}</Chip>)}
         <span style={{ fontSize: 12.5, color: C.sub }}>{f.cyc === "W" ? "주" : f.cyc === "M" ? "월" : "분기"} {+f.goal || 0}{f.unit}</span></div>

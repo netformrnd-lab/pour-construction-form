@@ -375,7 +375,7 @@ ok("없애기·휴지통(2026-10-07): 권한 · 저장 칸 · 되살리기 = 이
   const ak = [{ id: "k1", name: "블로그", brand: "pourstore", _hidden: true, _removed: { at: "2026-10-07T03:00:00Z", by: "s", byName: "김송희" } }];
   const all = M.trashRows(gone, ak, [{ id: "pourstore", name: "POUR스토어" }]);
   assert.deepEqual(all.map((r) => r.kind + ":" + r.id), ["ak:k1", "fx:f1", "fx:f2", "fx:f3"]);   // 최근 것 먼저
-  assert.equal(all[0].sub, "횟수 목표 · POUR스토어"); assert.equal(all[2].sub, "반복 실행 · 공통 운영"); assert.equal(all[1].sub, "개인 고정업무"); assert.equal(all[3].sub, "고정업무 · 브랜드 미정");
+  assert.equal(all[0].sub, "반복 실행 · POUR스토어"); assert.equal(all[2].sub, "반복 실행 · 공통 운영"); assert.equal(all[1].sub, "개인 고정업무"); assert.equal(all[3].sub, "고정업무 · 브랜드 미정");
   assert.deepEqual(M.trashRows(gone, ak, [], "a").map((r) => r.id), ["f1"]);   // 내 것 = 내 개인 고정업무만 (반복 실행·횟수 목표는 관리자 휴지통)
   assert.deepEqual(M.trashRows(gone, ak, [], "b"), []);
 });

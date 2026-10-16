@@ -150,13 +150,13 @@ export const fxRemoveFields = (t, cu, at) => ({ removed: { at, by: cu.id, byName
 export const fxRestoreFields = (t) => ({ removed: null, paused: !!(t && t.removed && t.removed.prevPaused) });
 // 이름 고치기(사용자 요청 2026-10-07): 공통 이름(task.title · 횟수 목표는 덧칠 fields.name) — 권한은 없애기와 같음(개인 = 본인·관리자 · 반복 실행·미정 = 관리자)
 export const canRenameFx = (t, cu) => canRemoveFx(t, cu);
-// 휴지통 줄: 고정업무(removedFx) + 횟수 목표(akRemoved · _removed) → [{kind, id, name, sub, by, byName, at, x}] 최근 것 먼저
+// 휴지통 줄: 고정업무(removedFx) + 여러 번 하는 반복 실행(akRemoved · _removed · 2026-10-16 말 '반복 실행'으로 통일) → [{kind, id, name, sub, by, byName, at, x}] 최근 것 먼저
 //   uid 를 주면 그 사람 개인 고정업무만 (더보기 › 내 고정업무)
 export function trashRows(removedFx, akRemoved, brands, uid) {
   const fx = (removedFx || []).filter((t) => t && t.isFixed && isRemoved(t) && (!uid || ((t.removed.scope || scopeOf(t)) === "me" && fxOwnerOf(t, uid))))
     .map((t) => { const sc = t.removed.scope || scopeOf(t); return { kind: "fx", id: t.id, name: t.title || "", sub: sc === "brand" ? `반복 실행 · ${brandLabel(t.brand, brands) || "브랜드"}` : sc === "me" ? "개인 고정업무" : "고정업무 · 브랜드 미정", by: t.removed.by, byName: t.removed.byName, at: t.removed.at, x: t }; });
   const ak = uid ? [] : (akRemoved || []).filter((it) => it && it._removed && it._removed.at)
-    .map((it) => ({ kind: "ak", id: it.id, name: it.name || "", sub: `횟수 목표 · ${brandLabel(it.brand, brands) || "브랜드"}`, by: it._removed.by, byName: it._removed.byName, at: it._removed.at, x: it }));
+    .map((it) => ({ kind: "ak", id: it.id, name: it.name || "", sub: `반복 실행 · ${brandLabel(it.brand, brands) || "브랜드"}`, by: it._removed.by, byName: it._removed.byName, at: it._removed.at, x: it }));
   return [...fx, ...ak].sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
 }
 // ── 한 번짜리 업무 없애기 (사용자 확정 2026-10-07 "업무 삭제는 어떻게해?" → 누구나 없애기 · 지우지 않음) ──

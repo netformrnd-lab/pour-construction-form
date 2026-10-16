@@ -201,6 +201,8 @@
 .a-rth span { font-size: 12.5px; font-weight: 600; color: #5B6475; }
 .a-rterr { background: #FBEFEF; color: #B4383F; border-radius: 10px; padding: 8px 12px; font-size: 13px; margin-bottom: 8px; }
 .a-rtiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.a-rtiles.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 560px) { .a-rtiles.four { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .a-rtile { background: #fff; border: 1px solid #E3E7F0; border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .a-rtile .l { font-size: 12px; font-weight: 700; color: #5B6475; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .a-rtile .v { font-size: 22px; color: #0F1F5C; font-variant-numeric: tabular-nums; line-height: 1.2; }
@@ -224,6 +226,7 @@
 .a-rtppl { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 4px; }
 .a-rtp { font-size: 12px; font-weight: 700; color: #8A92A3; background: #F4F5F8; border-radius: 6px; padding: 2px 7px; }
 .a-rtp.ok { color: #2F7D57; background: #EAF4EE; }
+.a-rtp.on { color: #24386B; background: #EEF1F8; }
 @media (min-width: 900px) { .a-rtrow { grid-template-columns: minmax(200px, 1fr) minmax(0, 1.4fr) 48px; } .a-rtppl { grid-column: 2; grid-row: 1; } .a-rtn { grid-column: 3; text-align: right; } }
 .a-rtmore { width: 100%; border: none; border-top: 1px solid #E3E7F0; background: #fff; padding: 10px 12px; font: inherit; font-size: 13px; font-weight: 800; color: #24386B; cursor: pointer; text-align: left; }
 .a-rtbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
@@ -347,6 +350,9 @@ div.a-reprow { cursor: default; }
 /* 담당 없는 고정업무 */
 .a-rtno { background: #fff; border: 1.5px solid #E2E6EE; border-radius: 12px; margin: 8px 0 10px; overflow: hidden; }
 .a-rtnoh { width: 100%; text-align: left; border: none; background: #F6F7FA; padding: 10px 12px; font: inherit; font-size: 13.5px; font-weight: 800; color: #0F1F5C; cursor: pointer; }
+.a-rtwk { margin-top: 18px; }
+.a-rtwkb { padding: 0 10px 12px; }
+.a-rtwkb .a-rtsec { margin-top: 10px; }
 .a-rtno .a-rtname { display: flex; flex-direction: column; width: 100%; border-top: 1px solid #EEF0F4; }
 
 @media (max-width: 480px) { .a-pre { display: none; } }

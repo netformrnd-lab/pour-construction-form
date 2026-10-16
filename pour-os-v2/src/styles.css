@@ -389,12 +389,9 @@ input[type="date"].v2-sel::-webkit-date-and-time-value { text-align: left; min-h
 .v2-more .v2-secret .pick{flex-basis:100%}
 
 /* 반복 +1 ↔ 신제품 횟수 (routineui.jsx) */
-.v2-rtrow{padding:12px 14px;border-bottom:1px solid #EEF0F5}
-.v2-rtrow .r1,.v2-count .r1{display:flex;align-items:center;gap:10px}
-.v2-rtrow .t,.v2-count .t{flex:1;min-width:0}
-.v2-rtrow .t b{display:block;font-size:15px;color:#1F2433;overflow-wrap:anywhere}
-.v2-rtrow .t span{font-size:12.5px;color:#6B7385}
-.v2-rtrow .t span b.num,.v2-count b.num{display:inline;color:#24386B;font-weight:800}
+.v2-count .r1{display:flex;align-items:center;gap:10px}
+.v2-count .t{flex:1;min-width:0}
+.v2-count b.num,.v2-num{display:inline;color:#24386B;font-weight:800}
 .v2-rtplus{height:40px;min-width:56px;padding:0 12px;border-radius:11px;background:#24386B;color:#fff;font-weight:800;font-size:15px;border:1px solid #24386B;flex:0 0 auto;cursor:pointer}
 .v2-rtplus.soft{background:#EEF2FA;color:#24386B;border-color:#D5DDEE}
 .v2-rtplus:disabled{opacity:.55}
@@ -475,11 +472,6 @@ input[type="date"].v2-sel::-webkit-date-and-time-value { text-align: left; min-h
 .v2-fxchips button{min-height:32px;padding:4px 11px;border-radius:999px;border:1.5px solid #D5DCEC;background:#fff;color:#3D4250;font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .v2-fxchips button.on{background:#24386B;border-color:#24386B;color:#fff}
 .v2-fxchips button.more{background:#EEF1F8;color:#24386B;border-color:#D5DCEC}
-/* 반복 실행 카드 안 묶음 머리 ('오늘 체크 · n개 남음' · '횟수') */
-.v2-rtsub{display:flex;align-items:center;gap:8px;padding:9px 14px;background:#F7F8FB;border-bottom:1px solid #EEF0F5;font-size:12.5px;color:#5B6475}
-.v2-rtsub b{color:#0F1F5C;font-weight:800;flex:1;min-width:0}
-.v2-rtsub span{font-size:12px;color:#8A92A3;font-weight:700;white-space:nowrap}
-.v2-rtsub button{border:none;background:none;color:#0F1F5C;font-size:12.5px;font-weight:800;font-family:inherit;padding:6px 2px;margin:-6px 0;cursor:pointer;white-space:nowrap}
 
 /* 하루 기록 · 건수 (recui.jsx · 반복 실행 3단계) */
 .v2-qty{margin-top:9px;padding:10px 11px;border-radius:12px;background:#EEF2FA;border:1px solid #D5DDEE;font-size:13px;color:#24386B;cursor:default}

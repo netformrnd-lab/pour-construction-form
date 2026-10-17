@@ -37,6 +37,7 @@ export function noteWhere(D, n) {
   if (k === "task") { const t = (D.tasks || []).find((x) => x.id === ref) || (D.removedFx || []).find((x) => x.id === ref);   // 없앤 고정업무 대화도 그 시트로
     return { kind: t && t.isFixed ? (t.scope === "brand" ? "반복 실행" : "고정업무") : "업무", title: t ? t.title : "지난 업무", t, go: { type: t && t.isFixed ? "fixed" : "task", id: ref, focus: "talk", note: n.id } }; }
   if (k === "proj") { const p = (D.projects || []).find((x) => x.id === ref); return { kind: "프로젝트", title: p ? projLabel(p, D) : "프로젝트", p, go: { type: "project", id: ref, first: "news", note: n.id } }; }
+  if (k === "ref") { const r = ((D.refs && D.refs.list) || []).find((x) => x && x.id === ref); return { kind: "레퍼런스", title: r ? String(r.text || r.kind || "레퍼런스").replace(/\s+/g, " ").slice(0, 40) : "레퍼런스", go: { type: "ref", id: ref, focus: "talk", note: n.id } }; }   // 레퍼런스 대화 (2026-10-17)
   if (!k && id.includes("~")) { const tid = id.split("~")[0], t = (D.tasks || []).find((x) => x.id === tid); return { kind: "고정업무 메모", title: t ? t.title : "고정업무", t, go: { type: "fixed", id: tid } }; }
   const it = ((D.ak && D.ak.items) || []).find((x) => x.id === id) || ((D.ak && D.ak.removed) || []).find((x) => x.id === id);
   return { kind: "반복 실행", title: it ? it.name : "반복 실행", go: { type: "routine", id, focus: "talk", note: n.id } };

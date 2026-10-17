@@ -496,7 +496,7 @@ export const closedStop = (b) => [`[닫힌 보드] ${(mateOf(b.mate) || {}).name
 
 // ── 넘겨받기 · 공용 이긴 소재 장부 · 브랜드별 설계 (2026-10-17 사장님 확정 — 넘기기 A · 2A · 6-1A) ──
 //   AI 결과는 사람이 최종 승인해야만 다른 AI 에게 간다 (승인 화면에서 끌 수 있음 = aiasks.handoffOff) · 따로 저장하지 않고 승인 건(aiasks)에서 읽음
-//   crew.html 이 승인 건을 읽어 asideText(opt.inbox · opt.ledger · opt.design)로 넘김 → Aside 가 지시문 그대로 읽음 · 업무OS 승인 화면·금요일 보고 칸도 같은 함수
+//   crew.html 이 승인 건을 읽어 asideText(opt.inbox · opt.ledger · opt.design · opt.refs = 참고 레퍼런스 2026-10-17)로 넘김 → Aside 가 지시문 그대로 읽음 · 업무OS 승인 화면·금요일 보고 칸도 같은 함수
 export const HANDOFFS = [
   { from: 'baram.E', to: ['yeoreum', 'gyeoul'], done: true, use: '허락받은 팬 후기·사진 → 콘텐츠 소재(여름) · 상세 후기 칸(겨울)' },   // done = 담당이 [했어요]한(허락받은) 줄만
   { from: 'haneul.F', to: ['gyeoul', 'dal'], use: '고객 불만·막힌 곳 → 상세·응대 대본 고치기(겨울) · 신제품·개선 후보(달)' },
@@ -552,6 +552,22 @@ export function designOf(design, act) {
     .map((k) => ({ brand: k, l: BRAND_L[k] || k, text: maskPII(String((d[k] || {}).text || '').split('\n').filter((x) => !SECRET_RE.test(x)).join('\n').trim()).slice(0, DESIGN_MAX), byName: (d[k] || {}).byName || '', at: (d[k] || {}).at || '' }))
     .filter((x) => x.text);
 }
+// ── 참고 레퍼런스 (2026-10-17 사장님 4A "크루가 찾아오면 사람이 핏을 해당레퍼런스에 ~~부분만 사용 이런식으로 표식남기면 이용 하게끔") ──
+//   업무OS 레퍼런스(pour-os/v2/refs · pour-os-v2/src/refs.js)에 사람이 'AI 핏'(그 AI · 어느 부분만 쓸지 한 줄)을 남긴 것만 그 AI 지시문 '■ 참고 레퍼런스'에
+//   crew.html 이 refs where fitMates array-contains <AI> 로 읽어 asideText(opt.refs) · team_link.py feedback(여름) 도 같은 모양 · 최근 핏 REF_AI_MAX 개
+//   숨긴 레퍼런스 · 핏 글이나 레퍼런스 글에 원가·마진·제조사·공급가가 있는 것은 빼고 · 전화·메일은 가림
+export const REF_AI_MAX = 8;
+const oneLine = (s, n) => maskPII(String(s == null ? '' : s).replace(/\s+/g, ' ').trim()).slice(0, n);
+export function refRows(refs, mateId) {
+  return (refs || []).filter((r) => r && r.id && !(r.removed && r.removed.at) && r.fits && r.fits[mateId] && String(r.fits[mateId].text || '').trim())
+    .map((r) => { const f = r.fits[mateId];
+      return { id: r.id, kind: String(r.kind || '기타'), brand: BRAND_L[r.brand] || '', what: oneLine(r.text, 160), url: /^https?:\/\//i.test(String(r.url || '').trim()) ? String(r.url).trim().slice(0, 300) : '',
+        files: (r.files || []).filter((x) => x && /^https?:\/\//i.test(String(x.url || ''))).slice(0, 4).map((x) => ({ name: oneLine(x.name || '사진', 60), url: String(x.url) })),
+        fit: oneLine(f.text, 300), by: oneLine(f.byName || '', 20), at: kstDay(f.at) }; })
+    .filter((x) => x.fit && !designBad(x.what) && !designBad(x.fit))
+    .sort((a, b) => String(b.at).localeCompare(String(a.at)) || String(b.id).localeCompare(String(a.id))).slice(0, REF_AI_MAX);
+}
+export const refLine = (r) => `- ${r.kind}${r.brand ? ` · ${r.brand}` : ''} · ${mdL(r.at)} 핏${r.by ? `(${r.by})` : ''} — 쓸 부분: ${r.fit}`;
 // 단계 숫자 (1A) — 금요일 보고 칸 맨 위 · num.m = [[보드, 지표]] → 지표 정의 함께
 export const stageNum = (mateId) => { const st = stageOf(mateId); if (!st || !st.num) return null; return { l: st.num.l, slot: (mateOf(mateId) || {}).slot || '', ms: st.num.m.map(([bd, k]) => ({ board: bd, ...((((BOARDS[bd] || {}).metrics) || []).find((x) => x.k === k) || { k, l: k }) })) }; };
 // 그 AI 가 일하는 브랜드들 (원형 = 정해진 브랜드 없음 → 모든 브랜드)
@@ -789,7 +805,7 @@ export function asideReqLaunch(req) {
 //   Aside 예약 작업 = 보드 하나에 하나 · 예약 글은 짧게(asideLaunch): crew.html#보드 를 열어 화면 '오늘 지시문'(asideText)을 그대로
 //   → 지시문을 고쳐도(이 파일) Aside 예약은 다시 안 넣어도 됨 · 판 = ASIDE_VER (지시문을 고치면 날짜를 올림)
 //   AI 몫 = 숫자 읽기 · 찾기 · 표 · 초안까지 / 사람 몫 = 승인 뒤 실행(가격·광고·쿠폰·발송·게시·상세·등록) — 할 일 단계 중 '승인…'으로 시작하는 줄은 사람 몫(stepParts)
-export const ASIDE_VER = '2026-10-17.4';   // 10-17.4 = 매일 할 일은 할 게 있을 때만(없으면 [상태] '변화 없음') · B2B·바라스데이 크루 닫음(닫힌 보드 = 멈춤 안내) · 10-17.3 = 사장님 확정(논의 뒤) — 단계 숫자 하나 · ■ 넘겨받은 것(사람 최종 승인한 다른 AI 결과) · ■ 공용 이긴 소재 장부 · ■ 브랜드별 설계(우주 G 먼저) · 겨울 I 택배 동봉 안내 · 바람 A·B·C 우주 H 장부 먼저 · 10-17.2 = 사장님 AARRR 정의 → 단계 미션(■ 단계 미션) · 새 할 일(여름 J · 가을 J · 겨울 H·I · 우주 G·H · 하늘 F · 바람 E) · 재고 = 이음 F(비즈로지컴·쿠팡 로켓그로스) · 리뷰 = 바람 D · 10-17 = B2C 크루 AARRR 정리(광고 → 가을 · MD → 봄 · 지인추천 → 바람 · MOVED) · 새 할 일(여름 G·H·I · 겨울 G · 바람 A) · 두 브랜드 할 일 '브랜드' 칸 · 새 보드(이음·별·달 · B2B 5) · 10-16 = 광고 할 일 외주 + 내부 관리(김민지 · 바꿀 안)
+export const ASIDE_VER = '2026-10-17.5';   // 10-17.5 = ■ 참고 레퍼런스(사람이 업무OS 레퍼런스에 그 AI 핏을 남긴 것만 · 그 부분만 · 베끼지 않음) · 10-17.4 = 매일 할 일은 할 게 있을 때만(없으면 [상태] '변화 없음') · B2B·바라스데이 크루 닫음(닫힌 보드 = 멈춤 안내) · 10-17.3 = 사장님 확정(논의 뒤) — 단계 숫자 하나 · ■ 넘겨받은 것(사람 최종 승인한 다른 AI 결과) · ■ 공용 이긴 소재 장부 · ■ 브랜드별 설계(우주 G 먼저) · 겨울 I 택배 동봉 안내 · 바람 A·B·C 우주 H 장부 먼저 · 10-17.2 = 사장님 AARRR 정의 → 단계 미션(■ 단계 미션) · 새 할 일(여름 J · 가을 J · 겨울 H·I · 우주 G·H · 하늘 F · 바람 E) · 재고 = 이음 F(비즈로지컴·쿠팡 로켓그로스) · 리뷰 = 바람 D · 10-17 = B2C 크루 AARRR 정리(광고 → 가을 · MD → 봄 · 지인추천 → 바람 · MOVED) · 새 할 일(여름 G·H·I · 겨울 G · 바람 A) · 두 브랜드 할 일 '브랜드' 칸 · 새 보드(이음·별·달 · B2B 5) · 10-16 = 광고 할 일 외주 + 내부 관리(김민지 · 바꿀 안)
 export const HUB_CREW = 'https://pour-construction-form.pages.dev/marketing-hub/crew.html';
 const DOW_L = ['일', '월', '화', '수', '목', '금', '토'];
 export const runDays = (r) => (!r ? '' : r.dow.join() === WD.join() ? '평일' : r.dow.length === 7 ? '매일' : `매주 ${r.dow.map((x) => DOW_L[x]).join('·')}`);   // 매주 요일 (2026-10-17 · 주 1~2회 보드)
@@ -950,6 +966,10 @@ export function asideText(b, opt = {}) {
     L.push(`■ 공용 이긴 소재 장부 — A/B 판정 중 사람이 최종 승인한 것 (최근 ${LEDGER_WEEKS}주 · 여름 J · 가을 J · 겨울 H)`,
       ...(opt.ledger.length ? opt.ledger.slice(0, 12).map((r) => `- ${ledgerLine(r)}`) : ['- 아직 없음 — 첫 판정이 승인되면 여기 쌓인다']),
       '  → 새 콘텐츠·상세·메시지·광고 소재를 만들 때 이긴 것을 먼저 가져다 쓴다 · 진 것은 다시 쓰지 않는다', '');
+  if (Array.isArray(opt.refs) && opt.refs.length)   // 참고 레퍼런스 (2026-10-17 사장님 4A · 사람이 업무OS 레퍼런스에 이 AI 핏을 남긴 것만)
+    L.push(`■ 참고 레퍼런스 — 사람이 업무OS 레퍼런스에 '${m.name} 핏'을 남긴 것만 (최근 ${REF_AI_MAX}개 · 새것 먼저)`,
+      ...opt.refs.flatMap((r) => [refLine(r), `    무엇: ${r.what || '(사진만)'}`, ...(r.url ? [`    링크: ${r.url}`] : []), ...r.files.map((f) => `    사진: ${f.name} ${f.url}`)]),
+      "  → '쓸 부분'만 참고한다 (나머지는 보지 않은 것처럼) · 그대로 베끼지 않는다 (문구·사진을 그대로 쓰지 않고 구성·톤·구도만) · 쓴 할 일의 '요약'에 '참고: 상세페이지 10/20'처럼 적는다", '');
   L.push('■ 1. 지표 (매번 · 화면에서 직접 확인한 숫자만 · 못 찾으면 비워 두고 [상태]에 이유)');
   b.metrics.forEach((x) => L.push(`- ${x.k} · ${x.l} (${x.u || ''}) · 어디서: ${x.src} · 기준 ${x.base == null ? '없음' : fmtMetric(x, x.base)} → 목표 ${fmtMetric(x, x.target)}${x.dir === 'down' ? ' (줄이기)' : ''}`));
   L.push('');

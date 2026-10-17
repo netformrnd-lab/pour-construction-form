@@ -11,6 +11,7 @@ import * as fb from "./fb.js";
 import { md, hm, ago, ymd, addDays, isMaster, nameOf, activeUsers, isOffDay } from "./model.js";
 import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, inp, Linked, useLocal } from "./ui.jsx";
 import { Thread, useItemNotes } from "./task.jsx";
+import { refCount } from "./refui.jsx";   // AI 한 장 · 참고 레퍼런스 수 (2026-10-17)
 import { LS } from "./core.jsx";
 import { RtMulti } from "./airtui.jsx";   // AI 크루 ↔ 반복 실행 (2026-10-16) · 여러 개 (2026-10-17)
 import { isFxKey, fxIdOf, NO_ACT, akKeys, pairable } from "./airt.js";
@@ -399,6 +400,8 @@ export function AiMateSheet({ D, cu, A, open, onBack, onClose, id }) {
       <TBtn onClick={() => open({ type: "aiSetup", owner: pl.owner })}>{pl.owner === cu.id ? "내 PC 세팅 ›" : "그 PC 세팅 ›"}</TBtn></div>}
     {canReq(id) && <><Head right={<TBtn v="solid" onClick={() => open({ type: "aiReq", mate: id })}>업무 맡기기</TBtn>}>맡긴 일</Head>
       <ReqRows D={D} cu={cu} A={A} open={open} rows={((D.ai && D.ai.reqs) || []).filter((r) => r.mate === id)} empty={`${m.name}(AI)에게 따로 맡긴 일이 없어요 · [업무 맡기기]로 보드 일과 별도로 맡겨요`} /></>}
+    {/* 참고 레퍼런스 (2026-10-17 사장님 4A) — 사람이 이 AI 핏을 남긴 레퍼런스 = 다음 루틴 지시문 '■ 참고 레퍼런스' */}
+    {canReq(id) && <Card style={{ marginTop: 10 }}><Row title={`참고 레퍼런스 ${refCount(D, { fit: id })}`} sub={`사람이 '${m.name} 핏'(어느 부분만 쓸지)을 남긴 것만 다음 루틴부터 그 부분만 참고해요 · 최근 8개`} onClick={() => open({ type: "refs", f: { fit: id } })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last /></Card>}
     <Head>담당 · 승인 길</Head>
     <Card>{owners.map((o, i) => <Row key={o.bb || "_"} title={`담당${o.bb ? ` (${brandL(o.bb)})` : brands.length ? " (기본)" : ""} · ${o.uid ? nameOf(D.users, o.uid) : "미정"}`}
       sub={[!o.bb && brands.length ? "아침 루틴 원고처럼 브랜드가 섞인 결과 · 브랜드 담당을 안 정한 브랜드" : "", o.uid ? [`${m.name}(AI) → ${nameOf(D.users, o.uid)}`, ...chainFrom(o.uid)].join(" → ") : "정할 때까지 관리자 누구나 승인해요"].filter(Boolean).join(" · ")}

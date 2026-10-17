@@ -63,6 +63,9 @@ export function inboxFns(D, A, open, setSeen) {
     if (x.kind === "appr") return open({ type: "appr", tab: "asg" });   // 구매 품의 요청 (2026-10-16): 품의 요청 n건 → 내가 맡은 것
     if (x.apprId) return open({ type: "apprOne", id: x.apprId });   // 새 품의 요청 · 품의 완료 → 그 요청 한 건
     if (x.aiId) return open({ type: "aiask", id: x.aiId, ...(x.kind === "note" || x.kind === "mention" ? { focus: "talk" } : {}) });   // AI 승인 한 장 (확인할 것 · 최종 승인 · 대화)
+    if (x.refId) return open({ type: "ref", id: x.refId, ...(x.kind === "note" || x.kind === "mention" ? { focus: "talk" } : {}) });   // 레퍼런스 한 장 (나에게 공유 · 대화 · 2026-10-17)
+    if (x.kind === "devPlan" || x.kind === "devDone") return open({ type: "devplan", ym: x.ym });   // 이달 개발 목록 (2026-10-17 · 확인 · 끝난 요약)
+    if (x.kind === "devReqRes") return open({ type: "devreq", app: "team", tab: x.res === "no" ? "no" : "done" });   // 내 개발 수정 요청 반영함·안 함
     if (x.akId) return open({ type: "routine", id: x.akId, focus: "talk" });   // 반복 실행 대화 (@ 나를 부름 · 내가 말한 대화의 답)
     if (x.kind === "mention") return x.taskId ? open({ type: "task", id: x.taskId, focus: "talk" }) : open({ type: "project", id: x.projectId, first: "news" });   // @ 나를 부른 댓글 → 바로 대화 칸
     if (x.kind === "note" && x.taskId) { const t = tOf(x.taskId); return open({ type: t && t.isFixed ? "fixed" : "task", id: x.taskId, focus: "talk" }); }   // 새 댓글(묶은 줄 '새 댓글 n' 포함) → 대화 칸
@@ -82,6 +85,7 @@ export function inboxFns(D, A, open, setSeen) {
     if (x.kind === "nextNoOwner") return <Act onClick={() => openInbox(x)}>정하기</Act>;
     if (x.kind === "ai" || x.kind === "aiGroup") return <Act onClick={() => openInbox(x)} style={BTN_ON}>{x.tag === "수정 요청" ? "고치기" : "승인하기"}</Act>;
     if (x.kind === "appr") return <Act onClick={() => openInbox(x)} style={BTN_ON}>처리하기</Act>;
+    if (x.kind === "devPlan") return <Act onClick={() => openInbox(x)} style={BTN_ON}>확인하기</Act>;
     if (x.kind === "money" && t && x.chk) return <Act onClick={() => A.fxToggle(t)} style={BTN_ON}>완료</Act>;   // 돈·결재 (2026-10-17): 그 고정업무 오늘 체크 · 5초 되돌리기 · 줄 누르면 그 시트
     if (x.kind === "adsAside") return <Act onClick={() => A.adsAsideDone()} style={BTN_ON}>넣었어요</Act>;
     if (x.kind === "aiSetup") return <Act onClick={() => openInbox(x)} style={BTN_ON}>세팅</Act>;

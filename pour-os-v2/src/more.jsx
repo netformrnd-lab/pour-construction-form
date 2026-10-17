@@ -13,6 +13,7 @@ import { tplTrashRows, canEditTpl } from "./tpl.js";
 import { mateOwner, myTurnN } from "./aiask.js";
 import { allMates, isLiveMate } from "../../marketing-hub/crew.js";
 import { apprLists } from "./appr.js";
+import { refCount } from "./refui.jsx";
 
 const BTN_ON = { background: C.navy, color: "#fff", borderColor: C.navy };
 const ASG = [["review", "확인해 주세요", true], ["dueReq", "기한 조정 요청", true], ["blocked", "막힘", true], ["late", "기한 지남", true], ["risk", "곧 마감인데 시작 전", true], ["notAck", "아직 안 받음", true], ["doing", "진행 중", true], ["waiting", "받고 대기 중", false], ["done", "최근 7일 끝남", false]];
@@ -50,6 +51,9 @@ export function MoreTab({ D, cu, A, meta, logout, open, BUILD, setToast, view })
       <Row title="읽은 알림" sub="확인할 것에서 읽은 것 · 폰·PC 같이 · 최근 7일 · 안 읽음으로 되돌리기" onClick={() => open({ type: "readInbox" })} right={arrow} last={false} />
       <Row title="내 KPI" sub="내 반복·내 프로젝트가 움직이는 KPI" onClick={() => open({ type: "myKpi" })} right={arrow} last />
     </Card>
+    {/* 레퍼런스(2026-10-17 사장님 "팀원에게 레퍼런스 공유 … 채팅으로 전달하면 그사람만 알게되어서 다른사람은 모르는문제") — 모두 보는 한 곳 */}
+    <Head>함께 보기</Head>
+    <Card><Row title={`레퍼런스${refCount(D) ? ` ${refCount(D)}` : ""}`} sub="팀이 같이 보는 참고 자료 · 링크·캡처 + 무엇을 참고할지 한 줄 · @받을 사람 · AI 핏" onClick={() => open({ type: "refs", app: "team" })} right={arrow} last /></Card>
     {/* 없앤 프로젝트(2026-10-07): 관리자는 전부 · 팀원은 내가 책임자·함께 하는 사람이거나 내가 없앤 것 · 되살리기는 책임자·관리자 */}
     {A && <TrashList rows={projTrashRows(D.removedProjects, isMaster(cu) ? null : cu.id)} A={A} open={open} label="없앤 프로젝트" canRestore={(r) => canRestoreProj(r.x, cu)} note="되살리면 안에 있던 업무까지 통째로 돌아와요 · 댓글·자료·기록은 그대로 있어요" style={{ marginTop: 10 }} />}
     {/* 없앤 업무(누구나 없애기 · 2026-10-07): 내가 없앴거나 내가 담당·맡긴 것 · 처음엔 접힘 */}

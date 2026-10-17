@@ -12,7 +12,8 @@ import { AiAskSheet, AiMateSheet, AiTeamSheet, AiSetupSheet, AiReqSheet } from "
 import { AiReportSheet } from "./aireport.jsx";
 import { ApprSheet, ApprOneSheet } from "./apprui.jsx";
 import { Sheet, Empty } from "./ui.jsx";
-import { DevReqSheet } from "./devreq.jsx";
+import { DevReqSheet, DevPlanSheet } from "./devreq.jsx";
+import { RefSheet, RefOneSheet } from "./refui.jsx";
 import { FeedSheet } from "./feedui.jsx";
 
 // extra: { [type]: (props, s) => element } — 관리자 앱 등에서 시트 종류를 덧붙일 때
@@ -49,7 +50,11 @@ function route(s, p, extra) {
   if (s.type === "aiTeam") return <AiTeamSheet {...p} />;
   if (s.type === "aiSetup") return <AiSetupSheet {...p} owner={s.owner} />;   // 내 PC Aside 세팅 (2026-10-15)
   if (s.type === "aiReq") return <AiReqSheet {...p} mate={s.mate} preset={s.preset} />;
-  if (s.type === "devreq") return <DevReqSheet {...p} app={s.app} />;   // 개발 수정 요청 포스트잇 (2026-10-16 · 팀 앱·관리자 같은 시트)   // AI에게 업무 맡기기 (2026-10-15)
+  if (s.type === "devreq") return <DevReqSheet {...p} app={s.app} tab0={s.tab} />;
+  if (s.type === "devplan") return <DevPlanSheet {...p} ym={s.ym} />;   // 이달 개발 목록 (2026-10-17 · 김송희 확인 → 주말 개발)
+  // 레퍼런스 (2026-10-17 · refui.jsx · 두 앱 같은 시트): 모두 보는 곳(종류·브랜드·연결로 거르기 · 올리기) · 한 장(AI 핏 · 대화)
+  if (s.type === "refs") return <RefSheet {...p} s={s} />;
+  if (s.type === "ref") return <RefOneSheet {...p} id={s.id} focus={s.focus} note={s.note} />;   // 개발 수정 요청 포스트잇 (2026-10-16 · 팀 앱·관리자 같은 시트)   // AI에게 업무 맡기기 (2026-10-15)
   // 구매 품의 요청 (2026-10-16 · apprui.jsx · 두 앱 같은 시트): 목록(내 요청 · 내가 맡은 것 · 모두) · 한 건
   if (s.type === "appr") return <ApprSheet {...p} s={s} />;
   if (s.type === "apprOne") return <ApprOneSheet {...p} id={s.id} item={s.item} />;

@@ -12,7 +12,7 @@
 //   users.bossId  상급자 (관리자 › 사람)
 //   최종 승인 + 실행 한 줄(exec) → 담당에게 '실행' 업무(tasks · aiAsk = 승인 id) — 실제 반영은 늘 사람 (2026-10-11)
 import { isMaster, nameOf, teamOf, isOffDay, ymd, addDays, nextWorkday, wdBetween } from "./model.js";
-import { CREWS, mateOf, crewOf, brandL, asidePlan, loginSites, actOf, launchRows, launchRowOf, GONE } from "../../marketing-hub/crew.js";
+import { CREWS, mateOf, crewOf, brandL, asidePlan, loginSites, actOf, launchRows, launchRowOf, GONE, runWord } from "../../marketing-hub/crew.js";
 import { ASIDE_ADS_LAUNCH_VER } from "../../marketing-hub/adops.js";   // 광고 Aside 예약 글 판 (2026-10-17)
 
 export const ASK_STATE_L = { wait: "승인 대기", back: "AI가 고치는 중", ok: "최종 승인", no: "안 함" };
@@ -97,8 +97,10 @@ const URL_KEYS = [/초안|게시|링크|link/i, /URL|주소|프로필|계정/i];
 export const firstUrl = (c) => { const v = c || {}, ks = Object.keys(v), has = (x) => URL_RE.test(String(v[x]));
   const k = URL_KEYS.map((re) => ks.find((x) => re.test(x) && has(x))).find(Boolean) || ks.find(has); return k ? (String(v[k]).match(URL_RE) || [""])[0] : ""; };
 // 번호 한 줄 + 링크 (한 줄에서는 링크 칸을 빼서 두 번 안 보이게)
-const traceItem = (x) => { const link = firstUrl(x.c), c = link ? Object.fromEntries(Object.entries(x.c || {}).filter(([, v]) => !String(v).includes(link))) : x.c || {};
-  return { n: x.n, t: itemLine({ c }, Object.keys(c)) || itemLine(x), link }; };
+//   b = 그 줄 브랜드 ('브랜드' 칸 · 그로홈·POUR스토어 → grohome·pourstore · 2026-10-17) — [했어요] 때 그 브랜드 반복 실행만 셈 (airt.countKeys)
+export const itemBrandOf = (v) => { const s = String(v || "").replace(/\s+/g, ""); return /그로홈|grohome/i.test(s) ? "grohome" : /pour|포어/i.test(s) ? "pourstore" : ""; };
+const traceItem = (x) => { const link = firstUrl(x.c), c = link ? Object.fromEntries(Object.entries(x.c || {}).filter(([, v]) => !String(v).includes(link))) : x.c || {}, b = itemBrandOf((x.c || {})["브랜드"]);
+  return { n: x.n, t: itemLine({ c }, Object.keys(c)) || itemLine(x), link, ...(b ? { b } : {}) }; };
 // 승인 건의 신제품 칸 (디맨드젠 x_dg · 2026-10-15) — 상품 이름 → 끝나지 않은 그 신제품 업무 id ('' = 못 찾음)
 export const launchTaskOf = (D, a) => { if (!a || !a.launch || !a.prod) return ""; const r = launchRowOf(launchRows((D && D.tasks) || [], (D && D.projects) || [], { item: a.launch }), a.prod); return r ? r.id : ""; };
 export function planExec(a, pick, cu, users, at, due, opt = {}) {
@@ -246,7 +248,9 @@ const addMin = (t, n) => { const x = Number(t.slice(0, 2)) * 60 + Number(t.slice
 const hmOf = (d) => `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 export const ranOn = (v, key) => !!(v && v.at) && ymd(new Date(v.at)) === key;   // 그날 올렸나 (기기 시각 = 한국)
 // 오늘 안 돎: 평일 · 예전엔 올렸는데(처음 세팅 전은 아님) 오늘은 아직 · 예약 시각 + 90분 지남 ('확인할 것' · 세팅 시트가 같이 씀)
-export const missedOn = (v, t, now = new Date()) => { const key = ymd(now); return !isOffDay(key) && !!(v && v.at) && !ranOn(v, key) && hmOf(now) >= addMin(t, MISS_AFTER); };
+//   dow = 그 보드가 도는 요일(run.dow · 주 1~2회 보드 · 2026-10-17) — 그 요일이 아니면 안 돎 아님
+const runsOn = (key, dow) => !isOffDay(key) && (!Array.isArray(dow) || !dow.length || dow.includes(new Date(key + "T00:00:00").getDay()));
+export const missedOn = (v, t, now = new Date(), dow) => { const key = ymd(now); return runsOn(key, dow) && !!(v && v.at) && !ranOn(v, key) && hmOf(now) >= addMin(t, MISS_AFTER); };
 export const adsAsideVer = (D) => (((D && D.settings) || []).find((x) => x && (x.id || x._doc) === "adsAside") || {}).ver || "";   // 광고 Aside 예약 글 넣은 판 (settings/adsAside)
 
 // ── 멈춤 감시 (2026-10-17 사장님 고름 · 볼트 세션 점검: AI 승인 '확인할 것'에 나이 조건이 없음 · 쉬는 AI 4건 72~96시간째 · 여름 2건 최종까지 42시간
@@ -290,14 +294,17 @@ export function waitHeads(list) {
 export const prevWaits = (asks, a) => { const k = actKey(a), t = resultAt(a); return k ? (asks || []).filter((x) => x && x.id !== a.id && prevKey(x) === k && resultAt(x) < t).sort((p, q) => resultAt(q).localeCompare(resultAt(p))) : []; };
 export const newerOf = (asks, a) => { const k = actKey(a), t = resultAt(a); return k ? (asks || []).filter((x) => x && x.id !== a.id && actKey(x) === k && resultAt(x) > t).sort((p, q) => resultAt(q).localeCompare(resultAt(p)))[0] || null : null; };
 // Aside 안 올린 평일 수 — 마지막으로 올린 날 다음 날~어제(평일) + 오늘(예약 + 90분 지났는데 아직이면) · 한 번도 안 올렸으면 0(세팅 안내 몫) · 쉬는 날엔 0(안 알림)
-export const missDays = (v, t, now = new Date()) => { const key = ymd(now); if (!v || !v.at || isOffDay(key)) return 0; const last = ymd(new Date(v.at)), y = addDays(key, -1);
-  return (y > last ? wdBetween(last, y) : 0) + (missedOn(v, t, now) ? 1 : 0); };
+//   dow = 도는 요일만 셈 (주 1~2회 보드 · 2026-10-17)
+export const missDays = (v, t, now = new Date(), dow) => { const key = ymd(now); if (!v || !v.at || isOffDay(key)) return 0; const last = ymd(new Date(v.at)), y = addDays(key, -1);
+  let n = 0; if (y > last) { if (!Array.isArray(dow) || !dow.length) n = wdBetween(last, y); else for (let k = addDays(last, 1), i = 0; k <= y && i < 92; k = addDays(k, 1), i++) if (runsOn(k, dow)) n++; }
+  return n + (missedOn(v, t, now, dow) ? 1 : 0); };
 // 오늘 전 마지막 평일 (안 돎 제목 '지난 평일(10/16)')
 const prevWd = (key) => { let k = addDays(key, -1); for (let i = 0; i < 14 && isOffDay(k); i++) k = addDays(k, -1); return k; };
 const mdK = (k) => `${Number(k.slice(5, 7))}/${Number(k.slice(8, 10))}`;
 // 줄 시각: 오늘 못 올린 것 = 오늘 예약 시각 · 지난 평일부터 = 마지막으로 올린 때 ('3일 전')
-const missAt = (v, t, n, now) => (n === 1 && missedOn(v, t, now) ? `${ymd(now)}T${t}:00` : (v && v.at) || `${ymd(now)}T${t}:00`);
-const missTitle = (name, n, today, key) => (n === 1 ? (today ? `오늘 ${name}(AI)가 아직 안 올렸어요` : `${name}(AI)가 지난 평일(${mdK(prevWd(key))})에 안 올렸어요`) : `${name}(AI)가 평일 ${n}일째 안 올렸어요`);
+const missAt = (v, t, n, now, dow) => (n === 1 && missedOn(v, t, now, dow) ? `${ymd(now)}T${t}:00` : (v && v.at) || `${ymd(now)}T${t}:00`);
+const missTitle = (name, n, today, key, weekly) => (n === 1 ? (today ? `오늘 ${name}(AI)가 아직 안 올렸어요` : weekly ? `${name}(AI)가 지난번 돌 날에 안 올렸어요` : `${name}(AI)가 지난 평일(${mdK(prevWd(key))})에 안 올렸어요`) : weekly ? `${name}(AI)가 ${n}번째 안 올렸어요` : `${name}(AI)가 평일 ${n}일째 안 올렸어요`);
+const dowOf = (r) => (r && r.board && r.board.run && r.board.run.dow) || null, weeklyOf = (r) => { const d = dowOf(r); return !!d && d.length < 5; };
 // 아침 루틴(Claude 예약 작업 · crew 크루 팀원 routine = 여름 · 평일 06:50) — 그날 올라온 노트 승인 (05시 뒤에 만든 것 · 자정 넘어 늦게 올라온 전날 몫은 빼고)
 export const routineRanOn = (a, mid, key) => !!a && (a.mate === mid || GONE[a.mate] === mid) && a.src === "tool" && !a.board && !!a.createdAt && ymd(new Date(a.createdAt)) === key && hmOf(new Date(a.createdAt)) >= "05:00";
 // 오늘 아침 루틴이 안 올라온 AI (평일 · 09:30 지남) → [{mate, name, owner}] · aimates.{AI}.routineOff = true 면 안 봄(사장님이 루틴을 멈췄을 때)
@@ -324,20 +331,20 @@ export function asideInbox(D, uid, now = new Date(), seen = {}) {
       title: `내 PC Aside 세팅 · ${g.runs.map((r) => `${nm(r.board)} ${r.t}`).join(" · ")}`,
       text: `처음 한 번 · 예약 ${g.runs.length}개 · 로그인 ${loginSites(g.runs.map((r) => r.board)).length + 1}곳 · 세팅하면 평일마다 내 PC 에서 돌아요` });
     // 안 돎: 오늘(예약 + 90분) 또는 지난 평일에 못 올림 (2026-10-17 · 예전엔 그날만 → 다음 날 아침엔 안 보였음)
-    g.runs.forEach((r) => { const n = missDays(bv[r.board.id], r.t, now); if (!n) return;
-      out.push({ kind: "aiMiss", tag: "Aside 안 돎", red: true, id: `am:${r.board.id}:${key}`, board: r.board.id, owner: uid, whoName: `${nm(r.board)} (AI)`, at: missAt(bv[r.board.id], r.t, n, now), keep: true,
-        title: missTitle(nm(r.board), n, missedOn(bv[r.board.id], r.t, now), key), text: `${r.t} 예약 · PC·Aside 가 켜져 있는지 확인 · [지금 돌리기]로 바로` }); });
+    g.runs.forEach((r) => { const dw = dowOf(r), n = missDays(bv[r.board.id], r.t, now, dw); if (!n) return;
+      out.push({ kind: "aiMiss", tag: "Aside 안 돎", red: true, id: `am:${r.board.id}:${key}`, board: r.board.id, owner: uid, whoName: `${nm(r.board)} (AI)`, at: missAt(bv[r.board.id], r.t, n, now, dw), keep: true,
+        title: missTitle(nm(r.board), n, missedOn(bv[r.board.id], r.t, now, dw), key, weeklyOf(r)), text: `${runWord({ ...r.board.run, t: r.t })} 예약 · PC·Aside 가 켜져 있는지 확인 · [지금 돌리기]로 바로` }); });
   }
   if (master) { const un = plan.find((x) => !x.owner);
     if (un) out.push({ kind: "aiOwnerless", tag: "AI 크루 담당", id: `ao:${un.runs.map((r) => r.board.id).join(",")}`, whoName: "AI 크루", at: key + "T00:00:00", keep: true,
       title: `AI 크루 담당 미정 ${un.runs.length}명`, text: `${un.runs.map((r) => nm(r.board)).join(" · ")} · 담당을 정하면 그 사람 PC 에서 돌고 세팅 안내가 가요` });
     // 담당 미정 크루(관리자 PC 에서 돌던 것)도 안 돎 → 관리자 누구나 한 줄 (멈춤 감시 ④ · 예전엔 아무에게도 안 감)
-    const um = un ? un.runs.map((r) => ({ r, n: missDays(bv[r.board.id], r.t, now) })).filter((x) => x.n > 0) : [];
-    if (um.length) out.push({ kind: "aiMiss", tag: "Aside 안 돎", red: true, id: `amu:${um.map((x) => x.r.board.id).join(",")}:${key}`, board: um[0].r.board.id, owner: "", whoName: "AI 크루 (담당 미정)", at: missAt(bv[um[0].r.board.id], um[0].r.t, um[0].n, now), keep: true,
-      title: um.length > 1 ? `담당 미정 크루 ${um.length}명이 안 올렸어요` : missTitle(nm(um[0].r.board), um[0].n, missedOn(bv[um[0].r.board.id], um[0].r.t, now), key),
+    const um = un ? un.runs.map((r) => ({ r, n: missDays(bv[r.board.id], r.t, now, dowOf(r)) })).filter((x) => x.n > 0) : [];
+    if (um.length) out.push({ kind: "aiMiss", tag: "Aside 안 돎", red: true, id: `amu:${um.map((x) => x.r.board.id).join(",")}:${key}`, board: um[0].r.board.id, owner: "", whoName: "AI 크루 (담당 미정)", at: missAt(bv[um[0].r.board.id], um[0].r.t, um[0].n, now, dowOf(um[0].r)), keep: true,
+      title: um.length > 1 ? `담당 미정 크루 ${um.length}명이 안 올렸어요` : missTitle(nm(um[0].r.board), um[0].n, missedOn(bv[um[0].r.board.id], um[0].r.t, now, dowOf(um[0].r)), key, weeklyOf(um[0].r)),
       text: `${um.map((x) => `${nm(x.r.board)}${x.n > 1 ? ` ${x.n}일째` : ""}`).join(" · ")} · 관리자 PC Aside 확인 · 담당을 정하면 그 사람에게 알려요` });
     // 평일 MISS_ESC(2)일 넘게 안 올린 보드(담당 있음 · 내 것 빼고) → 관리자 누구나 한 줄 · 읽음 = 오늘 하루
-    const lg = plan.filter((x) => x.owner && x.owner !== uid).flatMap((x) => x.runs.map((r) => ({ owner: x.owner, r, n: missDays(bv[r.board.id], r.t, now) }))).filter((x) => x.n >= MISS_ESC);
+    const lg = plan.filter((x) => x.owner && x.owner !== uid).flatMap((x) => x.runs.map((r) => ({ owner: x.owner, r, n: missDays(bv[r.board.id], r.t, now, dowOf(r)) }))).filter((x) => x.n >= MISS_ESC);
     const lid = `aml:${lg.map((x) => x.r.board.id).join(",")}:${key}`;
     if (lg.length && !seen[lid]) out.push({ kind: "aiMissLong", tag: "Aside 안 돎", red: true, id: lid, board: lg[0].r.board.id, owner: lg[0].owner, whoName: "AI 크루", at: (bv[lg[0].r.board.id] || {}).at,
       title: `Aside 평일 ${MISS_ESC}일 넘게 안 돎 · ${lg.length}명`, text: `${lg.map((x) => `${nm(x.r.board)}(${nameOf(D.users, x.owner) || "?"} PC) ${x.n}일째`).join(" · ")} · 그 PC·Aside 를 확인해 주세요` }); }

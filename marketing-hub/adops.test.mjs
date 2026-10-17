@@ -32,11 +32,12 @@ eq('끈 것 기록: 최신순 · 이번 주 · 이번 달 · 주별 · 월별', 
 eq('보고서 최신순 · 날짜 없는 건 뺌', A.sortReports([r15, { title: 'x' }, r20, r16]).map((r) => r.date), ['2026-10-20', '2026-10-16', '2026-10-15']);
 eq('위 카드 = 최신 보고서', A.topCards([r15, r16], '2026-10-16'), { last: r16, summary: '', offsWeek: 3, longtail: 2 });
 eq('주 이름', A.weekL('2026-10-12'), '10/12 주');
-// 광고 AI팀 = B2C 크루 6명 (가을 = 쿠팡·네이버 · 겨울 = 메타 판정 · 여름 = 메타 소재 · 하늘 = 오퍼 · 우주 = 리타겟팅 · 봄 = 오늘의집)
-eq('광고 몫 = B2C 크루 6명 모두', K.CREWS.find((c) => c.id === 'b2c').members.map((m) => [m.name, (A.AD_ROLES[m.id] || {}).ad]),
-  [['봄', '오늘의집 광고'], ['여름', '메타 소재'], ['가을', '쿠팡·네이버 검색광고'], ['겨울', '메타 판정'], ['하늘', '오퍼'], ['우주', '리타겟팅']]);
-// 가을·겨울 보드의 광고 할 일 F = 08:30 광고 루틴 (보고서 화면 링크)
-eq('보드 F = 광고 일일 보고서', ['gh-traffic', 'gh-conv'].map((id) => { const a = K.actOf(id, 'F'); return [a.when, a.report]; }), [['매일 08:30', 'ads'], ['매일 08:30 · 금 16:00', 'ads']]);
+// 광고 AI팀 = 가을 한 명 (2026-10-17 사장님 AARRR 정리 "광고는 가을로 모으기" — 예전 여름 메타 소재 · 겨울 메타 판정 · 우주 리타겟팅 · 하늘 오퍼 · 봄 오늘의집 = 모두 가을)
+eq('광고 몫 = 가을 하나 · 다른 크루원은 광고 몫 없음', K.CREWS.find((c) => c.id === 'b2c').members.map((m) => [m.name, (A.AD_ROLES[m.id] || {}).ad || null]),
+  [['여름', null], ['가을', '광고 전부 (메타·쿠팡·네이버·구글 디맨드젠·오늘의집)'], ['겨울', null], ['우주', null], ['하늘', null], ['바람', null], ['봄', null], ['이음', null], ['별', null], ['달', null]]);
+eq('가을 광고 몫 = 메타 판정·소재·리타겟팅 · 쿠팡 롱테일 · 바꿀 안 글자가 가을 보드에 있음', [/금요일 외주 판정/.test(A.AD_ROLES.gaeul.does), /소재/.test(A.AD_ROLES.gaeul.does), /리타겟팅/.test(A.AD_ROLES.gaeul.does), /롱테일/.test(A.AD_ROLES.gaeul.does), ['D', 'E', 'G', 'H', 'I'].every((c) => A.AD_ROLES.gaeul.when.includes(`${c} `) && K.actOf('gh-traffic', c))], [true, true, true, true, true]);
+// 가을 보드의 광고 할 일 F = 08:30 광고 루틴 (보고서 화면 링크) · 겨울 F 는 가을 F 에 합침 (2026-10-17)
+eq('보드 F = 광고 일일 보고서 하나 (매일 · 금 주간)', [['gh-traffic', 'gh-conv'].map((id) => { const a = K.actOf(id, 'F'); return a ? [a.when, a.report] : null; })], [[['매일 08:30 · 금 16:00', 'ads'], null]]);
 
 // 제안서 검증 — 실제 문서 모양 (2026-10-15 · json 글 하나)
 const pdoc = { title: '데일리그로스 메타 운영 제안서(2026.10.15) 검증', at: '2026-10-15T09:20:05.263Z', by: 'aside', json: JSON.stringify({ baseline: { meta_roas_jan_sep: 205, meta_roas_sep: 286, meta_roas_target_dec: 350, mall_mer_jan_sep: 310, mall_mer_sep: 415 },
@@ -76,7 +77,7 @@ eq('판정 로그: 첫 보고서 = 없음', A.judgeLog([{ date: '2026-10-15', md
 // 외주 운영 기간 (2026-10-15 사장님 "약 2개월간 다른 외주업체 이용 … 세팅등록한것을 분석만해서 데이터 쌓고 보고해. 매일, 매주 금요일마다 보고해")
 // 외주 + 내부 관리 (2026-10-16 사장님 "광고 외주이용 종료 시 세팅한거 지금당장해도돼 … 민지님이 분석관리해서 나에게 보고하고 외주가 관리할때도 돌릴예정")
 eq('외주 + 내부 관리 · 출처 배지 사장님 결정', [A.AD_MODE.mode, A.agencyOn(), A.AD_MODE.media, A.AD_MODE.manager, A.AD_MODE.reportTo, A.srcKind('사장님 결정'), A.srcTags('[사장님 결정]')], ['parallel', true, ['메타', '네이버', '쿠팡'], '김민지', '사장님', 'd', '<span class="src s-d">사장님 결정</span>']);
-eq('광고 몫: 가을·겨울 = 끄거나 바꾸지 않음(Aside) · 실행 = 외주 + 김민지', ['gaeul', 'gyeoul'].map((k) => [/끄거나 바꾸지 않음/.test(A.AD_ROLES[k].does), /자동 OFF/.test(A.AD_ROLES[k].does), /외주업체/.test(A.AD_ROLES[k].exec), /김민지 관리/.test(A.AD_ROLES[k].exec)]), [[true, false, true, true], [true, false, true, true]]);
+eq('광고 몫: 가을 = 끄거나 바꾸지 않음(Aside) · 실행 = 외주 + 김민지', ['gaeul'].map((k) => [/끄거나 바꾸지 않음/.test(A.AD_ROLES[k].does), /자동 OFF/.test(A.AD_ROLES[k].does), /외주업체/.test(A.AD_ROLES[k].exec), /김민지 관리/.test(A.AD_ROLES[k].exec)]), [[true, false, true, true]]);
 eq('공통 규칙 = 외주 + 내부 관리 한 줄 (사장님 결정)', [A.RULES_DEFAULT.find((r) => r.k === 'outsourced').t.startsWith('외주 + 내부 관리'), A.RULES_DEFAULT.find((r) => r.k === 'outsourced').src], [true, '사장님 결정']);
 const wk = [{ id: '2026-10-16', date: '2026-10-16' }, { id: '2026-10-16-weekly', date: '2026-10-16', kind: 'weekly' }, { id: '2026-10-17', date: '2026-10-17' }, { id: 'x주간', date: '2026-10-09' }];
 eq('주간 보고서: 같은 날이면 주간 먼저 · id 에 주간도', [A.sortReports(wk).map((r) => r.id), A.isWeekly(wk[3])], [['2026-10-17', '2026-10-16-weekly', '2026-10-16', 'x주간'], true]);

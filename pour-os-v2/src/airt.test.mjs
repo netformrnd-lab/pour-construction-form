@@ -1,5 +1,5 @@
 // node src/airt.test.mjs — AI 크루 ↔ 반복 실행 (계산만 · 2026-10-16)
-import { rtKey, isFxKey, fxIdOf, actTitle, pairActs, rtPairs, rtAiNow, rtSuggest, pairLabel, NO_ACT, akKeys, pairVal, taskAks, keyOwners, keyBrandOk, countKeys, splitExec, keyName } from "./airt.js";
+import { rtKey, isFxKey, fxIdOf, actTitle, pairActs, rtPairs, rtAiNow, rtSuggest, pairLabel, NO_ACT, akKeys, pairVal, taskAks, keyOwners, countKeys, splitExec, keyName, SPLIT_MAX, liveAk, liveActOwners } from "./airt.js";
 import { brId } from "./routine.js";
 
 let ok = 0, bad = 0;
@@ -10,11 +10,12 @@ ck("열쇠: 여러 번 = id · 정한 날 = fx:id", rtKey("ak", "ak_ux") === "ak
 // 2. 할 일 이름 · 짝 지을 수 있는 할 일 (실행 한 줄 있는 것 + 아침 루틴)
 ck("할 일 이름: 겨울 C · 여름 아침 루틴 · 없는 글자", actTitle("gyeoul", "C").startsWith("상세페이지") && actTitle("yeoreum", NO_ACT) === "아침 루틴 원고" && actTitle("gyeoul", NO_ACT) === "" && actTitle("gyeoul", "Z") === "");
 const pa = pairActs("yeoreum").map((a) => a.c), pg = pairActs("gyeoul").map((a) => a.c), pu = pairActs("uju").map((a) => a.c);
-ck("짝 지을 할 일: 여름 = 아침 루틴 + 실행 있는 것 (E 발굴은 실행 없음)", pa[0] === NO_ACT && pa.includes("A") && pa.includes("D") && !pa.includes("E"), pa);
-ck("짝 지을 할 일: 겨울 F(외주 보고) · 우주 A(자동 측정) 빠짐", !pg.includes("F") && pg.includes("C") && pg.includes("E") && !pu.includes("A") && pu.includes("E"), { pg, pu });
+ck("짝 지을 할 일: 여름 = 아침 루틴 + 실행 있는 것 (2026-10-17 메타 C·발굴 E·디맨드젠 F 는 옮김)", JSON.stringify(pa) === JSON.stringify([NO_ACT, "A", "B", "D", "G", "H", "I"]), pa);
+ck("짝 지을 할 일: 우주 A(자동 측정) 빠짐 · 겨울 F 는 가을 F 로 합침 · 우주 D·E·F 는 바람·봄으로 (2026-10-17)", JSON.stringify(pg) === JSON.stringify(["A", "B", "C", "E", "G"]) && JSON.stringify(pu) === JSON.stringify(["B", "C"]) && JSON.stringify(pairActs("baram").map((a) => a.c)) === JSON.stringify(["A", "B", "C"]), { pg, pu });
 ck("쉬는 AI(포리)는 없음", pairActs("pori").length === 0);
 const pga = pairActs("gaeul").map((a) => a.c);
-ck("광고 할 일(외주 + 내부 관리 · 2026-10-16): 여름 C 메타 · 가을 D 쿠팡·E 네이버 짝 지을 수 있음 · F 광고 보고는 빠짐", pa.includes("C") && pga.includes("D") && pga.includes("E") && !pga.includes("F"), { pa, pga });
+ck("광고 할 일(외주 + 내부 관리 · 2026-10-16): 가을 D 쿠팡·E 네이버·G 메타(여름 C 에서)·H 디맨드젠·I 오늘의집 짝 지을 수 있음 · F 광고 보고도(승인 = 그날 체크 · 2026-10-17) · A 감시는 빠짐", JSON.stringify(pga) === JSON.stringify(["B", "D", "E", "F", "G", "H", "I"]), { pa, pga });
+ck("지금 있는 할 일의 짝·담당만 (옮긴 옛 글자 여름 C 빼고 · 옛 기록은 그대로 둠)", JSON.stringify([liveAk("yeoreum", { actAk: { C: "ak_gh_ad", A: ["ak_gh_influch"], [NO_ACT]: "ak_c_b2c", Z: "x", B: "" } }), liveActOwners("uju", { actOwners: { D: "mini", B: "minji", E: "minji", C: "" } }), liveAk("x", null)]) === JSON.stringify([{ A: ["ak_gh_influch"], [NO_ACT]: ["ak_c_b2c"] }, { B: "minji" }, {}]));
 // 3. 짝 목록
 const mates = { gyeoul: { actAk: { C: "ak_gh_detail", E: "" } }, yeoreum: { actAk: { [NO_ACT]: "ak_c_b2c", A: "fx:f9" } }, pori: { actAk: { A: "ak_x" } }, uju: { actAk: { Z: "ak_y" } } };
 const P = rtPairs(mates);
@@ -80,14 +81,17 @@ const rows = [
 ];
 const S = rtSuggest(rows, {}), by = Object.fromEntries(S.map((s) => [s.mate + "." + s.act, s.key]));
 ck("추천: 여름 아침 루틴 ← (B2C) 컨텐츠 발행", by["yeoreum._"] === "ak_c_b2c", by);
-ck("추천: 여름 D 공구 ← 인플루언서 공동구매 제안 · 여름 A ← 그로홈 인플루언서 리뷰 확보(보드 브랜드 먼저)", by["yeoreum.D"] === "ak_gh_gb" && by["yeoreum.A"] === "ak_gh_influrv", by);
-ck("추천: 겨울 C ← 상세페이지 고도화 · 우주 E ← 그로홈 프로모션 진행 · 우주 B ← 자사몰 UX/UI", by["gyeoul.C"] === "ak_gh_detail" && by["uju.E"] === "ak_gh_promo" && by["uju.B"] === "ak_ux", by);
-ck("추천: 우주 D ← 리뷰 프로모션 진행확인 · 겨울 E ← 리뷰·후기 유도(인플루언서 리뷰 아님)", by["uju.D"] === "ak_gh_rvpromo" && by["gyeoul.E"] === "ak_review", by);
+ck("추천: 여름 D 공구 ← '(B2B)' 인플루언서 공동구매 제안(B2C 크루가 함) · 여름 A ← 그로홈 인플루언서 확보 · 여름 G ← 그로홈 인플루언서 리뷰 확보(보드 브랜드 먼저 · 2026-10-17 G)", by["yeoreum.D"] === "ak_gh_gb" && by["yeoreum.A"] === "ak_gh_influch" && by["yeoreum.G"] === "ak_gh_influrv", by);
+ck("추천: B2B 보드 = 이름에 B2B 있는 것 · POUR스토어 것 (단단 체험단 · 척척 미전환·이탈자 · 튼튼 NPS·위탁) · B2C 겨울 G·바람 C(NPS · 2026-10-17 우주 F 에서) 는 (B2C) 것", by["dandan.B"] === "ak_trial" && by["cheokcheok.B"] === "ak_call_b2b" && by["cheokcheok.C"] === "akmuw1ygt4" && by["teunteun.A"] === "ak_nps_b2b" && by["teunteun.B"] === "ak_gh_resale" && by["gyeoul.G"] === "ak_call_b2c" && by["baram.C"] === "ak_nps_b2c", by);
+ck("추천: B2B 보드는 B2B 표시 없는 업무를 안 가져감 ('체험단 모집 공지' = 여름 A · 그로홈·POUR스토어 둘 다) · 시공의뢰 이탈자는 B2B(척척 C)", ["grohome", "pourstore"].every((br) => { const x = rtSuggest([{ key: "fx:c1", name: "체험단 모집 공지", brand: br, kind: "fx", owners: ["cr"] }], {}); return x.length === 1 && x[0].mate === "yeoreum" && x[0].act === "A"; }) && rtSuggest([{ key: "fx:c2", name: "시공의뢰 이탈자 재연락", brand: "pourstore", kind: "fx" }], {})[0].mate === "cheokcheok");
+ck("추천: AARRR 정리 (2026-10-17) — 추천제 = 바람 A · 타겟 광고 = 가을 G(그로홈 먼저) · 광고 확인 = 가을 F", by["baram.A"] === "ak_ref" && by["gaeul.G"] === "ak_gh_ad" && rtSuggest([{ key: "fx:ad", name: "광고 확인", brand: "common", kind: "fx", owners: ["mj"] }], {})[0].act === "F", by);
+ck("추천: 겨울 C ← 상세페이지 고도화 · 봄 H ← 그로홈 프로모션 진행(2026-10-17 우주 E 에서) · 우주 B ← 자사몰 UX/UI", by["gyeoul.C"] === "ak_gh_detail" && by["bom.H"] === "ak_gh_promo" && by["uju.B"] === "ak_ux", by);
+ck("추천: 바람 B ← 리뷰 프로모션 진행확인(2026-10-17 우주 D 에서) · 겨울 E ← 리뷰·후기 유도(인플루언서 리뷰 아님)", by["baram.B"] === "ak_gh_rvpromo" && by["gyeoul.E"] === "ak_review", by);
 ck("추천: 할 일 하나엔 반복 실행 하나 · 반복 실행 하나엔 할 일 하나", new Set(S.map((s) => s.key)).size === S.length && new Set(S.map((s) => s.mate + s.act)).size === S.length);
 ck("추천: 담당 한 명이면 그 사람(결과 확인·실행) · 여럿이면 비움", S.find((s) => s.key === "ak_gh_detail").owner === "u_ak_gh_detail" && S.find((s) => s.key === "ak_c_b2c").owner === "");
 ck("추천: 아침 루틴(_)은 할 일 담당 안 정함", rtSuggest([{ key: "k1", name: "블로그 포스팅", brand: "pourstore", kind: "ak", owners: ["yj"] }], {})[0].owner === "");
 const S2 = rtSuggest(rows, { gyeoul: { actAk: { C: "ak_ux" } } }), by2 = Object.fromEntries(S2.map((s) => [s.mate + "." + s.act, s.key]));
-ck("추천: 이미 짝 지은 할 일·반복 실행은 건너뜀", !by2["gyeoul.C"] && !Object.values(by2).includes("ak_ux") && by2["uju.E"] === "ak_gh_promo", by2);
+ck("추천: 이미 짝 지은 할 일·반복 실행은 건너뜀 · 옮긴 옛 글자 짝은 안 막음", !by2["gyeoul.C"] && !Object.values(by2).includes("ak_ux") && by2["bom.H"] === "ak_gh_promo" && rtSuggest(rows, { uju: { actAk: { E: "ak_gh_promo" } } }).some((x) => x.key === "ak_gh_promo" && x.mate === "bom"), by2);
 const S3 = rtSuggest([{ key: "fx:f1", name: "리뷰 관리", brand: "grohome", kind: "fx" }], {});
 ck("추천: 정한 날 체크도 (여러 번 하는 것이 없으면)", S3.length === 1 && S3[0].mate === "gyeoul" && S3[0].act === "E", S3);
 
@@ -103,21 +107,30 @@ ck("추천: 목록에 있는 열쇠도 이미 짝 지은 것", !by4["gyeoul.C"] 
 const DK = { users: [{ id: "chaerim", name: "양채림" }, { id: "songhee", name: "김송희" }, { id: "mini", name: "윤미니" }, { id: "minji", name: "김민지" }, { id: "old", name: "퇴사", active: false }],
   ak: { items: [{ id: "ak_influch", name: "인플루언서 확보", who: ["chaerim"], brand: "POUR스토어" }, { id: "ak_gh_influch", name: "인플루언서 확보", who: ["chaerim"], brand: "grohome" }, { id: "ak_kwtop", name: "검색키워드 상위노출 확인", who: ["songhee", "chaerim"], brand: "pourstore" }, { id: "ak_kwsel", name: "키워드 선정", whoNames: ["송희"], brand: "POUR스토어" }] },
   tasks: [{ id: "s1", isFixed: true, title: "재고 확인", assigneeIds: ["songhee"], brand: "common" }, { id: "m1", isFixed: true, title: "재고 확인/발주", assigneeIds: ["mini"], brand: "common" }, { id: "all", isFixed: true, title: "KPI 기재", forAll: true, brand: "common" },
-    { id: "g1", isFixed: true, title: "오픈채팅 배포", assigneeIds: ["chaerim"], brand: "grohome" }, { id: "x1", isFixed: true, title: "퇴사자 일", assigneeIds: ["old"] }] };
+    { id: "g1", isFixed: true, title: "오픈채팅 배포", assigneeIds: ["chaerim"], brand: "grohome" }, { id: "x1", isFixed: true, title: "퇴사자 일", assigneeIds: ["old"] },
+    { id: "k3", isFixed: true, title: "주간 미팅", assigneeIds: ["songhee", "chaerim", "mini"], brand: "common" }] };
 ck("열쇠 이름 · 담당 (이름으로 맞춘 행동지표 · '전체' 고정업무는 따로 정한 사람 없음 · 쉬는 사람 빼고)", keyName(DK, "fx:s1") === "재고 확인" && keyName(DK, "ak_kwsel") === "키워드 선정" && keyName(DK, "fx:없음") === ""
   && JSON.stringify([keyOwners(DK, "ak_kwsel"), keyOwners(DK, "ak_kwtop"), keyOwners(DK, "fx:all"), keyOwners(DK, "fx:x1")]) === JSON.stringify([["songhee"], ["songhee", "chaerim"], [], []]), [keyOwners(DK, "ak_kwsel"), keyOwners(DK, "fx:all")]);
-ck("브랜드 맞나: 실행 브랜드 없음·열쇠 브랜드 없음·공통 운영 = 맞음 · 이름/영문 같음", keyBrandOk("POUR스토어", "pourstore") && keyBrandOk("grohome", "") && keyBrandOk("", "grohome") && keyBrandOk("common", "grohome") && !keyBrandOk("POUR스토어", "grohome"));
 const tA = { aiAks: ["ak_influch", "ak_gh_influch", "fx:g1", "fx:all"], brand: "grohome" };
 ck("[했어요] 셀 열쇠: 그로홈 실행 = 그로홈 인플루언서 + 그로홈 체크 + 전체 체크 (POUR 것은 안 셈)", countKeys(DK, tA, "chaerim").map((x) => x.key).join() === "ak_gh_influch,fx:g1,fx:all", countKeys(DK, tA, "chaerim").map((x) => x.key));
 ck("[했어요] 셀 열쇠: 남의 것은 안 셈 (송희가 누르면 전체 체크만)", countKeys(DK, tA, "songhee").map((x) => x.key).join() === "fx:all");
 ck("[했어요] 셀 열쇠: 담당을 아무도 안 정한 반복 실행 = 누른 사람에게 셈", countKeys({ ...DK, ak: { items: [{ id: "ak_free", name: "빈 담당", who: [] }] } }, { aiAk: "ak_free" }, "mini").length === 1);
 ck("[했어요] 셀 열쇠: 브랜드 섞인 결과(실행 브랜드 없음) = 내 것 모두", countKeys(DK, { aiAks: ["ak_influch", "ak_gh_influch"] }, "chaerim").length === 2 && countKeys(DK, { aiAk: "ak_kwtop" }, "songhee")[0].kind === "ak");
+// 그 줄 브랜드('브랜드' 칸 · aiItems[n].b) — 있으면 그 브랜드 + 브랜드 없는 열쇠만 · 없으면 실행 브랜드 → 같은 게 없으면 내 것 모두 (2026-10-17)
+ck("[했어요] 줄 브랜드 POUR스토어 = POUR 인플루언서 + 전체 체크 (이름 'POUR스토어' 도 같은 브랜드)", countKeys(DK, tA, "chaerim", "pourstore").map((x) => x.key).join() === "ak_influch,fx:all", countKeys(DK, tA, "chaerim", "pourstore").map((x) => x.key));
+ck("[했어요] 줄 브랜드가 내 열쇠 브랜드와 다르면 안 셈 (그로홈 줄 · 채림 POUR 키워드만)", countKeys(DK, { aiAks: ["ak_kwtop"], brand: "grohome" }, "chaerim", "grohome").length === 0);
+ck("[했어요] 줄 브랜드 없고 그로홈 보드에 POUR 짝 하나뿐 = 셈 (겨울 E 리뷰·후기 유도 같은 것)", countKeys(DK, { aiAks: ["ak_kwtop"], brand: "grohome" }, "chaerim").map((x) => x.key).join() === "ak_kwtop");
 // 열쇠 담당별 실행 업무 (겨울 A 송희·미니 · 가을 E 민지 실행 + 송희 키워드 선정)
 const ex = { id: "aix_q", assigneeId: "songhee", assigneeIds: ["songhee"], brand: "grohome", ackAt: "T", aiAk: "fx:s1", aiAks: ["fx:s1", "fx:m1"] };
 const sp = splitExec(DK, ex, ["fx:s1", "fx:m1", "fx:all"], { id: "songhee" }, "T2");
 ck("실행 업무 나눔: 실행 담당(송희) 말고 열쇠 담당(미니) 몫 하나 · 그 사람 열쇠만 · id~사람 · 받음 표시 없음 · '전체' 고정업무로는 안 나눔", sp.length === 1 && sp[0].id === "aix_q~mini" && sp[0].assigneeId === "mini" && sp[0].aiAks.join() === "fx:m1" && sp[0].aiAk === "fx:m1" && !("ackAt" in sp[0]), sp);
 const sp2 = splitExec(DK, { ...ex, assigneeId: "minji", assigneeIds: ["minji"], brand: "pourstore" }, ["ak_kwsel", "ak_gh_influch", "fx:x1"], { id: "minji" }, "T2");
-ck("실행 업무 나눔: 실행 담당이 열쇠 담당이 아니어도 · 실행 브랜드와 안 맞는 열쇠·쉬는 사람은 빼고", sp2.map((x) => x.id + ":" + x.aiAks.join("+")).join() === "aix_q~songhee:ak_kwsel", sp2.map((x) => x.id));
+ck("실행 업무 나눔: 실행 담당이 열쇠 담당이 아니어도 · 브랜드 칸 없는 결과면 열쇠 담당 모두 · 쉬는 사람은 빼고", sp2.map((x) => x.id + ":" + x.aiAks.join("+")).join() === "aix_q~songhee:ak_kwsel,aix_q~chaerim:ak_gh_influch", sp2.map((x) => x.id));
+const exB = { ...ex, aiItems: [{ n: "B1", t: "그로홈 키워드", b: "grohome" }, { n: "B2", t: "브랜드 칸 비움" }, { n: "B3", t: "POUR 키워드", b: "pourstore" }] };
+const sp3 = splitExec(DK, exB, ["ak_kwtop"], { id: "songhee" }, "T2");
+ck("실행 업무 나눔: 번호 = 그 사람 열쇠 브랜드 줄 + 브랜드 칸 빈 줄 (채림 POUR 키워드 → B2·B3)", sp3.length === 1 && sp3[0].assigneeId === "chaerim" && sp3[0].aiItems.map((x) => x.n).join() === "B2,B3", sp3.map((x) => [x.assigneeId, (x.aiItems || []).map((y) => y.n)]));
+ck("실행 업무 나눔: 셀 줄이 없으면 안 만듦 (모두 그로홈 줄 · POUR 열쇠 담당)", splitExec(DK, { ...ex, aiItems: [{ n: "B1", b: "grohome" }] }, ["ak_kwtop"], { id: "songhee" }, "T2").length === 0);
+ck(`실행 업무 나눔: ${SPLIT_MAX + 1}명+ 같이 하는 일(주간 미팅)은 안 나눔 — 누른 사람 몫만`, splitExec(DK, ex, ["fx:k3"], { id: "songhee" }, "T2").length === 0 && countKeys(DK, { aiAks: ["fx:k3"] }, "mini").length === 1);
 ck("실행 업무 나눔: 누른 사람 몫이면 받음 표시 · 실행 없으면 없음", splitExec(DK, ex, ["fx:m1"], { id: "mini" }, "T2")[0].ackAt === "T2" && splitExec(DK, null, ["fx:m1"], null, "T").length === 0);
 const n3 = rtAiNow("ak_gh_influch", PM.get("ak_gh_influch"), [], [{ id: "aix_z", aiAsk: "z", aiAk: "ak_influch", aiAks: ["ak_influch", "ak_gh_influch"], status: "todo", assigneeIds: ["chaerim"], aiItems: [{ n: "A1" }] }], "chaerim");
 ck("남은 AI 일: 실행 업무 열쇠 목록(aiAks)으로 찾음", n3.exec.map((t) => t.id).join() === "aix_z", n3.exec.map((t) => t.id));

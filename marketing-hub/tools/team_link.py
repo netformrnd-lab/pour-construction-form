@@ -36,7 +36,8 @@ TEAM = {'haru': '하루', 'pori': '포리', 'luna': '루나', 'teo': '테오', '
         'daon': '다온', 'sora': '소라', 'roy': '로이', 'ria': '리아', 'jay': '제이', 'eco': '에코', 'nari': '나리', 'onyu': '온유'}  # core.js TEAM · crew.js BASE_TEAM 과 같게
 ADMIN_ONLY = {'noa'}  # 원가·제조사 일 → 업무OS 승인에 안 올림 (관리자 마진 대시보드)
 # 크루 = crew.js CREWS 팀원 (id: (이름, 크루 id) · crew.test.mjs 가 같은지 봄) — 루틴이 노트로 올리는 크루 일은 이 도구로 (보드 결과 지표·할 일 A~E 는 허브 crew.html)
-CREW = {'bom': ('봄', 'b2c'), 'yeoreum': ('여름', 'b2c'), 'gaeul': ('가을', 'b2c'), 'gyeoul': ('겨울', 'b2c'), 'haneul': ('하늘', 'b2c'), 'uju': ('우주', 'b2c'),
+CREW = {'yeoreum': ('여름', 'b2c'), 'gaeul': ('가을', 'b2c'), 'gyeoul': ('겨울', 'b2c'), 'uju': ('우주', 'b2c'), 'haneul': ('하늘', 'b2c'), 'baram': ('바람', 'b2c'), 'bom': ('봄', 'b2c'),   # 2026-10-17 AARRR 순서 · 바람 = 지인추천
+        'ieum': ('이음', 'b2c'), 'byeol': ('별', 'b2c'), 'dal': ('달', 'b2c'),   # 2026-10-17 새 크루원 (운영·전략 · Aside 보드)
         'dandan': ('단단', 'b2b'), 'cheokcheok': ('척척', 'b2b'), 'kkomkkom': ('꼼꼼', 'b2b'), 'deundeun': ('든든', 'b2b'), 'teunteun': ('튼튼', 'b2b'),
         'saessak': ('새싹', 'bd'), 'malgeum': ('맑음', 'bd'), 'santteut': ('산뜻', 'bd'), 'bosong': ('보송', 'bd'), 'pogeun': ('포근', 'bd'), 'hyanggeut': ('향긋', 'bd')}
 # 쉬는 기본 AI 팀원 → 이어받은 크루 (2026-10-14 사장님 "포리, 하루, 에코는 없어야지" · 아침 루틴 = B2C 크루 여름) — 새로 올리기 막음 · 옛 결과·기록은 그대로 · 돌려받은 옛 건은 이어받은 팀원이 고쳐 다음 판

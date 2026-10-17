@@ -2,7 +2,7 @@
 //   "AI팀원이 실행한 것을 사람팀원에게 승인요청하고, 사람팀원은 상급자 사람에게 승인요청" · "AI 팀원을 각 사람 담당자가 관리하면서 고도화"
 //   AiAskSheet = 승인 한 장(번호 고르기 · 위로 · AI 에게 다시 · 돌려보내기 · 안 함 · 대화 · 기록)
 //   AiTeamBody = AI 팀원 목록(크루 = 브랜드+고객별 · 기본 AI 팀원 = 원형) — 팀 앱 더보기 › AI 팀원 · 관리자 탭 'AI 팀원'
-//   AiMateSheet = AI 한 장(담당 · 승인 길 · 성과 · 고칠 점 → 확정 규칙 · 보드 = 지표·행동 A~E(가을·겨울 F = 광고 일일 보고서)·최근 결과)
+//   AiMateSheet = AI 한 장(담당 · 승인 길 · 성과 · 고칠 점 → 확정 규칙 · 보드 = 지표·행동(가을 F = 광고 일일 보고서)·옮긴 할 일(2026-10-17 AARRR)·최근 결과)
 //   BossCard · BossPanel = 상급자(관리자 › 사람)
 //   AiSetupSheet = 내 PC Aside 세팅(2026-10-15 담당마다 자기 PC · 시각 · 로그인해 둘 곳 · [Aside 글 복사] · 고칠 것 확인) — '확인할 것' 세팅·안 돎 줄에서 열림
 // 계산 aiask.js · 정의 marketing-hub/crew.js · 쓰기 core.jsx(useActs aiPass·aiBack·aiRet·aiDrop·mateOwnerSet·mateRule·setBoss·setBosses)
@@ -13,8 +13,8 @@ import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask,
 import { Thread, useItemNotes } from "./task.jsx";
 import { LS } from "./core.jsx";
 import { RtMulti } from "./airtui.jsx";   // AI 크루 ↔ 반복 실행 (2026-10-16) · 여러 개 (2026-10-17)
-import { isFxKey, fxIdOf, NO_ACT, akKeys } from "./airt.js";
-import { CREWS, GONE, crewOf, mateOf, boardOf, brandL, servesL, mateBrands, ownerKeys, fmtMetric, metricPct, metricOk, runWord, asideLaunch, asideRedoLaunch, asideFixLaunch, loginSites, planOf, qtyDefs, qtyNow, canReq, reqMates, REQ_SHAPES, REQ_PRESETS, REQ_STATE_L, reqLine, asideReqLaunch, execOf } from "../../marketing-hub/crew.js";
+import { isFxKey, fxIdOf, NO_ACT, akKeys, pairable } from "./airt.js";
+import { CREWS, GONE, crewOf, mateOf, boardOf, brandL, servesL, mateBrands, ownerKeys, fmtMetric, metricPct, metricOk, runWord, asideLaunch, asideRedoLaunch, asideFixLaunch, loginSites, planOf, qtyDefs, qtyNow, canReq, reqMates, REQ_SHAPES, REQ_PRESETS, REQ_STATE_L, reqLine, asideReqLaunch, execOf, formulaHead, formulaSep, movedOut, movedIn } from "../../marketing-hub/crew.js";
 import { cycleOf, periodOf, repCrews, repId, repSlots, secState, periodL, dueL, CYCLE_L } from "./aireport.js";   // AI 크루 보고 (2026-10-15)
 import { ASK_STATE_L, canAct, canBack, canRet, isProxy, pickOk, planPass, chainOf, mateOwner, actOwner, hqOf, canUpHQ, mateStats, repeatNotes, itemLine, bossOf, bossRec, bossLoop, asidePlanOf, ranOn, missedOn, goneWaits, GONE_DROP, myTurnN,
   waitWd, workMin, prevWaits, newerOf, routineRanOn, routineMisses, routineAlert, stuckAlert, LATE_WD, BACK_MIN, PREV_DROP, ROUTINE_AT, ROUTINE_CHECK } from "./aiask.js";   // 멈춤 감시 (2026-10-17)
@@ -209,7 +209,7 @@ export function AiTeamBody({ D, cu, A, open, admin }) {
     return <select value={cur} onClick={(e) => e.stopPropagation()} onChange={(e) => A.mateOwnerSet(id, brand || "_", e.target.value)} aria-label={`${(mateOf(id) || {}).name} 담당${brand ? " " + brandL(brand) : ""}`} style={{ ...inp, width: "auto", maxWidth: 150, padding: "6px 8px", fontSize: 13 }}>
       <option value="">담당 미정</option>{users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select>; };
   const plan = useMemo(() => asidePlanOf(D), [D.ai, D.users]), myG = plan.find((g) => g.owner === cu.id), noneG = plan.find((g) => !g.owner);
-  const asideL = (x) => { const p = x.board ? planOf(plan, x.board) : null; return p ? `Aside 평일 ${p.t} · ${PC_L(D, p.owner, cu)}` : ""; };   // 크루 보드 Aside 루틴 (2026-10-14 · 2026-10-15 담당 PC)
+  const asideL = (x) => { const p = x.board ? planOf(plan, x.board) : null, b = p && boardOf(x.board); return p ? `Aside ${runWord({ ...((b && b.run) || {}), dow: (b && b.run && b.run.dow) || [1, 2, 3, 4, 5], t: p.t })} · ${PC_L(D, p.owner, cu)}` : ""; };   // 크루 보드 Aside 루틴 (2026-10-14 · 2026-10-15 담당 PC)
   const mateRow = (x, last, color) => { const ms = mates[x.id] || {}, rules = (ms.rules || []).filter((r) => !r.off).length;
     const picks = bulk && master && !x.admin ? <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }} onClick={(e) => e.stopPropagation()}>{ownerKeys(x.id).map((bb) =>
       <label key={bb || "_"} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, color: C.sub, fontWeight: 700 }}>{bb ? brandL(bb) : mateBrands(x.id).length ? "기본" : "담당"}<OwnerPick id={x.id} brand={bb} /></label>)}</div> : null;
@@ -242,8 +242,8 @@ export function AiTeamBody({ D, cu, A, open, admin }) {
       return <section key={c.id}>
         <Head right={c.draft ? <Pill color={C.sub} bg="#F1F2F6">초안</Pill> : null}>{c.name}</Head>
         <div style={{ fontSize: 12.5, color: C.sub, margin: "-4px 2px 8px", lineHeight: 1.6 }}>{servesL(c)}{c.note ? ` · ${c.note}` : ""}</div>
-        <div className="v2-filterrow" style={{ marginBottom: 8 }} aria-label="매출 공식 · 이번 주 집중"><span style={{ fontSize: 13, fontWeight: 800, color: C.ink, flex: "0 0 auto" }}>매출 =</span>
-          {c.formula.map((k, i) => <span key={k} style={{ display: "inline-flex", alignItems: "center", gap: 6, flex: "0 0 auto" }}>{i > 0 && <span style={{ color: C.mute }}>×</span>}
+        <div className="v2-filterrow" style={{ marginBottom: 8 }} aria-label={`${formulaHead(c)} 공식 · 이번 주 집중`}><span style={{ fontSize: 13, fontWeight: 800, color: C.ink, flex: "0 0 auto" }}>{formulaHead(c)} =</span>
+          {c.formula.map((k, i) => <span key={k} style={{ display: "inline-flex", alignItems: "center", gap: 6, flex: "0 0 auto" }}>{i > 0 && <span style={{ color: C.mute }}>{formulaSep(c)}</span>}
             <Chip on={f === k} onClick={canF ? () => setFocus(c.id, f === k ? "" : k) : undefined} style={{ padding: "6px 11px", cursor: canF ? "pointer" : "default" }}>{k}</Chip></span>)}</div>
         {f && <div style={{ fontSize: 12.5, color: C.navy, fontWeight: 800, margin: "0 2px 8px" }}>이번 주 집중 · {f} — 가장 약한 칸 하나만 올려도 매출이 달라져요</div>}
         <Card>{list.map((x, i) => mateRow(x, i === list.length - 1, f && x.slot === f ? C.navy : x.color))}</Card>
@@ -295,7 +295,7 @@ function BoardView({ D, cu, A, b, open, asks, doc }) {
               {master && execOf(a) && <label style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}><b style={{ color: C.ink, minWidth: 74 }}>본부장 승인</b>
                 <select value={(() => { const x = ((doc && doc.actHq) || {})[a.c]; return x === true ? "on" : x === false ? "off" : ""; })()} onChange={(e) => A.mateActSet(b.mate, "actHq", a.c, e.target.value === "on" ? true : e.target.value === "off" ? false : null)} aria-label={`${a.c} 본부장 승인`} style={{ ...inp, width: "auto", maxWidth: 220, padding: "6px 8px", fontSize: 13 }}>
                   <option value="">기본 ({a.hq ? `받음 · ${a.hq}` : "리드에서 끝"})</option><option value="on">받음</option><option value="off">안 받음 (리드에서 끝)</option></select></label>}
-              {execOf(a) && <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}><b style={{ color: C.ink, minWidth: 74 }}>반복 실행 짝</b>
+              {pairable(a) && <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}><b style={{ color: C.ink, minWidth: 74 }}>반복 실행 짝{a.report ? " (승인 = 그날 체크)" : ""}</b>
                 <RtMulti D={D} value={((doc && doc.actAk) || {})[a.c]} onChange={(ks) => A.mateActSet(b.mate, "actAk", a.c, ks)} label={`${a.c} 반복 실행 짝`} /></div>}
               <div style={{ fontSize: 12, color: C.mute, lineHeight: 1.5 }}>담당 = 승인 첫 단계·실행 업무 받는 사람 · 반복 실행 짝 = 실행 업무 번호마다 [했어요]가 그 반복에 +1 (KPI)</div></div>}
             <div><b style={{ color: C.ink }}>상황</b> · {a.w}</div>
@@ -305,6 +305,8 @@ function BoardView({ D, cu, A, b, open, asks, doc }) {
             {last && <div style={{ marginTop: 8 }}><TBtn onClick={() => open({ type: "aiask", id: last.id })}>최근 결과 보기 ›</TBtn></div>}</>}
         </div>}
       </div>; })}</Card>
+    {(() => { const mo = movedOut(b.mate), mi = movedIn(b.mate); if (!mo.length && !mi.length) return null;   // 2026-10-17 AARRR 정리로 옮긴 할 일 (옛 승인·짝 기록은 옛 자리 그대로)
+      return <div style={{ fontSize: 12.5, color: C.sub, lineHeight: 1.6, margin: "8px 2px 0" }}>옮긴 할 일 (2026-10-17 AARRR 정리){mo.length ? ` · 나감 ${mo.map((x) => `${x.c} → ${x.name} ${x.to.c}`).join(", ")}` : ""}{mi.length ? ` · 들어옴 ${mi.map((x) => `${x.c} ← ${x.name} ${x.from.c}`).join(", ")}` : ""} · 지난 승인·짝 기록은 옛 자리 그대로</div>; })()}
     {b.checklist && <><Head>{b.checklist.title}</Head><Card>{(b.checklist.items || []).map((x, i, arr) => <Row key={i} title={x.t} sub={x.d ? `${x.d} 마감` : null} last={i === arr.length - 1} />)}</Card>
       <p style={{ fontSize: 12, color: C.mute, margin: "6px 2px 0" }}>체크·담당은 업무OS 신제품 프로젝트에서 해요 (보기만)</p></>}
   </>;
@@ -331,7 +333,7 @@ export function AiMateSheet({ D, cu, A, open, onBack, onClose, id }) {
     <div style={{ fontSize: 13.5, color: C.sub, lineHeight: 1.7, marginTop: 12 }}>
       {m.kpi && <div>KPI · <b style={{ color: C.ink }}>{m.kpi}</b></div>}
       {m.routine && <div>{m.routine}</div>}
-      {b && pl && <div>Aside 루틴 · 평일 {pl.t} · {PC_L(D, pl.owner, cu)} · 보드 지표·할 일 → 이 승인으로 · <a className="v2-lblink" href={`${HUB_CREW_URL}#${b.id}`} target="_blank" rel="noopener">허브 AI 크루 결과 올리기 ›</a></div>}
+      {b && pl && <div>Aside 루틴 · {runWord({ ...b.run, t: pl.t })} · {PC_L(D, pl.owner, cu)} · 보드 지표·할 일 → 이 승인으로 · <a className="v2-lblink" href={`${HUB_CREW_URL}#${b.id}`} target="_blank" rel="noopener">허브 AI 크루 결과 올리기 ›</a></div>}
       {GONE[id] && <div style={{ color: C.text }}>2026-10-14부터 쉬어요 · 이 일은 B2C 크루 {(mateOf(GONE[id]) || {}).name} 몫이에요 · 이미 올라온 결과는 그대로 승인·안 함</div>}
       {c && <div>일하는 곳 · {servesL(c)}</div>}
       {m.from && m.from.length > 0 && <div>원형 · {m.from.map((f) => (mateOf(f) || {}).name || f).join(" · ")} <span style={{ color: C.mute }}>(파생 · 짐작)</span></div>}
@@ -461,17 +463,17 @@ export function AiSetupSheet({ D, cu, open, onBack, onClose, owner }) {
     {groups.length > 1 && <div className="v2-filterrow" style={{ marginTop: 12 }} aria-label="PC 고르기">{groups.map((x) => <Chip key={x.owner || "-"} on={x.owner === sel} onClick={() => setSel(x.owner)}>{PC_L(D, x.owner, cu)} {x.runs.length}</Chip>)}</div>}
     {!g ? <Card style={{ marginTop: 12 }}><Empty>맡은 AI 크루가 없어요 · 관리자가 업무OS AI 팀원에서 담당을 정하면 여기에 보여요</Empty></Card> : <>
       <div style={{ fontSize: 13.5, color: C.sub, lineHeight: 1.7, marginTop: 12 }}>담당마다 자기 PC Aside 에서 자기 크루를 돌려요 · 담당이 다르면 모두 09:00 에 동시에 · 한 PC 에 여럿이면 한 시간씩{!g.owner ? " · 담당 미정 크루는 관리자 PC 한 곳에서 (담당을 정하면 그 사람 PC 로)" : ""}</div>
-      <Head>이 PC 에서 돌릴 크루 {g.runs.length}명 · 평일 {g.runs[0].t}{g.runs.length > 1 ? `~${g.runs[g.runs.length - 1].t}` : ""}</Head>
+      <Head>이 PC 에서 돌릴 크루 {g.runs.length}명 · {g.runs[0].t}{g.runs.length > 1 ? `~${g.runs[g.runs.length - 1].t}` : ""}{g.runs.some((r) => r.board.run && r.board.run.dow && r.board.run.dow.length < 5) ? " · 요일은 크루마다" : ""}</Head>
       <Card>{g.runs.map((r, i) => { const m = mateOf(r.board.mate) || {};
         return <div key={r.board.id} style={{ padding: "11px 14px", borderBottom: i === g.runs.length - 1 ? "none" : `1px solid ${C.line}` }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}><b style={{ color: C.navy, fontVariantNumeric: "tabular-nums" }}>{r.t}</b><b style={{ color: C.text }}>{m.name} · {m.role}</b><span style={{ fontSize: 12.5, color: C.sub }}>{r.board.title} · {stOf(r.board)}</span></div>
-          {missedOn(bv[r.board.id], r.t) && <div style={{ marginTop: 6, fontSize: 13, fontWeight: 800, color: C.red, lineHeight: 1.5 }}>오늘 아직 안 올림 — PC·Aside 가 켜져 있는지 확인 · [{m.name} Aside 글 복사] → Aside 에 붙여 넣으면 지금 돌아요</div>}
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}><b style={{ color: C.navy, fontVariantNumeric: "tabular-nums" }}>{r.board.run && r.board.run.dow && r.board.run.dow.length < 5 ? runWord({ ...r.board.run, t: r.t }) : r.t}</b><b style={{ color: C.text }}>{m.name} · {m.role}</b><span style={{ fontSize: 12.5, color: C.sub }}>{r.board.title} · {stOf(r.board)}</span></div>
+          {missedOn(bv[r.board.id], r.t, new Date(), r.board.run && r.board.run.dow) && <div style={{ marginTop: 6, fontSize: 13, fontWeight: 800, color: C.red, lineHeight: 1.5 }}>오늘 아직 안 올림 — PC·Aside 가 켜져 있는지 확인 · [{m.name} Aside 글 복사] → Aside 에 붙여 넣으면 지금 돌아요</div>}
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}><CopyText text={asideLaunch(r.board, r.t)} label={`${m.name} Aside 글 복사`} /><TBtn onClick={() => open({ type: "aiMate", id: r.board.mate })}>{m.name} 한 장 ›</TBtn></div></div>; })}</Card>
       <Head>세팅 순서 (처음 한 번)</Head>
       <Card style={{ padding: "12px 14px" }}><ol style={{ margin: 0, paddingLeft: 18, fontSize: 13.5, color: C.text, lineHeight: 1.75 }}>
         <li>이 PC Aside 브라우저에서 <a className="v2-lblink" href={HUB_CREW_URL} target="_blank" rel="noopener">마케팅 허브 › AI 크루 결과 올리기</a>를 열고 로그인 (업로더 계정 · 없으면 관리자에게)</li>
         <li>아래 '로그인해 둘 곳'에 한 번씩 로그인 (로그인 유지 · 비밀번호는 Aside 에게 알려 주지 않아요)</li>
-        <li>크루마다 [Aside 글 복사] → Aside 새 예약 작업에 붙여 넣기 · 반복 평일(월~금) · 시각은 위에 적힌 대로 — 지금 바로 돌리려면 Aside 에 그냥 붙여 넣기</li>
+        <li>크루마다 [Aside 글 복사] → Aside 새 예약 작업에 붙여 넣기 · 반복 평일(월~금) — 요일이 적힌 크루(매주 월 등)는 그 요일만 · 시각은 위에 적힌 대로 — 지금 바로 돌리려면 Aside 에 그냥 붙여 넣기</li>
         <li>(권장) [고칠 것 확인 글 복사] → Aside 예약 '평일 한 시간마다' — [AI에게 다시]·[더 만들기]가 한 시간 안에 반영돼요</li>
         <li>결과는 '확인할 것'으로 와요 → 번호 골라 승인 · [AI에게 다시] · [더 만들기] · 매번 수를 바꾸려면 AI 한 장 '횟수'</li></ol></Card>
       <Head>로그인해 둘 곳 {L.length + 1}곳</Head>

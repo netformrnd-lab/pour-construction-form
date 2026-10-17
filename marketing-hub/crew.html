@@ -13,12 +13,12 @@
       pour-os/v2/aiasks/{id}         행동 A~F 하나 = 승인 한 건 → 업무OS '확인할 것' (AI → 할 일 담당 → 리드에서 끝 · 광고비 예산·원가·판매가 조정만 본부장까지 · 2026-10-15)
       pour-os/v2/aiboards/{보드 id}.next·nextHist  [다음주] AI 피드백 → 업무OS 크루 보고서 '다음 기간'
   · 같은 날 같은 행동을 다시 올리면: 아직 담당 차례이거나 'AI 에게 다시'로 돌려받은 것만 2번째 판으로 고침 · 위로 올라간 뒤엔 그대로(날짜를 바꿔 새로)
-  · 빼는 것: 원가·마진·제조사·공급 단가 칸 · 관리자 자리 행동(노출 E) · 휴대폰 번호·메일(가림) — crew.js
+  · 빼는 것: 원가·마진·제조사·공급 단가 칸 · 관리자 자리 행동(달 G · 2026-10-17 여름 E 에서 옮김) · 휴대폰 번호·메일(가림) — crew.js
   · 실행(가격·광고·발송·게시)은 하지 않음 — 표와 초안까지 · 실제 반영은 승인 뒤 사람이 업무OS '실행' 업무에서
   · 모든 버튼·칸에 고정 id · aria-label (Aside 루틴이 찾는 이름)
   · Aside 루틴 (2026-10-14 사장님 "모든 크루들의 행위들 모두 가능하게 세팅해줘"):
-      보드 하나 = Aside 예약 작업 하나 (평일 · 시각 = crew.js BOARDS run) · 예약 글(asideLaunch)은 짧게 '이 화면 지시문을 그대로' →
-      '오늘 지시문'(asideText · 판 ASIDE_VER)을 고쳐도 예약은 다시 안 넣어도 됨 · 맨 위 'Aside 예약 6개 세팅'(#crew-setup) = 시각·담당·마지막 올림·[예약 글 복사]·로그인해 둘 곳
+      보드 하나 = Aside 예약 작업 하나 (평일 · 주 1~2회 보드는 그 요일 · 시각 = crew.js BOARDS run) · 예약 글(asideLaunch)은 짧게 '이 화면 지시문을 그대로' →
+      '오늘 지시문'(asideText · 판 ASIDE_VER)을 고쳐도 예약은 다시 안 넣어도 됨 · 맨 위 'Aside 세팅'(#crew-setup · 보드마다 예약 하나 · 2026-10-17 14개 · 주 1~2회 보드는 그 요일만) = 시각·담당·마지막 올림·[예약 글 복사]·로그인해 둘 곳
       '할 일별 최근 올림'(#crew-last) = 월 1회·1회 같은 할 일을 이미 했는지 보는 곳 · '고쳐서 다시 올릴 것' 줄마다 [이전 판 불러오기](#redo-load-n · 날짜 + 그 판의 표)
   · 담당마다 자기 PC (2026-10-15 사장님 "사람 담당자들 모두 어사이드 돌릴 수 있어. 각각 돌려서 빨리"): 세팅 카드 = 담당별 묶음(crew.asidePlan · 담당이 다르면 동시에 09:00 · 같은 PC 여럿이면 한 시간씩)
       묶음마다 크루 줄([예약 글 복사] · 시각) · 그 PC 로그인해 둘 곳 · [고칠 것 확인 글 복사](#copy-fix-<n> · 평일 한 시간마다 걸면 업무OS [AI에게 다시]·[더 만들기]가 한 시간 안에 반영)
@@ -121,7 +121,7 @@ textarea.copybox{min-height:120px;margin-top:8px}
       <ol class="steps">
         <li>업무OS 관리자 › AI 팀원 › [담당 한꺼번에 정하기]에서 크루마다 담당 정하기 → 아래가 담당별 PC 로 나뉘고, 담당 업무OS '확인할 것'에 세팅 안내가 가요</li>
         <li>담당은 자기 PC Aside 브라우저에서 이 화면에 로그인(업로더 계정 · 없으면 관리자에게) + 내 묶음의 <b>로그인해 둘 곳</b>에 로그인 (로그인 유지 · 비밀번호는 Aside 에게 알려 주지 않아요)</li>
-        <li>내 크루마다 [예약 글 복사] → Aside 새 예약 작업에 붙여 넣기 · 반복 <b>평일(월~금)</b> · 시각은 줄에 적힌 대로 — 담당이 다르면 모두 동시에 돌아서 빨라요 · 지금 바로 돌리려면 Aside 에 그냥 붙여 넣기</li>
+        <li>내 크루마다 [예약 글 복사] → Aside 새 예약 작업에 붙여 넣기 · 반복 <b>평일(월~금)</b> — 줄에 요일이 적힌 크루(매주 월 등)는 <b>그 요일만</b> · 시각은 줄에 적힌 대로 — 담당이 다르면 모두 동시에 돌아서 빨라요 · 지금 바로 돌리려면 Aside 에 그냥 붙여 넣기</li>
         <li>(권장) [고칠 것 확인 글 복사] → Aside 예약 <b>평일 한 시간마다</b> — 업무OS에서 [AI에게 다시]·[더 만들기]를 누르면 한 시간 안에 고쳐 올려요 (바로 하려면 그 글을 지금 붙여 넣기)</li>
       </ol>
       <div id="setup-groups"></div>
@@ -214,6 +214,8 @@ async function loadMate(){
     const owner=ownerId(), on=(mateDoc&&mateDoc.rules||[]).filter(r=>!r.off);
     if(la&&LAUNCH)$('crew-launch').innerHTML=`<div class="reqbox">디맨드젠 남은 신제품 ${LAUNCH.length}개 — ${esc(la.c)} 할 일 (업무OS 신제품 '디맨드젠 광고' · 상품마다 승인 한 건 → 그 신제품 담당이 게시)${LAUNCH.length?LAUNCH.map(r=>`<div class="rq">· <b>${esc(r.prod)}</b> ${r.n}/${r.g}개 <span class="s">출시 ${esc(r.launch?r.launch.slice(5).replace('-','/'):'미정')}${r.due?' · 기한 '+esc(r.due.slice(5).replace('-','/')):''} · 담당 ${esc(r.owner?nameOf(r.owner):'미정')}</span></div>`).join(''):'<div class="rq">없음 — 모든 신제품 디맨드젠이 끝났어요</div>'}
       <div class="btns" style="margin-top:6px"><button type="button" class="btn sm" id="copy-act-launch" data-c="${esc(la.c)}" aria-label="${esc(la.c)} 할 일만 지금 — Aside 글 복사">${esc(la.c)} 할 일만 지금 — Aside 글 복사</button></div></div>`;
+    const nowActs=b.actions.filter(a=>a.now&&!a.launch);   // 하루에 한 번 더 (2026-10-17 · 이음 A 아침 주문수집 뒤)
+    if(nowActs.length)$('crew-launch').innerHTML+=`<div class="reqbox">한 번 더 돌릴 때 — ${nowActs.map(a=>`<div class="rq">· <b>${esc(a.c)}</b> ${esc(a.t)} <span class="s">${esc(a.now)}</span></div>`).join('')}<div class="btns" style="margin-top:6px">${nowActs.map(a=>`<button type="button" class="btn sm" id="copy-now-${esc(a.c)}" data-c="${esc(a.c)}" aria-label="${esc(a.c)} 할 일만 지금 — Aside 글 복사">${esc(a.c)} 할 일만 지금 — Aside 글 복사</button>`).join('')}</div></div>`;
     const mine=back.docs.map(d=>d.data()).filter(a=>a.board===b.id), backs=mine.filter(a=>a.state==='back'); BACKS=backs;
     $('crew-last').innerHTML=`<div class="hint" style="margin:0 0 4px">할 일별 최근 올림 (월 1회·1회 같은 할 일은 이걸 보고 이미 했는지 판단)</div><div class="lastrow">${b.actions.filter(a=>!a.admin).map(a=>{const l=mine.filter(x=>x.act===a.c).sort((p,q)=>String(q.createdAt||'').localeCompare(String(p.createdAt||'')))[0];
       return `<span><b>${esc(a.c)}</b> ${l?`${esc(String(l.run||'').slice(5).replace('-','/'))} · ${esc(stateL(l))}`:'없음'}</span>`;}).join('')}</div>`;
@@ -272,14 +274,14 @@ async function loadSetup(){
   PLAN=K.asidePlan(b=>act(K.ownerFor(mates[b.mate],b.brand)));
   const pcs=PLAN.filter(g=>g.owner).length, none=(PLAN.find(g=>!g.owner)||{runs:[]}).runs.length;
   $('setup-groups').innerHTML=PLAN.map((g,gi)=>{const bs=g.runs.map(r=>r.board), L=K.loginSites(bs), last=g.runs[g.runs.length-1].t;
-    return `<div class="grp${g.owner?'':' none'}" data-owner="${esc(g.owner||'-')}"><h3>${g.owner?`${esc(nameOf(g.owner))} PC`:'담당 미정 · 관리자 PC 한 곳'} · ${g.runs.length}명 <span class="hint" style="font-weight:600">· 평일 ${esc(g.runs[0].t)}${g.runs.length>1?'~'+esc(last):''}</span></h3>
+    return `<div class="grp${g.owner?'':' none'}" data-owner="${esc(g.owner||'-')}"><h3>${g.owner?`${esc(nameOf(g.owner))} PC`:'담당 미정 · 관리자 PC 한 곳'} · ${g.runs.length}명 <span class="hint" style="font-weight:600">· ${esc(g.runs[0].t)}${g.runs.length>1?'~'+esc(last):''}</span></h3>
       ${g.owner?'':'<div class="hint" style="margin:-4px 0 8px">업무OS에서 담당을 정하면 그 사람 PC 묶음으로 옮겨가요</div>'}
       <div class="list">${g.runs.map(r=>{const b=r.board,m=K.mateOf(b.mate),at=(boards[b.id]||{}).at;
-        return `<div class="li srow"><div class="m"><span class="t">${esc(r.t)}</span> <b>${esc(m.name)}</b> · ${esc(m.role)} — ${esc(b.title)}<div class="s">${at?'마지막 올림 '+esc(kst(at)):'아직 안 올림'}</div></div>
+        return `<div class="li srow"><div class="m"><span class="t">${esc(K.runDays(b.run)==='평일'?r.t:K.runWord({...b.run,t:r.t}))}</span> <b>${esc(m.name)}</b> · ${esc(m.role)} — ${esc(b.title)}<div class="s">${at?'마지막 올림 '+esc(kst(at)):'아직 안 올림'}</div></div>
           <div class="b"><button type="button" class="btn sm" id="copy-launch-${b.id}" data-launch="${b.id}" data-t="${esc(r.t)}" aria-label="${esc(m.name)} 예약 글 복사">예약 글 복사</button><a class="btn sm link" href="#${b.id}" aria-label="${esc(m.name)} 보드 열기">보드 ›</a></div></div>`;}).join('')}</div>
       <div class="hint">로그인해 둘 곳 ${L.length+1}곳: 마케팅 허브(업로더 계정) · ${esc(L.map(x=>x.s).join(' · '))}</div>
       <div class="btns" style="margin-top:8px"><button type="button" class="btn sm" id="copy-fix-${gi}" data-fix="${esc(bs.map(b=>b.id).join(','))}" aria-label="${g.owner?esc(nameOf(g.owner))+' PC':'담당 미정'} 고칠 것 확인 글 복사">고칠 것 확인 글 복사</button></div></div>`;}).join('');
-  $('setup-sum').textContent=`· ${pcs?`담당 ${pcs}명 PC 에서 동시에`:'담당 아직 없음'} · 평일 09:00부터${none?` · 담당 미정 ${none}`:''}`;
+  $('setup-sum').textContent=`· ${pcs?`담당 ${pcs}명 PC 에서 동시에`:'담당 아직 없음'} · 평일 09:00부터 (보드마다 시각·요일)${none?` · 담당 미정 ${none}`:''}`;
 }
 // 복사 — 클립보드가 막히면 버튼 아래 글 칸을 펼쳐 골라 둠(길게 눌러 복사)
 const copyText=async(btn,text,label)=>{const box=btn.closest('.srow,.btns');   // 줄·버튼 묶음 바로 아래

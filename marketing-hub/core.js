@@ -262,7 +262,8 @@
   /* ── 옵시디언 노트 (대시보드 → 옵시디언 '05 오늘 숫자') ──────
      폰·PC 모두 obsidian:// 링크 한 번으로 노트를 덮어씀 (서버·비밀번호 없음)
      in: { date, sales7, salesPrev7, stock:[stockRows], advice:keywordAdvice(), sales:[{code,name,q7,r7,qp}], adsDays, voc?:vocSummary(), vocList?:[최근 메모] }
-     ③ 결과 숫자(2026-10-17): brands?:[{brand,label,src,r7,rp7,to}] 브랜드별 자동 판매 · upTo 카페24 리포트(Aside) 마지막 날 · stockTo 재고 리포트 마지막 날 · risk?:crmRiskRows() */
+     ③ 결과 숫자(2026-10-17): brands?:[{brand,label,src,r7,rp7,to}] 브랜드별 자동 판매 · upTo 카페24 리포트(Aside) 마지막 날 · stockTo 재고 리포트 마지막 날
+     재고 = 재고 리포트(Aside · 그로홈 비즈로지컴(이지어드민)·쿠팡 로켓그로스)만 — POUR스토어 재고는 용인공장이 관리(2026-10-17 사장님 '우린 비즈로지컴, 쿠팡그로스만') · CRM 재고 위험은 안 씀 */
   const OBSIDIAN_NOTE = '05 오늘 숫자';
   const OBSIDIAN_HUB = '00 허브';
   function obsidianNote(d) {
@@ -273,14 +274,14 @@
     const pctTxt = d.salesPrev7 > 0 ? `${d.sales7 >= d.salesPrev7 ? '▲' : '▼'}${Math.abs(Math.round((d.sales7 - d.salesPrev7) / d.salesPrev7 * 100))}%` : '-';
     const L = [];
     const noSales = d.salesCount === 0 || (d.salesCount == null && !d.sales.length), noAds = d.adsCount === 0, noStock = d.stockCount === 0; // 리포트가 없으면 0 이 아니라 '없음' (AI 팀이 0원으로 읽지 않게 · 2026-10-12)
-    // ③ 결과 숫자 (2026-10-17): 판매 = 브랜드별 자동(CRM · 그로홈 대시보드) · 재고 = 재고 리포트(Aside)가 오래됐으면 CRM 재고 위험 · 빈 곳은 '없음 · n일째'
-    const brands = Array.isArray(d.brands) ? d.brands : null, risk = Array.isArray(d.risk) ? d.risk : null;
+    // ③ 결과 숫자 (2026-10-17): 판매 = 브랜드별 자동(CRM · 그로홈 대시보드) · 재고 = 재고 리포트(Aside)만 · 빈 곳·오래된 곳은 '없음 · n일째'
+    const brands = Array.isArray(d.brands) ? d.brands : null;
     const ago = (to) => daysSince(to, d.date), md = (x) => (x ? `${+x.slice(5, 7)}/${+x.slice(8, 10)}` : '');
-    // 판매 숫자가 없으면 '발주 필요'를 0 으로 세지 않음(재고 리포트가 있어도 · 볼트 점검 P0-4) → CRM 재고 위험이 있으면 그것으로
-    const stockOld = !!brands && (!d.stockTo || ago(d.stockTo) > STALE_STOCK), useRisk = (stockOld || (!!brands && noSales)) && !!risk;
+    // 판매 숫자가 없으면 '발주 필요'를 0 으로 세지 않음(재고 리포트가 있어도 · 볼트 점검 P0-4)
+    const stockOld = !!brands && !!d.stockTo && ago(d.stockTo) > STALE_STOCK;
     const pctOf = (x, y) => (y > 0 ? `${x >= y ? '▲' : '▼'}${Math.abs(Math.round((x - y) / y * 100))}%` : '-');
     const anyB = !!brands && brands.some((b) => b.to), total = brands ? brands.reduce((t, b) => t + (b.to ? b.r7 || 0 : 0), 0) : 0;
-    L.push('---', '유형: 숫자', `기준일: ${d.date}`, `매출7일: ${brands ? (anyB ? Math.round(total) : '') : noSales ? '' : Math.round(d.sales7)}`, `발주필요: ${useRisk ? risk.length : noSales ? '' : need.length}`,
+    L.push('---', '유형: 숫자', `기준일: ${d.date}`, `매출7일: ${brands ? (anyB ? Math.round(total) : '') : noSales ? '' : Math.round(d.sales7)}`, `발주필요: ${noSales ? '' : need.length}`,
       `올릴키워드: ${a.up.length}`, `줄일키워드: ${a.down.length}`, `끌키워드: ${a.off.length}`, '---', '');
     L.push(`# 오늘 숫자 (${d.date})`, '', `> 마케팅 허브 대시보드에서 보냄. 다시 보내면 이 노트를 통째로 바꿉니다. 메모는 다른 노트에 쓰세요.`, '');
     if (brands) {
@@ -289,18 +290,13 @@
         L.push(b.to ? `- 최근 7일 매출 · ${b.label} (${b.src}): **${n(b.r7)}원** (전주 대비 ${pctOf(b.r7, b.rp7)}) · ${md(b.to)}까지${late >= STALE_SALES ? ` · ⚠️ ${late}일째 새 판매 없음` : ''}`
           : `- 최근 7일 매출 · ${b.label} (${b.src}): **판매 숫자 없음** — 0원이 아니라 아직 안 들어옴`); });
       L.push(d.upTo ? `- 카페24 리포트(Aside): ${md(d.upTo)}까지 · CRM 숫자가 있는 날은 CRM 으로 셈` : '- 카페24 리포트(Aside): 없음 — Aside 업로드 세팅 전 · POUR스토어 판매는 CRM 숫자로 셈');
-      L.push(useRisk ? `- 재고: CRM 재고 위험 **${risk.length}개** (CRM 재고 계산기) · 재고 리포트(Aside) ${d.stockTo ? `${md(d.stockTo)} · ${ago(d.stockTo)}일째` : '없음'}`
-        : noSales ? `- 발주 필요: **판매 숫자 없음** — 0개가 아니라 계산 못 함${noStock ? ' (재고 리포트도 없음)' : ''}`
+      L.push(noSales ? `- 발주 필요: **판매 숫자 없음** — 0개가 아니라 계산 못 함${noStock ? ' (재고 리포트도 없음)' : ''}`
         : `- 발주 필요: **${need.length}개**${noStock ? ' (재고 리포트 없음)' : d.stockTo ? ` (재고 리포트 ${md(d.stockTo)})` : ''}`);
+      L.push(`- 재고: 비즈로지컴(이지어드민)·쿠팡 로켓그로스만 · 재고 리포트(Aside) ${d.stockTo ? `${md(d.stockTo)}${stockOld ? ` · ⚠️ ${ago(d.stockTo)}일째 새 리포트 없음` : ''}` : '없음'} · POUR스토어 재고는 용인공장`);
       L.push(`- 키워드: 끌 ${a.off.length} · 줄일 ${a.down.length} · 올릴 ${a.up.length} (최근 ${d.adsDays}일${noAds ? ' · 광고 리포트 없음' : ''})`, '');
     } else L.push('## 요약', noSales ? '- 최근 7일 매출(카페24): **판매 리포트 없음** — 0원이 아니라 아직 안 들어옴 (Aside 업로드 확인)' : `- 최근 7일 매출(카페24): **${n(d.sales7)}원** (전주 대비 ${pctTxt})`,
       `- 발주 필요: ${noSales ? '**판매 리포트 없음 → 계산 안 함**' : `**${need.length}개**`}${noStock ? ' (재고 리포트 없음)' : ''} · 끌 키워드 ${a.off.length} · 줄일 키워드 ${a.down.length} · 올릴 키워드 ${a.up.length} (최근 ${d.adsDays}일${noAds ? ' · 광고 리포트 없음' : ''})`, '');
-    if (useRisk) {
-      L.push('## 🔴 재고 위험 — CRM 재고 계산기 · [[레오]]', `> 재고 리포트(Aside)가 ${d.stockTo ? `${md(d.stockTo)}에 멈춰` : '없어'} CRM 재고 발주 계산기의 '위험' 품목을 그대로 옮김 · 발주는 CRM 입고 요청`, '');
-      if (risk.length) { L.push('| 상품 | 남은 재고 · 기준 |', '|---|---|'); for (const r of risk.slice(0, 60)) L.push(`| ${cell(r.name)} | ${cell(r.sub)} |`); } else L.push('- 없음');
-      L.push('');
-    }
-    L.push(useRisk ? '## 발주 필요 (재고 리포트 기준) — [[레오]]' : '## 🔴 발주 필요 — [[레오]]');
+    L.push('## 🔴 발주 필요 — [[레오]]');
     if (need.length) {
       L.push('| 제품코드 | 상품 | 가용재고 | 일평균 | 남은 일수 | 발주 수량 |', '|---|---|--:|--:|--:|--:|');
       for (const r of need) L.push(`| ${cell(r.productCode)} | ${cell(r.productName)} | ${n(r.available)} | ${r.avgDailySales} | ${r.daysLeft}일 | ${n(r.reorderQty)} |`);
@@ -375,7 +371,7 @@
      · 카페24 리포트(Aside) = POUR스토어 자사몰 → CRM 숫자가 있는 날은 빼고(같은 판매를 두 번 세지 않게) 없는 날만 씀 */
   const AUTO_SALES = [{ id: 'crm-pourstore', brand: 'pourstore', label: 'POUR스토어', src: 'CRM · 전 채널' }, { id: 'grohome', brand: 'grohome', label: '그로홈', src: '그로홈 대시보드 · 전 채널' }];
   const BRAND_L = { pourstore: 'POUR스토어', grohome: '그로홈' };
-  const STALE_SALES = 3, STALE_STOCK = 3;   // 마지막 판매·재고 리포트가 이만큼 지나면 'n일째' 경고 · 재고는 CRM 재고 위험으로
+  const STALE_SALES = 3, STALE_STOCK = 3;   // 마지막 판매·재고 리포트가 이만큼 지나면 'n일째' 경고
   function daysSince(to, today) { if (!to || !today) return null; return Math.round((Date.parse(today + 'T00:00:00Z') - Date.parse(String(to).slice(0, 10) + 'T00:00:00Z')) / 864e5); }
   function autoSalesRows(docs) {
     const out = [];
@@ -398,15 +394,9 @@
       const to = (d && d.to) || ((sales || []).filter((x) => x.brand === a.brand).reduce((m, x) => (x.reportDate > m ? x.reportDate : m), ''));
       return { brand: a.brand, label: a.label, src: a.src, r7: dr.slice(7).reduce((t, x) => t + x.v, 0), rp7: dr.slice(0, 7).reduce((t, x) => t + x.v, 0), to, at: (d && d.at) || '' }; });
   }
-  // CRM 재고 위험 — 업무OS '확인할 것' 다리(pour-os/v2/links · kind lowStock · 열린 것) · CRM 재고 발주 계산기 기준 · 원가 없음
-  function crmRiskRows(links) {
-    return (links || []).filter((l) => l && l.kind === 'lowStock' && l.open !== false)
-      .map((l) => ({ name: String(l.title || '').replace(/\s*재고 위험\s*$/, ''), sub: String(l.sub || ''), at: l.at || '' }))
-      .sort((x, y) => x.name.localeCompare(y.name, 'ko'));
-  }
-  // '05 오늘 숫자' 노트 한 장 — in: { sales, ads, stock, voc(날짜 최신순), settings, today, auto?(salesdays 문서 {id: 문서}), links?(lowStock) }
-  //   auto 를 넘기면(③ · 대시보드·매일 숫자 작업) 판매 = 자동 + 카페24 리포트(자동 없는 날) · 브랜드별 요약 · 재고 리포트가 오래되면 CRM 재고 위험
-  function numbersNote({ sales, ads, stock, voc, settings, today, auto, links }) {
+  // '05 오늘 숫자' 노트 한 장 — in: { sales, ads, stock, voc(날짜 최신순), settings, today, auto?(salesdays 문서 {id: 문서}) }
+  //   auto 를 넘기면(③ · 대시보드·매일 숫자 작업) 판매 = 자동 + 카페24 리포트(자동 없는 날) · 브랜드별 요약 · 재고 = 재고 리포트(Aside)만 (2026-10-17 · CRM 재고 위험은 안 씀)
+  function numbersNote({ sales, ads, stock, voc, settings, today, auto }) {
     const st = { ...DEFAULT_SETTINGS, ...(settings || {}) }, on = auto !== undefined;
     const all = on ? mergeSales(sales, autoSalesRows(auto)) : sales, dr = dailyRevenue(all, today);
     const last = (rows, f) => (rows || []).reduce((m, x) => (x[f] > m ? x[f] : m), '');
@@ -414,7 +404,7 @@
       stock: stockRows(stock, all, st), advice: keywordAdvice(ads, st), sales: salesRows(all, today), adsDays: st.adsDays,
       voc: vocSummary(voc, today), vocList: voc.filter((v) => v.date >= addDays(today, -6)),
       salesCount: all.filter((x) => x.reportDate >= addDays(today, -14)).length, adsCount: ads.length, stockCount: stock.length,
-      ...(on ? { brands: brandSales(all, auto, today), upTo: last(sales, 'reportDate'), stockTo: last(stock, 'reportDate'), risk: links && links.length ? crmRiskRows(links) : null } : {}) });
+      ...(on ? { brands: brandSales(all, auto, today), upTo: last(sales, 'reportDate'), stockTo: last(stock, 'reportDate') } : {}) });
   }
   // 허브 노트 끝에 한 번 붙이는 칸 (오늘 숫자 노트를 끼워 보여 줌)
   const OBSIDIAN_HUB_SECTION = `\n\n## 📊 오늘 숫자\n> 대시보드 [옵시디언으로 보내기]를 누르면 아래가 새 숫자로 바뀝니다.\n\n![[${OBSIDIAN_NOTE}]]\n`;
@@ -496,7 +486,7 @@
   ];
   // 크루 중 Claude 루틴이 실제로 도는 팀원 (2026-10-14 · 이름·역할 = crew.js CREWS · 크루 보드 결과는 crew.html)
   const CREW_LIVE = [
-    { id: 'yeoreum', no: 'B2C', name: '여름', role: '유입마케터 · 콘텐츠·인플루언서', crew: 'b2c', step: 2, live: true, runs: [
+    { id: 'yeoreum', no: 'B2C', name: '여름', role: '유입마케터 · 바이럴·콘텐츠', crew: 'b2c', step: 2, live: true, runs: [
       { dow: WEEKDAYS, t: '06:50', what: '블로그 주제 3 → 공식 블로그 원고 3 → 티스토리·카페 재배포' }] },
   ];
   const teamMember = (id) => TEAM.find((m) => m.id === id || m.name === id) || CREW_LIVE.find((m) => m.id === id || m.name === id) || null;
@@ -550,16 +540,16 @@
      시각·보드·이름 = crew.js BOARDS run · CREWS (crew.test.mjs 가 같은지 봄 — 바꾸면 둘 다) · 예약 글 = crew.html 세팅 카드 [예약 글 복사] → 화면 지시문을 그대로
      예약을 실제로 걸면 status 'on' 으로 */
   const CREW_ASIDE = [
-    { mate: 'gaeul', name: '가을', board: 'gh-traffic', title: '광고·검색 유입 보드', t: '09:00', cat: 'ads', what: '자사몰 유입 감시 · 롤러 재노출·재고 소진 위험 · 쿠팡 광고 키워드 · 네이버 검색광고 · 메타 광고 · 구글 디맨드젠 · 오늘의집 광고 · 광고 보고 한 줄' },
-    { mate: 'gyeoul', name: '겨울', board: 'gh-conv', title: '전환 보드', t: '09:00', cat: 'customer', what: '품절 0 · 쿠팡 유리블러 가격·구성 · 상세 이탈 진단 · 리뷰 정리 · 구매 미전환 콜 목록' },
+    { mate: 'gaeul', name: '가을', board: 'gh-traffic', title: '광고·검색 유입 보드', t: '09:00', cat: 'ads', what: '자사몰 유입 감시 · 롤러 재노출·네이버 유입 복구 · 쿠팡 광고 키워드 · 네이버 검색광고 · 메타 광고 · 구글 디맨드젠 · 오늘의집 광고 · 광고 보고 한 줄' },
+    { mate: 'gyeoul', name: '겨울', board: 'gh-conv', title: '전환 보드', t: '09:00', cat: 'customer', what: '쿠팡 유리블러 가격·구성 · 상세 이탈 진단 · 구매 미전환 콜 목록 · 구매 길(메인 → 결제) 점검 · 응대 스토리' },   // 2026-10-17 사장님 AARRR 정의 · 품절 → 이음 · 리뷰 → 바람
     { mate: 'bom', name: '봄', board: 'gh-ohou', title: 'MD 보드 (프로모션·판매채널)', t: '09:00', cat: 'ads', what: '콜라보 마켓 · 체험단 · 특가·쿠폰 · 상품명·썸네일 · 쿠팡 리스팅 통합 · 리셀러·아이템위너 · 시즌 캠페인' },
-    { mate: 'yeoreum', name: '여름', board: 'gh-exp', title: '콘텐츠·인플루언서 보드', t: '09:00', cat: 'content', what: '인플루언서·쿠팡파트너스 DM 초안 · 릴스 구성 · 공구 · 인플루언서 리뷰 회수 · 지난 포스팅 링크 · 오픈채팅·셀러오션' },
-    { mate: 'uju', name: '우주', board: 'gh-rep', title: '재구매 보드', t: '09:00', cat: 'customer', what: '재구매율 주간 측정 · 카카오·인스타 링크·쿠폰 · 문자·알림톡 대상·문구' },
-    { mate: 'baram', name: '바람', board: 'gh-ref', title: '지인추천 보드', t: '09:00', cat: 'customer', what: '추천 쿠폰 전달 목록 · 사진 후기 → 다음 키트 할인 · NPS 유선 조사' },   // 2026-10-17 AARRR 정리 · 지인추천
-    { mate: 'haneul', name: '하늘', board: 'gh-aov', title: '매출(객단가) 보드', t: '09:00', cat: 'ads', what: '페인트+툴 키트 · 무료배송 기준 · 추가구성 · 면적 계산기 · 9,900원 업셀' },
+    { mate: 'yeoreum', name: '여름', board: 'gh-exp', title: '콘텐츠·인플루언서 보드', t: '09:00', cat: 'content', what: '인플루언서·쿠팡파트너스 DM 초안 · 릴스 구성 · 공구 · 인플루언서 리뷰 회수 · 지난 포스팅 링크 · 오픈채팅·셀러오션 · 콘텐츠·바이럴 A/B 실험' },
+    { mate: 'uju', name: '우주', board: 'gh-rep', title: '재구매 보드', t: '09:00', cat: 'customer', what: '재구매율 주간 측정 · 카카오·인스타 링크·쿠폰 · 문자·알림톡(같은 것 다시·다른 것·잠든 고객) · 구매 후 케어 · 기존 고객 메시지·쿠폰 장부' },
+    { mate: 'baram', name: '바람', board: 'gh-ref', title: '지인추천 보드', t: '09:00', cat: 'customer', what: '추천 쿠폰 전달 목록 · 사진 후기 → 다음 키트 할인 · NPS 유선 조사 · 리뷰 정리·답글 · 팬 후기·UGC → 바이럴 소재' },   // 2026-10-17 AARRR 정리 · 지인추천 (리뷰 ← 겨울)
+    { mate: 'haneul', name: '하늘', board: 'gh-aov', title: '매출(객단가) 보드', t: '09:00', cat: 'ads', what: '페인트+툴 키트 · 무료배송 기준 · 추가구성 · 면적 계산기 · 9,900원 업셀 · 고객 목소리 → 품질 개선·추가 서비스' },
     // 2026-10-17 새 크루원(운영·전략) + B2B 크루 보드 5개 — dow 없으면 평일 · t = 보드가 바라는 시각(같은 PC 에서 겹치면 crew.asidePlan 이 뒤로 밂)
-    { mate: 'ieum', name: '이음', board: 'ops-order', title: '주문·배송 보드', t: '15:00', cat: 'customer', what: '주문 마감 대조 · 송장 안내 누락 · 무통장·견적 미입금 · CS 묶음 · 취소/교환/반품' },
-    { mate: 'byeol', name: '별', board: 'ops-report', title: '주간 리포트 보드', t: '09:00', dow: [5], cat: 'data', what: '공통 숫자 칸 초안 · 이상한 것 3개 · 위험 재고 발주 제안 · 주간 미팅 안건' },
+    { mate: 'ieum', name: '이음', board: 'ops-order', title: '주문·배송·재고 보드', t: '15:00', cat: 'customer', what: '주문 마감 대조 · 송장 안내 누락 · 무통장·견적 미입금 · CS 묶음 · 취소/교환/반품 · 재고·품절(비즈로지컴·쿠팡 로켓그로스)' },
+    { mate: 'byeol', name: '별', board: 'ops-report', title: '주간 리포트 보드', t: '09:00', dow: [5], cat: 'data', what: '공통 숫자 칸 초안 · 이상한 것 3개 · 주간 미팅 안건' },   // 위험 재고 발주 제안 → 이음 F (2026-10-17)
     { mate: 'dal', name: '달', board: 'hq-plan', title: '본부장 전략 보드', t: '09:00', dow: [1], cat: 'plan', what: '신제품 기획 초안 · 메가 인플루언서 · 미디어커머스 · 목표 점검 · 철물점 유선영업 · 해외 소싱 일정 · 신제품 후보 발굴(관리자 자리)' },
     { mate: 'cheokcheok', name: '척척', board: 'b2b-inq', title: '문의 응대 보드', t: '09:00', cat: 'customer', what: 'B2B 오전 메일·문의 정리 · 미전환 콜 목록 · 시공의뢰 이탈자 재연락' },
     { mate: 'dandan', name: '단단', board: 'b2b-exp', title: 'B2B 노출 보드', t: '10:00', dow: [1, 4], cat: 'content', what: 'B2B 콘텐츠 원고 · 체험단 모집글 · 인플루언서 섭외' },
@@ -946,7 +936,7 @@
   const isStaffEmail = (email, roles) => !!email && ((roles && roles.staffs) || []).includes(email); // 직원: 고객의 소리 입력만
 
   const api = { STORE_MODE, OPEN_ROOT, OWNER_EMAILS, storeMode, col, isAdminEmail, isUploaderEmail, isStaffEmail,
-    mdLite, noteParts, parsePosts, postPlain, postBlocks, postHtml, pasteHtml, blogCheck, photoParts, CHANNEL, POST_STATUS, postId, DRAFT_CH, canDraft, TEAM, CREW_LIVE, CREW_ASIDE, teamShown, teamMember, runsOn, teamDay, nextRun, RUN_WORD, nowKST, AUTO_CATS, AUTO_WHERE, AUTO_STATUS, AUTOMATIONS, automations, autoWord, autoNext, autoSummary, VOC_TYPES, VOC_SOURCES, VOC_URGENT_TYPE, VOC_REPEAT, maskPII, vocDoc, vocSummary, vocLinks, HUB_URL, obsidianOpenUri, CHANNELS, obsidianNote, obsidianUri, OBSIDIAN_NOTE, DEFAULT_SETTINGS, stockRows, salesRows, dailyRevenue, numbersNote, AUTO_SALES, BRAND_L, STALE_SALES, STALE_STOCK, daysSince, autoSalesRows, mergeSales, brandSales, crmRiskRows, OBSIDIAN_HUB, OBSIDIAN_HUB_SECTION, FIELDS, channelOf, parseTable, toNumber, analyze, reducedCsv, buildDocs, hash, stockPlan, keywordAdvice, addDays, yesterdayKST, utf8Bytes, MAX_CSV_BYTES };
+    mdLite, noteParts, parsePosts, postPlain, postBlocks, postHtml, pasteHtml, blogCheck, photoParts, CHANNEL, POST_STATUS, postId, DRAFT_CH, canDraft, TEAM, CREW_LIVE, CREW_ASIDE, teamShown, teamMember, runsOn, teamDay, nextRun, RUN_WORD, nowKST, AUTO_CATS, AUTO_WHERE, AUTO_STATUS, AUTOMATIONS, automations, autoWord, autoNext, autoSummary, VOC_TYPES, VOC_SOURCES, VOC_URGENT_TYPE, VOC_REPEAT, maskPII, vocDoc, vocSummary, vocLinks, HUB_URL, obsidianOpenUri, CHANNELS, obsidianNote, obsidianUri, OBSIDIAN_NOTE, DEFAULT_SETTINGS, stockRows, salesRows, dailyRevenue, numbersNote, AUTO_SALES, BRAND_L, STALE_SALES, STALE_STOCK, daysSince, autoSalesRows, mergeSales, brandSales, OBSIDIAN_HUB, OBSIDIAN_HUB_SECTION, FIELDS, channelOf, parseTable, toNumber, analyze, reducedCsv, buildDocs, hash, stockPlan, keywordAdvice, addDays, yesterdayKST, utf8Bytes, MAX_CSV_BYTES };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.MktCore = api;
 })(typeof window !== 'undefined' ? window : globalThis);

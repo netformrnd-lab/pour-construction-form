@@ -10,11 +10,11 @@ ck("열쇠: 여러 번 = id · 정한 날 = fx:id", rtKey("ak", "ak_ux") === "ak
 // 2. 할 일 이름 · 짝 지을 수 있는 할 일 (실행 한 줄 있는 것 + 아침 루틴)
 ck("할 일 이름: 겨울 C · 여름 아침 루틴 · 없는 글자", actTitle("gyeoul", "C").startsWith("상세페이지") && actTitle("yeoreum", NO_ACT) === "아침 루틴 원고" && actTitle("gyeoul", NO_ACT) === "" && actTitle("gyeoul", "Z") === "");
 const pa = pairActs("yeoreum").map((a) => a.c), pg = pairActs("gyeoul").map((a) => a.c), pu = pairActs("uju").map((a) => a.c);
-ck("짝 지을 할 일: 여름 = 아침 루틴 + 실행 있는 것 (2026-10-17 메타 C·발굴 E·디맨드젠 F 는 옮김)", JSON.stringify(pa) === JSON.stringify([NO_ACT, "A", "B", "D", "G", "H", "I"]), pa);
-ck("짝 지을 할 일: 우주 A(자동 측정) 빠짐 · 겨울 F 는 가을 F 로 합침 · 우주 D·E·F 는 바람·봄으로 (2026-10-17)", JSON.stringify(pg) === JSON.stringify(["A", "B", "C", "E", "G"]) && JSON.stringify(pu) === JSON.stringify(["B", "C"]) && JSON.stringify(pairActs("baram").map((a) => a.c)) === JSON.stringify(["A", "B", "C"]), { pg, pu });
+ck("짝 지을 할 일: 여름 = 아침 루틴 + 실행 있는 것 (2026-10-17 메타 C·발굴 E·디맨드젠 F 는 옮김 · J A/B 실험 새로)", JSON.stringify(pa) === JSON.stringify([NO_ACT, "A", "B", "D", "G", "H", "I", "J"]), pa);
+ck("짝 지을 할 일: 우주 A(자동 측정) 빠짐 · 겨울 F 는 가을 F 로 합침 · 우주 D·E·F 는 바람·봄으로 (2026-10-17)", JSON.stringify(pg) === JSON.stringify(["B", "C", "G", "H", "I"]) && JSON.stringify(pu) === JSON.stringify(["B", "C", "G", "H"]) && JSON.stringify(pairActs("baram").map((a) => a.c)) === JSON.stringify(["A", "B", "C", "D", "E"]) && JSON.stringify(pairActs("ieum").map((a) => a.c)) === JSON.stringify(["A", "B", "C", "D", "E", "F"]), { pg, pu });   // 2026-10-17 사장님 정의: 겨울 A → 이음 F · E → 바람 D · 새 겨울 H·I · 우주 G·H · 바람 E
 ck("쉬는 AI(포리)는 없음", pairActs("pori").length === 0);
 const pga = pairActs("gaeul").map((a) => a.c);
-ck("광고 할 일(외주 + 내부 관리 · 2026-10-16): 가을 D 쿠팡·E 네이버·G 메타(여름 C 에서)·H 디맨드젠·I 오늘의집 짝 지을 수 있음 · F 광고 보고도(승인 = 그날 체크 · 2026-10-17) · A 감시는 빠짐", JSON.stringify(pga) === JSON.stringify(["B", "D", "E", "F", "G", "H", "I"]), { pa, pga });
+ck("광고 할 일(외주 + 내부 관리 · 2026-10-16): 가을 D 쿠팡·E 네이버·G 메타(여름 C 에서)·H 디맨드젠·I 오늘의집 짝 지을 수 있음 · F 광고 보고도(승인 = 그날 체크 · 2026-10-17) · A 감시는 빠짐", JSON.stringify(pga) === JSON.stringify(["B", "D", "E", "F", "G", "H", "I", "J"]), { pa, pga });   // J = 키워드·소재 A/B 실험 (2026-10-17)
 ck("지금 있는 할 일의 짝·담당만 (옮긴 옛 글자 여름 C 빼고 · 옛 기록은 그대로 둠)", JSON.stringify([liveAk("yeoreum", { actAk: { C: "ak_gh_ad", A: ["ak_gh_influch"], [NO_ACT]: "ak_c_b2c", Z: "x", B: "" } }), liveActOwners("uju", { actOwners: { D: "mini", B: "minji", E: "minji", C: "" } }), liveAk("x", null)]) === JSON.stringify([{ A: ["ak_gh_influch"], [NO_ACT]: ["ak_c_b2c"] }, { B: "minji" }, {}]));
 // 3. 짝 목록
 const mates = { gyeoul: { actAk: { C: "ak_gh_detail", E: "" } }, yeoreum: { actAk: { [NO_ACT]: "ak_c_b2c", A: "fx:f9" } }, pori: { actAk: { A: "ak_x" } }, uju: { actAk: { Z: "ak_y" } } };
@@ -86,21 +86,22 @@ ck("추천: B2B 보드 = 이름에 B2B 있는 것 · POUR스토어 것 (단단 �
 ck("추천: B2B 보드는 B2B 표시 없는 업무를 안 가져감 ('체험단 모집 공지' = 여름 A · 그로홈·POUR스토어 둘 다) · 시공의뢰 이탈자는 B2B(척척 C)", ["grohome", "pourstore"].every((br) => { const x = rtSuggest([{ key: "fx:c1", name: "체험단 모집 공지", brand: br, kind: "fx", owners: ["cr"] }], {}); return x.length === 1 && x[0].mate === "yeoreum" && x[0].act === "A"; }) && rtSuggest([{ key: "fx:c2", name: "시공의뢰 이탈자 재연락", brand: "pourstore", kind: "fx" }], {})[0].mate === "cheokcheok");
 ck("추천: AARRR 정리 (2026-10-17) — 추천제 = 바람 A · 타겟 광고 = 가을 G(그로홈 먼저) · 광고 확인 = 가을 F", by["baram.A"] === "ak_ref" && by["gaeul.G"] === "ak_gh_ad" && rtSuggest([{ key: "fx:ad", name: "광고 확인", brand: "common", kind: "fx", owners: ["mj"] }], {})[0].act === "F", by);
 ck("추천: 겨울 C ← 상세페이지 고도화 · 봄 H ← 그로홈 프로모션 진행(2026-10-17 우주 E 에서) · 자사몰 UX/UI = 겨울 C(전환 · 볼트 설계표 E) — 할 일 하나엔 추천 하나라 상세가 먼저면 UX 는 추천 없음", by["gyeoul.C"] === "ak_gh_detail" && by["bom.H"] === "ak_gh_promo" && !by["uju.B"] && !Object.values(by).includes("ak_ux") && rtSuggest([{ key: "ak_ux", name: "자사몰 UX/UI 관리개선 확인", brand: "pourstore", kind: "ak" }], {})[0].mate === "gyeoul", by);
-ck("추천: 바람 B ← 리뷰 프로모션 진행확인(2026-10-17 우주 D 에서) · 겨울 E ← 리뷰·후기 유도(인플루언서 리뷰 아님)", by["baram.B"] === "ak_gh_rvpromo" && by["gyeoul.E"] === "ak_review", by);
+ck("추천: 바람 B ← 리뷰 프로모션 진행확인(2026-10-17 우주 D 에서) · 바람 D ← 리뷰·후기 유도(2026-10-17 겨울 E 에서 · 인플루언서 리뷰 아님)", by["baram.B"] === "ak_gh_rvpromo" && by["baram.D"] === "ak_review", by);
 ck("추천: 할 일 하나엔 반복 실행 하나 · 반복 실행 하나엔 할 일 하나", new Set(S.map((s) => s.key)).size === S.length && new Set(S.map((s) => s.mate + s.act)).size === S.length);
 ck("추천: 담당 한 명이면 그 사람(결과 확인·실행) · 여럿이면 비움", S.find((s) => s.key === "ak_gh_detail").owner === "u_ak_gh_detail" && S.find((s) => s.key === "ak_c_b2c").owner === "");
 ck("추천: 아침 루틴(_)은 할 일 담당 안 정함", rtSuggest([{ key: "k1", name: "블로그 포스팅", brand: "pourstore", kind: "ak", owners: ["yj"] }], {})[0].owner === "");
 const S2 = rtSuggest(rows, { gyeoul: { actAk: { C: "ak_ux" } } }), by2 = Object.fromEntries(S2.map((s) => [s.mate + "." + s.act, s.key]));
 ck("추천: 이미 짝 지은 할 일·반복 실행은 건너뜀 · 옮긴 옛 글자 짝은 안 막음", !by2["gyeoul.C"] && !Object.values(by2).includes("ak_ux") && by2["bom.H"] === "ak_gh_promo" && rtSuggest(rows, { uju: { actAk: { E: "ak_gh_promo" } } }).some((x) => x.key === "ak_gh_promo" && x.mate === "bom"), by2);
 const S3 = rtSuggest([{ key: "fx:f1", name: "리뷰 관리", brand: "grohome", kind: "fx" }], {});
-ck("추천: 정한 날 체크도 (여러 번 하는 것이 없으면)", S3.length === 1 && S3[0].mate === "gyeoul" && S3[0].act === "E", S3);
+ck("추천: 정한 날 체크도 (여러 번 하는 것이 없으면)", S3.length === 1 && S3[0].mate === "baram" && S3[0].act === "D", S3);
+ck("추천: 재고·품절 = 이음 F (2026-10-17 · 비즈로지컴·쿠팡 로켓그로스)", rtSuggest([{ key: "fx:st", name: "주간 재고 점검", brand: "common", kind: "fx" }], {}).map((s) => s.mate + s.act).join() === "ieumF");
 
 // 6. 할 일 하나 ↔ 열쇠 여러 개 (2026-10-17 사장님 "현재 반복업무들 모두 ai크루든 도움받아서 해야해")
 ck("짝 값: 예전 글자 하나 · 목록 · 빈 값 · 같은 것 하나로", JSON.stringify([akKeys("ak_a"), akKeys(["ak_a", "fx:t1", "ak_a", ""]), akKeys(null), akKeys("")]) === JSON.stringify([["ak_a"], ["ak_a", "fx:t1"], [], []]));
 ck("저장 모양: 없음 null · 하나 = 글자(예전과 같음) · 여럿 = 목록", pairVal([]) === null && pairVal(["ak_a"]) === "ak_a" && JSON.stringify(pairVal(["ak_a", "ak_b", "ak_a"])) === JSON.stringify(["ak_a", "ak_b"]));
 ck("실행 업무 열쇠: aiAks 먼저 · 예전 aiAk", JSON.stringify([taskAks({ aiAks: ["a", "b"], aiAk: "a" }), taskAks({ aiAk: "x" }), taskAks({}), taskAks(null)]) === JSON.stringify([["a", "b"], ["x"], [], []]));
-const PM = rtPairs({ yeoreum: { actAk: { A: ["ak_influch", "ak_gh_influch", "fx:t9"] } }, gyeoul: { actAk: { A: ["fx:s1", "fx:m1"], C: "ak_gh_detail" } } });
-ck("짝 목록: 목록이면 열쇠마다", PM.get("ak_influch")[0].act === "A" && PM.get("ak_gh_influch")[0].mate === "yeoreum" && PM.get("fx:t9")[0].act === "A" && PM.get("fx:s1")[0].mate === "gyeoul" && PM.get("fx:m1")[0].act === "A" && PM.get("ak_gh_detail")[0].act === "C", [...PM.keys()]);
+const PM = rtPairs({ yeoreum: { actAk: { A: ["ak_influch", "ak_gh_influch", "fx:t9"] } }, ieum: { actAk: { F: ["fx:s1", "fx:m1"] } }, gyeoul: { actAk: { A: ["fx:old"], C: "ak_gh_detail" } } });   // 겨울 A = 2026-10-17 이음 F 로 옮긴 옛 글자 → 안 셈
+ck("짝 목록: 목록이면 열쇠마다 · 옮긴 옛 글자 빼고", PM.get("ak_influch")[0].act === "A" && PM.get("ak_gh_influch")[0].mate === "yeoreum" && PM.get("fx:t9")[0].act === "A" && PM.get("fx:s1")[0].mate === "ieum" && PM.get("fx:m1")[0].act === "F" && PM.get("ak_gh_detail")[0].act === "C" && !PM.has("fx:old"), [...PM.keys()]);
 const S4 = rtSuggest(rows, { gyeoul: { actAk: { C: ["ak_gh_detail", "ak_ux"] } } }), by4 = Object.fromEntries(S4.map((s) => [s.mate + "." + s.act, s.key]));
 ck("추천: 목록에 있는 열쇠도 이미 짝 지은 것", !by4["gyeoul.C"] && !Object.values(by4).includes("ak_ux") && !Object.values(by4).includes("ak_gh_detail"), by4);
 // 누른 사람 것만 · 실행 브랜드와 맞는 것만 (실데이터 모양: 채림 인플루언서 POUR·그로홈 · 송희·미니 재고 · 전체 고정업무)

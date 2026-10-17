@@ -16,11 +16,16 @@ ok("담당 없음 → 마스터만 · 지나면 빨강 n일 지남", () => {
   assert.equal(linkInbox([L({ owner: "" })], users, "minji", "2026-10-07").length, 0);
 });
 ok("처리된 것(open:false)은 안 보임", () => assert.equal(linkInbox([L({ open: false })], users, "ran", "2026-10-07").length, 0));
-ok("같은 종류 4줄 이상이면 한 줄로 묶음 (재고 위험 54건)", () => {
-  const ls = Array.from({ length: 54 }, (_, i) => L({ id: "s" + i, kind: "lowStock", title: `제품${i} 재고 위험`, owner: "", date: "", url: "https://pourstorecrm.web.app/products/stock" }));
+ok("같은 종류 4줄 이상이면 한 줄로 묶음 (재통화 54건)", () => {
+  const ls = Array.from({ length: 54 }, (_, i) => L({ id: "s" + i, kind: "recall", title: `고객${i}`, owner: "", date: "", url: "https://pourstorecrm.web.app/v2" }));
   const x = linkInbox([...ls, L()], users, "songhee", "2026-10-07");
-  assert.equal(x.length, 1 + 0); const g = x.find((y) => y.group); assert.ok(g && g.title === "재고 위험 54건" && /제품0 · 제품1 외 52건/.test(g.text) && g.url);
+  assert.equal(x.length, 1 + 0); const g = x.find((y) => y.group); assert.ok(g && g.title === "재통화 54건" && /고객0 · 고객1 외 52건/.test(g.text) && g.url);
   assert.equal(linkInbox([...ls.slice(0, 3)], users, "songhee", "2026-10-07").length, 3);
+});
+ok("CRM 재고 위험(lowStock) = 안 보임 (2026-10-17 POUR스토어 재고는 용인공장)", () => {
+  const ls = Array.from({ length: 54 }, (_, i) => L({ id: "k" + i, kind: "lowStock", title: `제품${i} 재고 위험`, owner: "", date: "", url: "https://pourstorecrm.web.app/products/stock" }));
+  assert.equal(linkInbox(ls, users, "songhee", "2026-10-07").length, 0);
+  assert.equal(linkInbox([...ls, L({ owner: "" })], users, "songhee", "2026-10-07").length, 1);
 });
 ok("CRM 큰 건(bigDeal) 태그 · 마진 낮음(marginLow) 빨강 · 마진 앱 이름", () => {
   const b = linkInbox([L({ id: "crm-big-1", kind: "bigDeal", title: "○○아파트 (큰 건)", sub: "견적 발송완료 · 384만원" })], users, "ran", "2026-10-07")[0];

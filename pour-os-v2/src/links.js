@@ -10,6 +10,9 @@ import { isMaster } from "./model.js";
 
 export const LINK_TAG = { recall: "재통화", visit: "방문예약", dealerOrder: "대리점 발주", dealerChat: "대리점 채팅", lowStock: "재고 위험", marginLow: "마진 낮음", quoteAccepted: "견적 수락", bigDeal: "큰 건", priceReq: "가격 컨펌", aiReview: "AI 검토", voc: "고객의 소리", publish: "발행" };
 export const LINK_APP = { crm: "CRM", margin: "마진", mkt: "마케팅 허브" };
+// 안 띄우는 종류 — lowStock(POUR스토어 CRM 재고 위험) = 2026-10-17 사장님 "스토어 재고는 앞으로 우리가 관리안해도돼. 용인공장이 처리해주니까 우린 비즈로지컴, 쿠팡그로스만 확인하면돼"
+//   (그로홈 재고 = AI 크루 이음 F · 비즈로지컴·쿠팡 로켓그로스 · CRM 다리도 2026-10-17 부터 안 씀 — 예전에 열린 줄이 남아 있어도 여기서 안 보임)
+export const LINK_OFF = new Set(["lowStock"]);
 const clean = (s) => String(s || "").replace(/\s/g, "");
 // 이름으로 업무OS 사람 찾기 (같은 이름 → 끝이 같은 사람이 딱 1명)
 export function linkOwnerId(l, users) {
@@ -38,7 +41,7 @@ export function linkInbox(links, users, uid, key) {
 }
 function linkRows(links, users, uid, key) {
   const me = (users || []).find((u) => u.id === uid); if (!me) return [];
-  return (links || []).filter((l) => l && l.open !== false && (!l.date || l.date <= key)).filter((l) => { const o = linkOwnerId(l, users); return o ? o === uid : isMaster(me); })
+  return (links || []).filter((l) => l && l.open !== false && !LINK_OFF.has(l.kind) && (!l.date || l.date <= key)).filter((l) => { const o = linkOwnerId(l, users); return o ? o === uid : isMaster(me); })
     .map((l) => { const late = l.date && l.date < key ? dd(key, l.date) : 0;
       return { kind: "link", src: l.src || "crm", whoName: LINK_APP[l.src || "crm"] || "", tag: LINK_TAG[l.kind] || "알림", red: late > 0 || l.kind === "marginLow", id: "lk:" + l.id + ":" + (l.date || ""), title: l.title || "", url: l.url || "",
         text: [l.sub, l.time, late ? `${late}일 지남` : "", !linkOwnerId(l, users) && l.owner ? `담당 ${l.owner}` : ""].filter(Boolean).join(" · "), at: l.at || "", keep: true, _k: l.kind || "" }; });

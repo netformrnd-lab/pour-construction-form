@@ -100,7 +100,7 @@ const boxOf = (S, label) => S().getByLabel(label + ' 글').inputValue().catch(()
   ok('세팅 시트: 내 PC · 겨울 09:00 · 아직 안 올림 · 세팅 순서 · 로그인해 둘 곳 · 고칠 것 확인', sx.includes('내 PC · AI 크루 1명') && sx.includes('겨울 · 전환마케터') && sx.includes('아직 한 번도 안 올림') && sx.includes('세팅 순서') && /로그인해 둘 곳 \d+곳/.test(sx) && sx.includes('고칠 것 확인') && !sx.includes('PC 고르기'));
   await s.S().getByRole('button', { name: '겨울 Aside 글 복사' }).click(); await s.pg.waitForTimeout(300);
   const lt = await boxOf(s.S, '겨울 Aside 글 복사');
-  ok('[겨울 Aside 글 복사] → 예약 글 (내 PC 09:00 · 허브 겨울 보드 주소)', lt.startsWith('[AI 크루 · 겨울 (전환마케터)') && lt.split('\n')[0].endsWith('평일 09:00') && lt.includes('crew.html#gh-conv'));
+  ok('[겨울 Aside 글 복사] → 예약 글 (내 PC 09:00 · 허브 겨울 보드 주소)', lt.startsWith('[AI 크루 · 겨울 (전환마케터 · UX/UI·응대)') && lt.split('\n')[0].endsWith('평일 09:00') && lt.includes('crew.html#gh-conv'));
   await s.S().getByRole('button', { name: '고칠 것 확인 글 복사' }).click(); await s.pg.waitForTimeout(300);
   ok('[고칠 것 확인 글 복사] → 내 PC 보드만', (await boxOf(s.S, '고칠 것 확인 글 복사')).startsWith('[AI 크루 · 고칠 것만 확인 — 겨울]'));
   await shot(s.pg, 'yj-setup-375'); ok('세팅 시트 넘침 없음 375', !(await over(s.pg)));
@@ -130,7 +130,7 @@ const boxOf = (S, label) => S().getByLabel(label + ' 글').inputValue().catch(()
   await shot(s.pg, 'yj-aiteam-375'); ok('AI 팀원 목록 넘침 없음 375', !(await over(s.pg)));
   await s.S().getByText('겨울 · 전환마케터').click(); await s.pg.waitForTimeout(600);
   const tx = await s.S().innerText();
-  ok('AI 한 장: 보드 지표 · 할 일 · 고칠 점 · Aside 루틴 줄', tx.includes('전환 보드') && tx.includes('자사몰 구매전환율') && tx.includes('7.4%') && tx.includes('할 일 A~G') && tx.includes('쿠팡 로켓그로스 재고도') && tx.includes('Aside 루틴 · 평일 09:00 · 내 PC') && tx.includes('횟수 (담당이 정함)') && tx.includes('B · 옵션안') && (await s.S().getByRole('button', { name: '지금 돌리기 — Aside 글 복사' }).count()) === 1 && (await s.S().locator('a[href$="crew.html#gh-conv"]').count()) > 0);
+  ok('AI 한 장: 보드 지표 · 할 일 · 고칠 점 · Aside 루틴 줄', tx.includes('전환 보드') && tx.includes('자사몰 구매전환율') && tx.includes('7.4%') && tx.includes('할 일 B~I') && tx.includes('구매 길 점검') && tx.includes('단계 미션 · 전환') && tx.includes('Aside 루틴 · 평일 09:00 · 내 PC') && tx.includes('횟수 (담당이 정함)') && tx.includes('B · 옵션안') && (await s.S().getByRole('button', { name: '지금 돌리기 — Aside 글 복사' }).count()) === 1 && (await s.S().locator('a[href$="crew.html#gh-conv"]').count()) > 0);
   ok('보드에 마진·원가 칸 없음', !/마진 \d|원가|공급 단가/.test(tx));
   await shot(s.pg, 'yj-mate-top-375');
   await s.S().getByRole('button', { name: '규칙으로' }).first().click(); await s.pg.waitForTimeout(500);
@@ -313,7 +313,7 @@ ST.v2.aiboards['gh-conv'].at = '2026-10-12T00:10:00.000Z';
   await s.pg.locator('.v2-nav').getByRole('button', { name: '더보기' }).click(); await s.pg.waitForTimeout(300);
   await s.pg.getByText(/^AI 팀원 · 내가 맡은 AI 1/).click(); await s.pg.waitForTimeout(500);
   await s.S().getByText('AI에게 업무 맡기기').click(); await s.pg.waitForTimeout(500);
-  ok('맡기기 시트: AI 6명 · 버튼 잠김(아직 안 고름)', (await s.S().getByText('겨울 · 전환마케터').count()) > 0 && (await s.S().getByText('봄 · MD · 프로모션·판매채널').count()) > 0 && await s.pg.getByRole('button', { name: 'AI 팀원을 골라 주세요' }).isDisabled());
+  ok('맡기기 시트: AI 6명 · 버튼 잠김(아직 안 고름)', (await s.S().getByText('겨울 · 전환마케터').count()) > 0 && (await s.S().getByText('봄 · MD · 볼륨(판매채널·프로모션)').count()) > 0 && await s.pg.getByRole('button', { name: 'AI 팀원을 골라 주세요' }).isDisabled());
   await s.S().getByText('겨울 · 전환마케터').click(); await s.S().getByText('상품 상세 이탈 진단 1건').click();
   await s.S().getByText('표', { exact: true }).click(); await s.S().getByText('3개', { exact: true }).click(); await s.S().getByText('내일', { exact: true }).click();
   await s.S().getByLabel('자세히').fill('쿠팡 유리블러 상세 · 리뷰가 맨 끝이라 이탈');
@@ -348,29 +348,29 @@ ST.v2.aiboards['gh-conv'].at = '2026-10-12T00:10:00.000Z';
   await s.close(); }
 
 // ⑨ (2026-10-15 사장님) 최종 승인 = 리드 · 본부장 승인 = 광고비 예산·원가·판매가 조정만 · 할 일 담당(재고·주문 = 윤미니 / 상세 = 김민지 같은) · 흔적 → 반복 실행 +1(KPI)
-//   허지은 = 겨울 E 담당 김민지 · 반복 실행 짝 → 남윤정 C 승인 → 김민지 E 승인 → 김송희(리드) E 최종 → 김소연(리드) C [본부장에게도 올리기] → 허지은 C 최종 → 김민지 흔적(E1 했어요 +1 · E2 안 함) → 끝냄
+//   (2026-10-17 사장님 AARRR 정의로 겨울 E 리뷰 → 바람 D · 이 시험은 같은 흐름을 겨울 G 로) 허지은 = 겨울 G 담당 김민지 · 반복 실행 짝 → 남윤정 C 승인 → 김민지 E 승인 → 김송희(리드) E 최종 → 김소연(리드) C [본부장에게도 올리기] → 허지은 C 최종 → 김민지 흔적(G1 했어요 +1 · G2 안 함) → 끝냄
 V1D['state-actionKPIs'] = { items: [{ id: 'x_rv', name: '리뷰 신고·답글', cyc: 'W', goal: 10, unit: '건', who: [], active: true, startDate: '2026-09-28' }] };
 const NOW9 = '2026-10-14T10:00:00+09:00';
-ST.v2.aiasks.ai_gyeoul_20261014_ghconvE = ask({ id: 'ai_gyeoul_20261014_ghconvE', run: '2026-10-14', mate: 'gyeoul', brand: 'grohome', board: 'gh-conv', act: 'E', owner: 'yj', title: '전환 보드 E · 리뷰 정리', cols: ['채널', '리뷰', '링크'], items: [{ n: 'E1', c: { 채널: '쿠팡', 리뷰: '같은 문장 3건', 링크: 'https://www.coupang.com/vp/products/1' } }, { n: 'E2', c: { 채널: '네이버', 리뷰: '1점 답글', 링크: 'https://smartstore.naver.com/x/products/2' } }], exec: '승인되면 담당이 리뷰 신고·답글을 단다' });
+ST.v2.aiasks.ai_gyeoul_20261014_ghconvG = ask({ id: 'ai_gyeoul_20261014_ghconvG', run: '2026-10-14', mate: 'gyeoul', brand: 'grohome', board: 'gh-conv', act: 'G', owner: 'yj', title: '전환 보드 E · 리뷰 정리', cols: ['채널', '리뷰', '링크'], items: [{ n: 'G1', c: { 채널: '쿠팡', 리뷰: '같은 문장 3건', 링크: 'https://www.coupang.com/vp/products/1' } }, { n: 'G2', c: { 채널: '네이버', 리뷰: '1점 답글', 링크: 'https://smartstore.naver.com/x/products/2' } }], exec: '승인되면 담당이 리뷰 신고·답글을 단다' });
 ST.v2.aiasks.ai_gyeoul_20261014_ghconvC = ask({ id: 'ai_gyeoul_20261014_ghconvC', run: '2026-10-14', mate: 'gyeoul', brand: 'grohome', board: 'gh-conv', act: 'C', owner: 'yj', title: '전환 보드 C · 상세 첫 화면', cols: ['상품', '고칠 점'], items: [{ n: 'C1', c: { 상품: '유리블러', '고칠 점': '첫 화면에 가격' } }], exec: '승인되면 담당이 상세페이지를 고친다' });
 { let s = await session('hj', { now: NOW9 });
   await s.pg.locator('.v2-nav').getByRole('button', { name: '더보기' }).click(); await s.pg.waitForTimeout(300);
   await s.pg.getByText(/^크루\(브랜드·고객별\) · 담당 → 리드 승인/).click(); await s.pg.waitForTimeout(500);
   await s.S().getByText('겨울 · 전환마케터').click(); await s.pg.waitForTimeout(600);
-  await s.S().getByText('E · 리뷰 정리 + 진짜 포토리뷰 확보', { exact: true }).click(); await s.pg.waitForTimeout(300);
-  await s.S().getByLabel('E 할 일 담당').selectOption('mj'); await s.pg.waitForTimeout(600);
-  ok('할 일 담당 → 토스트 · 열린 승인 1건 넘김', (await s.pg.locator('.v2-toast').innerText()).includes('E 담당 남윤정(AI 담당) → 김민지 · 열린 승인 1건 넘김'));
-  await s.S().getByLabel('E 반복 실행 짝 더하기').selectOption('x_rv'); await s.pg.waitForTimeout(600);
-  ok('반복 실행 짝 → 토스트', (await s.pg.locator('.v2-toast').innerText()).includes("E 반복 실행 짝 리뷰 신고·답글"));
+  await s.S().getByText('G · 구매 미전환 고객 콜 목록·통화 스크립트 (B2C)', { exact: true }).click(); await s.pg.waitForTimeout(300);
+  await s.S().getByLabel('G 할 일 담당').selectOption('mj'); await s.pg.waitForTimeout(600);
+  ok('할 일 담당 → 토스트 · 열린 승인 1건 넘김', (await s.pg.locator('.v2-toast').innerText()).includes('G 담당 남윤정(AI 담당) → 김민지 · 열린 승인 1건 넘김'));
+  await s.S().getByLabel('G 반복 실행 짝 더하기').selectOption('x_rv'); await s.pg.waitForTimeout(600);
+  ok('반복 실행 짝 → 토스트', (await s.pg.locator('.v2-toast').innerText()).includes("G 반복 실행 짝 리뷰 신고·답글"));
   const tx = await s.S().innerText();
-  ok('할 일 줄: E 담당 김민지 · 반복 · B 본부장 승인(판매가) · C 리드에서 끝', tx.includes("담당 김민지 · 매일 11:00 · 반복 '리뷰 신고·답글'") && tx.includes('담당 남윤정 · 본부장 승인(판매가 조정)') && tx.includes('담당 남윤정 · 히어로 4종 순서대로'));
+  ok('할 일 줄: E 담당 김민지 · 반복 · B 본부장 승인(판매가) · C 리드에서 끝', tx.includes("담당 김민지 · 매주 월요일 · 반복 '리뷰 신고·답글'") && tx.includes('담당 남윤정 · 본부장 승인(판매가 조정)') && tx.includes('담당 남윤정 · 히어로 4종 순서대로'));
   await s.S().getByText('B · 쿠팡 유리블러 가격·구성 재설계', { exact: true }).click(); await s.pg.waitForTimeout(300);
   ok('B 본부장 승인 기본 = 받음 · 판매가 조정', (await s.S().getByLabel('B 본부장 승인').locator('option').first().innerText()).includes('받음 · 판매가 조정'));
   await shot(s.pg, 'hj-actset-375'); ok('할 일 설정 넘침 없음 375', !(await over(s.pg)));
   await s.close();
   const m = doc('aimates', 'gyeoul');
-  eq('할 일 담당 · 반복 실행 짝 저장 (aimates · 기록)', [m.actOwners, m.actAk, (m.hist || []).length >= 2], [{ E: 'mj' }, { E: 'x_rv' }, true]);
-  eq('열린 E 승인 → 김민지 · C 는 그대로 남윤정', [doc('aiasks', 'ai_gyeoul_20261014_ghconvE').to, doc('aiasks', 'ai_gyeoul_20261014_ghconvE').owner, doc('aiasks', 'ai_gyeoul_20261014_ghconvC').to], ['mj', 'mj', 'yj']); }
+  eq('할 일 담당 · 반복 실행 짝 저장 (aimates · 기록)', [m.actOwners, m.actAk, (m.hist || []).length >= 2], [{ G: 'mj' }, { G: 'x_rv' }, true]);
+  eq('열린 E 승인 → 김민지 · C 는 그대로 남윤정', [doc('aiasks', 'ai_gyeoul_20261014_ghconvG').to, doc('aiasks', 'ai_gyeoul_20261014_ghconvG').owner, doc('aiasks', 'ai_gyeoul_20261014_ghconvC').to], ['mj', 'mj', 'yj']); }
 { let s = await session('yj', { now: NOW9 });
   await expand(s.pg);
   eq('남윤정: E 는 안 보임(김민지 담당) · C 는 보임', [await inbox(s.pg, '리뷰 정리').count(), await inbox(s.pg, '상세 첫 화면').count()], [0, 1]);
@@ -385,7 +385,7 @@ ST.v2.aiasks.ai_gyeoul_20261014_ghconvC = ask({ id: 'ai_gyeoul_20261014_ghconvC'
   await inbox(s.pg, '리뷰 정리').first().click(); await s.pg.waitForTimeout(500);
   const tx = await s.S().innerText();
   ok('E 길 = 김민지 ● → 김송희 (본부장 없음) · 본부장 표시 없음', tx.includes('김민지') && tx.includes('김송희') && !tx.includes('허지은') && !tx.includes('본부장 승인 ·'));
-  await s.S().getByRole('checkbox').filter({ hasText: 'E1' }).click(); await s.S().getByRole('checkbox').filter({ hasText: 'E2' }).click();
+  await s.S().getByRole('checkbox').filter({ hasText: 'G1' }).click(); await s.S().getByRole('checkbox').filter({ hasText: 'G2' }).click();
   await s.S().getByRole('button', { name: '고른 2개 승인 → 김송희님께' }).click(); await s.pg.waitForTimeout(600);
   await s.close(); }
 { let s = await session('sh', { now: NOW9, w: 768, h: 1000 });
@@ -396,9 +396,9 @@ ST.v2.aiasks.ai_gyeoul_20261014_ghconvC = ask({ id: 'ai_gyeoul_20261014_ghconvC'
   await s.S().getByRole('button', { name: '고른 2개 최종 승인' }).click(); await s.pg.waitForTimeout(700);
   ok('토스트: 김민지님께 실행 업무', (await s.pg.locator('.v2-toast').innerText()).includes("김민지님께 '실행' 업무가 생겼어요"));
   await s.close();
-  const d = doc('aiasks', 'ai_gyeoul_20261014_ghconvE'), x = doc('tasks', 'aix_ai_gyeoul_20261014_ghconvE');
+  const d = doc('aiasks', 'ai_gyeoul_20261014_ghconvG'), x = doc('tasks', 'aix_ai_gyeoul_20261014_ghconvG');
   eq('리드 최종 승인 (본부장 안 감)', [d.state, d.okBy, d.path], ['ok', 'sh', ['mj', 'sh']]);
-  eq('실행 업무 = 할 일 담당(김민지) · 번호마다 한 줄·링크 · 반복 짝', x && [x.assigneeId, x.aiAk, x.aiItems.map((y) => [y.n, y.link])], ['mj', 'x_rv', [['E1', 'https://www.coupang.com/vp/products/1'], ['E2', 'https://smartstore.naver.com/x/products/2']]]); }
+  eq('실행 업무 = 할 일 담당(김민지) · 번호마다 한 줄·링크 · 반복 짝', x && [x.assigneeId, x.aiAk, x.aiItems.map((y) => [y.n, y.link])], ['mj', 'x_rv', [['G1', 'https://www.coupang.com/vp/products/1'], ['G2', 'https://smartstore.naver.com/x/products/2']]]); }
 { let s = await session('sy', { now: NOW9 });
   await inbox(s.pg, '상세 첫 화면').first().click(); await s.pg.waitForTimeout(500);
   eq('리드(김소연) C = 최종 승인 버튼', await s.S().getByRole('button', { name: '고른 1개 최종 승인' }).count(), 1);
@@ -416,21 +416,21 @@ ST.v2.aiasks.ai_gyeoul_20261014_ghconvC = ask({ id: 'ai_gyeoul_20261014_ghconvC'
   eq('본부장 최종 → 남윤정 실행 업무', [doc('aiasks', 'ai_gyeoul_20261014_ghconvC').state, (doc('tasks', 'aix_ai_gyeoul_20261014_ghconvC') || {}).assigneeId], ['ok', 'yj']); }
 { let s = await session('mj', { now: NOW9 });
   await inbox(s.pg, '실행 · 겨울').first().click(); await s.pg.waitForTimeout(500);
-  ok('흔적 상자: 2개 · 짝지은 반복 실행에도 +1 안내 · AI 링크 채워짐', (await s.S().innerText()).includes('2개 중 0개 남김') && (await s.S().innerText()).includes('짝지은 반복 실행(내 것)에도 +1') && (await s.S().getByLabel('E1 링크').inputValue()) === 'https://www.coupang.com/vp/products/1');
-  await s.S().getByRole('button', { name: 'E1 했어요' }).click(); await s.pg.waitForTimeout(700);
-  ok("E1 했어요 → 반복 '리뷰 신고·답글' +1", (await s.pg.locator('.v2-toast').innerText()).includes("반복 '리뷰 신고·답글' +1"));
-  await s.S().getByRole('button', { name: 'E2 안 함' }).click(); await s.S().getByLabel('E2 안 한 이유').fill('판매자 답글 권한 없음'); await s.S().getByRole('button', { name: 'E2 안 함 남기기' }).click(); await s.pg.waitForTimeout(600);
+  ok('흔적 상자: 2개 · 짝지은 반복 실행에도 +1 안내 · AI 링크 채워짐', (await s.S().innerText()).includes('2개 중 0개 남김') && (await s.S().innerText()).includes('짝지은 반복 실행(내 것)에도 +1') && (await s.S().getByLabel('G1 링크').inputValue()) === 'https://www.coupang.com/vp/products/1');
+  await s.S().getByRole('button', { name: 'G1 했어요' }).click(); await s.pg.waitForTimeout(700);
+  ok("G1 했어요 → 반복 '리뷰 신고·답글' +1", (await s.pg.locator('.v2-toast').innerText()).includes("반복 '리뷰 신고·답글' +1"));
+  await s.S().getByRole('button', { name: 'G2 안 함' }).click(); await s.S().getByLabel('G2 안 한 이유').fill('판매자 답글 권한 없음'); await s.S().getByRole('button', { name: 'G2 안 함 남기기' }).click(); await s.pg.waitForTimeout(600);
   let k = await s.pg.evaluate(() => [window.__V2.v2.kpiact['2026-Q4'], window.__V2.v2.checks['ak~x_rv~mj~2026-10-14']]);
-  eq('반복 실행 +1 = 이번 주 · 흔적(승인 id · 번호 · 링크) 같이 · 그날 기록', [k[0].w['2026-10-12'].x_rv.n, k[0].log.slice(-1)[0].ai, k[1].runs, k[1].recs.slice(-1)[0].ai.n], [1, { ask: 'ai_gyeoul_20261014_ghconvE', n: 'E1', link: 'https://www.coupang.com/vp/products/1' }, 1, 'E1']);
-  await s.S().getByRole('button', { name: 'E1 되돌리기' }).click(); await s.pg.waitForTimeout(700);
+  eq('반복 실행 +1 = 이번 주 · 흔적(승인 id · 번호 · 링크) 같이 · 그날 기록', [k[0].w['2026-10-12'].x_rv.n, k[0].log.slice(-1)[0].ai, k[1].runs, k[1].recs.slice(-1)[0].ai.n], [1, { ask: 'ai_gyeoul_20261014_ghconvG', n: 'G1', link: 'https://www.coupang.com/vp/products/1' }, 1, 'G1']);
+  await s.S().getByRole('button', { name: 'G1 되돌리기' }).click(); await s.pg.waitForTimeout(700);
   k = await s.pg.evaluate(() => window.__V2.v2.kpiact['2026-Q4'].w['2026-10-12'].x_rv.n);
   eq('되돌리기 → 반복 실행 −1', k, 0);
-  await s.S().getByRole('button', { name: 'E1 했어요' }).click(); await s.pg.waitForTimeout(700);
+  await s.S().getByRole('button', { name: 'G1 했어요' }).click(); await s.pg.waitForTimeout(700);
   ok('다 남김 · 했어요 1개', (await s.S().innerText()).includes('다 남김 · 했어요 1개'));
   await shot(s.pg, 'mj-trace-375'); ok('흔적 넘침 없음 375', !(await over(s.pg)));
   await s.pg.getByRole('button', { name: '끝냈어요', exact: true }).click(); await s.pg.waitForTimeout(600);
-  const t = await s.pg.evaluate(() => window.__V2.v2.tasks.aix_ai_gyeoul_20261014_ghconvE);
-  eq('흔적: E1 했어요 · E2 안 함(이유) · 끝냄', [t.aiTrace.E1.done, t.aiTrace.E2.skip, t.aiTrace.E2.note, t.status], [true, true, '판매자 답글 권한 없음', 'done']);
+  const t = await s.pg.evaluate(() => window.__V2.v2.tasks.aix_ai_gyeoul_20261014_ghconvG);
+  eq('흔적: G1 했어요 · G2 안 함(이유) · 끝냄', [t.aiTrace.G1.done, t.aiTrace.G2.skip, t.aiTrace.G2.note, t.status], [true, true, '판매자 답글 권한 없음', 'done']);
   await s.close(); }
 
 // ⑩ AI 크루 보고 (2026-10-15 사장님 "본부장은 리드에게 매주 금요일 보고받음 · 크루 칸별 · 실행 · 결과(유입·전환) · 다음(AI 피드백 + 사람)" · "한동안 주간 → 점차 1개월")
@@ -447,7 +447,7 @@ ST.v2.aiasks.ai_byeol_20261016_opsreportA = { ...ask({ id: 'ai_byeol_20261016_op
   const tx = await s.S().innerText();
   ok('보고서: 이번 주 · 다음 할 일 = 내 칸 겨울 · 칸 8개 (공통 숫자 별 + AARRR 6 + 봄 MD · 2026-10-17)', tx.includes('이번 주') && tx.includes('10/12~10/18') && tx.includes('내 칸 겨울') && tx.includes('크루 칸 8'), tx.slice(0, 400));
   ok('겨울 칸: 실행 2 · 남음 1 · 흔적 2 · 안 함 1 · 전환 7.4% ← 6.1% · KPI +1 · AI 다음', tx.includes('실행 업무 끝냄 2 · 남음 1 · 흔적 2 · 안 함 1') && tx.includes('7.4% ← 6.1% · 목표 7% ✓') && tx.includes("반복 '리뷰 신고·답글' +1") && tx.includes('롤러 재입고 알림 켜기'), tx.slice(0, 900));
-  ok('다른 칸은 접힘 · 담당 미정 · 한 줄 요약', tx.includes('MD · 봄(AI)') && tx.includes('지인추천 · 바람(AI)') && tx.includes('담당 미정'));
+  ok('다른 칸은 접힘 · 담당 미정 · 한 줄 요약', tx.includes('매출 · 봄(AI)') && tx.includes('매출 · 하늘(AI)') && tx.includes('지인추천 · 바람(AI)') && tx.includes('담당 미정'));
   await s.S().getByText("내 '이번주 리포트 전달' · 쓸 것").scrollIntoViewIfNeeded(); await shot(s.pg, 'yj-report-memo-375');
   ok("리포트 ②: 내 칸 위에 '이번주 리포트 전달' 메모(쓸 것) · 다 쓰면 체크", tx.includes("내 '이번주 리포트 전달' · 쓸 것") && tx.includes('이탈 구간(상세페이지)') && tx.includes('매주 금 11:00 · 다 쓰면 체크돼요'), tx.slice(0, 700));
   // 리포트 ④: 칸에 파일 붙이기 (HTML·사진) → 하나 빼기 (올린 사람 · 올린 날)
@@ -633,7 +633,7 @@ ST.v2.aiboards['gh-traffic'] = { id: 'gh-traffic', board: 'gh-traffic', at: '202
   eq('아침 루틴이 올라오면 줄 없음', await inbox(s.pg, '아침 루틴이 아직 안 올라왔어요').count(), 0);
   await s.pg.locator('.v2-nav').getByRole('button', { name: '더보기' }).click(); await s.pg.waitForTimeout(300);
   await s.pg.getByText(/^AI 팀원 · 내가 맡은 AI/).click(); await s.pg.waitForTimeout(500);
-  await s.S().getByText('여름 · 유입마케터 · 콘텐츠·인플루언서').first().click(); await s.pg.waitForTimeout(500);
+  await s.S().getByText('여름 · 유입마케터 · 바이럴·콘텐츠').first().click(); await s.pg.waitForTimeout(500);
   ok('여름 한 장: 오늘 아침 루틴 07:02 올라옴', (await s.S().innerText()).includes('07:02 올라옴 · 승인 1건'));
   await s.close(); }
 { let s = await session('hj', { now: MON, w: 1280, h: 900 });
@@ -650,54 +650,54 @@ ST.v2.aiboards['gh-traffic'] = { id: 'gh-traffic', board: 'gh-traffic', at: '202
   await s.close(); }
 
 // ⑬ 할 일 하나 ↔ 반복업무 여러 개 (2026-10-17 사장님 "현재 반복업무들 모두 ai크루든 도움받아서 해야해") — 10/20(화) 10:00
-//   허지은(관리자) = 겨울 A 짝 = 재고 확인(송희) + 재고 확인/발주(김민지) · 최종 승인(김송희 · 리드) → 실행 업무 2개(송희 · 민지 몫)
+//   허지은(관리자) = 이음 F 짝(2026-10-17 사장님 AARRR · 예전 겨울 A 재고 → 이음 F) = 재고 확인(송희) + 재고 확인/발주(김민지) · 최종 승인(김송희 · 리드) → 실행 업무 2개(송희 · 민지 몫)
 //   [했어요] = 누른 사람 것만 체크 · 가을 F(광고 보고 · 실행 없음) 짝 = 광고 확인(민지) → 민지가 승인하면 그날 체크
 const TUE = '2026-10-20T10:00:00+09:00';
 const fx = (id, title, who) => ({ id, title, isFixed: true, type: 'fixed', recurType: 'daily', status: 'todo', assigneeId: who, assigneeIds: [who], brand: 'common', scope: 'brand', createdAt: T0, statusLog: [] });
 Object.assign(ST.v2.tasks, { fx_stock_sh: fx('fx_stock_sh', '재고 확인', 'sh'), fx_stock_mj: fx('fx_stock_mj', '재고 확인/발주', 'mj'), fx_ad_mj: fx('fx_ad_mj', '광고 확인', 'mj') });
-ST.v2.aimates.gyeoul = { ...(ST.v2.aimates.gyeoul || { owners: {}, rules: [] }), actOwners: { ...((ST.v2.aimates.gyeoul || {}).actOwners || {}), A: 'sh' } };
+ST.v2.aimates.ieum = { ...(ST.v2.aimates.ieum || { owners: {}, rules: [] }), actOwners: { ...((ST.v2.aimates.ieum || {}).actOwners || {}), F: 'sh' } };
 ST.v2.aimates.gaeul = { ...(ST.v2.aimates.gaeul || { owners: {}, rules: [] }), actAk: { F: 'fx:fx_ad_mj' }, actOwners: { F: 'mj' } };
-ST.v2.aiasks.ai_gyeoul_20261020_ghconvA = ask({ id: 'ai_gyeoul_20261020_ghconvA', at: '2026-10-20T00:30:00.000Z', run: '2026-10-20', mate: 'gyeoul', brand: 'grohome', board: 'gh-conv', act: 'A', owner: 'sh', title: '전환 보드 A · 품절 0', cols: ['상품', '가용재고'], items: [{ n: 'A1', c: { 상품: '롤러 미니', 가용재고: '0' } }, { n: 'A2', c: { 상품: '유리블러', 가용재고: '12' } }], exec: '승인되면 담당이 재고를 확인하고 발주한다' });
+ST.v2.aiasks.ai_ieum_20261020_opsorderF = ask({ id: 'ai_ieum_20261020_opsorderF', at: '2026-10-20T00:30:00.000Z', run: '2026-10-20', mate: 'ieum', brand: 'grohome', board: 'ops-order', act: 'F', owner: 'sh', title: '주문·배송·재고 보드 F · 품절 0', cols: ['상품', '재고'], items: [{ n: 'F1', c: { 상품: '롤러 미니', 재고: '0' } }, { n: 'F2', c: { 상품: '유리블러', 재고: '12' } }], exec: '승인되면 담당이 재고를 확인하고 발주한다' });
 ST.v2.aiasks.ai_gaeul_20261020_ghtrafficF = ask({ id: 'ai_gaeul_20261020_ghtrafficF', at: '2026-10-20T00:30:00.000Z', run: '2026-10-20', mate: 'gaeul', brand: 'grohome', board: 'gh-traffic', act: 'F', owner: 'mj', title: '유입 보드 F · 광고 분석', sum: '쿠팡·네이버 ROAS', exec: '' });
 { let s = await session('hj', { now: TUE });
   await s.pg.locator('.v2-nav').getByRole('button', { name: '더보기' }).click(); await s.pg.waitForTimeout(300);
   await s.pg.getByText(/^크루\(브랜드·고객별\) · 담당 → 리드 승인/).click(); await s.pg.waitForTimeout(500);
-  await s.S().getByText('겨울 · 전환마케터').click(); await s.pg.waitForTimeout(600);
-  await s.S().getByText(/^A · /).first().click(); await s.pg.waitForTimeout(300);
-  await s.S().getByLabel('A 반복 실행 짝 더하기').selectOption('fx:fx_stock_sh'); await s.pg.waitForTimeout(600);
-  await s.S().getByLabel('A 반복 실행 짝 더하기').selectOption('fx:fx_stock_mj'); await s.pg.waitForTimeout(600);
-  let m = await s.pg.evaluate(() => window.__V2.v2.aimates.gyeoul);
-  eq('짝 여러 개 = 목록으로 저장 · 기록은 {list}(배열 안 배열 아님)', [m.actAk.A, m.hist.slice(-1)[0].ch['actAk.A']], [['fx:fx_stock_sh', 'fx:fx_stock_mj'], ['fx:fx_stock_sh', { list: ['fx:fx_stock_sh', 'fx:fx_stock_mj'] }]]);
-  ok('짝 칩 2개 · 토스트', (await s.S().getByRole('button', { name: /A 반복 실행 짝 빼기/ }).count()) === 2 && (await s.pg.locator('.v2-toast').innerText()).includes('A 반복 실행 짝 재고 확인 · 재고 확인/발주'));
+  await s.S().getByText('이음 · 주문·배송·재고 매니저').first().click(); await s.pg.waitForTimeout(600);
+  await s.S().getByText(/^F · /).first().click(); await s.pg.waitForTimeout(300);
+  await s.S().getByLabel('F 반복 실행 짝 더하기').selectOption('fx:fx_stock_sh'); await s.pg.waitForTimeout(600);
+  await s.S().getByLabel('F 반복 실행 짝 더하기').selectOption('fx:fx_stock_mj'); await s.pg.waitForTimeout(600);
+  let m = await s.pg.evaluate(() => window.__V2.v2.aimates.ieum);
+  eq('짝 여러 개 = 목록으로 저장 · 기록은 {list}(배열 안 배열 아님)', [m.actAk.F, m.hist.slice(-1)[0].ch['actAk.F']], [['fx:fx_stock_sh', 'fx:fx_stock_mj'], ['fx:fx_stock_sh', { list: ['fx:fx_stock_sh', 'fx:fx_stock_mj'] }]]);
+  ok('짝 칩 2개 · 토스트', (await s.S().getByRole('button', { name: /F 반복 실행 짝 빼기/ }).count()) === 2 && (await s.pg.locator('.v2-toast').innerText()).includes('F 반복 실행 짝 재고 확인 · 재고 확인/발주'));
   await s.pg.waitForTimeout(5300);   // 토스트(5초) 지나고
   await s.S().getByText('반복 실행 짝', { exact: true }).first().click(); await s.pg.waitForTimeout(400);
-  eq("'반복 실행 짝' 글자를 눌러도 칩이 안 빠짐 (label 안에 ✕ 버튼 없음)", (await s.pg.evaluate(() => window.__V2.v2.aimates.gyeoul.actAk.A)).length, 2);
-  await s.S().getByRole('button', { name: /A 반복 실행 짝 빼기/ }).first().scrollIntoViewIfNeeded();
+  eq("'반복 실행 짝' 글자를 눌러도 칩이 안 빠짐 (label 안에 ✕ 버튼 없음)", (await s.pg.evaluate(() => window.__V2.v2.aimates.ieum.actAk.F)).length, 2);
+  await s.S().getByRole('button', { name: /F 반복 실행 짝 빼기/ }).first().scrollIntoViewIfNeeded();
   await shot(s.pg, 'hj-multipair-375'); ok('짝 여러 개 시트 넘침 없음 375', !(await over(s.pg)));
   await s.close(); }
 { let s = await session('sh', { now: TUE });
-  await s.pg.evaluate(() => { location.hash = '#a-ai_gyeoul_20261020_ghconvA'; }); await s.pg.waitForTimeout(800);
+  await s.pg.evaluate(() => { location.hash = '#a-ai_ieum_20261020_opsorderF'; }); await s.pg.waitForTimeout(800);
   await s.S().getByRole('button', { name: '모두 고르기' }).click();
   await s.S().getByRole('button', { name: '고른 2개 최종 승인' }).click(); await s.pg.waitForTimeout(800);
-  const t1 = await s.pg.evaluate(() => window.__V2.v2.tasks.aix_ai_gyeoul_20261020_ghconvA), t2 = await s.pg.evaluate(() => window.__V2.v2.tasks['aix_ai_gyeoul_20261020_ghconvA~mj']), a = await s.pg.evaluate(() => window.__V2.v2.aiasks.ai_gyeoul_20261020_ghconvA);
-  eq('최종 승인 → 실행 업무 2개 (송희 · 민지 몫 = 민지 열쇠만)', [t1 && t1.assigneeId, t1 && t1.aiAks, t2 && t2.assigneeId, t2 && t2.aiAks, a.execTasks], ['sh', ['fx:fx_stock_sh', 'fx:fx_stock_mj'], 'mj', ['fx:fx_stock_mj'], ['aix_ai_gyeoul_20261020_ghconvA', 'aix_ai_gyeoul_20261020_ghconvA~mj']]);
+  const t1 = await s.pg.evaluate(() => window.__V2.v2.tasks.aix_ai_ieum_20261020_opsorderF), t2 = await s.pg.evaluate(() => window.__V2.v2.tasks['aix_ai_ieum_20261020_opsorderF~mj']), a = await s.pg.evaluate(() => window.__V2.v2.aiasks.ai_ieum_20261020_opsorderF);
+  eq('최종 승인 → 실행 업무 2개 (송희 · 민지 몫 = 민지 열쇠만)', [t1 && t1.assigneeId, t1 && t1.aiAks, t2 && t2.assigneeId, t2 && t2.aiAks, a.execTasks], ['sh', ['fx:fx_stock_sh', 'fx:fx_stock_mj'], 'mj', ['fx:fx_stock_mj'], ['aix_ai_ieum_20261020_opsorderF', 'aix_ai_ieum_20261020_opsorderF~mj']]);
   ok('토스트 = 두 사람께 실행 업무', (await s.pg.locator('.v2-toast').innerText()).includes("김송희·김민지님께 '실행' 업무가 생겼어요"));
   ok('승인 한 장: 반복업무 담당마다 실행 업무 2개 · 내 실행 업무 보기', (await s.S().innerText()).includes('반복업무 담당마다 실행 업무 2개') && (await s.S().getByRole('button', { name: /^내 실행 업무 보기/ }).count()) === 1);
   await s.S().getByRole('button', { name: /^내 실행 업무 보기/ }).click(); await s.pg.waitForTimeout(500);
-  await s.S().getByRole('button', { name: 'A1 했어요' }).click(); await s.pg.waitForTimeout(700);
+  await s.S().getByRole('button', { name: 'F1 했어요' }).click(); await s.pg.waitForTimeout(700);
   ok('송희 [했어요] = 송희 재고 확인만 체크', (await s.pg.locator('.v2-toast').innerText()).includes("'재고 확인' 오늘 체크") && !(await s.pg.locator('.v2-toast').innerText()).includes('재고 확인/발주'));
   eq('체크: 송희 것 오늘 · 민지 것 그대로', [(await s.pg.evaluate(() => window.__V2.v2.tasks.fx_stock_sh.doneDates || {})).sh, (await s.pg.evaluate(() => window.__V2.v2.tasks.fx_stock_mj.doneDates || {})).mj], ['2026-10-20', undefined]);
   await s.close(); }
 { let s = await session('mj', { now: TUE });
-  await s.pg.evaluate(() => { location.hash = '#t-aix_ai_gyeoul_20261020_ghconvA~mj'; }); await s.pg.waitForTimeout(800);
-  await s.S().getByRole('button', { name: 'A2 했어요' }).click(); await s.pg.waitForTimeout(700);
+  await s.pg.evaluate(() => { location.hash = '#t-aix_ai_ieum_20261020_opsorderF~mj'; }); await s.pg.waitForTimeout(800);
+  await s.S().getByRole('button', { name: 'F2 했어요' }).click(); await s.pg.waitForTimeout(700);
   ok('민지 몫 실행 [했어요] = 민지 재고 확인/발주 체크', (await s.pg.locator('.v2-toast').innerText()).includes("'재고 확인/발주' 오늘 체크"));
   eq('체크: 민지 것 오늘', (await s.pg.evaluate(() => window.__V2.v2.tasks.fx_stock_mj.doneDates || {})).mj, '2026-10-20');
-  const tr = await s.pg.evaluate(() => window.__V2.v2.aiasks.ai_gyeoul_20261020_ghconvA.trace || {});
-  eq('승인 건 흔적: 송희 A1 · 민지 몫 A2@mj (서로 안 덮음)', [!!(tr.A1 && tr.A1.done), !!(tr['A2@mj'] && tr['A2@mj'].done), Object.keys(tr).sort()], [true, true, ['A1', 'A2@mj']]);
+  const tr = await s.pg.evaluate(() => window.__V2.v2.aiasks.ai_ieum_20261020_opsorderF.trace || {});
+  eq('승인 건 흔적: 송희 F1 · 민지 몫 F2@mj (서로 안 덮음)', [!!(tr.F1 && tr.F1.done), !!(tr['F2@mj'] && tr['F2@mj'].done), Object.keys(tr).sort()], [true, true, ['F1', 'F2@mj']]);
   await s.pg.keyboard.press('Escape'); await s.pg.waitForTimeout(300);
-  await s.pg.evaluate(() => { location.hash = '#a-ai_gyeoul_20261020_ghconvA'; }); await s.pg.waitForTimeout(800);
-  { const at = await s.S().innerText(); ok('승인 한 장 흔적 = A1·A2 둘 다 (사람 칸 글자 없음)', at.includes('A1 했어요 ✓') && at.includes('A2 했어요 ✓') && !at.includes('A2@'), at.slice(0, 600)); }
+  await s.pg.evaluate(() => { location.hash = '#a-ai_ieum_20261020_opsorderF'; }); await s.pg.waitForTimeout(800);
+  { const at = await s.S().innerText(); ok('승인 한 장 흔적 = F1·F2 둘 다 (사람 칸 글자 없음)', at.includes('F1 했어요 ✓') && at.includes('F2 했어요 ✓') && !at.includes('F2@'), at.slice(0, 600)); }
   await s.pg.keyboard.press('Escape'); await s.pg.waitForTimeout(300);
   await s.pg.evaluate(() => { location.hash = '#a-ai_gaeul_20261020_ghtrafficF'; }); await s.pg.waitForTimeout(800);
   await s.S().getByRole('button', { name: /^승인 → 김송희님께/ }).click(); await s.pg.waitForTimeout(800);

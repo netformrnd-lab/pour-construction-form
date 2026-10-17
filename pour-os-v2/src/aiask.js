@@ -253,7 +253,15 @@ export const ranOn = (v, key) => !!(v && v.at) && ymd(new Date(v.at)) === key;  
 //   dow = 그 보드가 도는 요일(run.dow · 주 1~2회 보드 · 2026-10-17) — 그 요일이 아니면 안 돎 아님
 const runsOn = (key, dow) => !isOffDay(key) && (!Array.isArray(dow) || !dow.length || dow.includes(new Date(key + "T00:00:00").getDay()));
 export const missedOn = (v, t, now = new Date(), dow) => { const key = ymd(now); return runsOn(key, dow) && !!(v && v.at) && !ranOn(v, key) && hmOf(now) >= addMin(t, MISS_AFTER); };
-export const adsAsideVer = (D) => (((D && D.settings) || []).find((x) => x && (x.id || x._doc) === "adsAside") || {}).ver || "";   // 광고 Aside 예약 글 넣은 판 (settings/adsAside)
+export const adsAsideDoc = (D) => ((D && D.settings) || []).find((x) => x && (x.id || x._doc) === "adsAside") || {};
+export const adsAsideVer = (D) => adsAsideDoc(D).ver || "";   // 광고 Aside 예약 글 넣은 판 (settings/adsAside)
+// 광고 Aside 예약 글 알림 받는 사람 (2026-10-17 사장님 "Aside 예약은 김송희에게만 os에 알림뜨게해" · 여름 세션 전달)
+//   settings/adsAside.ownerId(관리자 설정에서 바꿈 · 사용 중인 사람) → 없으면 이름이 김송희인 사람 1명 → 둘 다 없으면 '' = 관리자 누구나(예전처럼)
+export const ADS_ASIDE_DEFAULT = "김송희";
+export const adsAsideOwner = (D) => { const us = ((D && D.users) || []).filter((u) => u && u.active !== false), id = adsAsideDoc(D).ownerId;
+  if (id && us.some((u) => u.id === id)) return id;
+  const d = us.filter((u) => String(u.name || "").trim() === ADS_ASIDE_DEFAULT); return d.length === 1 ? d[0].id : ""; };
+export const canAdsAside = (D, cu) => !!cu && (isMaster(cu) || cu.id === adsAsideOwner(D));
 
 // ── 멈춤 감시 (2026-10-17 사장님 고름 · 볼트 세션 점검: AI 승인 '확인할 것'에 나이 조건이 없음 · 쉬는 AI 4건 72~96시간째 · 여름 2건 최종까지 42시간
 //    · 담당 미정 보드는 안 돌아도 아무에게도 안 감 · 아침 루틴은 감지 없음(10/16 GitHub 막힘 → 다음 날 00:09 에야 올라감)) ──
@@ -355,8 +363,10 @@ export function asideInbox(D, uid, now = new Date(), seen = {}) {
     out.push({ kind: "aiRoutine", tag: "AI 안 돎", red: true, id, mate: x.mate, whoName: `${x.name} (AI)`, at: `${key}T${ROUTINE_AT}:00`,
       title: `오늘 ${x.name}(AI) 아침 루틴이 아직 안 올라왔어요`, text: `평일 ${ROUTINE_AT} 블로그 원고·재배포 · Claude 예약 작업이 막혔을 수 있어요 · 누르면 사장님께 보낼 글` }); });
   // 광고 Aside 예약 글 (2026-10-17 사장님 "어사이드에게 예약글 넣어서 진행하는거 까먹을것같은데 os 확인할것에 나오게해줘")
-  //   settings/adsAside.ver 가 지금 예약 글 판(adops.ASIDE_ADS_LAUNCH_VER)보다 옛것이면 관리자 누구나 한 줄(keep) · 누르면 광고 운영 화면 · [넣었어요] = core.adsAsideDone
-  if (isMaster(me) && String(adsAsideVer(D)) < ASIDE_ADS_LAUNCH_VER)
+  //   settings/adsAside.ver 가 지금 예약 글 판(adops.ASIDE_ADS_LAUNCH_VER)보다 옛것이면 한 줄(keep) · 누르면 광고 운영 화면 · [넣었어요] = core.adsAsideDone
+  //   받는 사람 = adsAsideOwner (기본 김송희 · 2026-10-17 · 담당이 정해지면 그 사람만 · 없으면 관리자 누구나)
+  const aaOwner = adsAsideOwner(D);
+  if ((aaOwner ? uid === aaOwner : isMaster(me)) && String(adsAsideVer(D)) < ASIDE_ADS_LAUNCH_VER)
     out.push({ kind: "adsAside", tag: "Aside 광고", id: `aa:${ASIDE_ADS_LAUNCH_VER}`, whoName: "광고 운영", at: ASIDE_ADS_LAUNCH_VER + "T00:00:00", keep: true,
       title: "새 예약 글 넣기 · 예약 2개", text: "누르면 광고 운영 → 맨 위 [예약 글 복사] → Aside '매일 08:30' · '금 16:00' 예약 글을 통째로 바꾸고 [넣었어요] · 한 번만 하면 지시문이 바뀌어도 그대로" });
   return out;

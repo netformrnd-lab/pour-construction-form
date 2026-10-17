@@ -11,6 +11,7 @@ import { wdOf } from "./common.jsx";
 import { LaunchOwnerSync } from "./LaunchLink.jsx";
 import { MoyImport } from "./MoyImport.jsx";
 import { pinHash } from "../sha.js";
+import { adsAsideDoc, adsAsideOwner, ADS_ASIDE_DEFAULT } from "../aiask.js";
 
 const KIND_L = { launch: "버전1 신제품 보드 다시 가져오기", all: "버전1 전체 다시 가져오기" };
 const NAVY_BTN = { background: C.navy, color: "#fff", borderColor: C.navy };
@@ -72,6 +73,7 @@ export function SettingsSheet({ D, cu, A, meta, setMeta, logout, onBack, onClose
     {/* 개발 수정 요청 (2026-10-16 · 좁은 화면에선 머리 [수정 요청]이 숨어서 여기 첫 줄) */}
     {open && <Card style={{ marginTop: 12 }}><Row title="개발 수정 요청" sub="불편한 점 · 고칠 점을 포스트잇으로 · 캡처는 붙여넣기로 바로" onClick={() => open({ type: "devreq", app: "admin" })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last /></Card>}
     <BulkCodes D={D} cu={cu} A={A} setToast={setToast} />
+    <AdsAsideOwner D={D} A={A} />
     <Head>신제품 대시보드 연결</Head>
     <LaunchOwnerSync D={D} cu={cu} A={A} setToast={setToast} />
     <Head>버전1에서 다시 가져오기</Head>
@@ -132,6 +134,19 @@ export function SettingsSheet({ D, cu, A, meta, setMeta, logout, onBack, onClose
     {ask === "run" && st && st.plan && <Ask title={KIND_L[st.kind]} body={`덮어쓸 문서 ${st.plan.overwrite} · 건너뛰는 문서 ${st.plan.skip} · 새로 생기는 문서 ${st.plan.fresh}\n· v2에서 정리한 담당·기한은 그대로 남아요 (메모·파일도)\n· 버전1은 읽기만 해요(바뀌지 않아요)\n· PIN · 주 한도 · 고정업무 체크 같은 v2 전용 칸은 그대로예요\n· 누르면 한 번 더 비교한 뒤 가져와요${st.plan.pinBack && st.plan.pinBack.length ? `\n· ${st.plan.pinBack.join("·")}님 PIN은 버전1 PIN으로 돌아가요` : ""}`} yes="가져오기" onNo={() => setAsk("")} onYes={run} />}
     {ask === "out" && <Ask title="이 기기에서 나가기" body={"다시 들어올 때 이름과 PIN을 넣어요."} yes="나가기" onNo={() => setAsk("")} onYes={() => { setAsk(""); logout(); }} />}
   </Sheet>;
+}
+
+// 광고 Aside 예약 글 알림 받는 사람 (2026-10-17 사장님 "Aside 예약은 김송희에게만 os에 알림뜨게해")
+//   settings/adsAside.ownerId · 비우면 기본(김송희 → 없으면 관리자 누구나) · 바꾸기 = A.adsAsideOwnerSet(조건부 · 기록 · 5초 되돌리기)
+export function AdsAsideOwner({ D, A }) {
+  const cur = adsAsideDoc(D).ownerId || "", who = adsAsideOwner(D), us = activeUsers(D.users), nm = (id) => (us.find((u) => u.id === id) || {}).name || "";
+  return <><Head>광고 Aside 예약 알림</Head>
+    <Card><div style={{ padding: "12px 14px" }}>
+      <div style={{ fontSize: 13.5, color: C.text, lineHeight: 1.6 }}>새 예약 글이 나오면 '확인할 것'에 뜨는 사람 · 지금 <b>{nm(who) || "관리자 누구나"}</b>{cur ? "" : " (기본)"}</div>
+      <select value={cur} onChange={(e) => A.adsAsideOwnerSet(e.target.value)} style={{ ...inp, fontSize: 16, marginTop: 8, width: "100%", maxWidth: 360 }} aria-label="광고 Aside 예약 알림 받는 사람">
+        <option value="">기본 ({ADS_ASIDE_DEFAULT} · 없으면 관리자 누구나)</option>
+        {us.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+      </select></div></Card></>;
 }
 
 // 신제품 순서표 (읽기 전용) — 설정 · 프로젝트 탭에서 같이 엶

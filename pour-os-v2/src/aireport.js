@@ -8,7 +8,7 @@
 //           ④ 다음(AI [다음주] = aiboards.nextHist + 사람이 더함) · 담당이 숫자 확인·한 줄 → [다 썼어요]
 //   리드(그 칸 담당의 상급자 중 리드) 한마디 → [본부장에게 보내기] = 그때 숫자를 얼림(snap) · 본부장 [읽었어요]
 //   저장: pour-os/v2/aireports/{크루}-{기간 시작} = {crew, cycle, start, end, due, secs:{AI id:{note, plan, done, sent, snap}}, leads:{리드 id:{note, at}}, read, log[]}
-import { addDays, ymd, md, nameOf, isMaster, isDone, isRemoved } from "./model.js";
+import { addDays, ymd, md, nameOf, isMaster, isDone, isRemoved, fxIds } from "./model.js";
 import { CREWS, GONE, mateOf, boardOf, fmtMetric, metricOk } from "../../marketing-hub/crew.js";
 import { mateOwner, bossOf, isLeadU, isHQ, MAX_UP } from "./aiask.js";
 import { doneDay, dayOfIso } from "./report.js";
@@ -107,8 +107,21 @@ export function metricLine(x) {
 export const trend = (x) => (!x.cur || !x.prev || x.cur.v === x.prev.v ? 0 : (x.cur.v > x.prev.v) === (x.dir !== "down") ? 1 : -1);   // 1 좋아짐 · −1 나빠짐
 
 // 칸 상태
-export const secState = (r, mateId) => { const s = ((r && r.secs) || {})[mateId] || {}; return s.sent ? "sent" : s.done ? "done" : s.note || s.plan ? "draft" : "none"; };
+export const secState = (r, mateId) => { const s = ((r && r.secs) || {})[mateId] || {}; return s.sent ? "sent" : s.done ? "done" : s.note || s.plan || (s.files || []).length ? "draft" : "none"; };
 export const SEC_L = { none: "작성 전", draft: "쓰는 중", done: "담당 확인", sent: "본부장에게 보냄" };
+
+// 리포트 ①② (2026-10-17 볼트 "주간 리포트 = AI 크루 보고서 · [다 썼어요] = 그 사람의 금요일 '이번주 리포트 전달' 자동 체크 · 반복업무 메모(내용물·포인트)를 그 칸 위에")
+//   사람마다 고정업무 '이번주 리포트 전달'(윤미니 · 김민지 · 양채림 · 매주 금 11:00 · 메모 = 쓸 것) — 그 사람이 담당(AI 담당)인 칸을 이번 기간에 다 쓰면 그 고정업무 오늘 체크
+export const REP_FX_RE = /이번\s*주\s*리포트\s*전달/;
+export const repFxOf = (D, uid) => (!uid ? null : (D.tasks || []).find((t) => t && t.isFixed && !isRemoved(t) && !t.paused && fxIds(t).includes(uid) && REP_FX_RE.test(String(t.title || ""))) || null);
+// 내가 담당인 칸 중 아직 안 쓴 것 (just = 방금 [다 썼어요] 누른 칸 {crew, mate} → 쓴 것으로) · 같이 쓰는 칸(할 일 담당)은 셈에서 뺌 — 그 칸은 담당이 끝냄
+export function myRepLeft(D, uid, p, just) {
+  const docs = (D.ai && D.ai.reports) || {};
+  return repCrews().flatMap((c) => { const r = docs[repId(c.id, p)] || {};
+    return repSlots(c.id).filter((m) => !(just && just.crew === c.id && just.mate === m.id) && secPeople(D, m).owner === uid && !["done", "sent"].includes(secState(r, m.id))); });
+}
+// 칸 파일 (리포트 ④ · "팀원은 자기 칸에 직접 만든 보고서(HTML·파일)를 올리거나 · 본부장은 보낸 때의 파일을 그대로 봄") — 보낸 칸 = snap.files · 아직 = secs.<AI>.files
+export const secFiles = (s, sent) => ((sent ? (s && s.snap && s.snap.files) || (s && s.files) : s && s.files) || []).filter((f) => f && f.url);
 
 // '확인할 것' 줄 (마감 날부터 · 보낼 때까지 · 지난 기간도 안 보냈으면 빨강) — model.todayView 가 D.aiRepInbox 로 부름(순환 import 피하려고)
 //   담당·같이 쓰는 사람: 그 칸 [다 썼어요] 전 · 리드: 내 칸 중 안 보낸 것 · 본부장: 보낸 칸이 있고 아직 안 읽음
@@ -137,7 +150,7 @@ export function repInbox(D, uid, now = new Date()) {
 }
 
 // 본부장에게 보낼 때 얼려 둘 칸 (지금 숫자 + 담당 글)
-export const snapOf = (data, s) => ({ ...data, note: (s && s.note) || "", plan: (s && s.plan) || "", doneBy: (s && s.done && s.done.byName) || "" });
+export const snapOf = (data, s) => ({ ...data, note: (s && s.note) || "", plan: (s && s.plan) || "", doneBy: (s && s.done && s.done.byName) || "", files: secFiles(s, false) });
 // 글로 복사 (잔디·카톡 공유용)
 export function repText(crew, p, rows, r) {
   const L = [`[AI 크루 ${CYCLE_L[p.cycle]} 보고] ${crew.short || crew.name} · ${periodL(p)} · ${dueL(p)}`];
@@ -147,6 +160,7 @@ export function repText(crew, p, rows, r) {
     d.metrics.filter((x) => x.cur || x.prev).forEach((x) => L.push(`- 결과 ${x.l}: ${metricLine(x)}`));
     d.ak.forEach((x) => L.push(`- KPI ${x.name}: +${x.n}`));
     if (s.note) L.push(`- 한 줄: ${s.note}`);
+    const fs = secFiles(s, !!s.sent); if (fs.length) L.push(`- 파일 ${fs.length}개: ${fs.map((f) => f.name || "파일").join(" · ")} (업무OS 보고서에서 열기)`);
     const nx = [d.aiNext, s.plan].filter(Boolean).join("\n").split("\n").map((x) => x.trim()).filter(Boolean);
     if (nx.length) L.push(`- 다음: ${nx.map((x) => x.replace(/^[-·•]\s*/, "")).join(" / ")}`);
   });

@@ -2,14 +2,18 @@
 //   "본부장은 리드에게 매주 금요일마다 보고받음 · 크루 칸별 · 한 주 동안 무엇을 실행했고, 결과는 어떤지(유입·전환), 다음 주는 어떻게(AI 피드백 + 사람이 더함)"
 //   한 화면에서 끝: 기간 ‹ › · 다음 할 일 한 줄 · 칸 카드(① 실행 ② 결과 ③ KPI ④ 다음 · 담당 글) · 아래 큰 버튼 하나(리드 = 본부장에게 보내기 · 본부장 = 읽었어요)
 //   담당(그 칸 AI 담당·할 일 담당) = 숫자 확인 · 한 줄 · 다음 계획 → [다 썼어요] · (관리자) 주기 주간 → 2주 → 월간
+//   리포트 ①~④ (2026-10-17 볼트 "주간 리포트 = AI 크루 보고서 · 사람이 따로 만들지 않음"): ① 담당 칸을 다 쓰면 그 사람 '이번주 리포트 전달' 오늘 체크(core.aiRepSec)
+//   ② 그 고정업무 메모(쓸 것)를 그 사람 첫 칸 위에 ③ '공통 숫자' 칸 = 별(AI) 초안 링크 ④ 칸에 파일 붙이기(HTML·PDF·사진 · 보낸 때 파일 그대로)
 import { useEffect, useMemo, useState } from "react";
 import * as fb from "./fb.js";
-import { md, hm, ymd, addDays, isMaster, nameOf } from "./model.js";
+import { md, hm, ymd, addDays, isMaster, nameOf, fxMeDone, fxTime, fxRecurL, fxLabel } from "./model.js";
 import { C, Big, TBtn, Seg, Card, Sheet, inp, Linked } from "./ui.jsx";
 import { CopyText } from "./aiui.jsx";
 import { useDoneSince } from "./reportui.jsx";
-import { isHQ } from "./aiask.js";
-import { CYCLE_L, WORD, cycleOf, periodOf, prevPeriod, nextPeriod, periodOfDoc, periodL, dueL, repSlots, repCrews, repId, secPeople, canWriteSec, secData, secState, SEC_L, metricLine, trend, repText } from "./aireport.js";
+import { isHQ, ASK_STATE_L } from "./aiask.js";
+import { FileList, useUploads, UpList, UpBtn, pasteFiles, rmProps, PASTE_HINT } from "./files.jsx";
+import { boardOf, runWord } from "../../marketing-hub/crew.js";
+import { CYCLE_L, WORD, cycleOf, periodOf, prevPeriod, nextPeriod, periodOfDoc, periodL, dueL, repSlots, repCrews, repId, secPeople, canWriteSec, secData, secState, SEC_L, metricLine, trend, repText, repFxOf, secFiles } from "./aireport.js";
 
 const Pill = ({ children, color = C.navy, bg = C.soft }) => <span style={{ display: "inline-block", fontSize: 12, fontWeight: 800, padding: "3px 8px", borderRadius: 6, color, background: bg, whiteSpace: "nowrap" }}>{children}</span>;
 const ST_TONE = { none: [C.sub, "#F1F2F6"], draft: [C.navy, C.soft], done: [C.green, "#E7F4EC"], sent: ["#fff", C.green] };
@@ -41,6 +45,8 @@ export function AiReportSheet({ D, cu, A, open, onBack, onClose, crew, start }) 
   const rows = repSlots(c.id).map((m) => { const s = (r.secs || {})[m.id] || {}, sent = !!s.sent, ppl = secPeople(D, m);
     return { m, s, sent, ppl, st: secState(r, m.id), d: sent && s.snap ? s.snap : secData(D2, m, p, pv, asks) }; });
   const noOwn = rows.filter((x) => !x.ppl.writers.length).length;
+  // 리포트 ② — 담당마다 '이번주 리포트 전달' 고정업무(메모 = 쓸 것)를 그 사람 첫 칸 위에 한 번
+  const fxNote = new Map(); rows.forEach((x) => { const u = x.ppl.owner; if (!u || fxNote.has(u)) return; const fx = repFxOf(D, u); fxNote.set(u, fx ? { fx, first: x.m.id } : null); });
   const n = rows.length, doneN = rows.filter((x) => x.st === "done" || x.st === "sent").length, sentN = rows.filter((x) => x.sent).length;
   const myW = rows.filter((x) => !x.sent && x.ppl.writers.includes(cu.id) && x.st !== "done");
   const myL = rows.filter((x) => !x.sent && x.ppl.lead === cu.id);   // 내가 리드인 칸만 (담당 미정 칸은 보내지 않음 · '확인할 것' 줄과 같은 기준)
@@ -68,7 +74,9 @@ export function AiReportSheet({ D, cu, A, open, onBack, onClose, crew, start }) 
       <div style={{ fontSize: 12.5, color: C.sub, marginTop: 4 }}>담당 확인 {doneN}/{n} · 보냄 {sentN}/{n}{noOwn ? ` · 담당 미정 ${noOwn}칸` : ""} · {r.read ? `본부장 읽음 ${when(r.read.at)}` : "본부장 아직 안 읽음"}</div></div>
     <div style={{ display: "flex", alignItems: "center", margin: "16px 2px 8px" }}><b style={{ flex: 1, fontSize: 14.5, color: C.ink }}>크루 칸 {n}</b>
       <TBtn onClick={() => setAllOpen(!allOpen)} aria-pressed={allOpen}>{allOpen ? "접기" : "모두 펼치기"}</TBtn></div>
-    {rows.map((row) => <SecCard key={row.m.id} D={D} cu={cu} A={A} c={c} p={p} row={row} open={open} expand={allOpen || (!row.sent && row.ppl.writers.includes(cu.id)) || row.ppl.lead === cu.id || (unread && row.sent) || rows.length <= 1} />)}
+    {rows.map((row) => { const fn = fxNote.get(row.ppl.owner), first = fn && fn.first === row.m.id;
+      return <div key={row.m.id}>{first && <RepFxNote D={D} cu={cu} A={A} uid={row.ppl.owner} fx={fn.fx} left={rows.filter((x) => x.ppl.owner === row.ppl.owner && x.st !== "done" && x.st !== "sent").map((x) => x.m.name)} n={rows.filter((x) => x.ppl.owner === row.ppl.owner).length} isCur={isCur} open={open} />}
+        <SecCard D={D} cu={cu} A={A} c={c} p={p} row={row} open={open} asks={asks} expand={allOpen || (!row.sent && row.ppl.writers.includes(cu.id)) || row.ppl.lead === cu.id || (unread && row.sent) || rows.length <= 1} /></div>; })}
     {Object.entries(r.leads || {}).filter(([, x]) => x && x.note).map(([id, x]) => <div key={id} style={{ margin: "10px 0 0", padding: "11px 13px", borderRadius: 12, background: "#fff", border: `1px solid ${C.line}`, fontSize: 13.5, lineHeight: 1.6 }}><b>리드 한마디</b> · {x.byName || nameOf(D.users, id)} {when(x.at)}<div style={{ whiteSpace: "pre-wrap" }}><Linked text={x.note} /></div></div>)}
     {r.read && r.read.note && <div style={{ margin: "10px 0 0", padding: "11px 13px", borderRadius: 12, background: "#fff", border: `1px solid ${C.line}`, fontSize: 13.5, lineHeight: 1.6 }}><b>본부장 한마디</b> · {r.read.byName} {when(r.read.at)}<div style={{ whiteSpace: "pre-wrap" }}><Linked text={r.read.note} /></div></div>}
     <div style={{ margin: "14px 0 4px", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-start" }}><CopyText text={repText(c, p, rows, r)} label="보고 글로 복사" />
@@ -79,9 +87,16 @@ export function AiReportSheet({ D, cu, A, open, onBack, onClose, crew, start }) 
   </Sheet>;
 }
 
-function SecCard({ D, cu, A, c, p, row, open, expand }) {
+function SecCard({ D, cu, A, c, p, row, open, expand, asks }) {
   const { m, s, d, sent, ppl, st } = row, [o, setO] = useState(null), on = o === null ? expand : o;
   const can = !sent && canWriteSec(D, cu, m, ppl), [tone, bg] = ST_TONE[st];
+  // ④ 칸 파일 — 직접 만든 보고서(HTML·PDF·사진) · 보낸 칸은 보낸 때 파일 그대로 · 빼기 = 올린 사람 · 올린 날
+  const rid = repId(c.id, p), files = secFiles(s, sent).map((f) => ({ ...f, src: { kind: "rep", doc: rid, mate: m.id } }));
+  const U = useUploads(A, `rep-${rid}-${m.id}`, (metas) => A.aiRepFiles(c.id, p, m.id, metas));
+  const onPaste = (e) => { if (!can) return; const fs = pasteFiles(e); if (!fs.length) return; e.preventDefault(); U.start(fs.slice(0, 10)); };
+  // ③ '공통 숫자' 칸 = 별(AI) 초안 — 이번 기간 A(공통 숫자 초안)·B(위험 재고 발주 제안) 마지막 결과
+  const bd = m.common ? boardOf(m.board) : null, drafts = bd ? ["A", "B"].map((k) => (asks || []).filter((a) => a && a.mate === m.id && a.act === k && a.run >= p.start && a.run <= p.end)
+    .sort((x, y) => String(y.run || "").localeCompare(String(x.run || "")) || String(y.createdAt || "").localeCompare(String(x.createdAt || "")))[0]).filter(Boolean) : [];
   const [nt, setNt] = useState(null), [pl, setPl] = useState(null), [busy, setBusy] = useState(false);
   const note = nt !== null ? nt : s.note || "", plan = pl !== null ? pl : s.plan || "", dirty = (nt !== null && nt !== (s.note || "")) || (pl !== null && pl !== (s.plan || ""));
   const go = async (f) => { if (busy) return; setBusy(true); try { if (await A.aiRepSec(c.id, p, m.id, f)) { setNt(null); setPl(null); } } finally { setBusy(false); } };
@@ -95,6 +110,10 @@ function SecCard({ D, cu, A, c, p, row, open, expand }) {
       {!on && <div style={{ fontSize: 12.5, color: C.text, marginTop: 3, lineHeight: 1.5, wordBreak: "break-word" }}>{sumL}</div>}
     </button>
     {on && <div style={{ padding: "0 14px 14px", fontSize: 13.5, color: C.text, lineHeight: 1.6 }}>
+      {bd && <Sec t={`${m.name}(AI) 초안${bd.run ? ` · ${runWord(bd.run)}` : ""}`}>{drafts.length ? drafts.map((a) => { const act = (bd.actions || []).find((x) => x.c === a.act);
+          return <div key={a.id} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 2 }}><button type="button" className="v2-lblink" onClick={() => open({ type: "aiask", id: a.id })} style={{ cursor: "pointer", fontFamily: "inherit", textAlign: "left", maxWidth: "100%" }}>{a.act} · {act ? act.t.replace(/\s*\(.*$/, "") : a.title} ›</button>
+            <span style={{ fontSize: 12.5, color: a.state === "ok" ? C.green : C.sub }}>{md(a.run)} · {ASK_STATE_L[a.state] || a.state}</span></div>; })
+        : <div style={{ color: C.mute }}>이번 기간 {m.name}(AI) 초안이 아직 없어요 · {bd.run ? runWord(bd.run) + " " : ""}Aside 가 올리면 여기 링크가 생겨요</div>}</Sec>}
       <Sec t="① 실행">
         <div>실행 업무 끝냄 <b>{d.doneN}</b>{d.openN ? ` · 남음 ${d.openN}` : ""} · 흔적 <b>{d.trace.done}</b>{d.trace.skip ? ` · 안 함 ${d.trace.skip}` : ""}</div>
         <div style={{ color: C.sub, fontSize: 12.5 }}>AI 결과 올라옴 {d.asks.made} · 승인 {d.asks.ok} · 안 함 {d.asks.no}{d.asks.req ? ` · 맡긴 일 ${d.asks.req}` : ""}{d.asks.open ? ` · 아직 열림 ${d.asks.open}` : ""}</div>
@@ -111,16 +130,21 @@ function SecCard({ D, cu, A, c, p, row, open, expand }) {
           : <div style={{ color: C.mute }}>AI 피드백 아직 없음 · 금요일 크루 결과의 [다음주] 세 줄이 여기로 와요</div>}
         {sent && (d.plan || s.plan) ? <div style={{ marginTop: 4 }}><span style={{ fontSize: 12.5, color: C.sub, fontWeight: 800 }}>사람이 더함</span>{lines(d.plan || s.plan).map((x, i) => <div key={i}>{x}</div>)}</div> : null}
       </Sec>
+      {(files.length > 0 || can) && <div style={{ marginTop: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}><span style={{ fontSize: 12.5, fontWeight: 800, color: C.navy, flex: 1, minWidth: 0 }}>{sent ? `보낸 때 파일 ${files.length}` : `직접 만든 보고서 · 파일 ${files.length}`}</span>{can && <UpBtn U={U} label="+ 파일 붙이기" />}</div>
+        {can && <div style={{ fontSize: 12, color: C.mute, lineHeight: 1.5, marginBottom: 6 }}>HTML·PDF·사진 · 보낼 때 이 파일 그대로 본부장에게{PASTE_HINT ? " · 캡처는 아래 글 칸에서 Ctrl+V" : ""}</div>}
+        <UpList U={U} style={{ marginBottom: 6 }} />
+        {files.length > 0 && <FileList files={files} {...rmProps(A, cu, !can)} />}</div>}
       {sent ? <div style={{ marginTop: 10, fontSize: 13, color: C.green, fontWeight: 800 }}>본부장에게 보냄 ✓ <span style={{ color: C.sub, fontWeight: 600 }}>{s.sent.byName} {when(s.sent.at)}{d.note ? ` · 한 줄: ${d.note}` : ""}{d.doneBy ? ` · 담당 확인 ${d.doneBy}` : ""}</span></div>
         : <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 10, background: "#F6F7FA" }}>
           <b style={{ fontSize: 13, color: C.ink }}>담당 확인</b> <span style={{ fontSize: 12, color: C.mute }}>위 숫자를 원래 화면(카페24·쿠팡·오늘의집…)에서 직접 보고 확인</span>
           {can ? <>
-            <textarea value={note} onChange={(e) => setNt(e.target.value)} rows={2} placeholder="한 줄 — 왜 올랐나·내렸나 (숫자가 틀리면 맞는 값도)" aria-label={`${m.name} 한 줄`} style={{ ...inp, padding: "9px 11px", fontSize: 14, marginTop: 6 }} />
-            <textarea value={plan} onChange={(e) => setPl(e.target.value)} rows={2} placeholder="다음 기간에 사람이 더할 것 (줄마다 하나)" aria-label={`${m.name} 다음 계획`} style={{ ...inp, padding: "9px 11px", fontSize: 14, marginTop: 6 }} />
+            <textarea value={note} onChange={(e) => setNt(e.target.value)} onPaste={onPaste} rows={2} placeholder="한 줄 — 왜 올랐나·내렸나 (숫자가 틀리면 맞는 값도)" aria-label={`${m.name} 한 줄`} style={{ ...inp, padding: "9px 11px", fontSize: 14, marginTop: 6 }} />
+            <textarea value={plan} onChange={(e) => setPl(e.target.value)} onPaste={onPaste} rows={2} placeholder="다음 기간에 사람이 더할 것 (줄마다 하나)" aria-label={`${m.name} 다음 계획`} style={{ ...inp, padding: "9px 11px", fontSize: 14, marginTop: 6 }} />
             <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap", alignItems: "center" }}>
               {st === "done" ? <><span style={{ fontSize: 13, color: C.green, fontWeight: 800 }}>다 썼어요 ✓ <span style={{ color: C.sub, fontWeight: 600 }}>{s.done.byName} {when(s.done.at)}</span></span>
                   {dirty && <TBtn v="solid" disabled={busy} onClick={() => go({ note, plan })}>고친 것 저장</TBtn>}<TBtn disabled={busy} onClick={() => go({ done: false })}>다시 고치기</TBtn></>
-                : <><TBtn v="solid" disabled={busy} onClick={() => go({ note, plan, done: true })} aria-label={`${m.name} 다 썼어요`}>숫자 확인하고 다 썼어요</TBtn>{dirty && <TBtn disabled={busy} onClick={() => go({ note, plan })}>저장만</TBtn>}</>}
+                : <><TBtn v="solid" disabled={busy || U.busy} onClick={() => go({ note, plan, done: true })} aria-label={`${m.name} 다 썼어요`}>{U.busy ? "파일 올리는 중" : "숫자 확인하고 다 썼어요"}</TBtn>{dirty && <TBtn disabled={busy} onClick={() => go({ note, plan })}>저장만</TBtn>}</>}
             </div></>
             : <div style={{ fontSize: 13, color: C.sub, marginTop: 4 }}>{s.done ? `다 썼어요 ✓ ${s.done.byName} ${when(s.done.at)}` : "아직 안 씀"}{s.note ? ` · ${s.note}` : ""}{s.plan ? <div style={{ whiteSpace: "pre-wrap" }}>{s.plan}</div> : null}</div>}
         </div>}
@@ -128,3 +152,19 @@ function SecCard({ D, cu, A, c, p, row, open, expand }) {
   </Card>;
 }
 const Sec = ({ t, children }) => <div style={{ marginTop: 10 }}><div style={{ fontSize: 12.5, fontWeight: 800, color: C.navy, marginBottom: 2 }}>{t}</div>{children}</div>;
+
+// 리포트 ② — '이번주 리포트 전달' 메모(쓸 것) · 내 것은 펼침 · 남의 것은 한 줄(눌러서 펼침) · 이번 기간이면 체크 상태(① 다 쓰면 체크)
+function RepFxNote({ D, cu, A, uid, fx, left, n, isCur, open }) {
+  const mine = uid === cu.id, [o, setO] = useState(null), on = o === null ? mine : o, today = ymd(new Date()), done = fxMeDone(fx, uid, today), tm = fxTime(fx, uid);
+  //   칸은 다 썼는데 체크가 없음 = 이 기능 전에 썼거나 관리자가 대신 [다 썼어요] → 본인에게 [지금 체크]
+  const st = !isCur ? "" : done ? "이번 주 체크 ✓" : left.length ? `${n > 1 ? `칸 ${n}개 중 ${left.length}개 남음 · ` : ""}다 쓰면 체크돼요` : "칸 다 씀 · 아직 체크 전";
+  return <div className="v2-repfx" style={{ marginTop: 12, borderRadius: 12, background: "#FFFBEA", border: "1px solid #F1E3A6" }}>
+    <button type="button" onClick={() => setO(!on)} aria-expanded={on} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 13px", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}><b style={{ flex: 1, minWidth: 0, fontSize: 13.5, color: C.ink }}>{mine ? "내" : `${nameOf(D.users, uid)}님`} '{fxLabel(fx, uid)}' · 쓸 것</b><span style={{ color: C.navy, fontWeight: 800 }}>{on ? "▴" : "▾"}</span></div>
+      <div style={{ fontSize: 12.5, color: done && isCur ? C.green : C.sub, marginTop: 2, fontWeight: done && isCur ? 800 : 600 }}>{fxRecurL(fx)}{tm ? ` ${tm}` : ""}{st ? ` · ${st}` : ""}{mine && isCur && left.length ? ` · 남은 내 칸 ${left.join("·")}` : ""}</div>
+    </button>
+    {on && <div style={{ padding: "0 13px 11px", fontSize: 13.5, color: C.text, lineHeight: 1.65 }}>
+      <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{fx.memo ? <Linked text={fx.memo} /> : <span style={{ color: C.mute }}>적어 둔 메모가 없어요</span>}</div>
+      <div style={{ marginTop: 6, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>{mine && isCur && !done && !left.length && <TBtn v="solid" onClick={() => A.fxToggle(fx)}>지금 체크</TBtn>}<TBtn v="plain" onClick={() => open({ type: "fixed", id: fx.id })}>반복 실행 보기 ›</TBtn></div></div>}
+  </div>;
+}

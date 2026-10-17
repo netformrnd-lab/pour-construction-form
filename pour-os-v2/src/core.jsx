@@ -25,9 +25,10 @@ import { sumAk, akWrite, countFields, countOf, baseTitle } from "./routine.js";
 import { linkInbox } from "./links.js";
 import { apprInbox, apprMerge } from "./appr.js";   // 구매 품의 요청 (2026-10-16)
 import { askInbox, asideInbox, planPass, planBack, planRet, planDrop, planExec, canAct, canBack, canRet, pickOk, bossLoop, moreText, MORE_MAX, hqOf, traceOf, traceLeft, mateOwner, isHQ, launchTaskOf, adsAsideVer } from "./aiask.js";   // AI 승인 (2026-10-12) · Aside 담당 PC (2026-10-15)
+import { moneyInbox } from "./money.js";   // 돈·결재 7건 알림 (2026-10-17 · 계산만)
 import { mateOf, boardOf, brandL, qtyDefs, canReq, reqDoc, reqId } from "../../marketing-hub/crew.js";
 import { ASIDE_ADS_LAUNCH_VER } from "../../marketing-hub/adops.js";   // 광고 Aside 예약 글 판 (2026-10-17)
-import { repSlots, repId, canWriteSec, secPeople, snapOf, cycleOf, monOf, CYCLE_L, repInbox } from "./aireport.js";   // AI 크루 보고서 (2026-10-15)
+import { repSlots, repId, canWriteSec, secPeople, snapOf, cycleOf, monOf, CYCLE_L, repInbox, repFxOf, myRepLeft } from "./aireport.js";   // AI 크루 보고서 (2026-10-15) · 리포트 ①~④ (2026-10-17)
 import { NO_ACT, isFxKey, fxIdOf, akKeys, pairVal, countKeys, splitExec, keyName, fxTimeCome } from "./airt.js";   // AI 크루 ↔ 반복 실행 (2026-10-16) · 열쇠 여러 개 (2026-10-17)
 import { lagInbox, applyKpiOv, kpiEditWrite, newKpiId } from "./kpi2.js";
 import { dayIdFx, dayIdAk, openIdAk, dayBase, dayAdd, dayFix, roundTap, qtyToGoal, akSubsOf } from "./rec.js";
@@ -147,7 +148,7 @@ export function useData(on, full = true) {
       // AI 승인(2026-10-12): asks = 열린 것 + 최근 7일(같은 id 는 열린 쪽) · mates = AI 팀원 덧칠 {id: 문서} · aiInbox = '확인할 것' 줄(model.todayView 가 부름 · 순환 import 피하려고 D 로)
       ai: (() => { const m = new Map(); (S.aiRecent || []).forEach((x) => m.set(x.id, x)); (S.aiOpen || []).forEach((x) => m.set(x.id, x));
         const rq = new Map(); (S.aiReqRecent || []).forEach((x) => rq.set(x.id || x._doc, x)); (S.aiReqOpen || []).forEach((x) => rq.set(x.id || x._doc, x));
-        return { reqs: [...rq.values()].sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || ""))), asks: [...m.values()], mates: Object.fromEntries((S.aimates || []).map((x) => [x.id || x._doc, x])), boards: Object.fromEntries((S.aiboards || []).map((x) => [x.id || x._doc, x])), reports: Object.fromEntries((S.aireports || []).map((x) => [x.id || x._doc, x])), ready: S.aimates !== undefined }; })(), aiInbox: askInbox, asideInbox, aiRepInbox: repInbox,
+        return { reqs: [...rq.values()].sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || ""))), asks: [...m.values()], mates: Object.fromEntries((S.aimates || []).map((x) => [x.id || x._doc, x])), boards: Object.fromEntries((S.aiboards || []).map((x) => [x.id || x._doc, x])), reports: Object.fromEntries((S.aireports || []).map((x) => [x.id || x._doc, x])), ready: S.aimates !== undefined }; })(), aiInbox: askInbox, asideInbox, aiRepInbox: repInbox, moneyInbox,
       // 구매 품의 요청(2026-10-16): list = 품의 전 + 최근 30일(지운 것 빼고 · 최근 것 먼저) · apprInbox = '확인할 것' 줄(model.todayView 가 부름)
       appr: { list: apprMerge(S.apprRecent, S.apprOpen), ready: S.apprOpen !== undefined && S.apprRecent !== undefined }, apprInbox };
   }, [S, akQ, dayK]);
@@ -820,7 +821,32 @@ export function useActs(D, cu, setToast, idx = null) {
       if (r === "sent") { setToast({ text: "이미 본부장에게 보낸 칸이에요 · 고칠 게 있으면 리드에게 말해 주세요" }); return false; }
       const ld = secPeople(D, m).lead;
       log("aiRep", { col: "aireports", targetId: id, label: `${m.name} 칸 · ${f.done ? "다 썼어요" : f.done === false ? "다시 고치기" : "저장"}` });
-      setToast({ text: f.done ? `${m.name} 칸 다 썼어요${ld && ld !== cu.id ? ` · ${nameOf(D.users, ld)}님이 본부장에게 보내요` : ""}` : f.done === false ? "다시 고칠 수 있어요" : "저장했어요" });
+      // 리포트 ① (2026-10-17 볼트 "[다 썼어요] = 그 사람의 금요일 '이번주 리포트 전달' 자동 체크"): 이번 기간 · 내가 담당인 칸을 다 썼으면 내 고정업무 오늘 체크
+      //   이미 이번 주에 했으면 그대로 · 남의 체크는 안 건드림 · [다시 고치기]를 해도 체크는 그대로(반복 실행에서 [✓ 취소])
+      let fxL = "";
+      const today = ymd(new Date()), rfx = f.done && today >= p.start && today <= p.end ? repFxOf(D, cu.id) : null;
+      if (rfx && !fxMeDone(rfx, cu.id, today)) { const left = myRepLeft(D, cu.id, p, { crew: crewId, mate: mateId });
+        if (!left.length) { const at2 = nowIso(); fb.patch("tasks", tdoc(rfx), { ...fxCheckPatch(rfx, cu.id, true, today, at2, cu.name), v2At: at2 }).catch(fail("체크")); A.fxCheck(rfx, true, today, at2).catch(fail("체크 기록")); fxL = ` · '${fxLabel(rfx, cu.id)}' 오늘 체크`; }
+        else fxL = ` · 남은 내 칸 ${left.map((x) => x.name).join("·")} — 다 쓰면 '${fxLabel(rfx, cu.id)}' 체크`; }
+      setToast({ text: f.done ? `${m.name} 칸 다 썼어요${fxL}${ld && ld !== cu.id ? ` · ${nameOf(D.users, ld)}님이 본부장에게 보내요` : ""}` : f.done === false ? "다시 고칠 수 있어요" : "저장했어요" });
+      return true;
+    },
+    // 칸 파일 (리포트 ④ · 2026-10-17 볼트 "팀원은 자기 칸에 직접 만든 보고서(HTML·파일)를 올리거나 · 본부장은 보낸 때의 파일을 그대로 봄")
+    //   secs.<AI>.files 에 더함(업무OS 첨부 저장소 task-attachments/v2/rep-… 그대로) · 보낸 칸은 안 됨 · 빼기 = fileRemove(src rep · 올린 사람·올린 날만) · 보낼 때 snap.files 로 얼림
+    aiRepFiles: async (crewId, p, mateId, metas) => {
+      const m = repSlots(crewId).find((x) => x.id === mateId); if (!m || !p) return false;
+      if (!canWriteSec(D, cu, m)) { setToast({ text: "그 칸 담당·리드·관리자만 올려요" }); return false; }
+      const id = repId(crewId, p), at = nowIso(), up = (metas || []).filter((x) => x && x.url).map((x) => ({ ...x, by: cu.id, byName: cu.name }));
+      if (!up.length) return false;
+      const entry = { at, by: cu.id, byName: cu.name, act: "files", mate: mateId, n: up.length };
+      let r;
+      try { r = await fb.txDoc("aireports", id, (cur) => { const s0 = ((cur && cur.secs) || {})[mateId] || {}; if (s0.sent) return { ret: "sent" };
+          return { ret: "ok", write: cur ? { [`secs.${mateId}.files`]: [...(s0.files || []), ...up], updatedAt: at, log: fb.arrayUnion(entry) }
+            : { crew: crewId, cycle: p.cycle, start: p.start, end: p.end, due: p.due, secs: { [mateId]: { files: up } }, leads: {}, read: null, createdAt: at, updatedAt: at, log: [entry] } }; }); }
+      catch (e) { fail("보고서 파일")(e); return false; }
+      if (r === "sent") { setToast({ text: "이미 본부장에게 보낸 칸이에요 · 고칠 게 있으면 리드에게 말해 주세요" }); return false; }
+      log("aiRep", { col: "aireports", targetId: id, label: `${m.name} 칸 · 파일 ${up.length}개` });
+      setToast({ text: `${m.name} 칸에 파일 ${up.length}개 붙였어요` });
       return true;
     },
     //   [본부장에게 보내기] — 리드(칸 담당 위 첫 리드)·관리자 · 그때 숫자를 얼림(snap · 본부장은 이걸 봄) · 한마디 leads.<나> · 5초 되돌리기
@@ -1118,18 +1144,22 @@ export function useActs(D, cu, setToast, idx = null) {
     //   f.src = {kind 'task'|'note'|'ak', doc} (자료 목록이 붙임) · 올린 사람만 · 올린 날 안에만(model.canRmFile · 동작에서도 막음)
     //   목록에서만 빼고 지우지 않음(저장소 파일 그대로 · 문서 removedFiles[] 에 누가·언제) · transaction(서버 지금 목록에서 같은 파일만) · 5초 되돌리기 · 다시 올리면 새로 붙음
     fileRemove: async (f) => {
-      const s0 = f && f.src, key = s0 && ({ task: "tasks", note: "notes", ak: "kpidefs" })[s0.kind], field = s0 && s0.kind === "task" ? "attachments" : "files";
-      if (!key || !s0.doc) return false;
+      //   보고서 칸 파일(src rep · 2026-10-17) = aireports.secs.<AI>.files · 본부장에게 보낸 칸은 못 뺌(보낸 때 파일 그대로)
+      const s0 = f && f.src, rep = !!s0 && s0.kind === "rep", key = s0 && ({ task: "tasks", note: "notes", ak: "kpidefs", rep: "aireports" })[s0.kind];
+      const field = rep ? `secs.${s0.mate}.files` : s0 && s0.kind === "task" ? "attachments" : "files";
+      if (!key || !s0.doc || (rep && !s0.mate)) return false;
       if (!canRmFile(f, cu.id, ymd(new Date()))) { setToast({ text: "오늘 내가 올린 파일만 뺄 수 있어요 · 다음 날부터는 그대로 남아요" }); return false; }
       const at = nowIso(), same = (x) => !!x && (f.path ? x.path === f.path : x.url === f.url);
+      const secOf = (c) => (((c && c.secs) || {})[s0.mate]) || {}, arrOf = (c) => (rep ? secOf(c).files : c && c[field]) || [], locked = (c) => rep && !!secOf(c).sent;
       let hit = null;
-      try { hit = await fb.txDoc(key, s0.doc, (c) => { const arr = (c && c[field]) || [], h = arr.find(same); if (!h) return { ret: null };
-          return { write: { [field]: arr.filter((x) => !same(x)), removedFiles: fb.arrayUnion({ ...h, removedAt: at, removedBy: cu.id, removedByName: cu.name }), updatedAt: at, ...(key === "tasks" ? { v2At: at } : {}) }, ret: h }; }); }
+      try { hit = await fb.txDoc(key, s0.doc, (c) => { if (locked(c)) return { ret: "sent" }; const arr = arrOf(c), h = arr.find(same); if (!h) return { ret: null };
+          return { write: { [field]: arr.filter((x) => !same(x)), removedFiles: fb.arrayUnion({ ...h, ...(rep ? { mate: s0.mate } : {}), removedAt: at, removedBy: cu.id, removedByName: cu.name }), updatedAt: at, ...(key === "tasks" ? { v2At: at } : {}) }, ret: h }; }); }
       catch (e) { fail("파일 빼기")(e); return false; }
+      if (hit === "sent") { setToast({ text: "본부장에게 보낸 칸이라 파일은 그대로 남아요" }); return false; }
       if (!hit) { setToast({ text: "이미 빠진 파일이에요" }); return false; }
       log("edit", { col: key, targetId: s0.doc, label: `파일 뺌 · ${f.name || "파일"}` });
       setToast({ text: `파일을 뺐어요 · ${f.name || "파일"} · 다시 올릴 수 있어요`, undo: async () => {
-        try { await fb.txDoc(key, s0.doc, (c) => { const arr = (c && c[field]) || []; return arr.some(same) ? {} : { write: { [field]: [...arr, hit], updatedAt: nowIso() } }; }); setToast({ text: "되돌렸어요" }); }
+        try { await fb.txDoc(key, s0.doc, (c) => { if (locked(c)) return {}; const arr = arrOf(c); return arr.some(same) ? {} : { write: { [field]: [...arr, hit], updatedAt: nowIso() } }; }); setToast({ text: "되돌렸어요" }); }
         catch (e) { fail("되돌리기")(e); } } });
       return true;
     },

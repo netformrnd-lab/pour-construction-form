@@ -404,6 +404,9 @@ ST.v2.aiasks.ai_gyeoul_20261014_ghconvC = ask({ id: 'ai_gyeoul_20261014_ghconvC'
 //   금 10/16: 남윤정(겨울 담당) 칸 쓰기 → 김소연(리드) 본부장에게 보내기(되돌리기 한 번) → 허지은(본부장) 읽었어요 · 주기 월간 ↔ 주간
 Object.assign(ST.v2.aiboards['gh-conv'], { hist: { cv_mall: { '2026-10-09': 6.1, '2026-10-15': 7.4 } }, nextHist: { '2026-10-16': '- 롤러 재입고 알림 켜기\n- 상세 첫 화면 시안 2개' }, next: { text: '- 롤러 재입고 알림 켜기\n- 상세 첫 화면 시안 2개', run: '2026-10-16' } });
 const FRI = '2026-10-16T10:00:00+09:00', RID = 'b2c-2026-10-12';
+// 리포트 ①~④ (2026-10-17 볼트): 남윤정 금요일 '이번주 리포트 전달'(메모 = 쓸 것) · 별(AI) 공통 숫자 초안 = 최종 승인
+ST.v2.tasks.fx_rep_yj = { id: 'fx_rep_yj', title: '이번주 리포트 전달', isFixed: true, type: 'fixed', recurType: 'weekly', weekDays: ['금'], fixedTime: '11:00', status: 'todo', assigneeId: 'yj', assigneeIds: ['yj'], brand: 'common', scope: 'brand', memo: '*내용물: 전환율, 이탈 구간(상세페이지)\n*포인트: 이상한 것 3개', createdAt: T0, statusLog: [] };
+ST.v2.aiasks.ai_byeol_20261016_opsreportA = { ...ask({ id: 'ai_byeol_20261016_opsreportA', at: '2026-10-16T00:10:00.000Z', run: '2026-10-16', mate: 'byeol', board: 'ops-report', act: 'A', owner: 'yr', title: '주간 리포트 보드 A · 공통 숫자 초안' }), state: 'ok', okAt: '2026-10-16T00:40:00.000Z', okBy: 'yr', okByName: '변유림' };
 { let s = await session('yj', { now: FRI });
   await expand(s.pg);
   eq('금요일: 남윤정 = 겨울 칸 쓰기 줄', await inbox(s.pg, '겨울 칸 쓰기 · B2C 크루').count(), 1);
@@ -412,11 +415,23 @@ const FRI = '2026-10-16T10:00:00+09:00', RID = 'b2c-2026-10-12';
   ok('보고서: 이번 주 · 다음 할 일 = 내 칸 겨울 · 칸 8개 (공통 숫자 별 + AARRR 6 + 봄 MD · 2026-10-17)', tx.includes('이번 주') && tx.includes('10/12~10/18') && tx.includes('내 칸 겨울') && tx.includes('크루 칸 8'), tx.slice(0, 400));
   ok('겨울 칸: 실행 2 · 남음 1 · 흔적 2 · 안 함 1 · 전환 7.4% ← 6.1% · KPI +1 · AI 다음', tx.includes('실행 업무 끝냄 2 · 남음 1 · 흔적 2 · 안 함 1') && tx.includes('7.4% ← 6.1% · 목표 7% ✓') && tx.includes("반복 '리뷰 신고·답글' +1") && tx.includes('롤러 재입고 알림 켜기'), tx.slice(0, 900));
   ok('다른 칸은 접힘 · 담당 미정 · 한 줄 요약', tx.includes('MD · 봄(AI)') && tx.includes('지인추천 · 바람(AI)') && tx.includes('담당 미정'));
+  await s.S().getByText("내 '이번주 리포트 전달' · 쓸 것").scrollIntoViewIfNeeded(); await shot(s.pg, 'yj-report-memo-375');
+  ok("리포트 ②: 내 칸 위에 '이번주 리포트 전달' 메모(쓸 것) · 다 쓰면 체크", tx.includes("내 '이번주 리포트 전달' · 쓸 것") && tx.includes('이탈 구간(상세페이지)') && tx.includes('매주 금 11:00 · 다 쓰면 체크돼요'), tx.slice(0, 700));
+  // 리포트 ④: 칸에 파일 붙이기 (HTML·사진) → 하나 빼기 (올린 사람 · 올린 날)
+  await s.S().getByLabel('파일 고르기').first().setInputFiles([{ name: '주간 리포트.html', mimeType: 'text/html', buffer: Buffer.from('<h1>주간</h1>') }, { name: '캡처.png', mimeType: 'image/png', buffer: Buffer.from([137, 80, 78, 71]) }]);
+  await s.pg.waitForTimeout(900);
+  ok('파일 2개 붙임 → 토스트 · 칸에 2개', (await s.pg.locator('.v2-toast').innerText()).includes('겨울 칸에 파일 2개 붙였어요') && (await s.S().innerText()).includes('직접 만든 보고서 · 파일 2'));
+  eq('칸 파일 저장 (secs.gyeoul.files · 누가)', (doc0 => [doc0.secs.gyeoul.files.map((f) => f.name), doc0.secs.gyeoul.files.map((f) => f.by)])(await s.pg.evaluate(() => window.__V2.v2.aireports['b2c-2026-10-12'])), [['주간 리포트.html', '캡처.png'], ['yj', 'yj']]);
+  await s.S().getByRole('button', { name: '캡처.png 빼기' }).click(); await s.pg.waitForTimeout(600);
+  ok('빼기 → 토스트 · 1개 남음', (await s.pg.locator('.v2-toast').innerText()).includes('파일을 뺐어요 · 캡처.png') && (await s.S().innerText()).includes('직접 만든 보고서 · 파일 1'));
+  eq('뺀 파일 = removedFiles (지우지 않음 · 칸 표시)', (doc0 => [doc0.secs.gyeoul.files.map((f) => f.name), doc0.removedFiles.map((f) => [f.name, f.mate, f.removedBy])])(await s.pg.evaluate(() => window.__V2.v2.aireports['b2c-2026-10-12'])), [['주간 리포트.html'], [['캡처.png', 'gyeoul', 'yj']]]);
   await s.S().getByLabel('겨울 한 줄').fill('전환 7.4% — 상세 첫 화면 가격 노출 효과');
   await s.S().getByLabel('겨울 다음 계획').fill('- 리뷰 이벤트 기획');
   await shot(s.pg, 'yj-report-375'); ok('보고서 넘침 없음 375', !(await over(s.pg)));
   await s.S().getByRole('button', { name: '겨울 다 썼어요' }).click(); await s.pg.waitForTimeout(600);
-  ok('다 썼어요 → 토스트 = 김소연님이 보냄', (await s.pg.locator('.v2-toast').innerText()).includes('겨울 칸 다 썼어요 · 김소연님이 본부장에게 보내요'));
+  ok("다 썼어요 → 토스트 = '이번주 리포트 전달' 오늘 체크 · 김소연님이 보냄 (리포트 ①)", (await s.pg.locator('.v2-toast').innerText()).includes("겨울 칸 다 썼어요 · '이번주 리포트 전달' 오늘 체크 · 김소연님이 본부장에게 보내요"), await s.pg.locator('.v2-toast').innerText());
+  eq("리포트 ①: '이번주 리포트 전달' 체크 = 오늘 (남윤정)", (await s.pg.evaluate(() => window.__V2.v2.tasks.fx_rep_yj.doneDates || {})).yj, '2026-10-16');
+  ok('메모 카드 = 이번 주 체크 ✓', (await s.S().innerText()).includes('매주 금 11:00 · 이번 주 체크 ✓'));
   ok('카드 그대로 펼침 · 다 썼어요 ✓ · 다시 고치기', (await s.S().innerText()).includes('다 썼어요 ✓ 남윤정') && (await s.S().getByRole('button', { name: '다시 고치기' }).count()) === 1);
   await s.close();
   const r = doc('aireports', RID);
@@ -440,16 +455,19 @@ const FRI = '2026-10-16T10:00:00+09:00', RID = 'b2c-2026-10-12';
   ok('보낸 칸 = 본부장에게 보냄 ✓ · 한 줄', (await s.S().innerText()).includes('본부장에게 보냄 ✓ 김소연') && (await s.S().innerText()).includes('한 줄: 전환 7.4%'));
   await s.close();
   const r = doc('aireports', RID);
-  eq('보냄 저장: 누가 · 얼린 숫자 · 리드 한마디', [r.secs.gyeoul.sent.by, r.secs.gyeoul.snap.doneN, r.secs.gyeoul.snap.trace.done, r.secs.gyeoul.snap.note, r.secs.gyeoul.snap.plan, r.leads.sy.note], ['sy', 2, 2, '전환 7.4% — 상세 첫 화면 가격 노출 효과', '- 리뷰 이벤트 기획', '가격 실험 결과는 다음 주에 결정']); }
+  eq('보냄 저장: 누가 · 얼린 숫자 · 리드 한마디 · 파일도 얼림', [r.secs.gyeoul.sent.by, r.secs.gyeoul.snap.doneN, r.secs.gyeoul.snap.trace.done, r.secs.gyeoul.snap.note, r.secs.gyeoul.snap.plan, r.leads.sy.note, r.secs.gyeoul.snap.files.map((f) => f.name)], ['sy', 2, 2, '전환 7.4% — 상세 첫 화면 가격 노출 효과', '- 리뷰 이벤트 기획', '가격 실험 결과는 다음 주에 결정', ['주간 리포트.html']]); }
 { let s = await session('hj', { now: '2026-10-16T16:00:00+09:00', w: 1280, h: 900 });
   await expand(s.pg);
   eq('본부장 = 보고 도착 줄', await inbox(s.pg, 'B2C 크루 주간 보고 · 1/8칸').count(), 1);
   await inbox(s.pg, 'B2C 크루 주간 보고 · 1/8칸').first().getByRole('button', { name: '읽기', exact: true }).click(); await s.pg.waitForTimeout(600);
   const tx = await s.S().innerText();
   ok('본부장 보고서: 보낸 겨울 칸 펼침 · 리드 한마디 · 읽었어요', tx.includes('본부장에게 보냄 ✓ 김소연') && tx.includes('7.4% ← 6.1%') && tx.includes('리드 한마디') && tx.includes('가격 실험 결과는 다음 주에 결정') && (await s.pg.getByRole('button', { name: '읽었어요', exact: true }).count()) === 1);
+  ok('리포트 ④: 본부장 = 보낸 때 파일 그대로 · 빼기 없음', tx.includes('보낸 때 파일 1') && tx.includes('주간 리포트.html') && (await s.S().getByRole('button', { name: /빼기$/ }).count()) === 0);
+  await s.S().getByRole('button', { name: '공통 숫자 별 칸' }).click(); await s.pg.waitForTimeout(400);
+  { const t3 = await s.S().innerText(); ok('리포트 ③: 공통 숫자 칸 = 별(AI) 초안 링크 · 최종 승인', t3.includes('별(AI) 초안 · 매주 금 09:00') && t3.includes('A · 공통 숫자 칸 초안 + 이상한 것 3개 ›') && t3.includes('10/16 · 최종 승인'), t3.slice(0, 900)); }
   await s.S().getByRole('button', { name: '보고 글로 복사' }).click(); await s.pg.waitForTimeout(300);
   const g = await boxOf(s.S, '보고 글로 복사');
-  ok('보고 글: 머리 · 겨울 칸 · 결과 · 다음 · 리드 한마디', g.startsWith('[AI 크루 주간 보고] B2C 크루 · 10/12~10/18') && g.includes('■ 전환 · 겨울(AI)') && g.includes('- 결과 자사몰 구매전환율: 7.4% ← 6.1%') && g.includes('리뷰 이벤트 기획') && g.includes('리드 한마디 (김소연)'), g.slice(0, 400));
+  ok('보고 글: 머리 · 겨울 칸 · 결과 · 다음 · 리드 한마디 · 파일 이름(주소 없이)', g.startsWith('[AI 크루 주간 보고] B2C 크루 · 10/12~10/18') && g.includes('■ 전환 · 겨울(AI)') && g.includes('- 결과 자사몰 구매전환율: 7.4% ← 6.1%') && g.includes('리뷰 이벤트 기획') && g.includes('리드 한마디 (김소연)') && g.includes('- 파일 1개: 주간 리포트.html (업무OS 보고서에서 열기)') && !g.includes('example.test'), g.slice(0, 400));
   await shot(s.pg, 'hj-report-1280'); ok('본부장 보고서 넘침 없음 1280', !(await over(s.pg)));
   await s.pg.getByLabel('본부장 한마디').fill('좋아요 · 리뷰 이벤트 진행');
   await s.pg.getByRole('button', { name: '읽었어요', exact: true }).click(); await s.pg.waitForTimeout(600);
@@ -653,6 +671,28 @@ ST.v2.aiasks.ai_gaeul_20261020_ghtrafficF = ask({ id: 'ai_gaeul_20261020_ghtraff
   ok('광고 보고(실행 없음) 승인 = 광고 확인 오늘 체크', (await s.pg.locator('.v2-toast').innerText()).includes("'광고 확인' 오늘 체크"));
   eq('체크: 광고 확인 오늘 (민지)', (await s.pg.evaluate(() => window.__V2.v2.tasks.fx_ad_mj.doneDates || {})).mj, '2026-10-20');
   await shot(s.pg, 'mj-report-check-375'); ok('보고 승인 넘침 없음 375', !(await over(s.pg)));
+  await s.close(); }
+
+// ⑭ 돈·결재 7건 알림 (2026-10-17 볼트 짝 설계표 F · "응") — AI 를 안 붙이고 '확인할 것' 한 줄만 · 금액 없음 · 승인 단계 없음
+//   10/27(화) 10:00 이란 = 부서 월간 고정지출 품의(20일 · 마감 지남 · 빨강 · 위로) · 시온 월말 정산(말일 10/30 · 평일 3일 남음) [완료]
+const MONEY_DAY = '2026-10-27T10:00:00+09:00';
+Object.assign(ST.v2.tasks, { t1790918718994: { ...fx('t1790918718994', '시온 월말 정산', 'ran'), recurType: 'monthly', monthEnd: true }, t1790831555155: { ...fx('t1790831555155', '부서 월간 고정지출 품의', 'ran'), recurType: 'monthly', monthDay: 20, fixedTime: '09:00' } });
+{ let s = await session('ran', { now: MONEY_DAY });
+  await expand(s.pg);
+  const L = await inbox(s.pg, '정산·결재').allInnerTexts();
+  ok('돈·결재 줄 2개: 마감 지남(빨강) 먼저 · 평일 3일 남음 · 금액 말 없음', L.length === 2 && L[0].includes('부서 월간 고정지출 품의 · 마감 지남 (10/20)') && L[1].includes('시온 월말 정산 · 마감 10/30 · 평일 3일 남음') && !/\d+\s*원/.test(L.join(' ')), L);
+  await shot(s.pg, 'ran-money-375'); ok('돈·결재 줄 넘침 없음 375', !(await over(s.pg)));
+  await inbox(s.pg, '시온 월말 정산 · 마감 10/30').first().getByRole('button', { name: '완료', exact: true }).click(); await s.pg.waitForTimeout(600);
+  ok('[완료] → 체크했어요 토스트', (await s.pg.locator('.v2-toast').innerText()).includes('체크했어요 · 시온 월말 정산'));
+  eq('체크 저장: 이란 오늘', (await s.pg.evaluate(() => window.__V2.v2.tasks.t1790918718994.doneDates || {})).ran, '2026-10-27');
+  eq('체크하면 줄 사라짐', await inbox(s.pg, '시온 월말 정산 · 마감').count(), 0);
+  await inbox(s.pg, '부서 월간 고정지출 품의 · 마감 지남').first().click(); await s.pg.waitForTimeout(700);
+  ok('줄 누르면 그 반복 실행 시트', (await s.S().innerText()).includes('부서 월간 고정지출 품의'));
+  await s.close(); }
+{ let s = await session('ran', { now: MONEY_DAY, w: 1280, h: 900 });
+  await expand(s.pg);
+  ok('돈·결재 1280: 남은 줄 1개 · 넘침 없음', (await inbox(s.pg, '정산·결재').count()) === 1 && !(await over(s.pg)));
+  await shot(s.pg, 'ran-money-1280');
   await s.close(); }
 
 ok('화면 오류 없음', errs.length === 0, errs);

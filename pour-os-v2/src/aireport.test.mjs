@@ -92,4 +92,20 @@ eq("글: 머리 · 칸 · 실행 · 결과 · KPI · 한 줄 · 다음(AI + 사�
   txt.includes("- 결과 자사몰 구매전환율: 7.4% ← 6.1%"), txt.includes("- KPI 리뷰 신고·답글: +1"), txt.includes("- 다음: 롤러 재입고 알림 / 상세 첫 화면 / 리뷰 이벤트"), txt.endsWith("리드 한마디 (김소연): 가격 실험은 다음 주 결정")],
   ["[AI 크루 주간 보고] B2C 크루 · 10/12~10/18 · 금 10/16 마감", true, true, true, true, true, true]);
 
+// ⑧ 리포트 ①②④ (2026-10-17 볼트 "주간 리포트 = AI 크루 보고서 · [다 썼어요] = 그 사람 '이번주 리포트 전달' 자동 체크 · 메모를 그 칸 위에 · 칸에 파일")
+const rfx = (id, who, o = {}) => ({ id, title: "이번주 리포트 전달", isFixed: true, type: "fixed", recurType: "weekly", weekDays: ["금"], fixedTime: "11:00", assigneeId: who, assigneeIds: [who], memo: "*내용물: 전환율", ...o });
+const DR = { ...D0, ai: { ...D0.ai, mates: { gyeoul: { owners: { grohome: "mj" } }, uju: { owners: { grohome: "mj" } }, yeoreum: { owners: { _: "cw" } }, byeol: { owners: { _: "yj" } } }, reports: {} },
+  tasks: [rfx("rf_mj", "mj"), rfx("rf_yj", "yj"), rfx("rf_off", "mj", { paused: true, id: "rf_off" }), { id: "x1", title: "이번 주 리포트 전달 준비", isFixed: false, assigneeIds: ["mj"] }, rfx("rf_rm", "cw", { removed: { at: "2026-10-16T00:00:00Z" } })] };
+const PR = R.periodOf(W, "2026-10-16");
+eq("'이번주 리포트 전달' 고정업무 찾기: 내 것 · 띄어쓰기 달라도 · 멈춘·없앤·한 번짜리 빼고", [R.repFxOf(DR, "mj").id, R.repFxOf(DR, "yj").id, R.repFxOf(DR, "cw"), R.repFxOf(DR, ""), R.REP_FX_RE.test("이번 주 리포트 전달")], ["rf_mj", "rf_yj", null, null, true]);
+eq("남은 내 칸 = 내가 담당인 칸 중 안 쓴 것 (방금 누른 칸은 쓴 것)", R.myRepLeft(DR, "mj", PR, { crew: "b2c", mate: "gyeoul" }).map((m) => m.id), ["uju"]);
+const DR2 = { ...DR, ai: { ...DR.ai, reports: { [R.repId("b2c", PR)]: { secs: { uju: { done: { by: "mj" } }, byeol: { sent: { by: "sh" } } } } } } };
+eq("다른 내 칸이 다 썼거나 보냈으면 = 없음 → 체크", [R.myRepLeft(DR2, "mj", PR, { crew: "b2c", mate: "gyeoul" }).length, R.myRepLeft(DR2, "yj", PR, null).length, R.myRepLeft(DR2, "mj", PR, null).map((m) => m.id)], [0, 0, ["gyeoul"]]);
+eq("같이 쓰는 칸(할 일 담당)은 셈에서 뺌 · 담당 칸이 없으면 없음", R.myRepLeft({ ...DR, ai: { ...DR.ai, mates: { ...DR.ai.mates, gaeul: { owners: { grohome: "mj" }, actOwners: { A: "yj" } } } } }, "yj", PR, null).map((m) => m.id), ["byeol"]);
+const fA = { name: "주간.html", url: "https://x/a", path: "p/a", by: "mj", uploadedAt: "2026-10-16T02:00:00Z" }, fB = { name: "캡처.png", url: "https://x/b", path: "p/b", by: "mj" };
+eq("칸 파일: 아직 = 칸 files · 보냄 = 보낸 때(snap) 그대로 · 예전 보냄(snap 에 files 없음) = 칸 files · 주소 없는 것 빼고", [R.secFiles({ files: [fA, { name: "x" }] }, false).map((f) => f.name), R.secFiles({ files: [fA, fB], snap: { files: [fA] } }, true).map((f) => f.name), R.secFiles({ files: [fB], snap: {} }, true).map((f) => f.name), R.secFiles(null, false)], [["주간.html"], ["주간.html"], ["캡처.png"], []]);
+eq("보낼 때 파일도 얼림 · 파일만 있어도 '쓰는 중'", [R.snapOf({ doneN: 1 }, { note: "a", files: [fA] }).files.map((f) => f.name), R.secState({ secs: { gyeoul: { files: [fA] } } }, "gyeoul")], [["주간.html"], "draft"]);
+const txF = R.repText(R.repCrews()[0], PR, [{ m: slot("gyeoul"), d: { doneN: 0, openN: 0, trace: { done: 0, skip: 0 }, asks: { ok: 0, made: 0 }, metrics: [], ak: [], aiNext: "" }, s: { files: [fA, fB] } }], {});
+eq("글로 복사: 파일 이름만 (주소는 안 넣음)", [txF.includes("- 파일 2개: 주간.html · 캡처.png (업무OS 보고서에서 열기)"), txF.includes("https://x/a")], [true, false]);
+
 console.log(`\n${n - bad}/${n} 통과`); if (bad) process.exit(1);

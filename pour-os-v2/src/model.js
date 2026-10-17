@@ -422,6 +422,8 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
   if (D.appr && D.apprInbox) D.apprInbox(D.appr.list, users, uid, seen, now).forEach((x) => inbox.push(x));   // 구매 품의 요청 (appr.js · 2026-10-16): 담당 = 품의 요청 n건 + 새 요청 · 요청자 = 품의 완료
   if (D.moneyInbox) D.moneyInbox(D, uid, now).forEach((x) => { if (!x.keep && seen[x.id]) return; inbox.push(x); });
   if (D.feedInbox) D.feedInbox(D, uid, now, seen).forEach((x) => inbox.push(x));   // 결과 숫자 비어 있음 n일째 (feeds.js · 2026-10-17): 관리자 한 줄 · '광고 확인' 담당 · 보드 지표 담당 — 오늘 하루 읽음으로 숨김   // 돈·결재 7건 (money.js · 2026-10-17): 마감 평일 3일 전 · 오늘 마감 · 마감 지남(빨강) · 매일은 시각 + 1시간 · 승인 없음
+  if (D.refs && D.refInbox) D.refInbox(D, uid, now, seen).forEach((x) => inbox.push(x));
+  if (D.dev && D.devInbox) D.devInbox(D, uid, now, seen).forEach((x) => inbox.push(x));   // 이달 개발 목록 확인 · 개발 끝 · 내 포스트잇 반영함·안 함 (devplan.js · 2026-10-17)   // 레퍼런스 받을 사람 @ (refs.js · 2026-10-17): 7일 · 읽으면 사라짐
   if (D.kpi && D.lagInbox) D.lagInbox(D.kpi.lagDefs, D.kpi.lagV2, users, uid, key, D.brands).forEach((x) => inbox.push(x));   // 월말 결과 KPI 넣기 (kpi2.js · 마스터·결과 KPI 권한)   // CRM·마진에서 온 한 줄 (links.js · 순환 import 피하려고 D 로 받음)
   const taskById = Object.fromEntries(tasks.map((t) => [t.id, t]));
   const talked = new Set((D.notes || []).filter((n) => n && n.by === uid && !n.deleted).map((n) => n.itemId));   // 내가 말한 대화 → 답이 오면 나에게도
@@ -438,13 +440,15 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
     else if (kind === "proj" && (ment || projAll.has(ref) || talked.has(n.itemId))) { const p = (D.projects || []).find((x) => x.id === ref); hit = { projectId: ref, title: p ? p.title : "프로젝트" }; }
     else if (kind === "ai") { const a = ((D.ai && D.ai.asks) || []).find((x) => x.id === ref);   // AI 승인 대화 (2026-10-12)
       if (ment || talked.has(n.itemId) || (a && (a.owner === uid || a.to === uid || (a.path || []).includes(uid)))) hit = { aiId: ref, title: a ? a.title : "AI 승인" }; }
+    else if (kind === "ref") { const r = ((D.refs && D.refs.list) || []).find((x) => x && x.id === ref);   // 레퍼런스 대화 (2026-10-17): 올린 사람 · 받을 사람 · 내가 말한 대화 · @
+      if (ment || talked.has(n.itemId) || (r && (r.by === uid || (r.to || []).includes(uid)))) hit = { refId: ref, title: r ? (String(r.text || "").replace(/https?:\/\/\S+/g, "").replace(/\s+/g, " ").trim().slice(0, 40) || r.kind || "레퍼런스") : "레퍼런스" }; }
     else if (!rest.length && (ment || talked.has(n.itemId))) { const it = ((D.ak && D.ak.items) || []).find((x) => x && x.id === n.itemId); if (it) hit = { akId: it.id, title: it.name || "반복 실행" }; }   // 반복 실행(횟수 목표) 대화 — ':' 없는 itemId = 행동지표 id
     if (hit) (ment ? inbox : noteRows).push({ kind: ment ? "mention" : "note", tag: ment ? "@ 나를 부름" : "댓글", id: nid, ...hit, who: ma ? n.editedBy || n.by : n.by, whoName: ma ? n.editedByName || n.byName : n.byName, at: ma || n.at, text: n.text });
   });
   // 같은 대화의 새 댓글 여러 개 → 한 줄 '제목 · 새 댓글 n' (2026-10-15 페르소나 시험: 팀원 '확인할 것' 22줄 중 13줄이 한두 대화의 댓글이라 할 일이 묻힘)
   //   id = 댓글 줄 id 를 | 로 이음 → 열면 모두 읽음 · 읽은 알림에서 다시 볼 때도 한 줄 · 나를 부른 댓글(@)은 따로 그대로
   groupNotes(noteRows).forEach((x) => inbox.push(x));
-  const ORDER = { feedback: 0, review: 1, aiRep: 1.1, ai: 1.2, aiGroup: 1.2, aiMiss: 1.25, aiLate: 1.16, aiStuck: 1.18, aiRoutine: 1.24, aiMissLong: 1.26, feed: 2.96, aiSetup: 2.97, adsAside: 2.975, aiOwnerless: 2.98, aiDone: 9, dueReq: 2, help: 2.5, mention: 2.8, money: 2.84, appr: 2.85, apprNew: 2.86, link: 2.9, lagDue: 2.95, blocked: 3, handed: 7.5, turnAgain: 3.5, turnLate: 4, turnOrder: 5, nextNoOwner: 6, assigned: 7, bulk: 7, launchNew: 8, holdDue: 8.5, projHoldDue: 8.5, dueRes: 9, approved: 9, unblocked: 9, pinNew: 9.5, apprDone: 9, note: 10 };
+  const ORDER = { feedback: 0, review: 1, aiRep: 1.1, ai: 1.2, aiGroup: 1.2, aiMiss: 1.25, aiLate: 1.16, aiStuck: 1.18, aiRoutine: 1.24, aiMissLong: 1.26, feed: 2.96, aiSetup: 2.97, adsAside: 2.975, aiOwnerless: 2.98, aiDone: 9, dueReq: 2, help: 2.5, mention: 2.8, money: 2.84, appr: 2.85, apprNew: 2.86, link: 2.9, lagDue: 2.95, blocked: 3, handed: 7.5, turnAgain: 3.5, turnLate: 4, turnOrder: 5, nextNoOwner: 6, assigned: 7, bulk: 7, launchNew: 8, holdDue: 8.5, projHoldDue: 8.5, dueRes: 9, approved: 9, unblocked: 9, pinNew: 9.5, apprDone: 9, ref: 8.8, devPlan: 2.6, devDone: 9, devReqRes: 9, note: 10 };
   // 줄마다 ord 가 있으면 그 값 (늦은 AI 승인 = 보통 AI 승인 위 · aiask.ORD_LATE · 2026-10-17 멈춤 감시)
   const rank = (x) => x.ord ?? ORDER[x.kind] ?? 11;
   inbox.sort((a, b) => rank(a) - rank(b) || String(b.at || "").localeCompare(String(a.at || "")));
@@ -458,7 +462,7 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
 
 // 새 댓글 줄 묶기 (todayView) — 같은 업무·프로젝트·AI 승인·반복 실행의 댓글이 2개 넘으면 한 줄 · 하나면 그대로
 export function groupNotes(rows) {
-  const keyOf = (x) => (x.taskId ? "t:" + x.taskId : x.projectId ? "p:" + x.projectId : x.aiId ? "a:" + x.aiId : x.akId ? "k:" + x.akId : "n:" + x.id), by = new Map();
+  const keyOf = (x) => (x.taskId ? "t:" + x.taskId : x.projectId ? "p:" + x.projectId : x.aiId ? "a:" + x.aiId : x.akId ? "k:" + x.akId : x.refId ? "r:" + x.refId : "n:" + x.id), by = new Map();
   (rows || []).forEach((x) => { const k = keyOf(x); if (!by.has(k)) by.set(k, []); by.get(k).push(x); });
   return [...by.values()].map((g) => { if (g.length < 2) return g[0];
     const s = g.slice().sort((a, b) => String(b.at || "").localeCompare(String(a.at || ""))), last = s[0], names = [...new Set(s.map((x) => x.whoName).filter(Boolean))];
@@ -595,7 +599,7 @@ export function ownerIssues(D) {
 
 // ── 소식 (댓글 + 기록) ──
 export const LOG_L = { aiUp: "AI 승인 · 위로", aiOk: "AI 최종 승인", aiBack: "AI에게 다시", aiQty: "AI 횟수", aiReq: "AI에게 맡김", aiReqX: "맡긴 일 취소", aiAct: "AI 할 일 설정", aiTrace: "흔적", aiRep: "AI 크루 보고", aiRepSend: "보고 보냄", aiRepRead: "보고 읽음", aiRepCycle: "보고 주기", aiRet: "AI 승인 돌려보냄", aiNo: "AI 안 함", aiUndo: "AI 승인 되돌림", aiOwner: "AI 담당 바꿈", aiRule: "AI 확정 규칙", aiDesign: "AI 브랜드별 설계", aiHandoff: "AI 넘기기", boss: "상급자 바꿈", perm: "권한 바꿈", noteRemove: "댓글 삭제", noteRestore: "댓글 되살림", decide: "결정", add: "새로 만듦", edit: "고침", done: "끝냄", reopen: "다시 엶", assign: "담당 바꿈", handover: "일 넘김", sync: "신제품 대시보드에서", take: "이어받음", comment: "댓글", noteEdit: "댓글 고침", delete: "휴지통으로", remove: "없앰(휴지통)", restore: "되살림",
-  ack: "받음", dueReq: "기한 조정 요청", dueOk: "기한 조정 수락", dueNo: "기한 유지", review: "확인 요청", approve: "확인 완료", feedback: "수정 요청", block: "막힘", unblock: "막힘 풀림", launch: "신제품 만듦", bulk: "한꺼번에 바꿈", deps: "앞 일 바꿈", ask: "도움 요청", askDone: "도움 요청 닫음", hold: "보류", unhold: "보류 풀기", projEnd: "프로젝트 끝냄·멈춤", projResume: "프로젝트 다시 시작", moyImport: "모여라딜 OS에서 가져옴" };
+  ack: "받음", dueReq: "기한 조정 요청", dueOk: "기한 조정 수락", dueNo: "기한 유지", review: "확인 요청", approve: "확인 완료", feedback: "수정 요청", block: "막힘", unblock: "막힘 풀림", launch: "신제품 만듦", bulk: "한꺼번에 바꿈", deps: "앞 일 바꿈", ask: "도움 요청", askDone: "도움 요청 닫음", hold: "보류", unhold: "보류 풀기", projEnd: "프로젝트 끝냄·멈춤", projResume: "프로젝트 다시 시작", moyImport: "모여라딜 OS에서 가져옴", refHide: "레퍼런스 숨김", refFit: "AI 핏", devPlan: "이달 개발 목록" };
 export function feedOf(D, { projectId, taskIds, sinceIso } = {}) {
   const tset = taskIds ? new Set(taskIds) : null;
   const notes = (D.notes || []).filter((n) => !n.deleted && (!sinceIso || (n.at || "") >= sinceIso)).filter((n) => {

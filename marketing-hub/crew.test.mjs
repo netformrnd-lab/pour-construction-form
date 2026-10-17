@@ -311,11 +311,20 @@ eq('달 A = 신제품 이름 짝(keyBy) · 다른 할 일엔 없음', Object.val
 eq('허브 가동 크루(core.js CREW_LIVE) = crew.js 이름·역할·크루', C.CREW_LIVE.map((m) => [m.id, m.name, m.role, m.crew]), C.CREW_LIVE.map((m) => { const x = K.mateOf(m.id) || {}; return [x.id, x.name, x.role, x.crew]; }));
 {
   const { execFileSync } = await import('node:child_process');
-  const py = 'import json,sys; sys.path.insert(0, sys.argv[1]); import team_link as T; print(json.dumps({"crew": {k: list(v) for k, v in T.CREW.items()}, "gone": T.GONE, "rq": {k: [list(x) for x in v] for k, v in T.ROUTINE_QTY.items()}}))';
+  const py = 'import json,sys; sys.path.insert(0, sys.argv[1]); import team_link as T; print(json.dumps({"crew": {k: list(v) for k, v in T.CREW.items()}, "gone": T.GONE, "rq": {k: [list(x) for x in v] for k, v in T.ROUTINE_QTY.items()}, "refmax": T.REF_AI_MAX, "secret": T.REF_SECRET_RE.pattern, "mask": T.ref_pii("문의 010-1234-5678 · a.b@c.co.kr")}))';
   const got = JSON.parse(execFileSync('python3', ['-c', py, new URL('./tools', import.meta.url).pathname], { encoding: 'utf8', env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' } }));
   eq('team_link.py 크루 = crew.js', got.crew, Object.fromEntries(K.CREWS.flatMap((c) => c.members.map((m) => [m.id, [m.name, c.id]]))));
   eq('team_link.py GONE = crew.js', got.gone, K.GONE);
   eq('team_link.py 아침 루틴 횟수 = crew.js routineQty', got.rq, Object.fromEntries(K.allMates().filter((m) => m.routineQty).map((m) => [m.id, m.routineQty.map((q) => [q.k, q.l, q.n, q.u])])));
+  eq('team_link.py 참고 레퍼런스 규칙 = crew.js (최근 수 · 막는 말 · 가리기)', [got.refmax, got.secret, got.mask], [K.REF_AI_MAX, K.SECRET_RE.source, K.maskPII('문의 010-1234-5678 · a.b@c.co.kr')]);   // 2026-10-17 4A
+}
+{ // 참고 레퍼런스 (2026-10-17 사장님 4A) — 사람이 그 AI 핏을 남긴 것만 · 지시문 '■ 참고 레퍼런스'
+  const L = [{ id: 'a', kind: '광고 소재', brand: 'pourstore', text: '이 광고 첫 3초 https://x.com/1', url: 'https://x.com/1', fits: { gaeul: { text: '첫 3초 자막 구성만', byName: '김민지', at: '2026-10-17T02:00:00.000Z' } } },
+    { id: 'b', kind: '기타', text: '숨김', fits: { gaeul: { text: 'x' } }, removed: { at: 'y' } }, { id: 'c', kind: '기타', text: '다른 AI', fits: { gyeoul: { text: 'x' } } }];
+  const rows = K.refRows(L, 'gaeul');
+  eq('참고 레퍼런스: 그 AI 핏만 · 숨긴 것 빼고', rows.map((r) => [r.id, r.brand, r.fit, r.at, r.url]), [['a', 'POUR스토어', '첫 3초 자막 구성만', '2026-10-17', 'https://x.com/1']]);
+  const t = K.asideText(K.boardOf('gh-traffic'), { refs: rows });
+  eq('지시문 ■ 참고 레퍼런스 (쓸 부분 · 링크 · 베끼지 않음)', t.includes("■ 참고 레퍼런스 — 사람이 업무OS 레퍼런스에 '가을 핏'을 남긴 것만") && t.includes('- 광고 소재 · POUR스토어 · 10/17 핏(김민지) — 쓸 부분: 첫 3초 자막 구성만') && t.includes('    링크: https://x.com/1') && t.includes('그대로 베끼지 않는다'), true);
 }
 
 const ok = (name, cond) => eq(name, !!cond, true);
@@ -381,7 +390,7 @@ const ok = (name, cond) => eq(name, !!cond, true);
   const has = (bd, c, re) => re.test(K.actOf(bd, c).s.join(' '));
   eq('우주 H 장부 먼저', [['gh-ref', 'A'], ['gh-ref', 'B'], ['gh-ref', 'C'], ['gh-rep', 'C'], ['gh-rep', 'G'], ['gh-ohou', 'H']].map(([bd, c]) => has(bd, c, /우주 H 장부|H 장부/)), [true, true, true, true, true, true]);
   ok('겨울 I = 택배 동봉 안내', /택배 동봉/.test(K.actOf('gh-conv', 'I').t) && has('gh-conv', 'I', /동봉 안내/));
-  ok('지시문 판 10-17.4', K.ASIDE_VER === '2026-10-17.4');
+  ok('지시문 판 10-17.5', K.ASIDE_VER === '2026-10-17.5');
 }
 
 // ── 2026-10-17 사장님 확정 (2팀 운영 · 1A 2A 4-1) ──

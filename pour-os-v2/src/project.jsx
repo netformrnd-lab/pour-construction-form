@@ -23,6 +23,7 @@ import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask,
 import { useItemNotes, Thread } from "./task.jsx";
 import { liveNotes } from "./core.jsx";
 import { FileList, rmProps } from "./files.jsx";
+import { RefStrip } from "./refui.jsx";
 import { MindMap } from "./mindmap.jsx";
 import { projEstimate, canSaveTpl } from "./tpl.js";
 import { TplPick } from "./tplui.jsx";
@@ -416,7 +417,8 @@ export function ProjectSheet({ D, cu, A, open, onBack, onClose, id, first, note,
     {tab === "map" && <MindMap D={D} cu={cu} A={A} open={open} p={p} idx={idx} launch={launch} />}
     {tab === "news" && <><NewsFeed D={D} p={p} feed={feed} tTitle={tTitle} open={open} /><OldBtn /></>}
     {tab === "news" && <><Head>프로젝트에 한마디</Head><Thread D={D} cu={cu} A={A} notes={notes} itemId={projNoteId(p.id)} ctx={{ projectId: p.id }} link={{ kind: "p", id: p.id }} hl={note} /></>}
-    {tab === "files" && <div style={{ marginTop: 10 }}><FileList files={files} empty="모인 자료가 없어요. 업무나 댓글에 파일을 올리면 여기 모여요." {...rmProps(A, cu)} /></div>}
+    {tab === "files" && <RefStrip D={D} open={open} projectId={p.id} createdAt={p.createdAt} always />}   {/* 레퍼런스 (2026-10-17 · 이 프로젝트·그 업무에 연결한 것) */}
+    {tab === "files" && <><Head>파일 {files.length}</Head><FileList files={files} empty="모인 자료가 없어요. 업무나 댓글에 파일을 올리면 여기 모여요." {...rmProps(A, cu)} /></>}
     {tab === "files" && <OldBtn />}
     {/* 없앤 업무(누구나 없애기 · 2026-10-07) — 소식·자료 탭 맨 아래 · 처음엔 접힘 */}
     {(tab === "news" || tab === "files") && <TrashList rows={taskTrashRows(D.removedTasks, D.projects, null, p.id)} A={A} open={open} label="없앤 업무" note="되살리면 없애기 전 그대로 돌아와요(하위 업무도 같이) · 댓글·파일·기록은 그대로 있어요" />}

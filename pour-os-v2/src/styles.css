@@ -825,3 +825,43 @@ input[type="date"].v2-sel::-webkit-date-and-time-value { text-align: left; min-h
 /* 결과 숫자 줄 오른쪽 (2026-10-17 · feedui.FeedList): 넓으면 날짜 옆 [열기 ›] · 폰은 날짜 아래 */
 .v2-feedrow .v2-feedr{flex:0 0 auto;max-width:50%;display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:6px 10px;text-align:right}
 @media (max-width:700px){.v2-feedrow .v2-feedr{flex-direction:column;align-items:flex-end;gap:6px;max-width:48%}}
+/* 레퍼런스 (2026-10-17 · refui.jsx) — 올리기 칸 · 거르기 · 카드(사진 16:10 · 종류 · 한 줄 2줄까지 · 링크) · 375px 한 줄 */
+.v2-rf-new{background:#fff;border:1.5px solid #D9E0EE;border-radius:14px;padding:12px;box-shadow:0 2px 6px rgba(15,31,92,.05)}
+.v2-rf-new textarea{width:100%;box-sizing:border-box;border:none;background:transparent;font:inherit;font-size:16px;line-height:1.6;color:#1B2333;resize:vertical;min-height:72px;outline:none}
+.v2-rf-new textarea::placeholder{color:#8A92A3}
+.v2-rf-l{font-size:12.5px;font-weight:800;color:#5B6475;margin:10px 2px 6px}
+.v2-rf-l span{font-weight:600;color:#8A92A3}
+.v2-rf-hint{font-size:12.5px;color:#5B6475;margin:6px 2px 0;line-height:1.5}
+.v2-rf-filter{margin-top:14px;display:flex;flex-direction:column;gap:8px}
+.v2-rf-frow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.v2-rf-frow .v2-rf-q{flex:1 1 140px;min-width:120px;width:auto}
+.v2-rf-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin-top:12px}
+.v2-rf{display:flex;flex-direction:column;text-align:left;padding:0;border:1px solid #E3E7F0;border-radius:14px;background:#fff;overflow:hidden;cursor:pointer;font:inherit;color:#1B2333;min-width:0;box-shadow:0 1px 4px rgba(15,31,92,.05)}
+.v2-rf .th{display:block;width:100%;aspect-ratio:16/10;background:#EEF1F8;overflow:hidden}
+.v2-rf .th img{display:block;width:100%;height:100%;object-fit:cover}
+.v2-rf .bd{display:flex;flex-direction:column;gap:4px;padding:10px 12px 12px;min-width:0}
+.v2-rf .tg,.v2-rf-tags{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.v2-rf .tg b,.v2-rf-tags b{font-size:11.5px;font-weight:800;color:#24386B;background:#EEF1F8;border-radius:6px;padding:2px 7px}
+.v2-rf .tg i,.v2-rf-tags i{font-style:normal;font-size:11.5px;font-weight:700;color:#5B6475;border:1px solid #E3E7F0;border-radius:6px;padding:1px 6px}
+.v2-rf .tg em{font-style:normal;font-size:11.5px;font-weight:800;color:#6D28D9;background:#F5F3FF;border-radius:6px;padding:2px 7px}
+.v2-rf .tx{font-size:14.5px;font-weight:700;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.v2-rf .ln{font-size:12.5px;color:#24386B;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.v2-rf .mt{font-size:12px;color:#8A92A3;overflow-wrap:anywhere}
+.v2-rf-fit{padding:10px 14px;background:#fff}
+.v2-rf-fit .hd{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.v2-rf-fit .hd b{font-size:12px;font-weight:800;color:#6D28D9;background:#F5F3FF;border-radius:6px;padding:2px 8px}
+.v2-rf-fit .hd span{font-size:12px;color:#8A92A3;flex:1;min-width:0}
+.v2-rf-fit .tx{font-size:14px;color:#1B2333;line-height:1.6;margin-top:6px;white-space:pre-wrap;overflow-wrap:anywhere}
+.v2-rf-gone{margin-top:12px;padding:10px 12px;border-radius:12px;background:#FDF0F0;color:#B4383F;font-size:13px;line-height:1.6}
+@media (max-width:420px){.v2-rf-list{grid-template-columns:1fr}}
+/* 월 1회 자동 개발 (2026-10-17 · devreq.jsx) — 포스트잇 판 위 한 줄 · 이달 개발 목록 상태 띠 */
+.v2-dp-line{display:block;width:100%;text-align:left;margin-top:12px;padding:10px 12px;border-radius:12px;border:1px solid #E3E7F0;background:#fff;font:inherit;font-size:13px;color:#1B2333;line-height:1.55;cursor:pointer}
+.v2-dp-line b{font-size:11.5px;font-weight:800;color:#24386B;background:#EEF1F8;border-radius:6px;padding:2px 7px;margin-right:4px}
+.v2-dp-line span{color:#24386B;font-weight:800}
+.v2-dp-st{margin-top:12px;padding:10px 12px;border-radius:12px;background:#EEF1F8;color:#1B2333;font-size:13.5px;line-height:1.6}
+.v2-dp-st b{margin-right:6px;color:#24386B}
+.v2-dp-st.red{background:#FDF0F0;color:#B4383F}.v2-dp-st.red b{color:#B4383F}
+.v2-dp-st.ok{background:#EEF6F0;color:#2F4A3A}.v2-dp-st.ok b{color:#2F7D57}
+.v2-dp-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:12px}
+.v2-dr.no{background:#F4F5F8;border-color:#E3E7F0}.v2-dr.no .tx{color:#5B6475}.v2-dr.no .st{background:#E3E7F0;color:#5B6475}
+@media (max-width:420px){.v2-dp-list{grid-template-columns:1fr}}

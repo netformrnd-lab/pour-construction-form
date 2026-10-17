@@ -34,6 +34,7 @@ import { AiTraceBox } from "./aitrace.jsx";
 import { traceLeft } from "./aiask.js";
 import { RtAiCard } from "./airtui.jsx";   // AI 크루 ↔ 반복 실행 (2026-10-16)
 import { rtKey } from "./airt.js";
+import { RefStrip } from "./refui.jsx";   // 업무에 연결한 레퍼런스 (2026-10-17)
 
 const roP = (n) => { const c = String(n || "").slice(-1).charCodeAt(0) - 0xAC00; if (c < 0 || c > 11171) return "(으)로"; const j = c % 28; return j === 0 || j === 8 ? "로" : "으로"; };
 export const openTask = (open, t) => open({ type: t.isFixed ? "fixed" : "task", id: t.id });
@@ -310,7 +311,8 @@ export function TaskSheet({ D, cu, A, open, onBack, onClose, id, focus, note, id
           <Act onClick={() => { if (sub.trim()) { A.addTask({ title: sub, parentId: t.id, projectId: t.projectId, assigneeId: t.assigneeId || cu.id, dueDate: t.dueDate, noReview: true }); setSub(""); } }}>추가</Act></div>
       </Card></>}
 
-    <div id="v2-t-files" ref={pasteRef} style={{ scrollMarginTop: 8 }} /><Head right={<UpBtn U={U} />}>파일 {files.length}</Head>
+    <RefStrip D={D} open={open} taskId={t.id} createdAt={t.createdAt} />   {/* 이 업무에 연결한 레퍼런스 (2026-10-17 · 있을 때만) */}
+    <div id="v2-t-files" ref={pasteRef} style={{ scrollMarginTop: 8 }} /><Head right={<span style={{ display: "inline-flex", gap: 6 }}>{!viewOnlyOn() && <TBtn onClick={() => open({ type: "refs", preset: { taskId: t.id, projectId: t.projectId || "" }, f: { task: t.id } })} aria-label="이 업무에 레퍼런스 붙이기">+ 레퍼런스</TBtn>}<UpBtn U={U} /></span>}>파일 {files.length}</Head>
     {PASTE_HINT && <div className="v2-phint">{PASTE_HINT}</div>}
     <UpList U={U} style={{ marginBottom: 8 }} />
     <FileList files={files} empty="올린 파일이 없어요" {...rmProps(A, cu)} />

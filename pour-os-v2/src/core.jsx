@@ -35,6 +35,8 @@ import { lagInbox, applyKpiOv, kpiEditWrite, newKpiId } from "./kpi2.js";
 import { dayIdFx, dayIdAk, openIdAk, dayBase, dayAdd, dayFix, roundTap, qtyToGoal, akSubsOf } from "./rec.js";
 import { akQidOfWeek, akWeekKey } from "../../pour-os/src/actionKpi.js";
 import { seenPatch, applySeen, seenUpload } from "./seensync.js";   // 읽음 표시 폰·PC 같이 (2026-10-13)
+import { devInbox, devMerge, planWindow, planNow, planItems, planDocOf, pickLeft, canConfirm, canPick, devReviewer, ymLabel, DEV_PICK_L } from "./devplan.js";   // 월 1회 자동 개발 (2026-10-17)
+import { refInbox, refNewDoc, refMissing, refTitle, refLive, canRefEdit, canRefHide, canRefFit, canRefUnfit, fitBlock, firstUrl, cleanKinds, refMateName, REF_TEXT_MAX, REF_FIT_MAX, REF_LIVE_DAYS } from "./refs.js";   // 레퍼런스 (2026-10-17)
 import { C, Big, TBtn, inp, useLocal } from "./ui.jsx";
 
 export const V1_URL = "./os.html";
@@ -111,6 +113,12 @@ export function useData(on, full = true) {
       // 구매 품의 요청(appr.js · 2026-10-16 · pour-os/approval-requests/items = 독립 화면 approval-requests.html 과 같은 문서): 품의 전 전부 + 최근 30일 바뀐 것 — 못 읽어도 앱은 그대로
       fb.listenAppr(["status", "==", "품의전"], put("apprOpen"), (e) => { console.warn("[v2] 품의 요청 못 읽음:", e); setS((s) => ({ ...s, apprOpen: [] })); }),
       fb.listenAppr(["updatedAt", ">=", since30], put("apprRecent"), (e) => { console.warn("[v2] 품의 요청(최근) 못 읽음:", e); setS((s) => ({ ...s, apprRecent: [] })); }),
+      // 레퍼런스(refs.js · 2026-10-17): 최근 90일에 올리거나 고친 것 (더 이전은 [이전 것 불러오기] · 프로젝트·업무 칸은 그 연결로 한 번 더) — 못 읽어도 앱은 그대로
+      fb.listen("refs", ["updatedAt", ">=", new Date(Date.now() - REF_LIVE_DAYS * 864e5).toISOString()], put("refs"), (e) => { console.warn("[v2] 레퍼런스 못 읽음:", e); setS((s) => ({ ...s, refs: [] })); }),
+      // 월 1회 자동 개발(devplan.js · 2026-10-17): 열린 포스트잇 + 최근 7일 바뀐 것(반영함·안 함 알림) + 달마다 계획 한 장 — 못 읽어도 앱은 그대로
+      fb.listen("devreqs", ["state", "==", "open"], put("devOpen"), (e) => { console.warn("[v2] 개발 수정 요청 못 읽음:", e); setS((s) => ({ ...s, devOpen: [] })); }),
+      fb.listen("devreqs", ["updatedAt", ">=", since14], put("devRecent"), (e) => console.warn("[v2] 개발 수정 요청(최근) 못 읽음:", e)),
+      fb.listen("devplans", null, put("devplans"), (e) => { console.warn("[v2] 이달 개발 목록 못 읽음:", e); setS((s) => ({ ...s, devplans: [] })); }),
     ];
     return () => subs.forEach((u) => u && u());
   }, [on, full]);
@@ -151,7 +159,11 @@ export function useData(on, full = true) {
         const rq = new Map(); (S.aiReqRecent || []).forEach((x) => rq.set(x.id || x._doc, x)); (S.aiReqOpen || []).forEach((x) => rq.set(x.id || x._doc, x));
         return { reqs: [...rq.values()].sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || ""))), asks: [...m.values()], mates: Object.fromEntries((S.aimates || []).map((x) => [x.id || x._doc, x])), boards: Object.fromEntries((S.aiboards || []).map((x) => [x.id || x._doc, x])), reports: Object.fromEntries((S.aireports || []).map((x) => [x.id || x._doc, x])), ready: S.aimates !== undefined }; })(), aiInbox: askInbox, asideInbox, aiRepInbox: repInbox, moneyInbox, feedInbox,
       // 구매 품의 요청(2026-10-16): list = 품의 전 + 최근 30일(지운 것 빼고 · 최근 것 먼저) · apprInbox = '확인할 것' 줄(model.todayView 가 부름)
-      appr: { list: apprMerge(S.apprRecent, S.apprOpen), ready: S.apprOpen !== undefined && S.apprRecent !== undefined }, apprInbox };
+      appr: { list: apprMerge(S.apprRecent, S.apprOpen), ready: S.apprOpen !== undefined && S.apprRecent !== undefined }, apprInbox,
+      // 레퍼런스(2026-10-17): list = 최근 90일(숨긴 것 포함 · 화면이 거름) · refInbox = '확인할 것' 줄(받을 사람 @)
+      refs: { list: S.refs || [], ready: S.refs !== undefined }, refInbox,
+      // 월 1회 자동 개발(2026-10-17): reqs = 열린 것 + 최근 7일 · plans = {YYYY-MM: 계획} · devInbox = '확인할 것' 줄
+      dev: { reqs: devMerge(S.devRecent, S.devOpen), plans: Object.fromEntries((S.devplans || []).map((x) => [x.id || x._doc, x])), ready: S.devOpen !== undefined && S.devplans !== undefined }, devInbox };
   }, [S, akQ, dayK]);
   return [D, err];
 }
@@ -186,6 +198,7 @@ export function useBoot() {
     if (isMaster(cu) && last !== today) syncProgress(D).then((n) => { try { localStorage.setItem(k, today); } catch (e) { /* 무시 */ } console.log(`[v2] 프로젝트 진척 다시 계산 · 바뀐 것 ${n}개`); }).catch((e) => console.error("[v2] 프로젝트 진척 다시 계산 실패:", e)); }, [meta, D.loaded, authed]);
   useLaunchSync(D, cu, !!(meta && D.loaded && authed));
   useSmsFlush(D, !!(meta && D.loaded && authed));
+  useDevRemind(D, cu, !!(meta && D.loaded && authed));   // 이달 개발 목록 목요일 문자 (2026-10-17 · 7A)
   const feeds = useFeeds(D, cu, !!(meta && D.loaded && authed));   // 결과 숫자 (2026-10-17): 광고 보고서 · 허브 리포트 마지막 날 (관리자·'광고 확인' 담당만)
   // 기밀(secret.js): 화면에는 이 사람이 볼 수 있는 것만 — 허용 안 된 기밀은 '기밀 업무'로 바꾼 대체본 · 신제품 반영·진척 계산은 위의 원래 D 로
   const V = useMemo(() => redact(feeds ? { ...D, feeds } : D, authed ? cu : null), [D, authed, cu, feeds]);
@@ -274,6 +287,11 @@ export async function queueMentionSms(D, cu, ids, itemId, text) {
     for (const uid of ids) { const u = (D.users || []).find((x) => x.id === uid); if (!smsTarget(u, cu.id) || !smsOpen(u, now)) continue;
       await fb.txDoc("smsq", uid, (cur) => ({ write: { items: [...((cur && cur.items) || []), item].slice(-20) } })); await flushSms(D.users, uid); }
     return; }
+  if (kind === "ref") { const r = ((D.refs && D.refs.list) || []).find((x) => x.id === ref), now = new Date();   // 레퍼런스 대화 (2026-10-17) — 기밀 아님 · 링크 없음
+    const item = { at: now.toISOString(), from: cu.name, text: String(text || "").slice(0, 60), where: r ? `레퍼런스 · ${r.kind || ""}` : "레퍼런스", link: "" };
+    for (const uid of ids) { const u = (D.users || []).find((x) => x.id === uid); if (!smsTarget(u, cu.id) || !smsOpen(u, now)) continue;
+      await fb.txDoc("smsq", uid, (cur) => ({ write: { items: [...((cur && cur.items) || []), item].slice(-20) } })); await flushSms(D.users, uid); }
+    return; }
   const t = kind === "task" ? (D.tasks || []).find((x) => x.id === ref) : null, p = (D.projects || []).find((x) => x.id === (t ? t.projectId : ref));
   const up = (x, k = 0) => (x && x.parentId && k < 20 ? (D.tasks || []).find((y) => y.id === x.parentId) : null);
   let anc = false; for (let x = up(t), k = 0; x && k < 20; x = up(x, ++k)) if (secretOn(x)) anc = true;
@@ -301,6 +319,26 @@ export async function flushSms(users, uid, now = new Date()) {
   catch (e) { console.error("[v2 문자] 보내기 실패:", e); await fb.txDoc("smsq", uid, () => ({ write: { lastError: String(e.message || e).slice(0, 200), lastErrorAt: now.toISOString() } })).catch((e2) => console.error("[v2 문자] 실패 기록도 못 남김:", e2)); return 0; }
 }
 // 로그인한 기기: 큐를 구독 → 1분마다 보낼 차례인 사람 것만 보냄
+// 이달 개발 목록 목요일 문자 (2026-10-17 사장님 확정 7A '목요일 한 번 더 알림') — 목요일인데 아직 확인 전 · 목록이 있으면 확인하는 사람에게 문자 한 통(그 달 한 번)
+//   로그인한 다른 사람 기기가 1분마다 봄 · 확인하는 사람의 문자 설정·시간(smsOpen) 안에서만 · settings/devplan.remind.<YYYY-MM> 로 한 번만(transaction) · 앱 안 줄(빨강)은 따로
+function useDevRemind(D, cu, on) {
+  const ref = useRef({ D, cu, tick: null }); ref.current.D = D; ref.current.cu = cu;
+  const ready = !!(D.dev && D.dev.ready);
+  useEffect(() => { if (on && ready && ref.current.tick) ref.current.tick(); }, [on, ready]);   // 목록·계획을 받은 바로 그때 한 번 (1분 기다리지 않게)
+  useEffect(() => { if (!on) return undefined;
+    const tick = ref.current.tick = async () => { const { D: d, cu: me } = ref.current, now = new Date(), w = planNow(now), key = ymd(now);
+      if (!d || !me || !d.dev || !d.dev.ready || key !== w.thu || (d.dev.plans[w.ym] && d.dev.plans[w.ym].state === "ok")) return;
+      const n = planItems(d.dev.reqs).length, uid = devReviewer(d), u = (d.users || []).find((x) => x.id === uid);
+      if (!n || !uid || !smsTarget(u, me.id) || !smsOpen(u, now)) return;
+      const st = ((d.settings || []).find((x) => x && (x.id || x._doc) === "devplan") || {}); if (st.remind && st.remind[w.ym]) return;
+      try { const go = await fb.txDoc("settings", "devplan", (c) => (c && c.remind && c.remind[w.ym] ? { ret: false } : { write: { remind: { ...((c && c.remind) || {}), [w.ym]: { at: now.toISOString(), by: me.id } } }, ret: true }));
+        if (!go) return;
+        const item = { at: now.toISOString(), from: "업무OS", text: `${ymLabel(w.ym)} 개발 목록 ${n}개 · 내일(금)까지 확인해 주세요`, where: "이달 개발", link: "" };
+        await fb.txDoc("smsq", uid, (c) => ({ write: { items: [...((c && c.items) || []), item].slice(-20) } })); await flushSms(d.users, uid, now);
+        console.log(`[v2 이달 개발] 목요일 문자 · ${nameOf(d.users, uid)} · ${w.ym}`); }
+      catch (e) { console.error("[v2 이달 개발] 목요일 문자 실패:", e); } };
+    tick(); const iv = setInterval(tick, 60000); return () => { clearInterval(iv); ref.current.tick = null; }; }, [on]);
+}
 function useSmsFlush(D, on) {
   const ref = useRef({ q: [], users: [] }); ref.current.users = D.users;
   useEffect(() => { if (!on) return;
@@ -1261,12 +1299,135 @@ export function useActs(D, cu, setToast, idx = null) {
     devReqSet: async (r, act) => {
       const at = nowIso(), mine = r.by === cu.id, today = ymd(new Date()), sameDay = String(r.at || "") && ymd(new Date(r.at)) === today;
       const f = act === "done" ? (isMaster(cu) ? { state: "done", doneAt: at, doneBy: cu.id, doneByName: cu.name } : null)
-        : act === "open" ? (isMaster(cu) ? { state: "open", doneAt: null, doneBy: null, doneByName: null } : null)
+        : act === "open" ? (isMaster(cu) ? { state: "open", doneAt: null, doneBy: null, doneByName: null, ...(r.state === "no" ? { noReason: null, noAt: null, noBy: null, noByName: null } : {}) } : null)
         : act === "remove" ? ((mine && sameDay) || isMaster(cu) ? { removed: { at, by: cu.id, byName: cu.name } } : null) : null;
       if (!f) { setToast({ text: act === "remove" ? "쓴 사람은 그날 안에만 뗄 수 있어요" : "반영 표시는 관리자가 해요" }); return false; }
       const prev = Object.fromEntries(Object.keys(f).map((k) => [k, r[k] === undefined ? null : r[k]]));
       try { await fb.patch("devreqs", r.id, { ...f, updatedAt: at }); } catch (e) { fail("수정 요청")(e); return false; }
       setToast({ text: act === "done" ? "반영함으로 바꿨어요" : act === "open" ? "다시 열었어요" : "포스트잇을 뗐어요", undo: () => fb.patch("devreqs", r.id, { ...prev, updatedAt: nowIso() }).catch(fail("되돌리기")) });
+      return true;
+    },
+    // ── 레퍼런스 (2026-10-17 사장님 확정 1A·2A·3A·4A · 계산 refs.js · 화면 refui.jsx) ──
+    //   pour-os/v2/refs/{id} · 누구나 올림 · 받을 사람 = 글 안 @이름 → 그 사람 '확인할 것' 한 줄 · 고치기 = 올린 사람·관리자(연 때 본 판 그대로일 때만 · 이전 판 edits[])
+    //   숨기기 = 올린 사람(그날)·관리자(지우지 않음 · removed) · AI 핏 = 관리자·올린 사람·그 AI 담당 → fits.<AI> + fitMates(crew.html 이 읽음) · 원가·마진·제조사·공급가 말은 막음
+    refAdd: async (f) => {
+      const files = (f.files || []).filter((x) => x && x.url), miss = refMissing(f, files.length);
+      if (miss) { setToast({ text: miss }); return null; }
+      const to = parseMentions(f.text, D.users).filter((u) => u !== cu.id), at = nowIso(), id = newId("rf"), doc = { id, ...refNewDoc({ ...f, files }, cu, to, at) };
+      try { await fb.put("refs", id, doc); } catch (e) { fail("레퍼런스")(e); return null; }
+      log("add", { col: "refs", targetId: id, projectId: doc.projectId || "", label: `레퍼런스 · ${doc.kind} · ${refTitle(doc)}` });
+      setToast({ text: to.length ? `올렸어요 · ${to.map((u) => nameOf(D.users, u)).join("·")}님 '확인할 것'에 떠요` : "올렸어요 · 모두 '레퍼런스'에서 봐요",
+        undo: () => fb.patch("refs", id, { removed: { at: nowIso(), by: cu.id, byName: cu.name, undo: true }, updatedAt: nowIso() }).catch(fail("되돌리기")) });
+      return doc;
+    },
+    // 고치기: f = {text, kind, brand, projectId} · base = 연 때 본 updatedAt → 그사이 바뀌었으면 {conflict} · 새로 @ 한 사람만 '확인할 것'
+    refEdit: async (r, f, base) => {
+      if (!canRefEdit(r, cu)) { setToast({ text: "올린 사람·관리자만 고쳐요" }); return { error: true }; }
+      const text = String(f.text || "").trim().slice(0, REF_TEXT_MAX);
+      if (!text && !(r.files || []).length) { setToast({ text: "글 한 줄이나 사진이 있어야 해요" }); return { error: true }; }
+      if (!String(f.kind || "").trim()) { setToast({ text: "종류를 골라 주세요" }); return { error: true }; }
+      const at = nowIso(), had = new Set([...(r.to || []), r.by, cu.id]), add = parseMentions(text, D.users).filter((u) => !had.has(u));
+      const next = { text: text || "(사진)", url: firstUrl(text), kind: String(f.kind).trim(), brand: f.brand || "", projectId: f.projectId || "" };
+      const prev = Object.fromEntries(Object.keys(next).map((k) => [k, r[k] === undefined ? "" : r[k]]));
+      if (Object.keys(next).every((k) => String(next[k]) === String(prev[k]))) return { same: true };
+      let res;
+      try { res = await fb.patchIf("refs", r.id, { updatedAt: base || r.updatedAt || null }, { ...next, updatedAt: at, editedAt: at, editedBy: cu.id, editedByName: cu.name,
+        edits: fb.arrayUnion({ ...prev, at: r.editedAt || r.at || "", by: r.editedBy || r.by || "", byName: r.editedByName || r.byName || "", until: at }),
+        ...(add.length ? { to: fb.arrayUnion(...add), ...Object.fromEntries(add.map((u) => ["toAt." + u, at])) } : {}) }); }
+      catch (e) { fail("레퍼런스 고치기")(e); return { error: true }; }
+      if (!res.ok) return { conflict: true, cur: res.cur || {} };
+      log("edit", { col: "refs", targetId: r.id, projectId: next.projectId || r.projectId || "", label: `레퍼런스 고침 · ${refTitle({ ...r, ...next })}`, prev, next });
+      setToast({ text: add.length ? `고쳤어요 · ${add.map((u) => nameOf(D.users, u)).join("·")}님에게도 알렸어요` : "고쳤어요",
+        undo: async () => { try { const u = await fb.patchIf("refs", r.id, { updatedAt: at }, { ...prev, updatedAt: nowIso() }); setToast({ text: u.ok ? "되돌렸어요" : "그사이 다른 사람이 바꿔서 그대로 뒀어요" }); } catch (e) { fail("되돌리기")(e); } } });
+      return { ok: true };
+    },
+    refHide: async (r) => {
+      if (!canRefHide(r, cu)) { setToast({ text: "올린 사람은 그날 안에만 숨겨요 · 그 뒤엔 관리자에게 말해 주세요" }); return false; }
+      const at = nowIso();
+      try { await fb.patch("refs", r.id, { removed: { at, by: cu.id, byName: cu.name }, updatedAt: at }); } catch (e) { fail("레퍼런스 숨기기")(e); return false; }
+      log("refHide", { col: "refs", targetId: r.id, projectId: r.projectId || "", label: `레퍼런스 숨김 · ${refTitle(r)}` });
+      setToast({ text: "숨겼어요 · 목록·AI 지시문에서 빠져요", undo: () => fb.patch("refs", r.id, { removed: null, updatedAt: nowIso() }).catch(fail("되돌리기")) });
+      return true;
+    },
+    refShow: async (r) => {   // 숨긴 것 다시 보이기 (관리자)
+      if (!isMaster(cu)) { setToast({ text: "관리자가 다시 보이게 해요" }); return false; }
+      const prev = r.removed || null;
+      try { await fb.patch("refs", r.id, { removed: null, updatedAt: nowIso() }); } catch (e) { fail("레퍼런스")(e); return false; }
+      log("restore", { col: "refs", targetId: r.id, projectId: r.projectId || "", label: `레퍼런스 다시 보임 · ${refTitle(r)}` });
+      setToast({ text: "다시 보여요", undo: () => fb.patch("refs", r.id, { removed: prev, updatedAt: nowIso() }).catch(fail("되돌리기")) });
+      return true;
+    },
+    // AI 핏 남기기·바꾸기 (그 AI 하나 · 한 줄) — 서버 지금 문서로 판단(transaction) · 숨긴 것·원가 말 있는 글은 안 됨 · 5초 되돌리기(예전 핏으로)
+    refFit: async (r, mate, text) => {
+      if (!canRefFit(r, cu, mate, D.ai && D.ai.mates)) { setToast({ text: "관리자·올린 사람·그 AI 담당이 남겨요" }); return false; }
+      const t = String(text || "").replace(/\s+/g, " ").trim().slice(0, REF_FIT_MAX), why = fitBlock(r, t);
+      if (why) { setToast({ text: why }); return false; }
+      const at = nowIso(), fit = { text: t, by: cu.id, byName: cu.name, at }, nm = refMateName(mate);
+      let ret;
+      try { ret = await fb.txDoc("refs", r.id, (c) => { if (!c || !refLive({ ...c, id: r.id })) return { ret: { gone: true } }; if (fitBlock(c, t)) return { ret: { bad: true } };
+          return { write: { [`fits.${mate}`]: fit, fitMates: fb.arrayUnion(mate), fitLog: fb.arrayUnion({ mate, act: "set", ...fit }), updatedAt: at }, ret: { prev: ((c.fits || {})[mate]) || null } }; }); }
+      catch (e) { fail("AI 핏")(e); return false; }
+      if (ret && ret.gone) { setToast({ text: "숨긴 레퍼런스예요" }); return false; }
+      if (ret && ret.bad) { setToast({ text: fitBlock(r, "-") || "AI에게 줄 수 없는 글이에요" }); return false; }
+      log("refFit", { col: "refs", targetId: r.id, projectId: r.projectId || "", label: `레퍼런스 AI 핏 · ${nm} · ${t.slice(0, 40)}` });
+      const pv = ret && ret.prev;
+      setToast({ text: `${nm} 핏을 남겼어요 · 다음 루틴부터 그 부분만 참고해요`, undo: () => fb.patch("refs", r.id, pv ? { [`fits.${mate}`]: pv, updatedAt: nowIso() } : { [`fits.${mate}`]: fb.deleteField(), fitMates: fb.arrayRemove(mate), updatedAt: nowIso() }).catch(fail("되돌리기")) });
+      return true;
+    },
+    refUnfit: async (r, mate) => {
+      if (!canRefUnfit(r, cu, mate, D.ai && D.ai.mates)) { setToast({ text: "핏 남긴 사람·그 AI 담당·관리자가 빼요" }); return false; }
+      const at = nowIso(), nm = refMateName(mate);
+      let pv;
+      try { pv = await fb.txDoc("refs", r.id, (c) => { const p = c && (c.fits || {})[mate]; if (!p) return { ret: null };
+          return { write: { [`fits.${mate}`]: fb.deleteField(), fitMates: fb.arrayRemove(mate), fitLog: fb.arrayUnion({ mate, act: "off", by: cu.id, byName: cu.name, at }), updatedAt: at }, ret: p }; }); }
+      catch (e) { fail("AI 핏 빼기")(e); return false; }
+      if (!pv) { setToast({ text: "이미 빠진 핏이에요" }); return false; }
+      log("refFit", { col: "refs", targetId: r.id, projectId: r.projectId || "", label: `레퍼런스 AI 핏 뺌 · ${nm}` });
+      setToast({ text: `${nm} 핏을 뺐어요 · 다음 루틴부터 안 봐요`, undo: () => fb.patch("refs", r.id, { [`fits.${mate}`]: pv, fitMates: fb.arrayUnion(mate), updatedAt: nowIso() }).catch(fail("되돌리기")) });
+      return true;
+    },
+    // ── 이달 개발 목록 확인 (2026-10-17 사장님 확정 5A~9A · devplan.js · devreq.jsx DevPlanSheet) ──
+    //   확인하는 사람(기본 김송희)·관리자 · 월요일 09:00 ~ 금요일 · 주말 개발을 시작하기 전까지 다시 확인(덮어씀) 가능
+    //   pour-os/v2/devplans/{YYYY-MM} 한 장(transaction · 개발을 시작했으면 안 씀) + 포스트잇마다 planYm·planPick · [안 함] = state 'no' + 까닭(지우지 않음) · 다시 확인에서 안 함을 풀면 다시 열림
+    devPlanConfirm: async (ym, items, picks, notes) => {
+      if (!canConfirm(D, cu)) { setToast({ text: `${nameOf(D.users, devReviewer(D)) || "확인하는 사람"}님·관리자가 확인해요` }); return false; }
+      const w = planWindow(ym), cur0 = (D.dev && D.dev.plans && D.dev.plans[ym]) || null;
+      if (!canPick(w, cur0)) { setToast({ text: "지금은 고를 수 없어요 · 그 달 마지막 월요일 09:00 ~ 금요일, 주말 개발 시작 전까지예요" }); return false; }
+      const left = pickLeft(items, picks); if (left) { setToast({ text: `${left}개 남았어요 · 포스트잇마다 [이번에·다음 달·안 함]을 골라 주세요` }); return false; }
+      const at = nowIso(), doc = planDocOf(w, items, picks, notes, cu, at);
+      let r;
+      try { r = await fb.txDoc("devplans", ym, (c) => (c && c.devStartedAt ? { ret: "started" } : { write: doc, ret: { prev: c } })); }
+      catch (e) { fail("이달 개발 목록")(e); return false; }
+      if (r === "started") { setToast({ text: "이미 주말 개발을 시작했어요 · 바꿀 것은 포스트잇 대화로 남겨 주세요" }); return false; }
+      const was = new Set((((r && r.prev) || {}).items || []).filter((x) => x.pick === "no").map((x) => x.id));
+      const ops = doc.items.map((x) => ({ key: "devreqs", id: x.id, fields: x.pick === "no" ? { state: "no", noReason: x.note || "", noAt: at, noBy: cu.id, noByName: cu.name, planYm: ym, planPick: "no", updatedAt: at }
+        : { planYm: ym, planPick: x.pick, ...(was.has(x.id) ? { state: "open", noReason: null, noAt: null, noBy: null, noByName: null } : {}), updatedAt: at } }));
+      try { await fb.patchMany(ops); } catch (e) { fail("포스트잇 표시")(e); }
+      const c = { now: 0, later: 0, no: 0 }; doc.items.forEach((x) => { c[x.pick]++; });
+      log("devPlan", { col: "devplans", targetId: ym, label: `${ymLabel(ym)} 개발 목록 확인 · 이번에 ${c.now} · 다음 달 ${c.later} · 안 함 ${c.no}` });
+      setToast({ text: c.now ? `확인했어요 · 이번에 ${c.now}개는 ${md(w.devDays[0])}~${md(w.devDays[1])} 주말에 개발해요 · 금요일까지 다시 고칠 수 있어요` : "확인했어요 · 이번 달은 고친 것 없이 쉬어요" });
+      return true;
+    },
+    // 이달 개발 목록 확인하는 사람 (관리자 · settings/devplan.reviewerId · '' = 기본 김송희 → 없으면 관리자 누구나) · 연 때 본 값 그대로일 때만 · 5초 되돌리기
+    devReviewerSet: async (next) => {
+      if (!isMaster(cu)) { setToast({ text: "관리자가 정해요" }); return false; }
+      const was = ((D.settings || []).find((x) => x && (x.id || x._doc) === "devplan") || {}).reviewerId || "", nx = next || "", at = nowIso();
+      if (nx === was) return true;
+      try { const ok = await fb.txDoc("settings", "devplan", (c) => (((c && c.reviewerId) || "") === was ? { write: { reviewerId: nx, reviewerAt: at, reviewerBy: cu.id }, ret: true } : { ret: false }));
+        if (!ok) { setToast({ text: "그사이 다른 사람이 바꿨어요 · 다시 봐 주세요" }); return false; } }
+      catch (e) { fail("확인하는 사람")(e); return false; }
+      const nm = (id) => nameOf(D.users, id) || "기본";
+      log("edit", { col: "settings", targetId: "devplan", label: `이달 개발 목록 확인하는 사람 ${nm(was)} → ${nm(nx)}`, prev: { reviewerId: was }, next: { reviewerId: nx } });
+      setToast({ text: `이달 개발 목록 = ${nameOf(D.users, nx || devReviewer({ ...D, settings: [] })) || "관리자 누구나"}님이 확인`, undo: () => fb.txDoc("settings", "devplan", (c) => (((c && c.reviewerId) || "") === nx ? { write: { reviewerId: was, reviewerAt: nowIso(), reviewerBy: cu.id } } : {})).catch(fail("되돌리기")) });
+      return true;
+    },
+    // 종류 칩 고치기 (관리자 · settings/refkinds.list) · 비우면 기본 7개 · 5초 되돌리기
+    refKindsSet: async (list) => {
+      if (!isMaster(cu)) { setToast({ text: "종류는 관리자가 고쳐요" }); return false; }
+      const nx = cleanKinds(list), was = ((D.settings || []).find((x) => x && (x.id || x._doc) === "refkinds") || {}).list || null, at = nowIso();
+      try { await fb.merge("settings", "refkinds", { list: nx, at, by: cu.id, byName: cu.name }); } catch (e) { fail("레퍼런스 종류")(e); return false; }
+      log("edit", { col: "settings", targetId: "refkinds", label: `레퍼런스 종류 · ${nx.join(" · ") || "기본"}`, prev: { list: was }, next: { list: nx } });
+      setToast({ text: nx.length ? `종류 ${nx.length}개로 정했어요` : "기본 종류로 돌렸어요", undo: () => fb.merge("settings", "refkinds", { list: was || [], at: nowIso(), by: cu.id, byName: cu.name }).catch(fail("되돌리기")) });
       return true;
     },
     // 고정업무 체크 — 내 칸만 바꾸고, 체크 기록(누가 몇 시)을 따로 남김

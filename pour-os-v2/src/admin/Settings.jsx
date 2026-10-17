@@ -12,6 +12,7 @@ import { LaunchOwnerSync } from "./LaunchLink.jsx";
 import { MoyImport } from "./MoyImport.jsx";
 import { pinHash } from "../sha.js";
 import { adsAsideDoc, adsAsideOwner, ADS_ASIDE_DEFAULT } from "../aiask.js";
+import { DevReviewerPick } from "../devreq.jsx";   // 이달 개발 목록 확인하는 사람 (2026-10-17)
 
 const KIND_L = { launch: "버전1 신제품 보드 다시 가져오기", all: "버전1 전체 다시 가져오기" };
 const NAVY_BTN = { background: C.navy, color: "#fff", borderColor: C.navy };
@@ -71,9 +72,13 @@ export function SettingsSheet({ D, cu, A, meta, setMeta, logout, onBack, onClose
   const last = holJ && holJ.last;
   return <Sheet title="설정" onBack={onBack} onClose={onClose}>
     {/* 개발 수정 요청 (2026-10-16 · 좁은 화면에선 머리 [수정 요청]이 숨어서 여기 첫 줄) */}
-    {open && <Card style={{ marginTop: 12 }}><Row title="개발 수정 요청" sub="불편한 점 · 고칠 점을 포스트잇으로 · 캡처는 붙여넣기로 바로" onClick={() => open({ type: "devreq", app: "admin" })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last /></Card>}
+    {/* 레퍼런스 · 이달 개발 목록 (2026-10-17 · 좁은 화면에선 머리 [레퍼런스]·[수정 요청]이 숨어서 여기) */}
+    {open && <Card style={{ marginTop: 12 }}><Row title="레퍼런스" sub="팀이 같이 보는 참고 자료 · 링크·캡처 + 한 줄 · 종류 고치기는 그 화면 아래" onClick={() => open({ type: "refs", app: "admin" })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last={false} />
+      <Row title="개발 수정 요청" sub="불편한 점 · 고칠 점을 포스트잇으로 · 캡처는 붙여넣기로 바로" onClick={() => open({ type: "devreq", app: "admin" })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last={false} />
+      <Row title="이달 개발 목록" sub="그 달 마지막 월요일 목록 → 금요일까지 확인 → 그 주 토·일 개발" onClick={() => open({ type: "devplan" })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last /></Card>}
     <BulkCodes D={D} cu={cu} A={A} setToast={setToast} />
     <AdsAsideOwner D={D} A={A} />
+    <DevReviewerPick D={D} A={A} />
     <Head>신제품 대시보드 연결</Head>
     <LaunchOwnerSync D={D} cu={cu} A={A} setToast={setToast} />
     <Head>버전1에서 다시 가져오기</Head>

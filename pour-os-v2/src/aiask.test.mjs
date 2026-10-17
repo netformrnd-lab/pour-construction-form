@@ -119,10 +119,15 @@ eq("오후엔 둘 다", X.asideInbox(DA(yb), "yj", new Date("2026-10-14T15:00:00
 eq("오늘 올렸으면 없음", X.asideInbox(DA({ ...yb, "gh-conv": { at: at("2026-10-14T09:10:00") } }), "yj", W11), []);
 eq("주말·공휴일은 안 돎 알림 없음", [X.asideInbox(DA(yb), "yj", new Date("2026-10-17T15:00:00")), X.asideInbox(DA(yb), "yj", new Date("2026-10-09T15:00:00"))], [[], []]);
 eq("관리자 = 담당 미정 한 줄", X.asideInbox(DA(yb), "ran", W11).map((x) => [x.kind, x.title, x.text.split(" · 담당")[0]]), [["aiOwnerless", "AI 크루 담당 미정 5명", "가을 · 봄 · 여름 · 바람 · 하늘"]]);
-// 광고 Aside 예약 글 (2026-10-17 사장님 "까먹을것같은데 os 확인할것에 나오게해줘") — 관리자 누구나 한 줄(keep) · 넣은 판이 지금 판보다 옛것일 때만
-{ const k = (st, uid) => X.asideInbox(DA(yb, undefined, st), uid, W11).filter((x) => x.kind === "adsAside").map((x) => [x.id, x.title, x.keep]);
-  eq("광고 예약 글: 안 넣었으면 관리자에게 한 줄 · 팀원엔 없음", [k([], "ran"), k([], "yj")], [[["aa:2026-10-16", "새 예약 글 넣기 · 예약 2개", true]], []]);
-  eq("광고 예약 글: 넣었으면(지금 판 · 더 새 판) 없음 · 옛 판이면 다시", [k([{ id: "adsAside", ver: "2026-10-16" }], "ran"), k([{ id: "adsAside", ver: "2026-10-20" }], "ran"), k([{ id: "adsAside", ver: "2026-10-15" }], "ran").length], [[], [], 1]);
+// 광고 Aside 예약 글 (2026-10-17 사장님 "까먹을것같은데 os 확인할것에 나오게해줘") — 받는 사람 한 줄(keep) · 넣은 판이 지금 판보다 옛것일 때만
+//   받는 사람 (2026-10-17 사장님 "Aside 예약은 김송희에게만 os에 알림뜨게해") = settings/adsAside.ownerId → 김송희 → 없으면 관리자 누구나
+{ const k = (st, uid, users) => X.asideInbox({ ...DA(yb, undefined, st), ...(users ? { users } : {}) }, uid, W11).filter((x) => x.kind === "adsAside").map((x) => [x.id, x.title, x.keep]);
+  const L = [["aa:2026-10-16", "새 예약 글 넣기 · 예약 2개", true]];
+  eq("광고 예약 글: 안 넣었으면 김송희(기본)에게만 한 줄 · 다른 관리자·팀원엔 없음", [k([], "sh"), k([], "ran"), k([], "yj")], [L, [], []]);
+  eq("광고 예약 글: 넣었으면(지금 판 · 더 새 판) 없음 · 옛 판이면 다시", [k([{ id: "adsAside", ver: "2026-10-16" }], "sh"), k([{ id: "adsAside", ver: "2026-10-20" }], "sh"), k([{ id: "adsAside", ver: "2026-10-15" }], "sh").length], [[], [], 1]);
+  eq("받는 사람 바꿈(ownerId 김민지) → 김민지만 · 김송희 없음", [k([{ id: "adsAside", ownerId: "gm" }], "gm"), k([{ id: "adsAside", ownerId: "gm" }], "sh")], [L, []]);
+  eq("받는 사람이 쉬면(퇴사) 기본 김송희 · 김송희도 없으면 관리자 누구나", [k([{ id: "adsAside", ownerId: "old" }], "sh"), k([], "ran", U.filter((u) => u.id !== "sh")), k([], "yj", U.filter((u) => u.id !== "sh"))], [L, L, []]);
+  eq("받는 사람 계산 · [넣었어요] 할 수 있는 사람(받는 사람 · 관리자)", [X.adsAsideOwner({ users: U, settings: [] }), X.adsAsideOwner({ users: U, settings: [{ id: "adsAside", ownerId: "gm" }] }), X.adsAsideOwner({ users: U.filter((u) => u.id !== "sh"), settings: [] }), X.canAdsAside({ users: U, settings: [] }, me("sh")), X.canAdsAside({ users: U, settings: [] }, me("ran")), X.canAdsAside({ users: U, settings: [] }, me("yj"))], ["sh", "gm", "", true, true, false]);
   eq("광고 예약 글 판 읽기 (settings/adsAside · 없으면 빈 글)", [X.adsAsideVer({ settings: [{ id: "adsAside", ver: "2026-10-16" }] }), X.adsAsideVer({ settings: [] }), X.adsAsideVer({})], ["2026-10-16", "", ""]); }
 eq("담당 아님·준비 전·없는 사람 = 없음", [X.asideInbox(DA(yb), "yr", W11), X.asideInbox({ users: U, ai: { ready: false } }, "yj", W11), X.asideInbox(DA(), "nobody", W11)], [[], [], []]);
 eq("모두 담당 있으면 미정 줄 없음", X.asideInbox(DA(yb, Object.fromEntries(["bom", "yeoreum", "gaeul", "gyeoul", "haneul", "uju", "baram", ...Object.keys(NEWM)].map((m) => [m, { owners: { _: "cw" } }]))), "ran", W11), []);

@@ -24,7 +24,7 @@ import { flowOwners } from "./flow.js";
 import { sumAk, akWrite, countFields, countOf, baseTitle } from "./routine.js";
 import { linkInbox } from "./links.js";
 import { apprInbox, apprMerge } from "./appr.js";   // 구매 품의 요청 (2026-10-16)
-import { askInbox, asideInbox, planPass, planBack, planRet, planDrop, planExec, canAct, canBack, canRet, pickOk, bossLoop, moreText, MORE_MAX, hqOf, traceOf, traceLeft, mateOwner, isHQ, launchTaskOf, adsAsideVer } from "./aiask.js";   // AI 승인 (2026-10-12) · Aside 담당 PC (2026-10-15)
+import { askInbox, asideInbox, planPass, planBack, planRet, planDrop, planExec, canAct, canBack, canRet, pickOk, bossLoop, moreText, MORE_MAX, hqOf, traceOf, traceLeft, mateOwner, isHQ, launchTaskOf, adsAsideVer, adsAsideOwner, canAdsAside } from "./aiask.js";   // AI 승인 (2026-10-12) · Aside 담당 PC (2026-10-15)
 import { moneyInbox } from "./money.js";   // 돈·결재 7건 알림 (2026-10-17 · 계산만)
 import { feedInbox, adChecker } from "./feeds.js";   // 결과 숫자 · 비면 n일째 (2026-10-17 · 계산만)
 import { mateOf, boardOf, brandL, qtyDefs, canReq, reqDoc, reqId } from "../../marketing-hub/crew.js";
@@ -909,13 +909,27 @@ export function useActs(D, cu, setToast, idx = null) {
       return true;
     },
     // 광고 Aside 예약 글 넣음 (2026-10-17 사장님 "어사이드에게 예약글 넣어서 진행하는거 까먹을것같은데 os 확인할것에 나오게해줘")
-    //   관리자 '확인할 것' 'Aside 광고 예약' [넣었어요] → settings/adsAside {ver, at, by, byName} → 그 줄이 모두에게서 사라짐 · 5초 되돌리기(예전 판으로)
+    //   받는 사람(adsAsideOwner · 기본 김송희) '확인할 것' 'Aside 광고 예약' [넣었어요] → settings/adsAside {ver, at, by, byName} → 그 줄이 사라짐 · 5초 되돌리기(예전 판으로)
     adsAsideDone: async () => {
-      if (!isMaster(cu)) { setToast({ text: "관리자가 해요" }); return false; }
+      if (!canAdsAside(D, cu)) { setToast({ text: "광고 Aside 담당이 해요" }); return false; }
       const at = nowIso(), was = adsAsideVer(D) || null;
       try { await fb.merge("settings", "adsAside", { ver: ASIDE_ADS_LAUNCH_VER, at, by: cu.id, byName: cu.name }); } catch (e) { fail("광고 예약 글")(e); return false; }
       log("edit", { col: "settings", targetId: "adsAside", label: `광고 Aside 예약 글 넣음 · 판 ${ASIDE_ADS_LAUNCH_VER}`, prev: { ver: was }, next: { ver: ASIDE_ADS_LAUNCH_VER } });
       setToast({ text: "넣었어요 · 다음 광고 보고서(평일 08:30)부터 새 글로 돌아요", undo: () => fb.merge("settings", "adsAside", { ver: was, at: nowIso(), by: cu.id, byName: cu.name }).catch(fail("되돌리기")) });
+      return true;
+    },
+    // 광고 Aside 예약 글 알림 받는 사람 바꾸기 (2026-10-17 · 관리자 · settings/adsAside.ownerId · 이름을 코드에 박지 않음)
+    //   연 때 본 값 그대로일 때만(transaction) · 기록 · 5초 되돌리기 · '' = 기본(김송희 → 없으면 관리자 누구나)
+    adsAsideOwnerSet: async (next) => {
+      if (!isMaster(cu)) { setToast({ text: "관리자가 정해요" }); return false; }
+      const was = (D.settings || []).find((x) => x && (x.id || x._doc) === "adsAside")?.ownerId || "", nx = next || "", at = nowIso();
+      if (nx === was) return true;
+      try { const ok = await fb.txDoc("settings", "adsAside", (cur) => (((cur && cur.ownerId) || "") === was ? { write: { ownerId: nx, ownerAt: at, ownerBy: cu.id }, ret: true } : { ret: false }));
+        if (!ok) { setToast({ text: "그사이 다른 사람이 바꿨어요 · 다시 봐 주세요" }); return false; } }
+      catch (e) { fail("광고 Aside 담당")(e); return false; }
+      const nm = (id) => nameOf(D.users, id) || "기본";
+      log("edit", { col: "settings", targetId: "adsAside", label: `광고 Aside 예약 알림 받는 사람 ${nm(was)} → ${nm(nx)}`, prev: { ownerId: was }, next: { ownerId: nx } });
+      setToast({ text: `광고 Aside 예약 알림 = ${nameOf(D.users, nx || adsAsideOwner({ ...D, settings: [] })) || "관리자 누구나"}`, undo: () => fb.txDoc("settings", "adsAside", (cur) => (((cur && cur.ownerId) || "") === nx ? { write: { ownerId: was, ownerAt: nowIso(), ownerBy: cu.id } } : {})).catch(fail("되돌리기")) });
       return true;
     },
     // 보고 주기 (관리자 · 2026-10-15 "한동안 주간 · 점차 1개월로") — settings/aicrew.reportCycle = {cycle, from(이번 주 월요일)} · 5초 되돌리기

@@ -182,18 +182,15 @@ const boxOf = (S, label) => S().getByLabel(label + ' 글').inputValue().catch(()
   eq('리드 승인 → 본부장 · 번호 좁힘', [d.to, d.step, d.path, d.pick], ['hj', 2, ['yj', 'sy'], ['B1']]); }
 
 // ④ 허지은(본부장 · 맨 위) — 최종 승인 → 남윤정 '실행' 업무
+const AA = '새 예약 글 넣기 · 예약 2개';
 { const s = await session('hj', { w: 1280, h: 900 });
   await expand(s.pg);
   eq('관리자 오늘: AI 크루 담당 미정 4명 한 줄', await inbox(s.pg, 'AI 크루 담당 미정 4명').count(), 1);
   await inbox(s.pg, 'AI 크루 담당 미정 4명').first().getByRole('button', { name: '정하기', exact: true }).click(); await s.pg.waitForTimeout(500);
   ok('[정하기] → AI 팀원 (담당 한꺼번에 정하기)', (await s.S().getByRole('button', { name: '담당 한꺼번에 정하기' }).count()) === 1);
   await s.pg.keyboard.press('Escape'); await s.pg.waitForTimeout(300);
-  // 광고 Aside 예약 글 (2026-10-17 사장님 "까먹을것같은데 os 확인할것에 나오게해줘") — 관리자 한 줄(keep) → [넣었어요] → 사라짐 · settings/adsAside 판
-  const AA = '새 예약 글 넣기 · 예약 2개';
-  eq('관리자 오늘: 광고 Aside 예약 글 넣기 한 줄 · 꼬리표', [await inbox(s.pg, AA).count(), await inbox(s.pg, AA).first().getByText('Aside 광고', { exact: true }).count() > 0], [1, true]);
-  await inbox(s.pg, AA).first().getByRole('button', { name: '넣었어요', exact: true }).click(); await s.pg.waitForTimeout(600);
-  const aa = await s.pg.evaluate(() => (window.__V2.v2.settings || {}).adsAside || null);
-  eq('[넣었어요] → 줄 사라짐 · settings/adsAside 판·누가', [await inbox(s.pg, AA).count(), aa && aa.ver, aa && aa.by], [0, '2026-10-16', 'hj']);
+  // 광고 Aside 예약 글 (2026-10-17 사장님 "까먹을것같은데 os 확인할것에 나오게해줘" → "Aside 예약은 김송희에게만") — 다른 관리자(허지은)에겐 안 뜸
+  eq('관리자(허지은) 오늘: 광고 Aside 예약 글 줄 없음 (김송희에게만)', await inbox(s.pg, AA).count(), 0);
   await inbox(s.pg, '쿠팡 유리블러').first().click(); await s.pg.waitForTimeout(500);
   eq('본부장 버튼 = 최종 승인', await s.S().getByRole('button', { name: '고른 1개 최종 승인' }).count(), 1);
   await shot(s.pg, 'hj-ask-1280'); ok('승인 한 장 넘침 없음 1280', !(await over(s.pg)));
@@ -223,6 +220,42 @@ const boxOf = (S, label) => S().getByLabel(label + ' 글').inputValue().catch(()
   w = await s.pg.evaluate(() => window.__V2.v2.tasks.aix_ai_gyeoul_20261012_ghconvB);
   eq('흔적 다 남김 → 끝냄', w.status, 'done');
   await s.close(); }
+
+// 광고 Aside 예약 글 받는 사람 (2026-10-17 사장님 "Aside 예약은 김송희에게만 os에 알림뜨게해") — 김송희 [넣었어요] · 관리자 설정에서 바꾸기
+{ let s = await session('sh');
+  await expand(s.pg);
+  eq('김송희 오늘: 광고 Aside 예약 글 넣기 한 줄 · 꼬리표', [await inbox(s.pg, AA).count(), await inbox(s.pg, AA).first().getByText('Aside 광고', { exact: true }).count() > 0], [1, true]);
+  await shot(s.pg, 'sh-adsaside-375'); ok('김송희 오늘 넘침 없음 375', !(await over(s.pg)));
+  await inbox(s.pg, AA).first().getByRole('button', { name: '넣었어요', exact: true }).click(); await s.pg.waitForTimeout(600);
+  const aa = await s.pg.evaluate(() => (window.__V2.v2.settings || {}).adsAside || null);
+  eq('[넣었어요] → 줄 사라짐 · settings/adsAside 판·누가', [await inbox(s.pg, AA).count(), aa && aa.ver, aa && aa.by], [0, '2026-10-16', 'sh']);
+  await s.close(); }
+ST.v2.settings.adsAside = { ...ST.v2.settings.adsAside, ver: '2026-10-01' };   // 새 판이 나온 것처럼
+{ let s = await session('hj', { admin: true, w: 1280, h: 900 });
+  await s.pg.getByRole('button', { name: '설정', exact: true }).first().click(); await s.pg.waitForTimeout(500);
+  ok('관리자 설정: 광고 Aside 예약 알림 · 지금 김송희 (기본)', (await s.S().innerText()).includes('지금 김송희 (기본)'));
+  await s.S().getByLabel('광고 Aside 예약 알림 받는 사람').selectOption('mj'); await s.pg.waitForTimeout(600);
+  let st = await s.pg.evaluate(() => window.__V2.v2.settings.adsAside);
+  ok('김민지로 바꿈 → ownerId · 누가 · 토스트', st.ownerId === 'mj' && st.ownerBy === 'hj' && (await s.pg.locator('.v2-toast').innerText()).includes('광고 Aside 예약 알림 = 김민지'), st);
+  await shot(s.pg, 'hj-adsaside-owner-1280');
+  await s.pg.locator('.v2-toast').getByRole('button', { name: '되돌리기' }).click(); await s.pg.waitForTimeout(600);
+  eq('되돌리기 → 기본', (await s.pg.evaluate(() => window.__V2.v2.settings.adsAside)).ownerId, '');
+  await s.S().getByLabel('광고 Aside 예약 알림 받는 사람').selectOption('mj'); await s.pg.waitForTimeout(600);
+  await s.close(); }
+{ let s = await session('ran', { admin: true });
+  await s.pg.getByRole('button', { name: '설정', exact: true }).first().click(); await s.pg.waitForTimeout(500);
+  ok('관리자 설정 375: 광고 Aside 예약 알림 · 지금 김민지 · 넘침 없음', (await s.S().innerText()).includes('지금 김민지') && !(await over(s.pg)));
+  await shot(s.pg, 'ran-adsaside-owner-375');
+  await s.close(); }
+{ let s = await session('mj');
+  await expand(s.pg);
+  eq('받는 사람 김민지 → 김민지 오늘에 한 줄', await inbox(s.pg, AA).count(), 1);
+  await s.close(); }
+{ let s = await session('sh');
+  await expand(s.pg);
+  eq('김송희에겐 이제 없음', await inbox(s.pg, AA).count(), 0);
+  await s.close(); }
+ST.v2.settings.adsAside = { ...ST.v2.settings.adsAside, ver: '2026-10-16', ownerId: '' };   // 아래 시험은 넣은 것으로
 
 // ⑥ 이란(관리자) — 담당 미정 봄 원고: 승인 → 이란 담당 칸 · 상급자 김송희에게 / 김송희 돌려보냄 → 이란 '수정 요청'
 { let s = await session('ran');

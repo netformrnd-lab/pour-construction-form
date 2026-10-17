@@ -61,6 +61,16 @@ eq("결과: 자사몰 전환 7.4% ← 6.1% · 목표", [cv.cur, cv.prev, R.metri
 eq("값 없는 지표 = —", R.metricLine(d.metrics.find((x) => x.k === "bounce")).startsWith("—"), true);   // 품절(soldout)은 2026-10-17 이음으로
 eq("KPI: 짝지은 반복 실행 = 이번 기간 [했어요] 수", d.ak, [{ id: "x_rv", name: "리뷰 신고·답글", n: 1 }]);
 eq("다음: AI [다음주] = 이번 기간 마지막", [d.aiNext, d.aiNextRun], ["- 롤러 재입고 알림\n- 상세 첫 화면", "2026-10-16"]);
+// 2026-10-17 사장님 확정 — 단계 숫자 하나(1A) · 넘겨받은 것(넘기기 A)
+eq("겨울 단계 숫자 = 구매전환율 (자사몰) 7.4% ← 6.1%", [d.stage.l, d.stage.slot, d.stage.vals.map((x) => [x.k, x.cur && x.cur.v, x.prev && x.prev.v])], ["구매전환율", "전환", [["cv_mall", 7.4, 6.1]]]);
+{ const D2 = { ...D1, ai: { ...D1.ai, boards: { ...D1.ai.boards, "gh-traffic": { hist: { visit7: { "2026-10-15": 12340, "2026-10-08": 11020 } } }, "gh-conv": { hist: { ...D1.ai.boards["gh-conv"].hist, inq7: { "2026-10-14": 85 } } } } } };
+  const ho = [{ id: "h1", mate: "ieum", act: "F", state: "ok", okAt: "2026-10-14T05:00:00.000Z", title: "재고 F · 품절 1", items: [{ n: "F1", c: {} }] }, { id: "h2", mate: "ieum", act: "F", state: "ok", okAt: "2026-10-08T05:00:00.000Z", title: "지난주" }, { id: "h3", mate: "ieum", act: "F", state: "ok", okAt: "2026-10-15T05:00:00.000Z", title: "끔", handoffOff: { by: "x" } }];
+  const y = R.secData(D2, slot("yeoreum"), P, PV, ho), g = R.secData(D2, slot("gyeoul"), P, PV, [...asks, ...ho]);
+  eq("여름 단계 숫자 = 방문(가을 보드) + 문의(겨울 보드) · 한 줄", [y.stage.vals.map((x) => x.cur && x.cur.v), R.stageLine(y.stage)], [[12340, 85], "방문·문의 수: 자사몰·스마트스토어 방문 12,340회 ← 11,020회 · 구매 전 문의 85건"]);
+  eq("넘겨받은 것 = 이번 기간 최종 승인 · 끈 것·지난주 빼기 · 여름은 이음 F 안 받음", [g.inbox.map((x) => [x.id, x.name, x.act, x.at, x.n]), y.inbox], [[["h1", "이음", "F", "2026-10-14", 1]], []]);
+  const tx = R.repText(R.repCrews()[0], P, [{ m: slot("gyeoul"), d: g, s: {} }], {});
+  eq("글로 복사: 단계 숫자 · 넘겨받은 것 줄", [tx.includes("- 단계 숫자 구매전환율: 7.4% ← 6.1% · 목표"), tx.includes("- 넘겨받은 것: 이음 F 10/14 재고 F · 품절 1")], [true, true]);
+  eq("단계 밖(별) = 단계 숫자 없음", R.secData(D2, slot("byeol"), P, PV, []).stage, null); }
 eq("여름 = 옛 포리 실행 업무도 (쉬는 팀원 → 여름)", R.secData(D1, slot("yeoreum"), P, PV, []).doneN, 1);
 
 // ⑤ 칸 상태 · '확인할 것'

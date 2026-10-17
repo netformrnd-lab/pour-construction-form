@@ -9,7 +9,7 @@
 //   리드(그 칸 담당의 상급자 중 리드) 한마디 → [본부장에게 보내기] = 그때 숫자를 얼림(snap) · 본부장 [읽었어요]
 //   저장: pour-os/v2/aireports/{크루}-{기간 시작} = {crew, cycle, start, end, due, secs:{AI id:{note, plan, done, sent, snap}}, leads:{리드 id:{note, at}}, read, log[]}
 import { addDays, ymd, md, nameOf, isMaster, isDone, isRemoved, fxIds } from "./model.js";
-import { CREWS, GONE, mateOf, boardOf, fmtMetric, metricOk } from "../../marketing-hub/crew.js";
+import { CREWS, GONE, mateOf, boardOf, fmtMetric, metricOk, stageNum, handoffsIn } from "../../marketing-hub/crew.js";
 import { mateOwner, bossOf, isLeadU, isHQ, MAX_UP } from "./aiask.js";
 import { doneDay, dayOfIso } from "./report.js";
 import { isFxKey, fxIdOf, akKeys, taskAks, liveAk, liveActOwners } from "./airt.js";
@@ -93,17 +93,26 @@ export function secData(D, m, p, pv, asks) {
     const n = tasks.filter((t) => taskAks(t).includes(id)).reduce((s, t) => s + Object.values(t.aiTrace || {}).filter((r) => r && r.done && inP(r.date) && (Array.isArray(r.cnt) ? r.cnt.includes(id) : t.aiAk === id)).length, 0);
     const ft = !it && isFxKey(id) ? ((D.tasks || []).find((x) => x.id === fxIdOf(id)) || null) : null;   // 정한 날 체크 짝 (2026-10-16)
     return { id, name: it ? it.name : ft ? ft.title : id, n }; });
+  // ⓪ 단계 숫자 (2026-10-17 사장님 1A '단계마다 하나') — 다른 보드 지표일 수 있음 (유입 = 가을 보드 방문 + 겨울 보드 문의)
+  const sn = stageNum(m.id), histB = (bid) => (((D.ai && D.ai.boards && D.ai.boards[bid]) || {}).hist) || {};
+  const lastB = (bid, k, a, z) => { const h = histB(bid)[k] || {}, d = Object.keys(h).filter((x) => x >= a && x <= z).sort().pop(); return d ? { v: h[d], date: d } : null; };
+  const stage = sn ? { l: sn.l, slot: sn.slot, vals: sn.ms.map((x) => { const cur = lastB(x.board, x.k, p.start, p.end), prev = pv ? lastB(x.board, x.k, pv.start, pv.end) : null;
+    return { k: x.k, l: x.l, u: x.u || "", dir: x.dir || "up", target: x.target, cur, prev, ok: !!cur && metricOk(x, cur.v) }; }) } : null;
+  // 넘겨받은 것 (2026-10-17 사장님 넘기기 A) — 이번 기간에 최종 승인된 다른 AI 결과 중 이 AI 에게 온 것
+  const inbox = handoffsIn(m.id, asks, p.start, p.end).slice(0, 10).map((x) => ({ id: x.id, name: x.name, act: x.act, at: x.at, title: x.title, n: x.n }));
   // ④ 다음 — AI [다음주] (aiboards.nextHist · 이번 기간 안에서 마지막)
   const nh = bv.nextHist || {}, nd = Object.keys(nh).filter(inP).sort().pop() || "";
   return { mate: m.id, name: m.name, slot: m.slot, role: m.role, board: b.id, title: b.title,
     done: doneT.slice(0, 20).map((t) => ({ id: t.id, title: t.title, day: doneDay(t) })), doneN: doneT.length, openN: openT.length,
-    trace: tr, asks: st, metrics, ak, aiNext: nd ? String(nh[nd] || "").slice(0, 2000) : "", aiNextRun: nd };
+    trace: tr, asks: st, metrics, ak, stage, inbox, aiNext: nd ? String(nh[nd] || "").slice(0, 2000) : "", aiNextRun: nd };
 }
 // 숫자 한 줄 (지표) — '7.4% ← 6.1% · 목표 12% ✓'
 export function metricLine(x) {
   const m = { u: x.u, dir: x.dir }, f = (v) => fmtMetric(m, v);
   return `${x.cur ? f(x.cur.v) : "—"}${x.prev ? ` ← ${f(x.prev.v)}` : ""}${x.target != null ? ` · 목표 ${f(x.target)}` : ""}${x.ok ? " ✓" : ""}`;
 }
+// 단계 숫자 한 줄 — '방문·문의 수: 12,340회 ← 11,020회 · 85건' (값 없으면 —)
+export const stageLine = (st) => (!st ? "" : `${st.l}: ${st.vals.map((x) => (st.vals.length > 1 ? `${x.l.replace(/\s*\(.*$/, "")} ` : "") + metricLine(x)).join(" · ")}`);
 export const trend = (x) => (!x.cur || !x.prev || x.cur.v === x.prev.v ? 0 : (x.cur.v > x.prev.v) === (x.dir !== "down") ? 1 : -1);   // 1 좋아짐 · −1 나빠짐
 
 // 칸 상태
@@ -157,7 +166,9 @@ export function repText(crew, p, rows, r) {
   rows.forEach(({ m, d, s }) => {
     L.push("", `■ ${m.slot} · ${m.name}(AI) ${m.role}${s.done ? ` · 담당 확인 ${s.done.byName || ""}` : " · 담당 확인 전"}`);
     L.push(`- 실행: 실행 업무 끝냄 ${d.doneN}건 · 흔적 ${d.trace.done}건${d.trace.skip ? ` (안 함 ${d.trace.skip})` : ""} · 승인 ${d.asks.ok}건 · 올라옴 ${d.asks.made}건${d.openN ? ` · 남은 실행 ${d.openN}건` : ""}`);
+    if (d.stage) L.push(`- 단계 숫자 ${stageLine(d.stage)}`);
     d.metrics.filter((x) => x.cur || x.prev).forEach((x) => L.push(`- 결과 ${x.l}: ${metricLine(x)}`));
+    if ((d.inbox || []).length) L.push(`- 넘겨받은 것: ${d.inbox.map((x) => `${x.name} ${x.act} ${md(x.at)} ${x.title}`).join(" · ")}`);
     d.ak.forEach((x) => L.push(`- KPI ${x.name}: +${x.n}`));
     if (s.note) L.push(`- 한 줄: ${s.note}`);
     const fs = secFiles(s, !!s.sent); if (fs.length) L.push(`- 파일 ${fs.length}개: ${fs.map((f) => f.name || "파일").join(" · ")} (업무OS 보고서에서 열기)`);

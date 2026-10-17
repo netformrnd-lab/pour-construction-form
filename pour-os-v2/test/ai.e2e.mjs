@@ -785,6 +785,68 @@ ST.v2.aiboards['gh-rep'] = { id: 'gh-rep', board: 'gh-rep', at: '2026-10-27T00:1
   await shot(s.pg, 'mj-feeds-board-375'); ok('시트 넘침 없음 375', !(await over(s.pg)));
   await s.close(); }
 
+// ⑯ 사장님 확정 (2026-10-17 논의 뒤) — 브랜드별 설계(6-1A) · 넘기기 A · 금요일 칸 단계 숫자(1A) · 넘겨받은 것
+ST.v2.aiasks.ai_baram_20261020_refE = ask({ id: 'ai_baram_20261020_refE', at: '2026-10-20T00:40:00.000Z', run: '2026-10-20', mate: 'baram', brand: 'grohome', board: 'gh-ref', act: 'E', owner: 'yr', to: 'yr', title: '지인추천 보드 E · 팬 후기 2', cols: ['후기 링크', '쓸 곳'], items: [{ n: 'E1', c: { '후기 링크': 'https://x.test/1', '쓸 곳': '릴스' } }], exec: '승인되면 담당이 고객에게 허락을 받고 줄마다 [했어요]로 남긴다' });
+{ let s = await session('hj', { now: TUE });
+  await s.pg.locator('.v2-nav').getByRole('button', { name: '더보기' }).click(); await s.pg.waitForTimeout(300);
+  await s.pg.getByText(/^크루\(브랜드·고객별\) · 담당 → 리드 승인/).click(); await s.pg.waitForTimeout(500);
+  await s.S().getByText('우주 · 재구매마케터').first().click(); await s.pg.waitForTimeout(600);
+  await s.S().getByText(/^G · 구매 후 케어/).first().click(); await s.pg.waitForTimeout(300);
+  let t = await s.S().innerText();
+  ok('우주 G 펼침 = 브랜드별 설계 · 적을 것 · 그로홈·POUR스토어 아직 없음', t.includes('브랜드별 설계') && t.includes('적을 것: 보내는 때(받은 뒤 며칠) · 채널 · 문구 · 같이 줄 링크') && (t.match(/아직 없음/g) || []).length >= 2, t.slice(0, 900));
+  await s.S().getByRole('button', { name: '설계 쓰기' }).first().click(); await s.pg.waitForTimeout(200);
+  const ta = s.S().getByLabel('G 그로홈 브랜드별 설계');
+  await ta.fill('원가 1,000원 기준으로'); await s.pg.waitForTimeout(150);
+  ok('원가가 있으면 빨간 안내 · 저장 막힘', (await s.S().innerText()).includes('원가·마진·제조사·공급가는 AI에게 보여 주지 않아요') && await s.S().getByRole('button', { name: '저장', exact: true }).isDisabled());
+  const DS = '받은 다음 날 · 카카오 알림톡 · 시공 가이드 영상\n7일 · 알림톡 · 잘 되셨어요? + 사진 후기 혜택';
+  await ta.fill(DS); await ta.scrollIntoViewIfNeeded();
+  await shot(s.pg, 'hj-design-375'); ok('설계 쓰기 넘침 없음 375', !(await over(s.pg)));
+  await s.S().getByRole('button', { name: '저장', exact: true }).click(); await s.pg.waitForTimeout(600);
+  ok('저장 → 토스트 · 다음 실행부터', (await s.pg.locator('.v2-toast').innerText()).includes('그로홈 설계를 저장했어요 · 다음 실행부터 AI가 그대로 따라요'));
+  let m = await s.pg.evaluate(() => window.__V2.v2.aimates.uju);
+  eq('저장: aimates.uju.design.G.grohome = 글 · 누가 · 기록', [m.design.G.grohome.text, m.design.G.grohome.by, m.hist.slice(-1)[0].ch['design.G.grohome']], [DS, 'hj', ['', DS.slice(0, 80)]]);
+  await s.pg.locator('.v2-toast').getByRole('button', { name: '되돌리기' }).click(); await s.pg.waitForTimeout(600);
+  eq('되돌리기 = 비움 (null)', (await s.pg.evaluate(() => ((window.__V2.v2.aimates.uju.design || {}).G || {}).grohome)) || null, null);
+  await s.S().getByRole('button', { name: '설계 쓰기' }).first().click(); await s.pg.waitForTimeout(200);
+  await s.S().getByLabel('G 그로홈 브랜드별 설계').fill(DS); await s.S().getByRole('button', { name: '저장', exact: true }).click(); await s.pg.waitForTimeout(600);
+  t = await s.S().innerText();
+  ok('다시 저장 → 글이 보임 · 허지은 · [고치기] · POUR스토어는 아직 없음', t.includes('7일 · 알림톡 · 잘 되셨어요? + 사진 후기 혜택') && t.includes('허지은 ·') && (await s.S().getByRole('button', { name: '고치기' }).count()) >= 1 && (await s.S().getByRole('button', { name: '설계 쓰기' }).count()) >= 1);
+  await s.close(); }
+{ let s = await session('mj', { now: TUE });   // 우주 담당(김민지) = 쓸 수 있음 · 김민지 아닌 할 일(겨울 I 담당 아님)도 보드 담당이면 씀
+  await s.pg.locator('.v2-nav').getByRole('button', { name: '더보기' }).click(); await s.pg.waitForTimeout(300);
+  await s.pg.getByText(/^AI 팀원 · 내가 맡은 AI/).click(); await s.pg.waitForTimeout(500);
+  await s.S().getByText('우주 · 재구매마케터').first().click(); await s.pg.waitForTimeout(600);
+  await s.S().getByText(/^G · 구매 후 케어/).first().click(); await s.pg.waitForTimeout(300);
+  const t = await s.S().innerText();
+  ok('우주 담당(김민지)도 설계를 보고 고침', t.includes('7일 · 알림톡 · 잘 되셨어요? + 사진 후기 혜택') && (await s.S().getByRole('button', { name: '고치기' }).count()) >= 1);
+  await s.close(); }
+{ let s = await session('sh', { now: TUE });
+  await s.pg.evaluate(() => { location.hash = '#a-ai_ieum_20261020_opsorderF'; }); await s.pg.waitForTimeout(800);
+  let t = await s.S().innerText();
+  ok("최종 승인된 이음 F = → 가을·겨울·봄에게 넘어가요 · 14일", t.includes('→ 가을·겨울·봄에게 넘어가요') && t.includes("최종 승인됨 · 14일 동안 그 AI 지시문 '넘겨받은 것'에"), t.slice(0, 900));
+  await s.S().getByRole('button', { name: '넘기기 끄기' }).click(); await s.pg.waitForTimeout(600);
+  ok('끄기 → 토스트 · 꺼짐 표시', (await s.pg.locator('.v2-toast').innerText()).includes('이 건은 가을·겨울·봄에게 안 넘겨요') && (await s.S().innerText()).includes('넘기기 꺼짐'));
+  let a = await s.pg.evaluate(() => window.__V2.v2.aiasks.ai_ieum_20261020_opsorderF);
+  eq('저장: handoffOff.by · 기록(handoffOff)', [a.handoffOff && a.handoffOff.by, (a.log || []).slice(-1)[0].act], ['sh', 'handoffOff']);
+  await shot(s.pg, 'sh-handoff-375'); ok('넘기기 줄 넘침 없음 375', !(await over(s.pg)));
+  await s.S().getByRole('button', { name: '다시 켜기' }).click(); await s.pg.waitForTimeout(600);
+  eq('다시 켜기 = 지움', (await s.pg.evaluate(() => window.__V2.v2.aiasks.ai_ieum_20261020_opsorderF.handoffOff)) || null, null);
+  await s.close(); }
+{ let s = await session('yr', { now: TUE });
+  await s.pg.evaluate(() => { location.hash = '#a-ai_baram_20261020_refE'; }); await s.pg.waitForTimeout(800);
+  ok("대기 중 바람 E = 최종 승인되면 여름·겨울 · 허락받은 줄만", (await s.S().innerText()).includes("→ 여름·겨울에게 넘어가요 · 최종 승인되면 그 AI 지시문 '넘겨받은 것'에 · 담당이 [했어요]한(허락받은) 줄만"));
+  await s.close(); }
+{ const FRI = '2026-10-23T10:00:00+09:00';
+  let s = await session('yj', { now: FRI });
+  await expand(s.pg);
+  await inbox(s.pg, '겨울 칸 쓰기 · B2C 크루').first().getByRole('button', { name: '쓰기', exact: true }).click(); await s.pg.waitForTimeout(700);
+  const tx = await s.S().innerText();
+  ok('금요일 겨울 칸 = 단계 숫자 · 전환 = 구매전환율 · 넘겨받은 것 1 (이음 F)', tx.includes('단계 숫자 · 전환 = 구매전환율') && tx.includes('넘겨받은 것 1 (다른 AI · 최종 승인)') && tx.includes('이음 F · 주문·배송·재고 보드 F · 품절 0 ›'), tx.slice(0, 1200));
+  ok('접힌 칸 한 줄 = 단계 숫자 (여름 = 방문·문의 수)', tx.includes('방문·문의 수:'), '');
+  await s.S().getByText('단계 숫자 · 전환 = 구매전환율').scrollIntoViewIfNeeded();
+  await shot(s.pg, 'yj-report-stage-375'); ok('금요일 칸 넘침 없음 375', !(await over(s.pg)));
+  await s.close(); }
+
 ok('화면 오류 없음', errs.length === 0, errs);
 await b.close();
 console.log(`\n${n - bad}/${n} 통과 · 그림 ${SHOTS}`); if (bad) process.exit(1);

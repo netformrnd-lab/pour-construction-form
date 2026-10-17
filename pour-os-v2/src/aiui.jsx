@@ -14,7 +14,7 @@ import { Thread, useItemNotes } from "./task.jsx";
 import { LS } from "./core.jsx";
 import { RtMulti } from "./airtui.jsx";   // AI 크루 ↔ 반복 실행 (2026-10-16) · 여러 개 (2026-10-17)
 import { isFxKey, fxIdOf, NO_ACT, akKeys, pairable } from "./airt.js";
-import { CREWS, GONE, crewOf, mateOf, boardOf, brandL, servesL, mateBrands, ownerKeys, fmtMetric, metricPct, metricOk, runWord, asideLaunch, asideRedoLaunch, asideFixLaunch, loginSites, planOf, qtyDefs, qtyNow, canReq, reqMates, REQ_SHAPES, REQ_PRESETS, REQ_STATE_L, reqLine, asideReqLaunch, execOf, formulaHead, formulaSep, movedOut, movedIn, stageOf } from "../../marketing-hub/crew.js";
+import { CREWS, GONE, crewOf, mateOf, boardOf, brandL, servesL, mateBrands, ownerKeys, fmtMetric, metricPct, metricOk, runWord, asideLaunch, asideRedoLaunch, asideFixLaunch, loginSites, planOf, qtyDefs, qtyNow, canReq, reqMates, REQ_SHAPES, REQ_PRESETS, REQ_STATE_L, reqLine, asideReqLaunch, execOf, formulaHead, formulaSep, movedOut, movedIn, stageOf, designOf, designBad, DESIGN_MAX, BRAND_L, handoffTargets, handoffLabel, handoffNeedsDone, INBOX_DAYS } from "../../marketing-hub/crew.js";
 import { cycleOf, periodOf, repCrews, repId, repSlots, secState, periodL, dueL, CYCLE_L } from "./aireport.js";   // AI 크루 보고 (2026-10-15)
 import { ASK_STATE_L, canAct, canBack, canRet, isProxy, pickOk, planPass, chainOf, mateOwner, actOwner, hqOf, canUpHQ, mateStats, repeatNotes, itemLine, bossOf, bossRec, bossLoop, asidePlanOf, ranOn, missedOn, goneWaits, GONE_DROP, myTurnN,
   waitWd, workMin, prevWaits, newerOf, routineRanOn, routineMisses, routineAlert, stuckAlert, LATE_WD, BACK_MIN, PREV_DROP, ROUTINE_AT, ROUTINE_CHECK } from "./aiask.js";   // 멈춤 감시 (2026-10-17)
@@ -97,7 +97,7 @@ export function AiAskSheet({ D, cu, A, open, onBack, onClose, id, focus, note })
   if (a === undefined || a === null) return <Sheet title="AI 승인" kind="AI 승인" onBack={onBack} onClose={onClose}><Empty>불러오는 중…</Empty></Sheet>;
   if (a === false) return <Sheet title="AI 승인" kind="AI 승인" onBack={onBack} onClose={onClose}><Empty>이 승인 요청을 찾지 못했어요</Empty></Sheet>;
   const m = mateOf(a.mate) || { name: a.mateName || "AI", role: "" }, b = a.board ? boardOf(a.board) : null, actDef = b ? b.actions.find((x) => x.c === a.act) : null;
-  const items = a.items || [], can = canAct(a, cu), proxy = can && isProxy(a, cu);
+  const items = a.items || [], can = canAct(a, cu), proxy = can && isProxy(a, cu), ho = handoffTargets(a.mate, a.act);   // 넘기기 (2026-10-17 사장님 넘기기 A)
   const pick = pick0 || (Array.isArray(a.pick) ? a.pick : []), pset = new Set(pick);
   const toggle = (n) => setPick(pset.has(n) ? pick.filter((x) => x !== n) : [...pick, n]);
   const hq = hqOf(a, ((D.ai && D.ai.mates) || {})[a.mate]), upOk = canUpHQ(a, cu, D.users, hq);   // 본부장 승인 일 (2026-10-15 · 광고비 예산·원가·판매가 조정)
@@ -159,6 +159,10 @@ export function AiAskSheet({ D, cu, A, open, onBack, onClose, id, focus, note })
       {can ? `승인할 번호 고르기 · ${pick.length}/${items.length}` : `제안 ${items.length}개${Array.isArray(a.pick) ? ` · 고른 것 ${a.pick.length}` : ""}`}</Head>
       <Card>{items.map((it, i) => <ItemCard key={it.n} it={it} cols={a.cols} card={actDef && actDef.card} on={pset.has(it.n)} can={can} onToggle={() => toggle(it.n)} last={i === items.length - 1} />)}</Card></>}
     {a.exec && <div style={{ fontSize: 13, color: C.sub, margin: "10px 2px 0", lineHeight: 1.6 }}><b style={{ color: C.ink }}>실행은 사람이</b> · {a.exec}</div>}
+    {ho.length > 0 && a.state !== "no" && <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", margin: "10px 2px 0", fontSize: 13, lineHeight: 1.6, color: a.handoffOff ? C.mute : C.sub }}>
+      <span style={{ flex: "1 1 200px", minWidth: 0 }}>{a.handoffOff ? <><b style={{ color: C.mute }}>넘기기 꺼짐</b> · {a.handoffOff.byName || ""} · {handoffLabel(a.mate, a.act)}에게 안 넘어가요</>
+        : <><b style={{ color: C.ink }}>→ {handoffLabel(a.mate, a.act)}에게 넘어가요</b> · {a.state === "ok" ? `최종 승인됨 · ${INBOX_DAYS}일 동안 그 AI 지시문 '넘겨받은 것'에` : "최종 승인되면 그 AI 지시문 '넘겨받은 것'에"}{handoffNeedsDone(a.mate, a.act) ? " · 담당이 [했어요]한(허락받은) 줄만" : ""}</>}</span>
+      {(can || a.owner === cu.id || isMaster(cu)) && <TBtn onClick={() => A.askHandoff(a, !a.handoffOff)}>{a.handoffOff ? "다시 켜기" : "넘기기 끄기"}</TBtn>}</div>}
 
     {can && <div style={{ display: "flex", flexWrap: "wrap", gap: 8, margin: "14px 0 0" }}>
       {canBack(a, cu) && <TBtn v="soft" onClick={() => { setTxt(""); setMode(mode === "back" ? "" : "back"); }}>{m.name}(AI)에게 다시</TBtn>}
@@ -268,6 +272,35 @@ function useBoardVals(boardId) {
   useEffect(() => { if (!boardId) return undefined; return fb.listen("aiboards", ["board", "==", boardId], (x) => setV(x[0] || {}), (e) => { console.warn("[v2] 보드 숫자 못 읽음:", e); setV({}); }); }, [boardId]);
   return v;
 }
+// 브랜드별 설계 (2026-10-17 사장님 6-1A "브랜드 별 명확하게 설계 필요해 · 내가 정리해서 넣고 싶은데 자체 수정해서 설정") — 할 일 펼친 칸
+//   쓰는 사람 = 관리자 · 그 AI 담당 · 그 할 일 담당 · 저장하면 crew.html 지시문 '■ 브랜드별 설계' → 다음 실행부터 AI 가 그대로 따름
+//   설계가 필요한 할 일(a.design · 우주 G)은 늘 보이고, 다른 할 일은 글이 있거나 쓸 수 있는 사람에게만 [설계 쓰기]
+function DesignBox({ D, cu, A, b, a, doc }) {
+  const [ed, setEd] = useState(""), [txt, setTxt] = useState(""), [busy, setBusy] = useState(false);
+  const brands = (() => { const c = crewOf(b.mate), bs = c ? [...new Set(c.serves.map((x) => x.brand))] : []; return bs.length ? bs : [b.brand || "grohome"]; })();
+  const raw = ((doc && doc.design) || {})[a.c] || {}, shown = designOf(doc && doc.design, a.c), byB = Object.fromEntries(shown.map((x) => [x.brand, x]));
+  const can = isMaster(cu) || Object.values((doc && doc.owners) || {}).includes(cu.id) || actOwner(doc, b.brand, a.c, D.users) === cu.id;
+  if (!a.design && !shown.length && !can) return null;
+  const bad = designBad(txt), save = async (bb) => { if (busy) return; setBusy(true); try { if (await A.mateDesign(b.mate, a.c, bb, txt, (raw[bb] && raw[bb].text) || "")) setEd(""); } finally { setBusy(false); } };
+  return <div style={{ margin: "0 0 10px", padding: "10px 12px", background: a.design && !shown.length ? "#FFF8EC" : "#F6F7FA", borderRadius: 10 }}>
+    <div style={{ display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap" }}><b style={{ color: C.ink }}>브랜드별 설계</b><span style={{ fontSize: 12, color: C.mute }}>사람이 정함 · AI 가 다음 실행부터 그대로 따라요</span></div>
+    {a.design && <div style={{ fontSize: 12.5, color: C.sub, marginTop: 2 }}>적을 것: {a.design.replace(/^[^—]*—\s*/, "")}{!shown.length ? " · 아직 없으면 AI가 브랜드별 초안을 올려요" : ""}</div>}
+    {brands.map((bb) => { const x = byB[bb], on = ed === bb;
+      return <div key={bb} style={{ marginTop: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}><b style={{ fontSize: 13, color: C.navy }}>{BRAND_L[bb] || bb}</b>
+          <span style={{ fontSize: 12, color: C.mute, flex: 1, minWidth: 0 }}>{x ? `${x.byName || ""}${x.at ? ` · ${md(ymd(new Date(x.at)))}` : ""}` : "아직 없음"}</span>
+          {can && !on && <TBtn onClick={() => { setTxt((raw[bb] && raw[bb].text) || ""); setEd(bb); }}>{x ? "고치기" : "설계 쓰기"}</TBtn>}</div>
+        {!on && x && <div style={{ fontSize: 13, color: C.text, whiteSpace: "pre-wrap", wordBreak: "break-word", marginTop: 2 }}>{x.text}</div>}
+        {on && <div style={{ marginTop: 6 }}>
+          <textarea value={txt} onChange={(e) => setTxt(e.target.value.slice(0, DESIGN_MAX))} rows={6} aria-label={`${a.c} ${BRAND_L[bb] || bb} 브랜드별 설계`}
+            placeholder={"예)\n받은 다음 날 · 카카오 알림톡 · 시공 가이드 영상 링크 + 이것만 조심 3줄\n7일 · 알림톡 · 잘 되셨어요? + 사진 후기 혜택\n30일 · 친구톡 · 다음 작업 제안 하나"}
+            style={{ ...inp, width: "100%", boxSizing: "border-box", fontSize: 14, lineHeight: 1.55, resize: "vertical" }} />
+          {bad && <div style={{ fontSize: 12.5, color: C.red, marginTop: 4 }}>원가·마진·제조사·공급가는 AI에게 보여 주지 않아요 · 그 줄을 빼 주세요</div>}
+          <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap", alignItems: "center" }}><TBtn v="solid" disabled={busy || bad} onClick={() => save(bb)}>{txt.trim() ? "저장" : "비우고 저장"}</TBtn><TBtn onClick={() => setEd("")}>취소</TBtn>
+            <span style={{ fontSize: 12, color: C.mute }}>{txt.length}/{DESIGN_MAX}</span></div></div>}
+      </div>; })}
+  </div>;
+}
 function BoardView({ D, cu, A, b, open, asks, doc }) {
   const v = useBoardVals(b.id), vals = (v && v.metrics) || {};
   const [openA, setOpenA] = useState("");
@@ -304,6 +337,7 @@ function BoardView({ D, cu, A, b, open, asks, doc }) {
               {pairable(a) && <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}><b style={{ color: C.ink, minWidth: 74 }}>반복 실행 짝{a.report ? " (승인 = 그날 체크)" : ""}</b>
                 <RtMulti D={D} value={((doc && doc.actAk) || {})[a.c]} onChange={(ks) => A.mateActSet(b.mate, "actAk", a.c, ks)} label={`${a.c} 반복 실행 짝`} /></div>}
               <div style={{ fontSize: 12, color: C.mute, lineHeight: 1.5 }}>담당 = 승인 첫 단계·실행 업무 받는 사람 · 반복 실행 짝 = 실행 업무 번호마다 [했어요]가 그 반복에 +1 (KPI)</div></div>}
+            <DesignBox D={D} cu={cu} A={A} b={b} a={a} doc={doc} />
             <div><b style={{ color: C.ink }}>상황</b> · {a.w}</div>
             <ol style={{ margin: "6px 0 0", paddingLeft: 18 }}>{a.s.map((s, k) => <li key={k} style={{ marginTop: 2 }}>{s}</li>)}</ol>
             {a.cols.length > 0 && <div style={{ marginTop: 6 }}><b style={{ color: C.ink }}>올리는 표</b> · {a.cols.join(" · ")}</div>}

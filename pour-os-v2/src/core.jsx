@@ -26,6 +26,7 @@ import { linkInbox } from "./links.js";
 import { apprInbox, apprMerge } from "./appr.js";   // 구매 품의 요청 (2026-10-16)
 import { askInbox, asideInbox, planPass, planBack, planRet, planDrop, planExec, canAct, canBack, canRet, pickOk, bossLoop, moreText, MORE_MAX, hqOf, traceOf, traceLeft, mateOwner, isHQ, launchTaskOf, adsAsideVer } from "./aiask.js";   // AI 승인 (2026-10-12) · Aside 담당 PC (2026-10-15)
 import { moneyInbox } from "./money.js";   // 돈·결재 7건 알림 (2026-10-17 · 계산만)
+import { feedInbox, adChecker } from "./feeds.js";   // 결과 숫자 · 비면 n일째 (2026-10-17 · 계산만)
 import { mateOf, boardOf, brandL, qtyDefs, canReq, reqDoc, reqId } from "../../marketing-hub/crew.js";
 import { ASIDE_ADS_LAUNCH_VER } from "../../marketing-hub/adops.js";   // 광고 Aside 예약 글 판 (2026-10-17)
 import { repSlots, repId, canWriteSec, secPeople, snapOf, cycleOf, monOf, CYCLE_L, repInbox, repFxOf, myRepLeft } from "./aireport.js";   // AI 크루 보고서 (2026-10-15) · 리포트 ①~④ (2026-10-17)
@@ -148,7 +149,7 @@ export function useData(on, full = true) {
       // AI 승인(2026-10-12): asks = 열린 것 + 최근 7일(같은 id 는 열린 쪽) · mates = AI 팀원 덧칠 {id: 문서} · aiInbox = '확인할 것' 줄(model.todayView 가 부름 · 순환 import 피하려고 D 로)
       ai: (() => { const m = new Map(); (S.aiRecent || []).forEach((x) => m.set(x.id, x)); (S.aiOpen || []).forEach((x) => m.set(x.id, x));
         const rq = new Map(); (S.aiReqRecent || []).forEach((x) => rq.set(x.id || x._doc, x)); (S.aiReqOpen || []).forEach((x) => rq.set(x.id || x._doc, x));
-        return { reqs: [...rq.values()].sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || ""))), asks: [...m.values()], mates: Object.fromEntries((S.aimates || []).map((x) => [x.id || x._doc, x])), boards: Object.fromEntries((S.aiboards || []).map((x) => [x.id || x._doc, x])), reports: Object.fromEntries((S.aireports || []).map((x) => [x.id || x._doc, x])), ready: S.aimates !== undefined }; })(), aiInbox: askInbox, asideInbox, aiRepInbox: repInbox, moneyInbox,
+        return { reqs: [...rq.values()].sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || ""))), asks: [...m.values()], mates: Object.fromEntries((S.aimates || []).map((x) => [x.id || x._doc, x])), boards: Object.fromEntries((S.aiboards || []).map((x) => [x.id || x._doc, x])), reports: Object.fromEntries((S.aireports || []).map((x) => [x.id || x._doc, x])), ready: S.aimates !== undefined }; })(), aiInbox: askInbox, asideInbox, aiRepInbox: repInbox, moneyInbox, feedInbox,
       // 구매 품의 요청(2026-10-16): list = 품의 전 + 최근 30일(지운 것 빼고 · 최근 것 먼저) · apprInbox = '확인할 것' 줄(model.todayView 가 부름)
       appr: { list: apprMerge(S.apprRecent, S.apprOpen), ready: S.apprOpen !== undefined && S.apprRecent !== undefined }, apprInbox };
   }, [S, akQ, dayK]);
@@ -185,9 +186,26 @@ export function useBoot() {
     if (isMaster(cu) && last !== today) syncProgress(D).then((n) => { try { localStorage.setItem(k, today); } catch (e) { /* 무시 */ } console.log(`[v2] 프로젝트 진척 다시 계산 · 바뀐 것 ${n}개`); }).catch((e) => console.error("[v2] 프로젝트 진척 다시 계산 실패:", e)); }, [meta, D.loaded, authed]);
   useLaunchSync(D, cu, !!(meta && D.loaded && authed));
   useSmsFlush(D, !!(meta && D.loaded && authed));
+  const feeds = useFeeds(D, cu, !!(meta && D.loaded && authed));   // 결과 숫자 (2026-10-17): 광고 보고서 · 허브 리포트 마지막 날 (관리자·'광고 확인' 담당만)
   // 기밀(secret.js): 화면에는 이 사람이 볼 수 있는 것만 — 허용 안 된 기밀은 '기밀 업무'로 바꾼 대체본 · 신제품 반영·진척 계산은 위의 원래 D 로
-  const V = useMemo(() => redact(D, authed ? cu : null), [D, authed, cu]);
+  const V = useMemo(() => redact(feeds ? { ...D, feeds } : D, authed ? cu : null), [D, authed, cu, feeds]);
   return { launchNew, holJ, meta, setMeta, metaErr, checkMeta, D: V, rawD: D, err, cu, authed, signIn: (u, h) => { setMe(u.id); setKey(h); }, logout: () => { setKey(""); setMe(""); } };
+}
+// ───────────────── 결과 숫자 (③ · 2026-10-17 · feeds.js) ─────────────────
+// 광고 일일 보고서 마지막 날(adreports 최근 7일) · 허브 '오늘 숫자' counts — 관리자·'광고 확인' 담당 기기에서만 · 열 때 + 3시간마다 · 읽기만
+//   못 읽으면 그 줄은 '확인 못 함'(경고 안 함) · 판매 두 곳(CRM·그로홈)은 이미 구독하는 kpisales 로 봄
+function useFeeds(D, cu, on) {
+  const need = on && !!cu && (isMaster(cu) || adChecker(D, cu.id));
+  const [F, setF] = useState(null);
+  useEffect(() => { if (!need) { setF(null); return undefined; } let live = true;
+    const load = () => { const from = addDays(ymd(new Date()), -7);
+      Promise.allSettled([fb.fetchWhere("adreports", ["date", ">=", from]), fb.getHubNumbers()]).then(([a, h]) => { if (!live) return;
+        if (a.status !== "fulfilled") console.warn("[결과 숫자] 광고 보고서 못 읽음:", a.reason);
+        if (h.status !== "fulfilled") console.warn("[결과 숫자] 허브 오늘 숫자 못 읽음:", h.reason);
+        setF({ ads: a.status === "fulfilled" ? { last: (a.value || []).map((x) => x.date || x.id).filter(Boolean).sort().pop() || "" } : { last: "", err: true },
+          hub: h.status === "fulfilled" ? h.value || { counts: {} } : { counts: {}, err: true }, at: new Date().toISOString() }); }); };
+    load(); const t = setInterval(load, 3 * 3600e3); return () => { live = false; clearInterval(t); }; }, [need]);
+  return need ? F : null;
 }
 // ───────────────── 읽음 표시 — 폰·PC 같이 (사용자 결정 2026-10-13 "폰, pc 둘중 하나만봐도 연동되어 없어지게해") ─────────────────
 // 서버 pour-os/v2/seen/{나} = {id, ids: {키: 읽은 때}, at} (계산 seensync.js) + 기기 사본 pour-os2-seen-<나> (바로 보이게 · 끊겨도 그대로)
@@ -960,6 +978,19 @@ export function useActs(D, cu, setToast, idx = null) {
       catch (e) { fail("상급자")(e); return false; }
       log("boss", { col: "users", targetId: u.id, label: `${u.name} · 상급자 ${nameOf(D.users, was) || "없음"} → ${nameOf(D.users, nx) || "없음(맨 위)"}`, prev: { bossId: was } });
       setToast({ text: `${u.name}님 상급자 = ${nameOf(D.users, nx) || "없음(맨 위)"}`, undo: () => undoMany([{ key: "users", id: u._doc || u.id, wrote: { bossId: nx }, prev: { bossId: was } }], `${u.name} · 상급자`, "boss") });
+      return true;
+    },
+    // 사람 권한 한 칸 (③ 결과 숫자 · 2026-10-17 · 볼트 점검 "결과 KPI 넣기가 마스터만 → 전환율 담당 김민지가 못 넣음") — 관리자만
+    //   users.perms.<칸> (버전1 actionKpi.can 과 같은 칸) · 연 때 본 값 그대로일 때만(patchIf) · 기록 · 5초 되돌리기
+    setPerm: async (u, key, on) => {
+      const PERM_L = { kpiLag: "결과 KPI 넣기" };
+      if (!isMaster(cu)) { setToast({ text: "권한은 관리자가 정해요" }); return false; }
+      if (!PERM_L[key] || !u) return false;
+      const f = `perms.${key}`, was = u.perms && u.perms[key] !== undefined ? u.perms[key] : null, at = nowIso();
+      try { const r = await fb.patchIf("users", u._doc || u.id, { [f]: was }, { [f]: !!on, permAt: at, permBy: cu.id }); if (!r.ok) { setToast({ text: "그사이 다른 사람이 바꿨어요 · 다시 봐 주세요" }); return false; } }
+      catch (e) { fail("권한")(e); return false; }
+      log("perm", { col: "users", targetId: u.id, label: `${u.name} · ${PERM_L[key]} ${on ? "켬" : "끔"}`, prev: { [f]: was } });
+      setToast({ text: `${u.name}님 ${PERM_L[key]} ${on ? "켰어요" : "껐어요"}`, undo: () => undoMany([{ key: "users", id: u._doc || u.id, wrote: { [f]: !!on }, prev: { [f]: was } }], `${u.name} · ${PERM_L[key]}`, "perm") });
       return true;
     },
     // 추천대로 한꺼번에 (aiask.bossRec) — 지금 값과 다른 사람만 · 그사이 바뀐 사람은 건너뜀
@@ -1890,7 +1921,8 @@ export const v2edited = (x) => !!(x && (x.v2At || x.moyAt || (x.updatedBy && x.u
 export const V2_TASK_ONLY = ["scope", "scopeBy", "scopeAt", "qty", "cycleOk", "cycleBy", "cycleAt", "madeIn", "removed", "phaseBy", "phaseAt", "estDays", "estBy", "estAt", "fromTemplate", "tplKey"];   // estDays·estBy·estAt = 예상 소요일 · fromTemplate·tplKey = 견본으로 만든 업무 (2026-10-07)   // phaseBy·phaseAt = 업무OS에서 정한 신제품 단계   // removed = [없애기](휴지통) — 다시 가져오기가 되살리지 않음
 export function stripV2Only(key, data, cur) {
   if (!data) return data; const d = { ...data };
-  if (key === "users") Object.keys(d).forEach((f) => { if (/^pin/.test(f) || /^boss/.test(f) || f === "weekCap") delete d[f]; });   // boss* = 상급자(AI 승인 길 · 2026-10-12)
+  if (key === "users") { Object.keys(d).forEach((f) => { if (/^pin/.test(f) || /^boss/.test(f) || /^perm(At|By)$/.test(f) || f === "weekCap") delete d[f]; });   // boss* = 상급자(AI 승인 길 · 2026-10-12)
+    if (cur && cur.permAt) delete d.perms; }   // 업무OS 에서 정한 권한(결과 KPI 넣기 · 2026-10-17)은 버전1 값으로 안 되돌림
   if (key === "projects") ["removed", "road", "roadBy", "roadAt", "fromTemplate", "fromTemplateTitle"].forEach((f) => delete d[f]);   // fromTemplate = 견본으로 만든 프로젝트(2026-10-07)   // road = 업무OS 프로젝트 단계(로드 · 2026-10-07)
   if (key === "notes") delete d.removed;   // 댓글 삭제(2026-10-07) — 다시 가져오기가 되살리지 않음   // 프로젝트 없애기(휴지통) — 다시 가져오기가 되살리지 않음
   if (key === "tasks") { ["doneDates", "doneAtBy", "subDone"].forEach((f) => delete d[f]); if ((cur && cur.isFixed) || d.isFixed) ["doneAt", "doneByName"].forEach((f) => delete d[f]);

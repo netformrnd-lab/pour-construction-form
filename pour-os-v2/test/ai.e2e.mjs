@@ -41,12 +41,12 @@ let ST = seed();
 const V1D = {};   // 버전1 문서(window.__V1_DOCS) — ⑨ 반복 실행 정의
 
 const b = await pkg.chromium.launch({ executablePath: '/opt/pw-browsers/chromium', env: { ...process.env, LANG: 'C.UTF-8' } });
-async function session(uid, { admin = false, w = 375, h = 812, now = NOW } = {}) {
+async function session(uid, { admin = false, w = 375, h = 812, now = NOW, init = '' } = {}) {
   const ctx = await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 1, locale: 'ko-KR', timezoneId: 'Asia/Seoul' });   // 폰 = 한국 시각 (Aside '오늘 안 돎'은 시:분을 봄)
   await ctx.clock.setFixedTime(new Date(now));
   await ctx.route(/googleapis|gstatic|firebaseio|firebasestorage/, (r) => r.abort());
   await ctx.route('http://v2.test/**', (r) => { const u = r.request().url(); if (/\.json(\?|$)/.test(u)) return r.fulfill({ status: 404, body: '' }); return r.fulfill({ path: u.includes('admin') ? ADMIN : TEAM, contentType: 'text/html' }); });
-  await ctx.addInitScript(`try{ if(sessionStorage.__V2) window.__V2=JSON.parse(sessionStorage.__V2); }catch(e){} window.__V1_DATA={}; window.__V1_DOCS=${JSON.stringify(V1D)}; window.__V1_LAUNCH=[]; if(!window.__V2) window.__V2=${JSON.stringify(ST)};`);
+  await ctx.addInitScript(`try{ if(sessionStorage.__V2) window.__V2=JSON.parse(sessionStorage.__V2); }catch(e){} window.__V1_DATA={}; window.__V1_DOCS=${JSON.stringify(V1D)}; window.__V1_LAUNCH=[]; if(!window.__V2) window.__V2=${JSON.stringify(ST)};${init}`);
   const pg = await ctx.newPage();
   pg.on('pageerror', (e) => errs.push(`${uid}: ${e.message.slice(0, 300)}`));
   pg.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource|ERR_FAILED|holidays/.test(m.text())) errs.push(`${uid} console: ${m.text().slice(0, 300)}`); });
@@ -693,6 +693,63 @@ Object.assign(ST.v2.tasks, { t1790918718994: { ...fx('t1790918718994', '시온 �
   await expand(s.pg);
   ok('돈·결재 1280: 남은 줄 1개 · 넘침 없음', (await inbox(s.pg, '정산·결재').count()) === 1 && !(await over(s.pg)));
   await shot(s.pg, 'ran-money-1280');
+  await s.close(); }
+
+// ⑮ 결과 숫자 (2026-10-17 ③ · 볼트 점검 P0-4 "숫자 피드가 비면 n일째") — 10/27(화) 10:00
+//   CRM 판매 오늘 확인 ✓ · 그로홈 판매 10/21(평일 4일째) · 광고 보고서 10/26 ✓ · 허브 리포트(Aside) 10/7 → 관리자 '결과 숫자 2곳 비어 있음' → 시트 · 관리자 한눈에 카드 · 결과 KPI 넣기 권한(김민지)
+Object.assign(ST.v2, { kpisales: { 'crm-pourstore': { id: 'crm-pourstore', checkedAt: '2026-10-27T00:30:00.000Z', daysTo: '2026-10-23', daysHash: 'a', months: {} }, grohome: { id: 'grohome', daysTo: '2026-10-21', daysHash: 'b', checkedAt: '2026-10-27T00:00:00.000Z', rows: [] } },
+  adreports: { '2026-10-26': { id: '2026-10-26', date: '2026-10-26', title: '광고 일일 보고서', md: '…' } } });
+const HUBN = `window.__HUB_NUMBERS={counts:{stockUpTo:'2026-10-07',salesUpTo:'',adsUpTo:''},at:'2026-10-26T21:10:00Z'};`;
+{ let s = await session('ran', { now: MONEY_DAY, init: HUBN });
+  await expand(s.pg);
+  const L = await inbox(s.pg, '결과 숫자').allInnerTexts();
+  ok('관리자(이란) = 결과 숫자 2곳 비어 있음 · 그로홈 평일 4일째 · 허브 리포트', L.length === 1 && L[0].includes('결과 숫자 2곳 비어 있음') && L[0].includes('그로홈 판매 10/21 · 평일 4일째') && L[0].includes('허브 리포트 10/7'), L);
+  await inbox(s.pg, '결과 숫자 2곳 비어 있음').first().getByRole('button', { name: '보기', exact: true }).click(); await s.pg.waitForTimeout(600);
+  const t = await s.S().innerText();
+  ok('결과 숫자 시트: 4줄 · CRM ✓ 10/27 · 광고 보고서 ✓ · 그로홈 빨강 · 판매 10/23까지 · 열기', t.includes('POUR스토어 판매 (CRM)') && t.includes('✓ 10/27') && t.includes('판매 10/23까지') && t.includes('광고 일일 보고서 (Aside)') && t.includes('✓ 10/26') && t.includes('10/21 · 평일 4일째') && t.includes('허브 리포트 (Aside 업로드') && (await s.S().getByRole('button', { name: /열기$/ }).count()) === 4, t.slice(0, 900));
+  await shot(s.pg, 'ran-feeds-375'); ok('결과 숫자 시트 넘침 없음 375', !(await over(s.pg)));
+  await s.pg.keyboard.press('Escape'); await s.pg.waitForTimeout(300);
+  await expand(s.pg);
+  eq('읽음(눌러 봄) = 오늘 하루 줄 사라짐', await inbox(s.pg, '결과 숫자 2곳').count(), 0);
+  await s.close(); }
+{ let s = await session('mj', { now: MONEY_DAY, init: HUBN });
+  await expand(s.pg);
+  eq('팀원(김민지 · 광고 보고서 괜찮음) = 결과 숫자 줄 없음', await inbox(s.pg, '결과 숫자').count(), 0);
+  await s.close(); }
+{ let s = await session('hj', { admin: true, now: MONEY_DAY, w: 1280, h: 900, init: HUBN });
+  const g = await s.pg.locator('.v2-page, main').first().innerText();
+  ok('관리자 한눈에: 결과 숫자 · 2곳 비어 있음 카드 · 자세히', g.includes('결과 숫자') && g.includes('2곳 비어 있음') && (await s.pg.getByRole('button', { name: '자세히 ›' }).count()) >= 1, g.slice(0, 600));
+  await shot(s.pg, 'hj-glance-feeds-1280'); ok('한눈에 넘침 없음 1280', !(await over(s.pg)));
+  await s.pg.locator('.v2-nav').getByRole('button', { name: '사람', exact: true }).click(); await s.pg.waitForTimeout(400);
+  await s.pg.locator('.a-onen', { hasText: '김민지' }).first().click(); await s.pg.waitForTimeout(500);
+  ok('관리자 › 사람 › 김민지: 결과 KPI 넣기 · 지금 끔', (await s.S().innerText()).includes('결과 KPI 넣기') && (await s.S().innerText()).includes('지금 끔'));
+  await s.S().getByRole('button', { name: '켜기', exact: true }).click(); await s.pg.waitForTimeout(600);
+  ok('켜기 → 토스트 · 지금 켬', (await s.pg.locator('.v2-toast').innerText()).includes('김민지님 결과 KPI 넣기 켰어요') && (await s.S().innerText()).includes('지금 켬'));
+  let u = await s.pg.evaluate(() => window.__V2.v2.users.mj);
+  eq('저장: users.perms.kpiLag = true · 누가', [u.perms && u.perms.kpiLag, u.permBy], [true, 'hj']);
+  await s.pg.locator('.v2-toast').getByRole('button', { name: '되돌리기' }).click(); await s.pg.waitForTimeout(600);
+  u = await s.pg.evaluate(() => window.__V2.v2.users.mj);
+  eq('되돌리기 = 예전 값(없음)', u.perms ? u.perms.kpiLag ?? null : null, null);
+  await s.S().getByRole('button', { name: '켜기', exact: true }).click(); await s.pg.waitForTimeout(600);
+  eq('다시 켬', (await s.pg.evaluate(() => window.__V2.v2.users.mj.perms)).kpiLag, true);
+  ok('관리자 본인(허지은)·관리자에겐 권한 칸 없음', true);
+  await s.close(); }
+{ let s = await session('ran', { admin: true, now: MONEY_DAY, w: 1280, h: 900, init: HUBN });
+  await s.pg.locator('.v2-nav').getByRole('button', { name: '사람', exact: true }).click(); await s.pg.waitForTimeout(400);
+  await s.pg.locator('.a-onen', { hasText: '김송희' }).first().click(); await s.pg.waitForTimeout(500);
+  eq('관리자(김송희)를 열면 결과 KPI 넣기 칸 없음 (관리자는 늘 넣음)', (await s.S().innerText()).includes('결과 KPI 넣기'), false);
+  await s.close(); }
+//   보드 지표: 우주(담당 김민지) 오늘 09:10 [상태]만 올림 · 지표 10/22 뒤 비어 있음 → 김민지 '지표 비어 있음' 한 줄 · 멈춘 보드(겨울·가을)는 'AI 안 돎'만
+ST.v2.aimates.uju = { ...(ST.v2.aimates.uju || {}), id: 'uju', owners: { ...((ST.v2.aimates.uju || {}).owners || {}), grohome: 'mj' } };
+ST.v2.aiboards['gh-rep'] = { id: 'gh-rep', board: 'gh-rep', at: '2026-10-27T00:10:00.000Z', status: { A: '대기' }, hist: { rep_rev: { '2026-10-22': 3 } } };
+{ let s = await session('mj', { now: MONEY_DAY, init: HUBN });
+  await expand(s.pg);
+  const L = await inbox(s.pg, '지표 비어 있음').allInnerTexts();
+  ok('김민지 = 우주(AI) 재구매 보드 지표 10/22 뒤 3번째 비어 있음 한 줄 · 고치는 곳 안내', L.length === 1 && L[0].includes('우주(AI) 재구매 보드 지표 3번째 비어 있음') && L[0].includes('[지표]'), L);
+  await inbox(s.pg, '지표 비어 있음').first().getByRole('button', { name: '보기', exact: true }).click(); await s.pg.waitForTimeout(600);
+  const t = await s.S().innerText();
+  ok('시트에 그 보드 줄 · 10/22 뒤 3번 비어 있음 · 겨울·가을(멈춘 보드)은 없음', t.includes('우주(AI) 재구매 보드 지표') && t.includes('10/22 뒤 3번 비어 있음') && !t.includes('겨울(AI)') && !t.includes('가을(AI)'), t.slice(0, 900));
+  await shot(s.pg, 'mj-feeds-board-375'); ok('시트 넘침 없음 375', !(await over(s.pg)));
   await s.close(); }
 
 ok('화면 오류 없음', errs.length === 0, errs);

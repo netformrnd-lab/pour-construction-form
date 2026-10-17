@@ -822,3 +822,6 @@ input[type="date"].v2-sel::-webkit-date-and-time-value { text-align: left; min-h
 .v2-dr .ac button{height:30px;padding:0 10px;border-radius:8px;border:1px solid #DCCB7A;background:#fff;color:#5A4B0E;font:inherit;font-size:12.5px;font-weight:800;cursor:pointer}
 .v2-dr.done .ac button{border-color:#BFDCC8;color:#2F7D57}
 @media (max-width:420px){.v2-dr-list{grid-template-columns:1fr}}
+/* 결과 숫자 줄 오른쪽 (2026-10-17 · feedui.FeedList): 넓으면 날짜 옆 [열기 ›] · 폰은 날짜 아래 */
+.v2-feedrow .v2-feedr{flex:0 0 auto;max-width:50%;display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:6px 10px;text-align:right}
+@media (max-width:700px){.v2-feedrow .v2-feedr{flex-direction:column;align-items:flex-end;gap:6px;max-width:48%}}

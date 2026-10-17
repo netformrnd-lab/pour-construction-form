@@ -122,7 +122,7 @@ eq('행동마다 하나', asks.map((a) => a.id).sort(), ['ai_ieum_20261012_opsor
 const a0 = asks.find((a) => a.act === 'F');
 eq('처음 = 담당 차례', [a0.state, a0.to, a0.owner, a0.step, a0.ver, a0.pick, a0.path], ['wait', 'u1', 'u1', 0, 1, null, []]);
 eq('누가 · 어디', [a0.crew, a0.mate, a0.mateName, a0.brand, a0.board, a0.act, a0.log[0].by, a0.log[0].byName], ['b2c', 'ieum', '이음', '', 'ops-order', 'F', 'ai:ieum', '이음 (AI)']);
-eq('제목 · 실행 한 줄', [a0.title, a0.exec], ['주문·배송·재고 보드 F · 재고·품절 확인 (비즈로지컴·쿠팡 로켓그로스) + 발주·입고 제안', '승인되면 담당이 비즈로지컴 입고·쿠팡 로켓그로스 입고 요청을 진행하고, 품절 상품 상세에 재입고 알림을 넣은 뒤 [했어요]에 남긴다']);
+eq('제목 · 실행 한 줄', [a0.title, a0.exec], ['주문·배송·재고 보드 F · 재고·품절 확인 (비즈로지컴·쿠팡 로켓그로스) + 발주·입고 제안', '승인되면 담당이 비즈로지컴 입고·쿠팡 로켓그로스 입고 요청을 진행하고, 품절 상품 상세에 재입고 알림을 넣은 뒤 [했어요]에 남긴다 — 승인된 품절·위험 줄은 가을(광고)·겨울(상세)·봄(프로모션) AI 지시문 \'넘겨받은 것\'에 자동으로 들어간다']);
 eq('담당 없으면 to 빈칸(관리자 누구나)', K.askDoc({ id: 'x', mate: 'pori', title: 't' }).to, '');
 eq('개인정보 가림(요약·글)', K.askDoc({ id: 'x', mate: 'pori', title: 't', sum: '010 1234 5678', body: 'q@w.kr' }).sum + '|' + K.askDoc({ id: 'x', mate: 'pori', title: 't', body: 'q@w.kr' }).body, '010-****-****|(메일 가림)');
 eq('다시 올리기 가능', [K.canRedo({ state: 'back' }), K.canRedo({ state: 'wait', step: 0 }), K.canRedo({ state: 'wait', step: 1 }), K.canRedo({ state: 'ok' }), K.canRedo(null)], [true, true, false, false, false]);
@@ -172,7 +172,7 @@ eq('Aside 가 못 따르는 말 없음 (영상 생성하기 버튼 · 토요일 
   // 지시문의 올리는 모양을 그대로 채우면 crew.html 이 읽음 (지표 키 · 할 일 표 머리)
   const tpl = t.slice(t.indexOf('[지표]'), t.indexOf('■ 5.')).replace(/\(값\)/g, '1').replace(/\(한 줄\)/g, '한 줄');
   const pp = K.parseCrew(tpl, K.boardOf('gh-traffic'));
-  eq('지시문 모양 그대로 → 지표 14(재고 지표는 이음으로) · 상태 9(F 포함 · J 실험) · 할 일 표 머리 8(F 는 보고서라 표 없음)', [pp.metrics.length, Object.keys(pp.status).length, Object.keys(pp.acts).length, pp.acts.D.cols, pp.warn, pp.unknown], [14, 9, 8, ['캠페인·키워드', '현재', '제안', '근거', '예상 효과'], [], []]);
+  eq('지시문 모양 그대로 → 지표 15(재고 지표는 이음으로 · 유입 단계 숫자 visit7 더함 2026-10-17) · 상태 9(F 포함 · J 실험) · 할 일 표 머리 8(F 는 보고서라 표 없음)', [pp.metrics.length, Object.keys(pp.status).length, Object.keys(pp.acts).length, pp.acts.D.cols, pp.warn, pp.unknown], [15, 9, 8, ['캠페인·키워드', '현재', '제안', '근거', '예상 효과'], [], []]);
   eq('예약 글: 짧게 · 이 화면 지시문을 그대로 · 주소', [L.length < 700, L.includes(`${K.HUB_CREW}#gh-traffic`), L.includes("'오늘 지시문'"), L.startsWith('[AI 크루 · 가을 (유입마케터 · 퍼포먼스·검색) · 그로홈 광고·검색 유입 보드] 평일 09:00')], [true, true, true, true]);
   eq('오늘의집 지시문에 런칭 체크리스트(보기만)', K.asideText(K.boardOf('gh-ohou')).includes('■ 참고: 11/9(월) 신제품 4종 런칭 체크리스트'), true);
   eq('지시문 F = 08:30 광고 보고서 화면 · 이 루틴은 안 끔 · 표 없음 · 한 줄 = 승인 한 건', [t.includes('F. 광고 외주 운영 분석 (쿠팡·네이버·메타) + 금요일 판정 + 롱테일 기록 — 언제: 매일 08:30 · 금 16:00'), t.includes('marketing-hub/ads.html 에서 오늘 보고서를 보고 [상태] F 에 한 줄만'), t.includes('이 루틴에서는 광고를 끄거나 바꾸지 않는다'), /\n\[F\]\n/.test(t), t.includes('이 한 줄이 업무OS 승인 한 건(보고만)이 된다'), /\n\[F\]\n/.test(K.asideText(K.boardOf('gh-conv'))), K.asideText(K.boardOf('gh-rep')).includes('08:30 광고')], [true, true, true, false, true, false, false]);
@@ -316,6 +316,72 @@ eq('허브 가동 크루(core.js CREW_LIVE) = crew.js 이름·역할·크루', C
   eq('team_link.py 크루 = crew.js', got.crew, Object.fromEntries(K.CREWS.flatMap((c) => c.members.map((m) => [m.id, [m.name, c.id]]))));
   eq('team_link.py GONE = crew.js', got.gone, K.GONE);
   eq('team_link.py 아침 루틴 횟수 = crew.js routineQty', got.rq, Object.fromEntries(K.allMates().filter((m) => m.routineQty).map((m) => [m.id, m.routineQty.map((q) => [q.k, q.l, q.n, q.u])])));
+}
+
+const ok = (name, cond) => eq(name, !!cond, true);
+// ── 2026-10-17 사장님 확정(논의 뒤 · 넘기기 A · 1A · 2A · 6-1A · 7A) ──
+{ // 1A 단계 숫자 하나 — 지표가 실제 보드에 있음 · 지시문 '단계 숫자(하나)'
+  const st = K.CREWS[0].stages;
+  eq('단계 숫자 하나씩', Object.entries(st).map(([k, v]) => [k, v.num.l]), [['유입', '방문·문의 수'], ['전환', '구매전환율'], ['재구매', '재구매율'], ['매출', '월 매출 성장'], ['지인추천', '사진 후기 수']]);
+  eq('단계 숫자 지표 = 보드에 있음', Object.values(st).flatMap((v) => v.num.m.map(([bd, k]) => !!K.BOARDS[bd].metrics.find((x) => x.k === k))).every(Boolean), true);
+  eq('stageNum: 여름 = 방문(가을 보드) + 문의(겨울 보드) · 단계 밖 = 없음', [K.stageNum('yeoreum').ms.map((x) => [x.board, x.k]), K.stageNum('bom').l, K.stageNum('ieum')], [[['gh-traffic', 'visit7'], ['gh-conv', 'inq7']], '월 매출 성장', null]);
+  ok('지시문 = 단계 숫자(하나)', K.asideText(K.BOARDS['gh-conv']).includes('단계 숫자(하나): 구매전환율 (자사몰)'));
+}
+{ // 넘기기 A — 연결선 · 이름 · 받는 곳
+  eq('연결선 5개 = 바람 E · 하늘 F · 이음 F · 우주 H + A/B 장부', [K.HANDOFFS.map((h) => [h.from, h.to.join()]), K.LEDGER_ACTS], [[['baram.E', 'yeoreum,gyeoul'], ['haneul.F', 'gyeoul,dal'], ['ieum.F', 'gaeul,gyeoul,bom'], ['uju.H', 'uju,bom,baram']], ['yeoreum.J', 'gaeul.J', 'gyeoul.H']]);
+  eq('연결선 할 일 = 보드에 있음', [...K.HANDOFFS.map((h) => h.from), ...K.LEDGER_ACTS].every((k) => { const [m, c] = k.split('.'); const b = Object.values(K.BOARDS).find((x) => x.mate === m); return !!(b && b.actions.find((a) => a.c === c)); }), true);
+  eq('승인 화면 이름', [K.handoffLabel('baram', 'E'), K.handoffLabel('ieum', 'F'), K.handoffLabel('gaeul', 'J'), K.handoffLabel('gaeul', 'A')], ['여름·겨울', '가을·겨울·봄', '크루 모두 (공용 이긴 소재 장부)', '']);
+  eq('받는 곳 (겨울 = 바람 E · 하늘 F · 이음 F)', [K.handoffSources('gyeoul'), K.handoffSources('uju'), K.handoffSources('haneul')], [['baram.E', 'haneul.F', 'ieum.F'], ['uju.H'], []]);
+  eq('A/B 장부 = B2C 크루 모두에게', K.handoffTargets('yeoreum', 'J').length, K.CREWS[0].members.length);
+}
+{ // inboxFor — 최종 승인 · 14일 · 끈 것 빼기 · 고른 번호만 · 바람 E = [했어요]한(허락받은) 줄만
+  const now = new Date('2026-10-20T03:00:00Z');
+  const A = (o) => ({ state: 'ok', okAt: '2026-10-19T02:00:00.000Z', okByName: '윤미니', cols: ['상품', '상태'], items: [], ...o });
+  const asks = [
+    A({ id: 'f1', mate: 'ieum', act: 'F', title: '재고 F', items: [{ n: 'F1', c: { 상품: '롤러 미니', 상태: '품절' } }, { n: 'F2', c: { 상품: '유리블러', 상태: '위험' } }], pick: ['F1'] }),
+    A({ id: 'f2', mate: 'ieum', act: 'F', title: '옛 재고', okAt: '2026-10-01T00:00:00.000Z' }),   // 14일 넘음
+    A({ id: 'f3', mate: 'ieum', act: 'F', title: '끈 것', handoffOff: { by: 'sh' } }),
+    A({ id: 'f4', mate: 'ieum', act: 'F', title: '대기', state: 'wait' }),
+    A({ id: 'e1', mate: 'baram', act: 'E', title: '팬 후기', okAt: '2026-10-19T03:00:00.000Z', cols: ['후기 링크', '쓸 곳'], items: [{ n: 'E1', c: { '후기 링크': 'https://x/1', '쓸 곳': '릴스' } }, { n: 'E2', c: { '후기 링크': 'https://x/2', '쓸 곳': '상세 · 010-1234-5678' } }], trace: { 'E2@yj': { done: true }, E1: { skip: true } } }),
+    A({ id: 'e2', mate: 'baram', act: 'E', title: '허락 전', okAt: '2026-10-19T05:00:00.000Z', items: [{ n: 'E1', c: { '후기 링크': 'https://x/3' } }] }),
+  ];
+  const g = K.inboxFor('gyeoul', asks, now);
+  eq('겨울 받은 것 = 새것 먼저 · 14일 · 끈 것·대기 빼기', g.map((x) => x.id), ['e2', 'e1', 'f1']);
+  eq('고른 번호만 (F1) · 줄 한 줄', g.find((x) => x.id === 'f1').items, [{ n: 'F1', line: '상품: 롤러 미니 · 상태: 품절' }]);
+  eq('바람 E = 허락받은(했어요) 줄만 · 연락처 가림 · 아직 없으면 기다림', [g.find((x) => x.id === 'e1').items.map((i) => [i.n, i.line]), g.find((x) => x.id === 'e2').wait], [[['E2', '후기 링크: https://x/2 · 쓸 곳: 상세 · 010-****-****']], true]);
+  eq('여름 = 바람 E 만 · 하늘 = 없음', [K.inboxFor('yeoreum', asks, now).map((x) => x.id), K.inboxFor('haneul', asks, now)], [['e2', 'e1'], []]);
+  eq('handoffsIn = 그 기간(한국 날짜) 최종 승인 · 기간 밖 빼기', [K.handoffsIn('gyeoul', asks, '2026-10-19', '2026-10-19').map((x) => x.id), K.handoffsIn('gyeoul', asks, '2026-10-12', '2026-10-18').map((x) => x.id), K.kstDay('2026-10-18T16:30:00.000Z')], [['e2', 'e1', 'f1'], [], '2026-10-19']);
+  const t = K.asideText(K.BOARDS['gh-conv'], { inbox: g, ledger: [] });
+  ok('지시문 ■ 넘겨받은 것 (받는 곳 · 승인한 사람 · 줄)', t.includes('■ 넘겨받은 것 — 다른 AI 결과 중 사람이 최종 승인한 것 (최근 14일 · 받는 곳: 바람 E · 하늘 F · 이음 F)') && t.includes('- 이음 F · 10/19 승인(윤미니) · 재고 F — 품절·소진 위험 상품') && t.includes('    · F1 상품: 롤러 미니 · 상태: 품절') && t.includes('아직 허락받은 줄 없음'));
+  ok('받는 곳 없는 보드 = ■ 넘겨받은 것 없음', !K.asideText(K.BOARDS['gh-aov'], { inbox: [], ledger: [] }).includes('■ 넘겨받은 것'));
+}
+{ // 공용 이긴 소재 장부 — 이김·이긴 것 있는 줄만 · 8주 · B2C 지시문 모두
+  const now = new Date('2026-10-20T03:00:00Z');
+  const asks = [
+    { id: 'j1', mate: 'yeoreum', act: 'J', state: 'ok', okAt: '2026-10-19T00:00:00.000Z', items: [{ n: 'J1', c: { 실험: '릴스 첫 3초', 브랜드: '그로홈', '보는 숫자': '조회', 'A 결과': '1,200', 'B 결과': '2,500', 판정: 'B 이김', '이긴 것': '전후 비교 첫 컷' } }, { n: 'J2', c: { 실험: '썸네일', 판정: '더 봄' } }] },
+    { id: 'j2', mate: 'gaeul', act: 'J', state: 'ok', okAt: '2026-08-01T00:00:00.000Z', items: [{ n: 'J1', c: { 실험: '옛것', 판정: 'A 이김', '롱테일·이긴 것': 'x' } }] },
+    { id: 'j3', mate: 'gyeoul', act: 'H', state: 'ok', okAt: '2026-10-18T00:00:00.000Z', items: [{ n: 'H1', c: { 단계: '상세 → 장바구니', 판정: 'A 이김', '이긴 것': '장바구니 버튼 위로' } }] },
+    { id: 'j4', mate: 'gyeoul', act: 'C', state: 'ok', okAt: '2026-10-18T00:00:00.000Z', items: [{ n: 'C1', c: { '이긴 것': '아님' } }] },
+  ];
+  const r = K.ledgerRows(asks, now);
+  eq('장부 = 이김 줄만 · 8주 · A/B 할 일만', r.map((x) => [x.name, x.act, x.what, x.win]), [['여름', 'J', '릴스 첫 3초', '전후 비교 첫 컷'], ['겨울', 'H', '상세 → 장바구니', '장바구니 버튼 위로']]);
+  eq('장부 한 줄', K.ledgerLine(r[0]), '10/19 여름 J · 그로홈 · 릴스 첫 3초 — 이긴 것: 전후 비교 첫 컷 (조회 A 1,200 / B 2,500)');
+  ok('B2C 지시문 = 공용 장부 · B2B = 없음', K.asideText(K.BOARDS['gh-rep'], { ledger: r }).includes('- 10/19 여름 J · 그로홈 · 릴스 첫 3초 — 이긴 것: 전후 비교 첫 컷') && !K.asideText(K.BOARDS['b2b-inq'], { ledger: r }).includes('공용 이긴 소재 장부'));
+  ok('겨울 H 표 = 판정 · 이긴 것 칸', K.actOf('gh-conv', 'H').cols.slice(-2).join() === '판정,이긴 것');
+}
+{ // 6-1A 브랜드별 설계 — 그로홈 먼저 · 원가 줄 빼기 · 연락처 가림 · 없으면 우주 G 는 초안 안내
+  const d = { G: { pourstore: { text: '2일: 방수 양생 안내\n원가 1,000원\n문의 010-2222-3333', byName: '사장님', at: '2026-10-19T01:00:00Z' }, grohome: { text: '1일: 알림톡 · 시공 가이드\n7일: 잘 되셨어요?' }, bmupq52c0: { text: '  ' } } };
+  eq('designOf 순서·거르기', K.designOf(d, 'G').map((x) => [x.l, x.text]), [['그로홈', '1일: 알림톡 · 시공 가이드\n7일: 잘 되셨어요?'], ['POUR스토어', '2일: 방수 양생 안내\n문의 010-****-****']]);
+  eq('designBad = 원가·마진·제조사·공급가', [K.designBad('마진 30%'), K.designBad('제조사 A'), K.designBad('1일: 알림톡')], [true, true, false]);
+  const t = K.asideText(K.BOARDS['gh-rep'], { design: d });
+  ok('지시문 G 아래 브랜드별 설계 (사람 · 날짜)', t.includes('  ■ 브랜드별 설계 (사람이 정함 · 꼭 따름') && t.includes('  - POUR스토어 (사장님 · 10/19):') && t.includes('      7일: 잘 되셨어요?') && !t.includes('원가 1,000원'));
+  ok('설계 없으면 우주 G = 초안 안내 · 다른 할 일은 아무 말 없음', K.asideText(K.BOARDS['gh-rep'], {}).includes('■ 브랜드별 설계: 아직 없음 — 이번엔 그로홈 · POUR스토어 브랜드별 설계 초안') && K.asideText(K.BOARDS['gh-rep'], {}).split('■ 브랜드별 설계').length === 2);
+}
+{ // 7A 기존 고객 연락 = 우주 H 장부 먼저 (바람 A·B·C · 우주 C·G · 봄 H) · 5A 겨울 I 택배 동봉
+  const has = (bd, c, re) => re.test(K.actOf(bd, c).s.join(' '));
+  eq('우주 H 장부 먼저', [['gh-ref', 'A'], ['gh-ref', 'B'], ['gh-ref', 'C'], ['gh-rep', 'C'], ['gh-rep', 'G'], ['gh-ohou', 'H']].map(([bd, c]) => has(bd, c, /우주 H 장부|H 장부/)), [true, true, true, true, true, true]);
+  ok('겨울 I = 택배 동봉 안내', /택배 동봉/.test(K.actOf('gh-conv', 'I').t) && has('gh-conv', 'I', /동봉 안내/));
+  ok('지시문 판 10-17.3', K.ASIDE_VER === '2026-10-17.3');
 }
 
 console.log(`\n${n - bad}/${n} 통과`); if (bad) process.exit(1);

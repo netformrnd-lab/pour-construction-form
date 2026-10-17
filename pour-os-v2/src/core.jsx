@@ -24,10 +24,10 @@ import { flowOwners } from "./flow.js";
 import { sumAk, akWrite, countFields, countOf, baseTitle } from "./routine.js";
 import { linkInbox } from "./links.js";
 import { apprInbox, apprMerge } from "./appr.js";   // 구매 품의 요청 (2026-10-16)
-import { askInbox, asideInbox, planPass, planBack, planRet, planDrop, planExec, canAct, canBack, canRet, pickOk, bossLoop, moreText, MORE_MAX, hqOf, traceOf, traceLeft, mateOwner, isHQ, launchTaskOf, adsAsideVer, adsAsideOwner, canAdsAside } from "./aiask.js";   // AI 승인 (2026-10-12) · Aside 담당 PC (2026-10-15)
+import { askInbox, asideInbox, planPass, planBack, planRet, planDrop, planExec, canAct, canBack, canRet, pickOk, bossLoop, moreText, MORE_MAX, hqOf, traceOf, traceLeft, mateOwner, actOwner, isHQ, launchTaskOf, adsAsideVer, adsAsideOwner, canAdsAside } from "./aiask.js";   // AI 승인 (2026-10-12) · Aside 담당 PC (2026-10-15)
 import { moneyInbox } from "./money.js";   // 돈·결재 7건 알림 (2026-10-17 · 계산만)
 import { feedInbox, adChecker } from "./feeds.js";   // 결과 숫자 · 비면 n일째 (2026-10-17 · 계산만)
-import { mateOf, boardOf, brandL, qtyDefs, canReq, reqDoc, reqId } from "../../marketing-hub/crew.js";
+import { mateOf, boardOf, brandL, qtyDefs, canReq, reqDoc, reqId, designBad, DESIGN_MAX, handoffLabel, handoffTargets } from "../../marketing-hub/crew.js";
 import { ASIDE_ADS_LAUNCH_VER } from "../../marketing-hub/adops.js";   // 광고 Aside 예약 글 판 (2026-10-17)
 import { repSlots, repId, canWriteSec, secPeople, snapOf, cycleOf, monOf, CYCLE_L, repInbox, repFxOf, myRepLeft } from "./aireport.js";   // AI 크루 보고서 (2026-10-15) · 리포트 ①~④ (2026-10-17)
 import { NO_ACT, isFxKey, fxIdOf, akKeys, pairVal, countKeys, splitExec, keyName, fxTimeCome } from "./airt.js";   // AI 크루 ↔ 반복 실행 (2026-10-16) · 열쇠 여러 개 (2026-10-17)
@@ -981,6 +981,41 @@ export function useActs(D, cu, setToast, idx = null) {
       catch (e) { fail("규칙")(e); return false; }
       log("aiRule", { col: "aimates", targetId: mateId, label: `${(mateOf(mateId) || {}).name || mateId} · 규칙 ${off ? "끔" : "다시 켬"}` });
       if (off) setToast({ text: "규칙을 껐어요", undo: () => A.mateRuleOff(mateId, rid, false) });
+      return true;
+    },
+    // 브랜드별 설계 (2026-10-17 사장님 6-1A "브랜드 별 명확하게 설계 필요해 · 자체 수정해서 설정") — 관리자 · 그 AI 담당 · 그 할 일 담당
+    //   aimates/{AI}.design.<할 일>.<브랜드> = {text, at, by, byName} · 빈 글 = 지움(null) · 원가·마진·제조사·공급가가 있으면 막음(AI 가 보면 안 됨)
+    //   연 때 본 값 그대로일 때만(transaction) · hist 한 줄 · 5초 되돌리기 → crew.html 지시문 '■ 브랜드별 설계'로 다음 실행부터
+    mateDesign: async (mateId, act, brand, text, seen) => {
+      const doc = D.ai.mates[mateId] || {}, m = mateOf(mateId) || { name: mateId }, bb = m.board ? (boardOf(m.board) || {}).brand || "" : "";
+      const can = isMaster(cu) || Object.values(doc.owners || {}).includes(cu.id) || actOwner(doc, bb, act, D.users) === cu.id;
+      if (!can) { setToast({ text: "설계는 관리자·그 AI 담당·그 할 일 담당이 써요" }); return false; }
+      const t = String(text || "").replace(/\r/g, "").trim().slice(0, DESIGN_MAX);
+      if (designBad(t)) { setToast({ text: "원가·마진·제조사·공급가는 AI에게 보여 주지 않아요 · 그 줄을 빼고 저장해 주세요" }); return false; }
+      const at = nowIso(), v = t ? { text: t, at, by: cu.id, byName: cu.name } : null; let was = "", stale = false;
+      try { await fb.txDoc("aimates", mateId, (cur) => { const x = ((((cur && cur.design) || {})[act]) || {})[brand]; was = (x && x.text) || "";
+          if (seen !== undefined && was !== (seen || "")) { stale = true; return {}; }   // 그사이 다른 사람이 고침 → 안 덮음
+          if (was === t) return {};
+          const h = { at, by: cu.id, byName: cu.name, ch: { [`design.${act}.${brand}`]: [was.slice(0, 80), t.slice(0, 80)] } };
+          return { write: cur ? { [`design.${act}.${brand}`]: v, updatedAt: at, hist: fb.arrayUnion(h) } : { owners: {}, rules: [], design: { [act]: { [brand]: v } }, updatedAt: at, hist: [h] } }; }); }
+      catch (e) { fail("브랜드별 설계")(e); return false; }
+      if (stale) { setToast({ text: "그사이 다른 사람이 설계를 고쳤어요 · 다시 열어 확인해 주세요" }); return false; }
+      if (was === t) return true;
+      log("aiDesign", { col: "aimates", targetId: mateId, label: `${m.name} · ${act} 브랜드별 설계 · ${brandL(brand) || brand} ${t ? "저장" : "지움"}` });
+      setToast({ text: t ? `${m.name} ${act} · ${brandL(brand) || brand} 설계를 저장했어요 · 다음 실행부터 AI가 그대로 따라요` : "설계를 지웠어요", undo: () => A.mateDesign(mateId, act, brand, was, t) });
+      return true;
+    },
+    // 넘기기 끄기·켜기 (2026-10-17 사장님 넘기기 A) — 최종 승인되면 다른 AI 지시문 '넘겨받은 것'에 들어가는 승인 건을 이 건만 빼기 · 지금 차례·담당·관리자
+    askHandoff: async (a, off) => {
+      if (!a || !handoffTargets(a.mate, a.act).length) return false;
+      if (!(canAct(a, cu) || a.owner === cu.id || isMaster(cu))) { setToast({ text: "지금 차례·담당·관리자가 정해요" }); return false; }
+      const at = nowIso(); let did = false;
+      try { await fb.txDoc("aiasks", a.id, (cur) => { if (!cur || cur.state === "no" || !!cur.handoffOff === !!off) return {}; did = true;
+          return { write: { handoffOff: off ? { at, by: cu.id, byName: cu.name } : null, log: fb.arrayUnion({ at, by: cu.id, byName: cu.name, act: off ? "handoffOff" : "handoffOn" }) } }; }); }
+      catch (e) { fail("넘기기")(e); return false; }
+      if (!did) return true;
+      log("aiHandoff", { col: "aiasks", targetId: a.id, label: `${a.title} · ${handoffLabel(a.mate, a.act)}에게 넘기기 ${off ? "끔" : "켬"}` });
+      setToast({ text: off ? `이 건은 ${handoffLabel(a.mate, a.act)}에게 안 넘겨요` : `최종 승인되면 ${handoffLabel(a.mate, a.act)}에게 넘어가요`, undo: () => A.askHandoff(a, !off) });
       return true;
     },
     // 상급자(관리자 · users.bossId) — 고리(서로 상급자) 막기 · 5초 되돌리기

@@ -13,7 +13,7 @@ import { useDoneSince } from "./reportui.jsx";
 import { isHQ, ASK_STATE_L } from "./aiask.js";
 import { FileList, useUploads, UpList, UpBtn, pasteFiles, rmProps, PASTE_HINT } from "./files.jsx";
 import { boardOf, runWord } from "../../marketing-hub/crew.js";
-import { CYCLE_L, WORD, cycleOf, periodOf, prevPeriod, nextPeriod, periodOfDoc, periodL, dueL, repSlots, repCrews, repId, secPeople, canWriteSec, secData, secState, SEC_L, metricLine, trend, repText, repFxOf, secFiles } from "./aireport.js";
+import { CYCLE_L, WORD, cycleOf, periodOf, prevPeriod, nextPeriod, periodOfDoc, periodL, dueL, repSlots, repCrews, repId, secPeople, canWriteSec, secData, secState, SEC_L, metricLine, stageLine, trend, repText, repFxOf, secFiles } from "./aireport.js";
 
 const Pill = ({ children, color = C.navy, bg = C.soft }) => <span style={{ display: "inline-block", fontSize: 12, fontWeight: 800, padding: "3px 8px", borderRadius: 6, color, background: bg, whiteSpace: "nowrap" }}>{children}</span>;
 const ST_TONE = { none: [C.sub, "#F1F2F6"], draft: [C.navy, C.soft], done: [C.green, "#E7F4EC"], sent: ["#fff", C.green] };
@@ -100,7 +100,8 @@ function SecCard({ D, cu, A, c, p, row, open, expand, asks }) {
   const [nt, setNt] = useState(null), [pl, setPl] = useState(null), [busy, setBusy] = useState(false);
   const note = nt !== null ? nt : s.note || "", plan = pl !== null ? pl : s.plan || "", dirty = (nt !== null && nt !== (s.note || "")) || (pl !== null && pl !== (s.plan || ""));
   const go = async (f) => { if (busy) return; setBusy(true); try { if (await A.aiRepSec(c.id, p, m.id, f)) { setNt(null); setPl(null); } } finally { setBusy(false); } };
-  const cur = d.metrics.filter((x) => x.cur || x.prev), sumL = [...cur.slice(0, 2).map((x) => `${x.l} ${metricLine(x)}`), `실행 ${d.doneN}`, `흔적 ${d.trace.done}`].join(" · ");
+  const cur = d.metrics.filter((x) => x.cur || x.prev), inb = d.inbox || [];   // 단계 숫자 · 넘겨받은 것 (2026-10-17 · 예전에 보낸 칸엔 없음)
+  const sumL = [...(d.stage ? [stageLine(d.stage)] : cur.slice(0, 2).map((x) => `${x.l} ${metricLine(x)}`)), `실행 ${d.doneN}`, `흔적 ${d.trace.done}`, ...(inb.length ? [`넘겨받음 ${inb.length}`] : [])].join(" · ");
   const others = ppl.writers.filter((x) => x !== ppl.owner).map((x) => nameOf(D.users, x));
   const who = !ppl.writers.length ? "담당 미정 · 담당을 정하면 보고에 들어가요" : `담당 ${ppl.owner ? nameOf(D.users, ppl.owner) : "미정"}${others.length ? ` · 같이 ${others.join("·")}` : ""} · 리드 ${nameOf(D.users, ppl.lead) || "-"}${ppl.lead === ppl.owner ? "(본인)" : ""}`;
   return <Card style={{ marginTop: 10, borderLeft: `4px solid ${m.color || C.navy}` }}>
@@ -114,6 +115,11 @@ function SecCard({ D, cu, A, c, p, row, open, expand, asks }) {
           return <div key={a.id} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 2 }}><button type="button" className="v2-lblink" onClick={() => open({ type: "aiask", id: a.id })} style={{ cursor: "pointer", fontFamily: "inherit", textAlign: "left", maxWidth: "100%" }}>{a.act} · {act ? act.t.replace(/\s*\(.*$/, "") : a.title} ›</button>
             <span style={{ fontSize: 12.5, color: a.state === "ok" ? C.green : C.sub }}>{md(a.run)} · {ASK_STATE_L[a.state] || a.state}</span></div>; })
         : <div style={{ color: C.mute }}>이번 기간 {m.name}(AI) 초안이 아직 없어요 · {bd.run ? runWord(bd.run) + " " : ""}Aside 가 올리면 여기 링크가 생겨요</div>}</Sec>}
+      {d.stage && <Sec t={`단계 숫자 · ${d.stage.slot} = ${d.stage.l}`}>{d.stage.vals.map((x) => { const tr = trend(x); return <div key={x.k} style={{ display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>
+          <span style={{ flex: "1 1 140px", minWidth: 0 }}>{x.l}</span><b style={{ color: x.ok ? C.green : tr < 0 ? C.red : C.ink, fontVariantNumeric: "tabular-nums" }}>{tr > 0 ? "▲ " : tr < 0 ? "▼ " : ""}{metricLine(x)}</b></div>; })}
+        {!d.stage.vals.some((x) => x.cur) && <div style={{ color: C.mute, fontSize: 12.5 }}>이번 기간 값이 아직 없어요 · AI 가 보드 [지표]로 올리면 채워져요</div>}</Sec>}
+      {inb.length > 0 && <Sec t={`넘겨받은 것 ${inb.length} (다른 AI · 최종 승인)`}>{inb.map((x) => <div key={x.id} style={{ display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>
+          <button type="button" className="v2-lblink" onClick={() => open({ type: "aiask", id: x.id })} style={{ cursor: "pointer", fontFamily: "inherit", textAlign: "left", maxWidth: "100%" }}>{x.name} {x.act} · {x.title} ›</button><span style={{ fontSize: 12.5, color: C.sub }}>{md(x.at)}{x.n ? ` · ${x.n}줄` : ""}</span></div>)}</Sec>}
       <Sec t="① 실행">
         <div>실행 업무 끝냄 <b>{d.doneN}</b>{d.openN ? ` · 남음 ${d.openN}` : ""} · 흔적 <b>{d.trace.done}</b>{d.trace.skip ? ` · 안 함 ${d.trace.skip}` : ""}</div>
         <div style={{ color: C.sub, fontSize: 12.5 }}>AI 결과 올라옴 {d.asks.made} · 승인 {d.asks.ok} · 안 함 {d.asks.no}{d.asks.req ? ` · 맡긴 일 ${d.asks.req}` : ""}{d.asks.open ? ` · 아직 열림 ${d.asks.open}` : ""}</div>

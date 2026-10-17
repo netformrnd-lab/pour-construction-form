@@ -10,7 +10,7 @@
   · 보드 고르기 → 날짜 → 결과 붙여 넣기([지표] [상태] [A]~[E] 표 · 그로홈 보드에서 쓰던 모양) → 미리 보기 → [업무OS에 올리기]
   · 쓰는 곳(pour-app-new · 공개 규칙 pour-os/{doc=**} · 규칙 변경 없음):
       pour-os/v2/aiboards/{보드 id}  지표 값(날짜별) · 상태 한 줄
-      pour-os/v2/aiasks/{id}         행동 A~F 하나 = 승인 한 건 → 업무OS '확인할 것' (AI → 할 일 담당 → 리드에서 끝 · 광고비 예산·원가·판매가 조정만 본부장까지 · 2026-10-15)
+      pour-os/v2/aiasks/{id}         행동 A~F 하나 = 승인 한 건 → 업무OS '확인할 것' (AI → 할 일 담당 → 할 일마다 승인 길: 점검·장부는 담당에서 끝 · 밖으로 나가는 것은 리드까지 · 광고비·원가·판매가는 본부장까지 · 2026-10-17)
       pour-os/v2/aiboards/{보드 id}.next·nextHist  [다음주] AI 피드백 → 업무OS 크루 보고서 '다음 기간'
   · 읽는 곳(2026-10-17 사장님 넘기기 A): pour-os/v2/aiasks 의 다른 AI 최종 승인 건 → 지시문 '■ 넘겨받은 것'(crew.HANDOFFS) · '■ 공용 이긴 소재 장부'(여름 J·가을 J·겨울 H) · aimates.design → '■ 브랜드별 설계'
   · 같은 날 같은 행동을 다시 올리면: 아직 담당 차례이거나 'AI 에게 다시'로 돌려받은 것만 2번째 판으로 고침 · 위로 올라간 뒤엔 그대로(날짜를 바꿔 새로)
@@ -165,13 +165,14 @@ const esc=(s)=>String(s==null?'':s).replace(/[&<>"]/g,(c)=>({'&':'&amp;','<':'&l
 const V2=()=>db.collection('pour-os').doc('v2');
 const OS_URL='../pourstore-renewal/os2.html';
 const todayKST=()=>C.addDays(C.yesterdayKST(),1);
-let roles=null, mateDoc=null, users={}; // users = 필요한 사람만 (담당 1명 · 번호·PIN 칸은 안 씀)
+let roles=null, mateDoc=null, users={}, UP_OK=true; // users = 필요한 사람만 (담당 1명 · 번호·PIN 칸은 안 씀)
 
 // 보드 고르기 (그로홈 크루 6명) — 주소 #보드id 로 바로
-const BOARDS=Object.values(K.BOARDS);
+const BOARDS=Object.values(K.BOARDS).filter(b=>K.isLiveBoard(b.id));   // 닫힌 크루(B2B·바라스데이 · 2026-10-17)는 고르기에서 빠짐
 $('crew-board').innerHTML=BOARDS.map(b=>{const m=K.mateOf(b.mate);return `<option value="${b.id}">${m.name} · ${m.role} — ${b.title} (${K.brandL(b.brand)})${b.run?' · '+K.runWord(b.run):''}</option>`;}).join('');
-const h=location.hash.slice(1); if(K.boardOf(h))$('crew-board').value=h;
-window.addEventListener('hashchange',()=>{const x=location.hash.slice(1); if(K.boardOf(x)&&x!==$('crew-board').value){$('crew-board').value=x;$('preview-section').hidden=true;if(auth.currentUser)loadMate();}});
+let CLOSED=null;   // 닫힌 보드 주소로 열렸을 때 (예전 Aside 예약) — 멈춤 안내만 · 올리기 막음
+const h=location.hash.slice(1); if(K.isLiveBoard(h))$('crew-board').value=h; else if(K.boardOf(h))CLOSED=K.boardOf(h);
+window.addEventListener('hashchange',()=>{const x=location.hash.slice(1); if(K.isLiveBoard(x)&&(CLOSED||x!==$('crew-board').value)){CLOSED=null;$('crew-board').value=x;$('preview-section').hidden=true;if(auth.currentUser)loadMate();} else if(K.boardOf(x)&&!K.isLiveBoard(x)){CLOSED=K.boardOf(x);if(auth.currentUser)loadMate();}});
 $('crew-date').value=todayKST();
 const board=()=>K.boardOf($('crew-board').value), mate=()=>K.mateOf(board().mate);
 
@@ -181,7 +182,7 @@ auth.onAuthStateChanged(async u=>{
   $('login-section').hidden=!!u; $('crew-section').hidden=!u; $('logout-button').hidden=!u; $('go-upload').hidden=!u; $('who').textContent=u?u.email:'';
   if(!u)return;
   try{const rd=await C.col(db,'mkt-access','open').doc('roles').get(); roles=rd.exists?rd.data():{};}catch(e){console.error('[mkt-access] 역할 확인 실패',e);roles={};}
-  if(!C.isUploaderEmail(u.email,roles)&&!C.isAdminEmail(u.email,roles)){setMsg('err','이 계정은 올릴 수 없어요 · 관리자에게 업로더 계정을 받아 주세요');$('save-button').disabled=true;}
+  if(!C.isUploaderEmail(u.email,roles)&&!C.isAdminEmail(u.email,roles)){UP_OK=false;setMsg('err','이 계정은 올릴 수 없어요 · 관리자에게 업로더 계정을 받아 주세요');$('save-button').disabled=true;}
   await Promise.all([loadMate(),loadSetup()]);
 });
 const LOGIN_ERR={'auth/invalid-credential':'이메일 또는 비밀번호가 올바르지 않습니다.','auth/wrong-password':'비밀번호가 틀렸습니다.','auth/user-not-found':'없는 계정입니다.','auth/too-many-requests':'시도가 많습니다. 잠시 후 다시 하세요.','auth/network-request-failed':'네트워크 오류입니다.'};
@@ -194,6 +195,10 @@ function setMsg(kind,html){const m=$('status-message');m.className=kind;m.innerH
 
 // 이 AI 의 담당 · 확정 규칙 · 'AI 에게 다시' 돌려받은 것 (Aside 가 올리기 전에 읽음)
 async function loadMate(){
+  if(CLOSED){ $('crew-guide').textContent=K.closedStop(CLOSED); $('crew-guide-head').textContent=`닫힌 보드 — ${K.CLOSED_L}`; $('crew-who').textContent=''; $('crew-rules').innerHTML=''; $('crew-last').innerHTML=''; $('save-button').disabled=true;
+    ['crew-launch','crew-reqs','crew-redo'].forEach(id=>{$(id).innerHTML='';}); REQS=[]; BACKS=[]; $('copy-launch').disabled=true;   // 앞 보드의 칸·예약 글이 남지 않게
+    setMsg('err',`이 보드(${CLOSED.title})는 닫혔어요 · ${K.CLOSED_L} — 아무것도 올리지 않아요`); console.log(`[AI 크루] 닫힌 보드 ${CLOSED.id} — 멈춤 안내`); return; }
+  $('save-button').disabled=!UP_OK; $('copy-launch').disabled=false;   // 닫힌 보드에서 열린 보드로 오면 다시 켬
   const b=board(), m=mate(); mateDoc=null; $('crew-guide').textContent=K.asideText(b);
   $('crew-guide-head').textContent=`오늘 지시문 — ${m.name} · ${b.title} · 판 ${K.ASIDE_VER}`; $('crew-last').innerHTML='';
   try{
@@ -232,7 +237,7 @@ async function loadMate(){
     console.log(`[aimates/${m.id}] ${mateDoc?'있음':'없음'} · 규칙 ${on.length} · 돌려받은 것 ${backs.length}`);
     const split=actSplit(b);   // 할 일마다 담당이 다르면 (예: A 윤미니 · B·C 김민지)
     const stg=K.stageOf(m.id);   // 단계 미션 (2026-10-17 사장님 AARRR 정의)
-    $('crew-who').innerHTML=`${stg?`<div style="margin-bottom:6px">단계 미션 · <b>${esc(m.slot)}</b> (${esc(stg.goal)}) — ${esc(stg.mission)}</div>`:''}승인 길: <b>${esc(m.name)}(AI)</b> → ${owner?`<b>${esc(nameOf(owner))}</b>(담당)`:'<b>담당 미정</b> — 관리자 누구나'} → 리드에서 끝 (광고비 예산·원가·판매가 조정만 본부장까지) · ${esc(K.brandL(b.brand))}${split?`<br>할 일 담당: ${split}`:''}`;
+    $('crew-who').innerHTML=`${stg?`<div style="margin-bottom:6px">단계 미션 · <b>${esc(m.slot)}</b> (${esc(stg.goal)}) — ${esc(stg.mission)}</div>`:''}승인 길: <b>${esc(m.name)}(AI)</b> → ${owner?`<b>${esc(nameOf(owner))}</b>(담당)`:'<b>담당 미정</b> — 관리자 누구나'} → 할 일마다 정한 승인 길 (${esc(K.pathGroupsL(K.pathGroups(b,mateDoc)))}) · ${esc(K.brandL(b.brand))}${split?`<br>할 일 담당: ${split}`:''}`;
     $('crew-rules').innerHTML=on.length?`<div class="warn">확정 규칙 ${on.length}개 — 꼭 지켜 주세요<br>${on.map(r=>'· '+esc(r.text)).join('<br>')}</div>`:'';
     $('crew-redo').innerHTML=backs.length?`<div class="warn">고쳐서 다시 올릴 것 ${backs.length}건 — [이전 판 불러오기] → 적힌 말대로 고치거나 줄을 더해 다시 올리면 같은 건의 다음 판이 돼요${backs.map((a,i)=>{const more=a.back&&Number(a.back.more)>0?Number(a.back.more):0;
       return `<div style="margin-top:6px">· ${esc(a.run)} ${esc(a.act)} · ${esc(a.title)}${more?` · <span class="pill">더 만들기 ${more}개</span>`:''} — <b>${esc(a.back&&a.back.text||'')}</b> (${esc(a.back&&a.back.byName||'')}) <button type="button" class="btn sm" id="redo-load-${i}" data-i="${i}" aria-label="이전 판 불러오기 ${esc(a.run)} ${esc(a.act)}">이전 판 불러오기</button></div>`;}).join('')}</div>`:'';
@@ -312,7 +317,7 @@ function actSplit(b){const base=ownerId(), g={};b.actions.filter(a=>!a.admin).fo
   const ks=Object.keys(g); if(ks.length<2&&ks[0]===base)return '';
   return ks.map(id=>`<b>${esc(g[id].join('·'))}</b> ${id?esc(nameOf(id)):'관리자 누구나'}`).join(' · ');}
 $('crew-board').onchange=()=>{history.replaceState(null,'','#'+$('crew-board').value);$('preview-section').hidden=true;loadMate();};
-$('copy-guide').onclick=()=>copyText($('copy-guide'),K.asideText(board(),{qty:mateDoc&&mateDoc.qty,plan:PLANNOW,launch:LAUNCH||undefined}),'지시문 복사');
+$('copy-guide').onclick=()=>copyText($('copy-guide'),$('crew-guide').textContent,'지시문 복사');   // 화면 지시문 그대로 (넘겨받은 것·공용 장부·브랜드별 설계 · 닫힌 보드면 멈춤 안내)
 $('copy-launch').onclick=()=>copyText($('copy-launch'),K.asideLaunch(board(),(K.planOf(PLAN,board().id)||{}).t),'예약 글 복사');
 
 // 미리 보기
@@ -334,10 +339,11 @@ function preview(){
       ${x.items.length?`<div class="tbl"><table><tr><th>번호</th>${x.cols.map(h=>`<th>${esc(h)}</th>`).join('')}</tr>${x.items.slice(0,30).map(it=>`<tr><td>${esc(it.n)}</td>${x.cols.map(h=>`<td title="${esc(it.c[h]||'')}">${esc(it.c[h]||'')}</td>`).join('')}</tr>`).join('')}</table></div>`:''}</div>`;}).join('')}`;
   $('preview-section').hidden=false; return {p,n};
 }
-$('preview-button').onclick=()=>{preview();};
+$('preview-button').onclick=()=>{if(CLOSED){setMsg('err',`닫힌 보드예요 · ${K.CLOSED_L} — 아무것도 올리지 않아요`);return;}preview();};
 
 // 올리기: 보드 지표 + 행동마다 승인 한 건 (없으면 만들고 · 담당 차례이거나 돌려받은 것만 2번째 판으로)
 $('save-button').onclick=async()=>{
+  if(CLOSED){setMsg('err',`닫힌 보드예요 · ${K.CLOSED_L} — 아무것도 올리지 않아요`);return;}
   const b=board(), m=mate(), run=$('crew-date').value, u=auth.currentUser;
   if(!/^\d{4}-\d{2}-\d{2}$/.test(run)){setMsg('err','날짜를 골라 주세요');return;}
   const {p,n}=preview(); if(!p.metrics.length&&!n&&!p.next){setMsg('err','올릴 것이 없어요 · [지표] 또는 [A]~[F] 표(맡긴 일은 [R])를 붙여 넣어 주세요');return;}
@@ -345,13 +351,14 @@ $('save-button').onclick=async()=>{
   $('save-button').disabled=true; setMsg('wait','올리는 중…');
   const at=new Date().toISOString(), owner=ownerId();
   try{
+    const asks=K.asksFromParse(p,{board:b.id,mate:m.id,brand:b.brand,run,at,owner:(c,prod)=>ownerIdAct(c,prod),src:'crew'}); const res={made:0,redo:0,kept:[]};
+    const did=K.actDayOf(asks), ah=Object.keys(did).length?{actHist:{[run]:did}}:{};   // 그날 결과가 올라간 할 일 → 금요일 보고 '변화 없음' 셈에서 뺌 (2026-10-17)
     if(p.metrics.length||Object.keys(p.status).length||p.next){
       const metrics={},hist={}; p.metrics.forEach(x=>{metrics[x.k]={v:x.v,date:run,at};hist[x.k]={[run]:x.v};});
       const nx=p.next?{next:{text:p.next.slice(0,2000),run,at},nextHist:{[run]:p.next.slice(0,2000)}}:{};   // [다음주] = 크루 보고서 '다음 기간' AI 피드백 (2026-10-15)
-      await V2().collection('aiboards').doc(b.id).set({id:b.id,board:b.id,mate:m.id,brand:b.brand,metrics,hist,status:p.status,...nx,at,by:u.email},{merge:true});
+      await V2().collection('aiboards').doc(b.id).set({id:b.id,board:b.id,mate:m.id,brand:b.brand,metrics,hist,status:p.status,stHist:{[run]:p.status},...ah,...nx,at,by:u.email},{merge:true});   // stHist = 날짜별 상태 줄 ('변화 없음' 셈 · 2026-10-17)
       console.log(`[aiboards/${b.id}] 지표 ${p.metrics.length}개${p.next?' · 다음 주 계획':''}`);
-    }
-    const asks=K.asksFromParse(p,{board:b.id,mate:m.id,brand:b.brand,run,at,owner:(c,prod)=>ownerIdAct(c,prod),src:'crew'}); const res={made:0,redo:0,kept:[]};
+    } else if(ah.actHist) await V2().collection('aiboards').doc(b.id).set({id:b.id,board:b.id,mate:m.id,brand:b.brand,...ah},{merge:true});   // 표만 올림 — 마지막 올림(at)은 그대로
     let reqAsk=null;
     if(p.acts.R&&REQ){const rs=await V2().collection('aireqs').doc(REQ.id).get();   // 취소된 일은 안 올림
       if(rs.exists&&rs.data().state==='cancel'){setMsg('err','이 맡긴 일은 취소됐어요 · [R] 묶음을 지우고 다시 올려 주세요');$('save-button').disabled=false;return;}

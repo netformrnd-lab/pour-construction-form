@@ -170,7 +170,7 @@ def open_link(who, what, note, date=None, brand=''):
     # ③ 업무OS AI 승인 (pour-os/v2/aiasks) — 조건부: 다시 = 읽은 때 그대로일 때만 · 새로 = 없을 때만
     if redo:
         nf = {'title': title, 'mate': mid, 'mateName': name, 'crew': crew_of(mid), 'sum': '', 'note': note, 'noteId': lid, 'url': url, 'owner': owner or cur.get('owner') or '', 'to': owner or cur.get('owner') or '', 'step': 0, 'state': 'wait',
-              'path': [], 'pick': None, 'ver': int(cur.get('ver') or 1) + 1, 'back': None, 'ret': None, 'updatedAt': at,
+              'path': [], 'pick': None, 'ver': int(cur.get('ver') or 1) + 1, 'back': None, 'ret': None, 'hqUp': None, 'leadUp': None, 'updatedAt': at,
               'log': (cur.get('log') or []) + [{'at': at, 'by': 'ai:' + mid, 'byName': f'{name} (AI)', 'act': 'redo'}]}
         if commit(f'{ASKS}/{aid}', nf, {'updateTime': ut}) is None: sys.exit('그사이 업무OS에서 이 건이 바뀌었어요 — 한 번 더 실행해 주세요')
         print(f'업무OS 승인 고쳐서 다시: {aid} · {nf["ver"]}번째 판 · 차례 {owner_name or "관리자 누구나"}')

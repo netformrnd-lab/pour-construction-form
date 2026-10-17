@@ -83,11 +83,11 @@ eq('팀: 가동 = 여름 아침 루틴만 (하루·포리·에코 쉼)', [C.TEAM
   [[], ['하루→yeoreum', '포리→yeoreum', '에코→yeoreum'], ['여름 06:50']]);
 // 자동 작업 (트리거) 목록 — 2026-10-12
 const AU = C.automations(), AS = C.autoSummary(AU), au0 = (id) => AU.find((a) => a.id === id) || {};
-eq('자동 작업: 걸어 둔 것 = 동작 중 4 · 준비 중 19(크루 Aside 15 포함 · 2026-10-17 바람) · 나머지는 팀원 계획', [AS.on, AS.wait, AS.plan === AU.length - 23], [4, 19, true]);
-eq('자동 작업: 크루 Aside 15 = 담당 PC · 평일 09:00 동시에 · 다음 실행 · 이름 (2026-10-15 · 2026-10-17 15개)', [AU.filter((a) => /^aside-crew-/.test(a.id)).length, C.autoNext(au0('aside-crew-gh-traffic'), { date: '2026-10-16', time: '08:30' }), C.autoNext(au0('aside-crew-gh-aov'), { date: '2026-10-16', time: '09:30' }), au0('aside-crew-gh-conv').name, au0('aside-crew-gh-conv').who, C.AUTO_WHERE[au0('aside-crew-gh-rep').where]],
-  [15, { date: '2026-10-16', t: '09:00' }, { date: '2026-10-19', t: '09:00' }, 'AI 크루 · 겨울 (전환 보드)', '겨울', 'Aside (담당 PC)']);
-eq('자동 작업: 주 1~2회 크루 = 그 요일 (달 월 · 별 금 · 단단 월·목)', [C.autoNext(au0('aside-crew-hq-plan'), { date: '2026-10-16', time: '08:30' }), C.autoNext(au0('aside-crew-ops-report'), { date: '2026-10-16', time: '08:30' }), C.autoNext(au0('aside-crew-b2b-exp'), { date: '2026-10-19', time: '11:00' }), C.autoWord(au0('aside-crew-b2b-exp'))],
-  [{ date: '2026-10-19', t: '09:00' }, { date: '2026-10-16', t: '09:00' }, { date: '2026-10-22', t: '10:00' }, C.autoWord({ run: { dow: [1, 4], t: '10:00' } })]);
+eq('자동 작업: 걸어 둔 것 = 동작 중 4 · 준비 중 14(크루 Aside 10 포함 · 2026-10-17 B2B 크루 닫음) · 나머지는 팀원 계획', [AS.on, AS.wait, AS.plan === AU.length - 18], [4, 14, true]);
+eq('자동 작업: 크루 Aside 10 = 담당 PC · 평일 09:00 동시에 · 다음 실행 · 이름 (2026-10-15 · 2026-10-17 B2B 5개 닫고 10개)', [AU.filter((a) => /^aside-crew-/.test(a.id)).length, C.autoNext(au0('aside-crew-gh-traffic'), { date: '2026-10-16', time: '08:30' }), C.autoNext(au0('aside-crew-gh-aov'), { date: '2026-10-16', time: '09:30' }), au0('aside-crew-gh-conv').name, au0('aside-crew-gh-conv').who, C.AUTO_WHERE[au0('aside-crew-gh-rep').where]],
+  [10, { date: '2026-10-16', t: '09:00' }, { date: '2026-10-19', t: '09:00' }, 'AI 크루 · 겨울 (전환 보드)', '겨울', 'Aside (담당 PC)']);
+eq('자동 작업: 주 1~2회 크루 = 그 요일 (달 월 · 별 금) · 닫힌 B2B 크루(단단 등)는 목록에 없음', [C.autoNext(au0('aside-crew-hq-plan'), { date: '2026-10-16', time: '08:30' }), C.autoNext(au0('aside-crew-ops-report'), { date: '2026-10-16', time: '08:30' }), AU.some((a) => /^aside-crew-b2b-/.test(a.id)), C.CREW_ASIDE.filter((c) => c.closed).map((c) => c.board)],
+  [{ date: '2026-10-19', t: '09:00' }, { date: '2026-10-16', t: '09:00' }, false, ['b2b-inq', 'b2b-exp', 'b2b-deal', 'b2b-aov', 'b2b-re']]);
 eq('자동 작업: 아침 루틴 = 여름 · 쉬는 하루·포리·에코 일은 목록에 없음', [au0('ai-morning').name, au0('ai-morning').members, AU.filter((a) => (a.members || []).some((id) => ['haru', 'pori', 'eco'].includes(id))).length], ['AI 콘텐츠 아침 (여름 · B2C 크루)', ['yeoreum'], 0]);
 eq('자동 작업: 카테고리 7개 · 모두 분류됨', [AS.cats.length, AS.cats.reduce((x, c) => x + c.n, 0) === AU.length], [7, true]);
 const now = { date: '2026-10-12', time: '20:30' }, au = (id) => AU.find((a) => a.id === id);

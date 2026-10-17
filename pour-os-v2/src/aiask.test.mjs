@@ -108,8 +108,8 @@ const DA = (boards, mates, settings, asks) => ({ users: U, settings: settings ||
 const W11 = new Date("2026-10-14T11:00:00");
 eq("담당 묶음 = 같은 PC 한 시간씩 · 미정은 맨 뒤", X.asidePlanOf(DA()).filter((g) => g.owner !== "cw").map((g) => [g.owner, g.runs.map((r) => r.board.id + " " + r.t)]),
   [["yj", ["gh-conv 09:00", "gh-rep 10:00"]], ["", ["gh-traffic 09:00", "gh-ohou 10:00", "gh-exp 11:00", "gh-ref 12:00", "gh-aov 13:00"]]]);
-eq("새 보드 한 PC = 요일이 다르면 같은 시각도 · 겹치면 뒤로 (시각 순)", X.asidePlanOf(DA()).find((g) => g.owner === "cw").runs.map((r) => r.board.id + " " + r.t),
-  ["ops-report 09:00", "hq-plan 09:00", "b2b-inq 10:00", "b2b-exp 11:00", "b2b-deal 11:00", "b2b-aov 11:00", "b2b-re 12:00", "ops-order 15:00"]);
+eq("새 보드 한 PC = 요일이 다르면 같은 시각도 · 겹치면 뒤로 (시각 순) · 닫힌 B2B 크루 보드는 안 돎 (2026-10-17)", X.asidePlanOf(DA()).find((g) => g.owner === "cw").runs.map((r) => r.board.id + " " + r.t),
+  ["ops-report 09:00", "hq-plan 09:00", "ops-order 15:00"]);
 const s0 = X.asideInbox(DA(), "yj", W11);
 eq("처음 = 내 PC 세팅 한 줄 (안 돎 알림은 아직)", s0.map((x) => [x.kind, x.title, x.keep]), [["aiSetup", "내 PC Aside 세팅 · 겨울 09:00 · 우주 10:00", true]]);
 eq("한 보드만 올라오면 남은 것만 세팅", X.asideInbox(DA({ "gh-conv": { at: at("2026-10-14T09:05:00") } }), "yj", W11).map((x) => [x.kind, x.id]), [["aiSetup", "as:yj:gh-rep"]]);
@@ -167,6 +167,28 @@ eq("그날 올렸나", [X.ranOn({ at: at("2026-10-14T00:10:00") }, "2026-10-14")
   eq("팀원 → 바로 위가 본부장(리드 아님) = 본부장으로 (리드 대신)", X.planPass({ ...c0, owner: "cw", to: "cw" }, me("cw"), [...U.filter((u) => u.id !== "cw"), { id: "cw", name: "공용팀원", bossId: "hj" }], null, T1, { hq: "" }).next, "hj");
   eq("리드 · 본부장 알아보기", [X.isLeadU(U, "sy"), X.isLeadU(U, "sh"), X.isLeadU(U, "yj"), X.isHQ(U, "hj"), X.isHQ(U, "sy")], [true, true, false, true, false]);
   eq("할 일 담당 → 없으면 AI 담당 · 쉬는 사람은 빼고", [X.actOwner({ owners: { grohome: "yj" }, actOwners: { A: "gm" } }, "grohome", "A", U), X.actOwner({ owners: { grohome: "yj" }, actOwners: { A: "gm" } }, "grohome", "B", U), X.actOwner({ owners: { grohome: "yj" }, actOwners: { A: "old" } }, "grohome", "A", U)], ["gm", "yj", "yj"]);
+}
+
+// 승인 길 세 단계 (2026-10-17 사장님 1A "점검·분석·목록·장부 = 담당에서 끝 · 밖으로 나가는 것 = 리드까지 · 광고비·원가·판매가 = 본부장까지 · 할 일마다 바꿈")
+{
+  const g0 = askDoc({ id: "g0", mate: "ieum", brand: "", board: "ops-order", act: "A", run: "2026-10-19", title: "주문 마감 대조", owner: "yj", at: T1, exec: "승인되면 담당이 빠진 주문을 넣는다" });
+  const c0 = askDoc({ id: "c0b", mate: "gyeoul", brand: "grohome", board: "gh-conv", act: "C", run: "2026-10-19", title: "상세", owner: "yj", at: T1, exec: "승인되면 상세에 올린다" });
+  eq("기본 길: inner = 담당에서 끝 · 상세 = 리드까지 · 판매가 = 본부장까지 · 실행 없는 광고 보고(가을 F inner) = 담당", [X.pathOf(g0, null), X.pathOf(c0, null), X.pathOf(a0, null), X.pathOf({ board: "gh-traffic", act: "F", exec: "" }, null)], ["owner", "lead", "hq", "owner"]);
+  eq("관리자 덧칠 actPath > 예전 actHq > 보드 · 실행 없는 일은 본부장 안 감", [X.pathOf(g0, { actPath: { A: "lead" } }), X.pathOf(c0, { actPath: { C: "owner" } }), X.pathOf(c0, { actPath: { C: "hq" } }), X.pathOf(c0, { actHq: { C: true } }), X.pathOf(a0, { actPath: { B: "lead" }, actHq: { B: true } }), X.pathOf({ board: "gh-traffic", act: "F", exec: "" }, { actPath: { F: "hq" } })], ["lead", "owner", "hq", "hq", "lead", "lead"]);
+  eq("hqOf = 길이 본부장까지일 때만 (관리자 지정 · 보드 이유)", [X.hqOf(c0, { actPath: { C: "hq" } }), X.hqOf(a0, { actPath: { B: "lead" } }), X.hqOf(g0, null)], ["관리자 지정", "", ""]);
+  const o1 = X.planPass(g0, me("yj"), U, null, T1, { path: X.pathOf(g0, null) });
+  eq("담당에서 끝 = 담당 승인이 최종", [o1.final, o1.fields.state, o1.fields.okBy, o1.fields.to], [true, "ok", "yj", ""]);
+  eq("길 보기: 담당에서 끊김", X.chainOf(g0, U, "", "owner").map((x) => [x.name, x.st]), [["남윤정", "now"]]);
+  eq("[리드에게도 올리기] 보임 = 담당에서 끝 · 담당 차례 · 위 사람 있음 (리드 → 본부장이면 안 보임)", [X.upLeadTo(g0, me("yj"), U, "owner"), X.upLeadTo(g0, me("yj"), U, "lead"), X.upLeadTo({ ...g0, owner: "sh", to: "sh" }, me("sh"), U, "owner"), X.upLeadTo(g0, me("yr"), U, "owner")], ["sy", "", "", ""]);
+  const o2 = X.planPass(g0, me("yj"), U, null, T1, { path: "owner", up: "lead" });
+  eq("[리드에게도 올리기] → 리드 · 표시 leadUp · 그 뒤 길 = 리드까지", [o2.next, o2.fields.step, !!o2.fields.leadUp, o2.entry.leadUp, !!o2.fields.hqUp, X.pathOf({ ...g0, ...o2.fields }, null)], ["sy", 1, true, true, false, "lead"]);
+  const g1 = { ...g0, ...o2.fields };
+  eq("올린 뒤 리드 = 최종 (본부장 안 감)", X.planPass(g1, me("sy"), U, null, T1, { hq: "", path: X.pathOf(g1, null) }).final, true);
+  eq("올린 뒤 길 보기 = 담당 ✓ → 리드 ●", X.chainOf(g1, U, "", X.pathOf(g1, null)).map((x) => [x.name, x.st]), [["남윤정", "done"], ["김소연", "now"]]);
+  eq("돌려보내기·AI에게 다시 = leadUp 지움", [X.planRet(g1, me("sy"), "다시", T1).fields.leadUp, X.planBack(g0, me("yj"), "다시", T1).fields.leadUp], [null, null]);
+  eq("담당 미정 · 관리자가 누름 = 최종 (담당에서 끝)", X.planPass({ ...g0, owner: "", to: "" }, me("ran"), U, null, T1, { path: "owner" }).final, true);
+  eq("위로 올라간 옛 건(step 1)은 길을 '담당에서 끝'으로 바꿔도 그 단계에서 이어짐", X.planPass({ ...g0, to: "sy", step: 1, path: ["yj"] }, me("sy"), U, null, T1, { hq: "", path: "owner" }).final, true);
+  eq("길 이름", [X.PATH_L.owner, X.PATH_L.lead, X.PATH_L.hq, X.pathDef(g0), X.pathDef(a0)], ["담당에서 끝", "리드까지", "본부장까지", "owner", "hq"]);
 }
 
 // [본부장에게도 올리기]는 판마다 · 흔적(실행 업무 번호마다 했어요/안 함 · 2026-10-15 "마케터들은 업무 흔적 꼭 · AI가 세팅 · 사람이 확인 · KPI 추적")

@@ -551,11 +551,11 @@
     { mate: 'ieum', name: '이음', board: 'ops-order', title: '주문·배송·재고 보드', t: '15:00', cat: 'customer', what: '주문 마감 대조 · 송장 안내 누락 · 무통장·견적 미입금 · CS 묶음 · 취소/교환/반품 · 재고·품절(비즈로지컴·쿠팡 로켓그로스)' },
     { mate: 'byeol', name: '별', board: 'ops-report', title: '주간 리포트 보드', t: '09:00', dow: [5], cat: 'data', what: '공통 숫자 칸 초안 · 이상한 것 3개 · 주간 미팅 안건' },   // 위험 재고 발주 제안 → 이음 F (2026-10-17)
     { mate: 'dal', name: '달', board: 'hq-plan', title: '본부장 전략 보드', t: '09:00', dow: [1], cat: 'plan', what: '신제품 기획 초안 · 메가 인플루언서 · 미디어커머스 · 목표 점검 · 철물점 유선영업 · 해외 소싱 일정 · 신제품 후보 발굴(관리자 자리)' },
-    { mate: 'cheokcheok', name: '척척', board: 'b2b-inq', title: '문의 응대 보드', t: '09:00', cat: 'customer', what: 'B2B 오전 메일·문의 정리 · 미전환 콜 목록 · 시공의뢰 이탈자 재연락' },
-    { mate: 'dandan', name: '단단', board: 'b2b-exp', title: 'B2B 노출 보드', t: '10:00', dow: [1, 4], cat: 'content', what: 'B2B 콘텐츠 원고 · 체험단 모집글 · 인플루언서 섭외' },
-    { mate: 'kkomkkom', name: '꼼꼼', board: 'b2b-deal', title: '견적·계약 보드', t: '10:00', dow: [2], cat: 'customer', what: '대체 시공파트너 후보 · 매칭 제안' },
-    { mate: 'deundeun', name: '든든', board: 'b2b-aov', title: '건당 금액 보드', t: '10:00', dow: [3], cat: 'ads', what: 'B2B 구매고객 프로모션 안내문' },
-    { mate: 'teunteun', name: '튼튼', board: 'b2b-re', title: '재주문 보드', t: '11:00', dow: [4], cat: 'customer', what: 'B2B NPS 유선 조사 · 위탁·도매·철물점 재주문' },
+    { mate: 'cheokcheok', closed: true, name: '척척', board: 'b2b-inq', title: '문의 응대 보드', t: '09:00', cat: 'customer', what: 'B2B 오전 메일·문의 정리 · 미전환 콜 목록 · 시공의뢰 이탈자 재연락' },
+    { mate: 'dandan', closed: true, name: '단단', board: 'b2b-exp', title: 'B2B 노출 보드', t: '10:00', dow: [1, 4], cat: 'content', what: 'B2B 콘텐츠 원고 · 체험단 모집글 · 인플루언서 섭외' },
+    { mate: 'kkomkkom', closed: true, name: '꼼꼼', board: 'b2b-deal', title: '견적·계약 보드', t: '10:00', dow: [2], cat: 'customer', what: '대체 시공파트너 후보 · 매칭 제안' },
+    { mate: 'deundeun', closed: true, name: '든든', board: 'b2b-aov', title: '건당 금액 보드', t: '10:00', dow: [3], cat: 'ads', what: 'B2B 구매고객 프로모션 안내문' },
+    { mate: 'teunteun', closed: true, name: '튼튼', board: 'b2b-re', title: '재주문 보드', t: '11:00', dow: [4], cat: 'customer', what: 'B2B NPS 유선 조사 · 위탁·도매·철물점 재주문' },
   ];
   const AUTOMATIONS = [
     { id: 'ai-morning', name: 'AI 콘텐츠 아침 (여름 · B2C 크루)', cat: 'content', where: 'routine', run: { dow: WEEKDAYS, t: '06:50' }, members: ['yeoreum'], status: 'on',
@@ -575,7 +575,8 @@
     { id: 'aside-drafts', name: '글 임시저장', cat: 'content', where: 'aside', word: '맡긴 글이 있을 때', status: 'wait',
       note: 'Aside 세팅 전', what: '대시보드에서 맡긴 글 → 네이버 블로그·티스토리·카페 임시저장 (발행은 늘 사람 · drafts.html)' },
     // 크루 보드 Aside 루틴 (2026-10-14 6개 · 2026-10-17 14개) — 아래 CREW_ASIDE 한 줄 = 예약 작업 하나
-    ...CREW_ASIDE.map((c) => ({ id: 'aside-crew-' + c.board, name: `AI 크루 · ${c.name} (${c.title})`, cat: c.cat, where: 'asideOwner', run: { dow: c.dow || WEEKDAYS, t: c.t }, who: c.name, status: 'wait',
+    ...CREW_ASIDE.filter((c) => !c.closed).map((c) => ({ id: 'aside-crew-' + c.board,   // 닫힌 크루(B2B · 2026-10-17 사장님 "닫아놔")는 빼고
+      name: `AI 크루 · ${c.name} (${c.title})`, cat: c.cat, where: 'asideOwner', run: { dow: c.dow || WEEKDAYS, t: c.t }, who: c.name, status: 'wait',
       note: '담당 PC Aside 예약 · 사이트 로그인 · 업무OS 담당 정한 뒤 (crew.html 세팅 카드 · 같은 담당이 여럿이면 한 시간씩)', what: `${c.what} → 업무OS AI 승인(담당 → 리드 → 본부장) · 실행은 사람`, ref: 'crew.html#' + c.board })),
   ];
   const MEMBER_CAT = { haru: 'plan', pori: 'content', luna: 'content', teo: 'content', noa: 'plan', tobi: 'plan', moka: 'data', leo: 'stock', kei: 'ads', daon: 'customer', sora: 'ads', roy: 'plan', ria: 'customer', jay: 'ads', eco: 'content', nari: 'content', onyu: 'customer' };

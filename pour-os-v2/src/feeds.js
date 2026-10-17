@@ -8,7 +8,7 @@
 //     보드 지표 = aiboards.hist 마지막 날 — 보드는 도는데([상태]만) 지표가 비면 그 AI 담당에게
 //   '확인할 것' = 관리자 한 줄 '결과 숫자 n곳 비어 있음'(오늘 하루 읽음으로 숨김) · '광고 확인' 담당 한 줄 · 보드 담당 한 줄 → 누르면 결과 숫자 시트(feedui.FeedSheet)
 import { ymd, md, addDays, isOffDay, wdBetween, isMaster, fxIds, isRemoved } from "./model.js";
-import { BOARDS, mateOf } from "../../marketing-hub/crew.js";
+import { BOARDS, mateOf, isLiveBoard } from "../../marketing-hub/crew.js";
 import { mateOwner } from "./aiask.js";
 
 export const HUB = "../marketing-hub/";
@@ -45,7 +45,7 @@ export function feedRows(D, now = new Date(), F = D.feeds || {}) {
   //   돌 날을 놓친 보드는 'AI 안 돎' 줄(aiask.asideInbox)이 맡음 → 같은 일로 두 번 안 알림
   //   셈 = 지표 마지막 날 뒤 ~ 마지막으로 올린 날 사이 돈 날 · 지표가 한 번도 없으면 '아직 없음'(바로)
   const boards = (D.ai && D.ai.boards) || {}, mates = (D.ai && D.ai.mates) || {};
-  Object.values(BOARDS).forEach((b) => { const v = boards[b.id]; if (!v || !v.at) return;
+  Object.values(BOARDS).forEach((b) => { const v = boards[b.id]; if (!v || !v.at || !isLiveBoard(b.id)) return;   // 닫힌 크루 보드는 안 봄 (2026-10-17)
     const ran = dayOf(v.at), dow = b.run && b.run.dow, hist = v.hist || {}, last = maxOf(Object.values(hist).flatMap((h) => Object.keys(h || {})).concat(Object.values(v.metrics || {}).map((x) => x && x.date)));
     if (!ran || runsBetween(ran, today, dow) >= 1) return;   // 그 뒤 돌 날을 놓침 = 'AI 안 돎'
     if (last && last >= ran) return;   // 마지막 올림에 지표 있음

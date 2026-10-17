@@ -81,6 +81,7 @@ export function inboxFns(D, A, open, setSeen) {
     if (x.kind === "nextNoOwner") return <Act onClick={() => openInbox(x)}>정하기</Act>;
     if (x.kind === "ai" || x.kind === "aiGroup") return <Act onClick={() => openInbox(x)} style={BTN_ON}>{x.tag === "수정 요청" ? "고치기" : "승인하기"}</Act>;
     if (x.kind === "appr") return <Act onClick={() => openInbox(x)} style={BTN_ON}>처리하기</Act>;
+    if (x.kind === "money" && t && x.chk) return <Act onClick={() => A.fxToggle(t)} style={BTN_ON}>완료</Act>;   // 돈·결재 (2026-10-17): 그 고정업무 오늘 체크 · 5초 되돌리기 · 줄 누르면 그 시트
     if (x.kind === "adsAside") return <Act onClick={() => A.adsAsideDone()} style={BTN_ON}>넣었어요</Act>;
     if (x.kind === "aiSetup") return <Act onClick={() => openInbox(x)} style={BTN_ON}>세팅</Act>;
     if (x.kind === "aiMiss") return <Act onClick={() => openInbox(x)} style={BTN_ON}>지금 돌리기</Act>;

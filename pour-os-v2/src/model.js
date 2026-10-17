@@ -79,7 +79,7 @@ const lastDay = (key) => { const d = new Date(key.slice(0, 7) + "-01T00:00:00");
 export const monthEndWorkday = (key) => prevWorkday(key.slice(0, 7) + "-" + pad2(lastDay(key)));
 // 고정업무 할 날 — 모든 화면이 이 규칙 하나: 쉬는 날(주말·공휴일)에는 없음 · 매일 = 평일 · 매주 정한 요일이 쉬는 날이면 앞 평일로
 //  · 매월 정한 날(31일 → 그 달 말일)이 쉬는 날이면 앞 평일(그 달을 넘어가면 뒤 평일) · 말일(평일) = 그 달 마지막 평일
-const fxMonthDay = (t, key) => { if (t.monthEnd) return monthEndWorkday(key); const d = key.slice(0, 7) + "-" + pad2(Math.min(Number(t.monthDay || 1), lastDay(key)));
+export const fxMonthDay = (t, key) => { if (t.monthEnd) return monthEndWorkday(key); const d = key.slice(0, 7) + "-" + pad2(Math.min(Number(t.monthDay || 1), lastDay(key)));
   if (!isOffDay(d)) return d; const p = prevWorkday(d); return p.slice(0, 7) === d.slice(0, 7) ? p : nextWorkday(d); };
 export const fxDueOn = (t, key) => { if (isOffDay(key)) return false; const rt = t.recurType || "daily";
   if (rt === "monthly") return key === fxMonthDay(t, key);
@@ -420,6 +420,7 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
   if (D.ai && D.asideInbox) D.asideInbox(D, uid, now, seen).forEach((x) => inbox.push(x));   // Aside 담당 PC · AI 안 돎(담당 미정 · 평일 2일 넘게 · 아침 루틴) — 오늘 하루 줄은 읽음(seen)으로 숨김
   if (D.ai && D.aiRepInbox) D.aiRepInbox(D, uid, now).forEach((x) => inbox.push(x));   // AI 크루 보고서 (aireport.js · 2026-10-15): 칸 쓰기 · 리드 보내기 · 본부장 보고 도착   // Aside 담당 PC (aiask.js · 2026-10-15): 내 PC 세팅 · 오늘 안 돎 · (관리자) 담당 미정
   if (D.appr && D.apprInbox) D.apprInbox(D.appr.list, users, uid, seen, now).forEach((x) => inbox.push(x));   // 구매 품의 요청 (appr.js · 2026-10-16): 담당 = 품의 요청 n건 + 새 요청 · 요청자 = 품의 완료
+  if (D.moneyInbox) D.moneyInbox(D, uid, now).forEach((x) => { if (!x.keep && seen[x.id]) return; inbox.push(x); });   // 돈·결재 7건 (money.js · 2026-10-17): 마감 평일 3일 전 · 오늘 마감 · 마감 지남(빨강) · 매일은 시각 + 1시간 · 승인 없음
   if (D.kpi && D.lagInbox) D.lagInbox(D.kpi.lagDefs, D.kpi.lagV2, users, uid, key, D.brands).forEach((x) => inbox.push(x));   // 월말 결과 KPI 넣기 (kpi2.js · 마스터·결과 KPI 권한)   // CRM·마진에서 온 한 줄 (links.js · 순환 import 피하려고 D 로 받음)
   const taskById = Object.fromEntries(tasks.map((t) => [t.id, t]));
   const talked = new Set((D.notes || []).filter((n) => n && n.by === uid && !n.deleted).map((n) => n.itemId));   // 내가 말한 대화 → 답이 오면 나에게도
@@ -442,7 +443,7 @@ export function todayView(D, uid, now = new Date(), seen = {}, T = null) {
   // 같은 대화의 새 댓글 여러 개 → 한 줄 '제목 · 새 댓글 n' (2026-10-15 페르소나 시험: 팀원 '확인할 것' 22줄 중 13줄이 한두 대화의 댓글이라 할 일이 묻힘)
   //   id = 댓글 줄 id 를 | 로 이음 → 열면 모두 읽음 · 읽은 알림에서 다시 볼 때도 한 줄 · 나를 부른 댓글(@)은 따로 그대로
   groupNotes(noteRows).forEach((x) => inbox.push(x));
-  const ORDER = { feedback: 0, review: 1, aiRep: 1.1, ai: 1.2, aiGroup: 1.2, aiMiss: 1.25, aiLate: 1.16, aiStuck: 1.18, aiRoutine: 1.24, aiMissLong: 1.26, aiSetup: 2.97, adsAside: 2.975, aiOwnerless: 2.98, aiDone: 9, dueReq: 2, help: 2.5, mention: 2.8, appr: 2.85, apprNew: 2.86, link: 2.9, lagDue: 2.95, blocked: 3, handed: 7.5, turnAgain: 3.5, turnLate: 4, turnOrder: 5, nextNoOwner: 6, assigned: 7, bulk: 7, launchNew: 8, holdDue: 8.5, projHoldDue: 8.5, dueRes: 9, approved: 9, unblocked: 9, pinNew: 9.5, apprDone: 9, note: 10 };
+  const ORDER = { feedback: 0, review: 1, aiRep: 1.1, ai: 1.2, aiGroup: 1.2, aiMiss: 1.25, aiLate: 1.16, aiStuck: 1.18, aiRoutine: 1.24, aiMissLong: 1.26, aiSetup: 2.97, adsAside: 2.975, aiOwnerless: 2.98, aiDone: 9, dueReq: 2, help: 2.5, mention: 2.8, money: 2.84, appr: 2.85, apprNew: 2.86, link: 2.9, lagDue: 2.95, blocked: 3, handed: 7.5, turnAgain: 3.5, turnLate: 4, turnOrder: 5, nextNoOwner: 6, assigned: 7, bulk: 7, launchNew: 8, holdDue: 8.5, projHoldDue: 8.5, dueRes: 9, approved: 9, unblocked: 9, pinNew: 9.5, apprDone: 9, note: 10 };
   // 줄마다 ord 가 있으면 그 값 (늦은 AI 승인 = 보통 AI 승인 위 · aiask.ORD_LATE · 2026-10-17 멈춤 감시)
   const rank = (x) => x.ord ?? ORDER[x.kind] ?? 11;
   inbox.sort((a, b) => rank(a) - rank(b) || String(b.at || "").localeCompare(String(a.at || "")));

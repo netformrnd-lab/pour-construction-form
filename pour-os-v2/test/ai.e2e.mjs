@@ -791,7 +791,7 @@ ST.v2.aiasks.ai_baram_20261020_refE = ask({ id: 'ai_baram_20261020_refE', at: '2
   await s.pg.locator('.v2-nav').getByRole('button', { name: '더보기' }).click(); await s.pg.waitForTimeout(300);
   await s.pg.getByText(/^크루\(브랜드·고객별\) · 담당 → 리드 승인/).click(); await s.pg.waitForTimeout(500);
   await s.S().getByText('우주 · 재구매마케터').first().click(); await s.pg.waitForTimeout(600);
-  await s.S().getByText(/^G · /).first().click(); await s.pg.waitForTimeout(300);
+  await s.S().getByText(/^G · 구매 후 케어/).first().click(); await s.pg.waitForTimeout(300);
   let t = await s.S().innerText();
   ok('우주 G 펼침 = 브랜드별 설계 · 적을 것 · 그로홈·POUR스토어 아직 없음', t.includes('브랜드별 설계') && t.includes('적을 것: 보내는 때(받은 뒤 며칠) · 채널 · 문구 · 같이 줄 링크') && (t.match(/아직 없음/g) || []).length >= 2, t.slice(0, 900));
   await s.S().getByRole('button', { name: '설계 쓰기' }).first().click(); await s.pg.waitForTimeout(200);
@@ -816,7 +816,7 @@ ST.v2.aiasks.ai_baram_20261020_refE = ask({ id: 'ai_baram_20261020_refE', at: '2
   await s.pg.locator('.v2-nav').getByRole('button', { name: '더보기' }).click(); await s.pg.waitForTimeout(300);
   await s.pg.getByText(/^AI 팀원 · 내가 맡은 AI/).click(); await s.pg.waitForTimeout(500);
   await s.S().getByText('우주 · 재구매마케터').first().click(); await s.pg.waitForTimeout(600);
-  await s.S().getByText(/^G · /).first().click(); await s.pg.waitForTimeout(300);
+  await s.S().getByText(/^G · 구매 후 케어/).first().click(); await s.pg.waitForTimeout(300);
   const t = await s.S().innerText();
   ok('우주 담당(김민지)도 설계를 보고 고침', t.includes('7일 · 알림톡 · 잘 되셨어요? + 사진 후기 혜택') && (await s.S().getByRole('button', { name: '고치기' }).count()) >= 1);
   await s.close(); }

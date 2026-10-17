@@ -44,6 +44,7 @@ eq("보고만이면 실행 업무 없음", X.planExec({ ...a3, exec: "" }, null,
 // 그 줄 브랜드 ('브랜드' 칸 → aiItems[].b · 2026-10-17 · [했어요] 때 그 브랜드 반복 실행만 셈)
 eq("실행 업무 번호마다 브랜드 (그로홈·POUR스토어·비움)", X.planExec({ ...a3, cols: ["상품", "브랜드"], items: [{ n: "B1", c: { 상품: "롤러", 브랜드: "그로홈" } }, { n: "B2", c: { 상품: "방수재", 브랜드: "POUR스토어" } }, { n: "B3", c: { 상품: "브러쉬" } }] }, ["B1", "B2", "B3"], me("hj"), U, T1, "").aiItems.map((x) => x.b || ""), ["grohome", "pourstore", ""]);
 eq("브랜드 글자 읽기", ["그로홈", "GROHOME", "pour스토어", "포어스토어", "POUR 스토어", "", "바라스데이"].map(X.itemBrandOf), ["grohome", "grohome", "pourstore", "pourstore", "pourstore", "", ""]);
+eq("실행 업무 번호마다 상품 이름(p · 신제품 → 상품 · 40자) · 없으면 없음 (2026-10-17 달 A 이름 짝)", X.planExec({ ...a3, cols: ["신제품", "단계"], items: [{ n: "A1", c: { 신제품: " 스티커페인트 ", 단계: "기획" } }, { n: "A2", c: { 상품: "롤러" } }, { n: "A3", c: { 단계: "x" } }] }, ["A1", "A2", "A3"], me("hj"), U, T1, "").aiItems.map((x) => x.p || ""), ["스티커페인트", "롤러", ""]);
 eq("다시 올린 판은 실행 id 다름", X.planExec({ ...a3, ver: 2 }, ["B1"], me("hj"), U, T1, "").id, "aix_ai_gyeoul_20261012_ghconvB_2");
 
 // 상급자가 돌려보냄 → 담당 차례 다시 (수정 요청)

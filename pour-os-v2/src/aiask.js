@@ -99,8 +99,10 @@ export const firstUrl = (c) => { const v = c || {}, ks = Object.keys(v), has = (
 // 번호 한 줄 + 링크 (한 줄에서는 링크 칸을 빼서 두 번 안 보이게)
 //   b = 그 줄 브랜드 ('브랜드' 칸 · 그로홈·POUR스토어 → grohome·pourstore · 2026-10-17) — [했어요] 때 그 브랜드 반복 실행만 셈 (airt.countKeys)
 export const itemBrandOf = (v) => { const s = String(v || "").replace(/\s+/g, ""); return /그로홈|grohome/i.test(s) ? "grohome" : /pour|포어/i.test(s) ? "pourstore" : ""; };
-const traceItem = (x) => { const link = firstUrl(x.c), c = link ? Object.fromEntries(Object.entries(x.c || {}).filter(([, v]) => !String(v).includes(link))) : x.c || {}, b = itemBrandOf((x.c || {})["브랜드"]);
-  return { n: x.n, t: itemLine({ c }, Object.keys(c)) || itemLine(x), link, ...(b ? { b } : {}) }; };
+//   p = 그 줄 신제품·상품 이름 (보드 할 일 keyBy 면 [했어요] 가 그 이름이 들어간 정한 날 체크만 셈 · 2026-10-17)
+export const itemProdOf = (c) => String(((c || {})["신제품"] || (c || {})["상품"] || "")).trim().slice(0, 40);
+const traceItem = (x) => { const link = firstUrl(x.c), c = link ? Object.fromEntries(Object.entries(x.c || {}).filter(([, v]) => !String(v).includes(link))) : x.c || {}, b = itemBrandOf((x.c || {})["브랜드"]), p = itemProdOf(x.c);
+  return { n: x.n, t: itemLine({ c }, Object.keys(c)) || itemLine(x), link, ...(b ? { b } : {}), ...(p ? { p } : {}) }; };
 // 승인 건의 신제품 칸 (디맨드젠 x_dg · 2026-10-15) — 상품 이름 → 끝나지 않은 그 신제품 업무 id ('' = 못 찾음)
 export const launchTaskOf = (D, a) => { if (!a || !a.launch || !a.prod) return ""; const r = launchRowOf(launchRows((D && D.tasks) || [], (D && D.projects) || [], { item: a.launch }), a.prod); return r ? r.id : ""; };
 export function planExec(a, pick, cu, users, at, due, opt = {}) {

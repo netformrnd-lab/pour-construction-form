@@ -28,7 +28,7 @@ import { askInbox, asideInbox, planPass, planBack, planRet, planDrop, planExec, 
 import { mateOf, boardOf, brandL, qtyDefs, canReq, reqDoc, reqId } from "../../marketing-hub/crew.js";
 import { ASIDE_ADS_LAUNCH_VER } from "../../marketing-hub/adops.js";   // 광고 Aside 예약 글 판 (2026-10-17)
 import { repSlots, repId, canWriteSec, secPeople, snapOf, cycleOf, monOf, CYCLE_L, repInbox } from "./aireport.js";   // AI 크루 보고서 (2026-10-15)
-import { NO_ACT, isFxKey, fxIdOf, akKeys, pairVal, countKeys, splitExec, keyName } from "./airt.js";   // AI 크루 ↔ 반복 실행 (2026-10-16) · 열쇠 여러 개 (2026-10-17)
+import { NO_ACT, isFxKey, fxIdOf, akKeys, pairVal, countKeys, splitExec, keyName, fxTimeCome } from "./airt.js";   // AI 크루 ↔ 반복 실행 (2026-10-16) · 열쇠 여러 개 (2026-10-17)
 import { lagInbox, applyKpiOv, kpiEditWrite, newKpiId } from "./kpi2.js";
 import { dayIdFx, dayIdAk, openIdAk, dayBase, dayAdd, dayFix, roundTap, qtyToGoal, akSubsOf } from "./rec.js";
 import { akQidOfWeek, akWeekKey } from "../../pour-os/src/actionKpi.js";
@@ -614,7 +614,7 @@ export function useActs(D, cu, setToast, idx = null) {
       // 실행이 없는 보고(광고 보고 F 등 · 2026-10-17 사장님 "민지님이 그 보고를 승인하면 그날 체크"): 승인한 사람이 담당인 짝 정한 날 체크 = 오늘 할 날이고 아직이면 체크
       let fxL = "";
       if (!a.exec && keys.length) { const date = ymd(new Date());
-        countKeys(D, { aiAks: keys, brand: a.brand }, cu.id).filter((x) => x.kind === "fx" && fxDueOn(x.ft, date) && !fxMeDone(x.ft, cu.id, date)).forEach(({ ft }) => {
+        countKeys(D, { aiAks: keys, brand: a.brand }, cu.id).filter((x) => x.kind === "fx" && fxDueOn(x.ft, date) && !fxMeDone(x.ft, cu.id, date) && fxTimeCome(fxTime(x.ft, cu.id), hm(new Date()))).forEach(({ ft }) => {
           fb.patch("tasks", tdoc(ft), { ...fxCheckPatch(ft, cu.id, true, date, at, cu.name), v2At: at }).catch(fail("체크")); A.fxCheck(ft, true, date, at).catch(fail("체크 기록")); fxL += ` · '${fxLabel(ft, cu.id)}' 오늘 체크`; }); }
       const nm = nameOf(D.users, pl.next), pk = pl.fields.pick;
       log(pl.final ? "aiOk" : "aiUp", { col: "aiasks", targetId: a.id, label: `${a.mateName || "AI"} · ${a.title}${pl.final ? " · 최종 승인" : ` → ${nm}`}${pk ? ` · ${pk.join("·")}` : ""}${exs.length > 1 ? ` · 실행 ${exs.length}명` : ""}` });
@@ -759,7 +759,7 @@ export function useActs(D, cu, setToast, idx = null) {
       if (val && val.skip && !val.note) { setToast({ text: "안 한 이유를 한 줄 써 주세요" }); return false; }
       // 짝 열쇠 (2026-10-17 · 여러 개 · 누른 사람이 그 열쇠 담당이고 실행 브랜드와 맞는 것만 · 남의 것은 안 건드림): 여러 번 = ±1 · 정한 날 체크 = 오늘 체크(아래)
       //   되돌리기 = 그때 센 열쇠(cnt)만 −1 · cnt 없는 예전 흔적 = 예전처럼 aiAk 하나
-      const was = !!(prev && prev.done), now = !!(val && val.done), ck = countKeys(D, t, cu.id, ((t.aiItems || []).find((x) => x && x.n === n) || {}).b), akItem = (k) => ((D.ak && D.ak.items) || []).find((x) => x.id === k) || null;
+      const was = !!(prev && prev.done), now = !!(val && val.done), it0 = (t.aiItems || []).find((x) => x && x.n === n) || {}, ck = countKeys(D, t, cu.id, it0.b, it0.p), akItem = (k) => ((D.ak && D.ak.items) || []).find((x) => x.id === k) || null;
       const akDo = now && !was ? ck.filter((x) => x.kind === "ak").map((x) => x.it)
         : !now && was ? (Array.isArray(prev.cnt) ? prev.cnt.map(akItem) : t.aiAk && !isFxKey(t.aiAk) ? [akItem(t.aiAk)] : []).filter(Boolean) : [];
       if (val && now) val.cnt = ck.map((x) => x.key);   // 이 [했어요]로 센 열쇠 (여러 번 · 정한 날 체크) — 되돌리기는 여러 번만 −1 · 크루 보고 ③ KPI 가 셈

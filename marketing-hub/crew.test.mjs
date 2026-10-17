@@ -292,7 +292,8 @@ eq('지금 횟수 = 담당이 정한 수 → 없으면 기본 · 0·이상한 �
 // 2026-10-14 하루·포리·에코 쉼 → 여름 (아침 루틴) · team_link.py(볼트 사본도 같은 파일) CREW·GONE 과 같게
 eq('쉬는 팀원 → 여름', Object.entries(K.GONE).map(([g, to]) => [K.mateOf(g).name, K.mateOf(to).name, K.crewOf(to).id]), [['하루', '여름', 'b2c'], ['포리', '여름', 'b2c'], ['에코', '여름', 'b2c']]);
 eq('아침 루틴 = 여름 하나', K.allMates().filter((m) => m.routine).map((m) => m.id), ['yeoreum']);
-eq('담당 칸: 여름 = 기본 + 브랜드 · 겨울 = 브랜드 · 루나 = 기본', [K.ownerKeys('yeoreum'), K.ownerKeys('gyeoul'), K.ownerKeys('luna')], [['', 'grohome', 'pourstore'], ['grohome', 'pourstore'], ['']]);
+eq('담당 칸: 여름 = 기본 + 브랜드 · 겨울 = 브랜드 · 루나 = 기본 · 브랜드 없는 보드(이음·별·달) = 기본 · 바람 = 브랜드 · B2B = POUR스토어', [K.ownerKeys('yeoreum'), K.ownerKeys('gyeoul'), K.ownerKeys('luna'), K.ownerKeys('ieum'), K.ownerKeys('byeol'), K.ownerKeys('dal'), K.ownerKeys('baram'), K.ownerKeys('dandan')], [['', 'grohome', 'pourstore'], ['grohome', 'pourstore'], [''], [''], [''], [''], ['grohome', 'pourstore'], ['pourstore']]);
+eq('달 A = 신제품 이름 짝(keyBy) · 다른 할 일엔 없음', Object.values(K.BOARDS).flatMap((b) => b.actions.filter((a) => a.keyBy).map((a) => b.id + a.c + ':' + a.keyBy)), ['hq-planA:신제품']);
 eq('허브 가동 크루(core.js CREW_LIVE) = crew.js 이름·역할·크루', C.CREW_LIVE.map((m) => [m.id, m.name, m.role, m.crew]), C.CREW_LIVE.map((m) => { const x = K.mateOf(m.id) || {}; return [x.id, x.name, x.role, x.crew]; }));
 {
   const { execFileSync } = await import('node:child_process');

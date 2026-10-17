@@ -39,12 +39,15 @@ const noBrand = (b) => !b || b === "common";
 //   없으면 실행 업무 브랜드(보드 브랜드)와 같은 열쇠 + 브랜드 없는 열쇠 · 같은 게 하나도 없으면 내 열쇠 모두
 //     (B2C 크루는 두 브랜드를 같이 봄 — 그로홈 보드 할 일에 POUR스토어 반복 실행 하나만 짝지은 것(겨울 E 리뷰·후기 유도)도 셈)
 //   → [{key, kind 'ak'|'fx', it|ft}]
-export function countKeys(D, t, uid, itemBrand) {
+//   보드 할 일이 keyBy(달 A '신제품')면 정한 날 체크는 그 줄 이름(itemProd)이 제목에 들어간 것만 (본부장 신제품 상시 업무 8개가 한 번에 체크되지 않게 · 2026-10-17) · 여러 번 하는 것(행동지표)은 그대로
+export const normK = (s) => String(s || "").replace(/[\s·:/()\-_,.]/g, "").toLowerCase();
+export function countKeys(D, t, uid, itemBrand, itemProd) {
+  const act = t && t.aiBoard && t.aiAct ? actOf(t.aiBoard, t.aiAct) : null, kp = act && act.keyBy ? normK(itemProd) : null;
   const mine = taskAks(t).map((k) => {
     if (isFxKey(k)) { const ft = fxOf(D, k); return ft && fxIsMine(ft, uid) ? { key: k, kind: "fx", ft, b: brId(ft.brand) } : null; }
     const it = akOf(D, k), ow = it ? akWho((D && D.users) || [], it) : [];
     return it && (!ow.length || ow.includes(uid)) ? { key: k, kind: "ak", it, b: brId(it.brand) } : null;
-  }).filter(Boolean);
+  }).filter(Boolean).filter((x) => kp === null || x.kind !== "fx" || (!!kp && normK(x.ft.title).includes(kp)));
   const ib = brId(itemBrand), eb = ib || brId(t && t.brand);
   if (!eb || eb === "common") return mine;
   return ib || mine.some((x) => x.b === eb) ? mine.filter((x) => x.b === eb || noBrand(x.b)) : mine;
@@ -67,6 +70,8 @@ export function splitExec(D, ex, keys, cu, at) {
     const { ackAt, ...rest } = ex;
     return { ...rest, id: `${ex.id}~${u}`, assigneeId: u, assigneeIds: [u], aiAk: ks[0], aiAks: ks, aiItems: its, ...(cu && u === cu.id ? { ackAt: at } : {}) }; }).filter(Boolean);
 }
+// 보고 승인 = 그날 체크는 그 체크의 시각이 됐을 때만 (금 16:30 '광고 주간 분석 보고'가 아침 보고 승인으로 미리 체크되지 않게 · 시각 없으면 됨 · 2026-10-17)
+export const fxTimeCome = (hhmm, nowHM) => !hhmm || String(hhmm).slice(0, 5) <= String(nowHM || "").slice(0, 5);
 // 할 일 글자 → 보이는 이름 ('_' = 아침 루틴 원고)
 export function actTitle(mateId, act) {
   const m = mateOf(mateId); if (!m) return "";
@@ -141,7 +146,7 @@ export const RT_AI_HINTS = [
   { re: /프로모션|캠페인|시즌/, mate: "bom", act: "H" },   // 2026-10-17 프로모션 = 봄(MD)
   { re: /리스팅|아이템\s*위너|리셀러/, mate: "bom", act: "F" },
   { re: /재구매|알림톡/, mate: "uju", act: "C" },
-  { re: /UX|UI/i, mate: "uju", act: "B" },
+  { re: /UX|UI/i, mate: "gyeoul", act: "C" },   // 자사몰 UX/UI = 전환 (2026-10-17 AARRR · 볼트 설계표 E 'ak_ux → 겨울 C')
   { re: /세트|키트|추가\s*구성|객단가/, mate: "haneul", act: "A" },
 ];
 const bare = (s) => String(s || "").replace(/\([^)]*\)/g, " ").replace(/\s+/g, " ").trim();

@@ -221,7 +221,8 @@ async function loadMate(){
       return `<span><b>${esc(a.c)}</b> ${l?`${esc(String(l.run||'').slice(5).replace('-','/'))} · ${esc(stateL(l))}`:'없음'}</span>`;}).join('')}</div>`;
     console.log(`[aimates/${m.id}] ${mateDoc?'있음':'없음'} · 규칙 ${on.length} · 돌려받은 것 ${backs.length}`);
     const split=actSplit(b);   // 할 일마다 담당이 다르면 (예: A 윤미니 · B·C 김민지)
-    $('crew-who').innerHTML=`승인 길: <b>${esc(m.name)}(AI)</b> → ${owner?`<b>${esc(nameOf(owner))}</b>(담당)`:'<b>담당 미정</b> — 관리자 누구나'} → 리드에서 끝 (광고비 예산·원가·판매가 조정만 본부장까지) · ${esc(K.brandL(b.brand))}${split?`<br>할 일 담당: ${split}`:''}`;
+    const stg=K.stageOf(m.id);   // 단계 미션 (2026-10-17 사장님 AARRR 정의)
+    $('crew-who').innerHTML=`${stg?`<div style="margin-bottom:6px">단계 미션 · <b>${esc(m.slot)}</b> (${esc(stg.goal)}) — ${esc(stg.mission)}</div>`:''}승인 길: <b>${esc(m.name)}(AI)</b> → ${owner?`<b>${esc(nameOf(owner))}</b>(담당)`:'<b>담당 미정</b> — 관리자 누구나'} → 리드에서 끝 (광고비 예산·원가·판매가 조정만 본부장까지) · ${esc(K.brandL(b.brand))}${split?`<br>할 일 담당: ${split}`:''}`;
     $('crew-rules').innerHTML=on.length?`<div class="warn">확정 규칙 ${on.length}개 — 꼭 지켜 주세요<br>${on.map(r=>'· '+esc(r.text)).join('<br>')}</div>`:'';
     $('crew-redo').innerHTML=backs.length?`<div class="warn">고쳐서 다시 올릴 것 ${backs.length}건 — [이전 판 불러오기] → 적힌 말대로 고치거나 줄을 더해 다시 올리면 같은 건의 다음 판이 돼요${backs.map((a,i)=>{const more=a.back&&Number(a.back.more)>0?Number(a.back.more):0;
       return `<div style="margin-top:6px">· ${esc(a.run)} ${esc(a.act)} · ${esc(a.title)}${more?` · <span class="pill">더 만들기 ${more}개</span>`:''} — <b>${esc(a.back&&a.back.text||'')}</b> (${esc(a.back&&a.back.byName||'')}) <button type="button" class="btn sm" id="redo-load-${i}" data-i="${i}" aria-label="이전 판 불러오기 ${esc(a.run)} ${esc(a.act)}">이전 판 불러오기</button></div>`;}).join('')}</div>`:'';

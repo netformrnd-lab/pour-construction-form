@@ -14,7 +14,7 @@ import { Thread, useItemNotes } from "./task.jsx";
 import { LS } from "./core.jsx";
 import { RtMulti } from "./airtui.jsx";   // AI 크루 ↔ 반복 실행 (2026-10-16) · 여러 개 (2026-10-17)
 import { isFxKey, fxIdOf, NO_ACT, akKeys, pairable } from "./airt.js";
-import { CREWS, GONE, crewOf, mateOf, boardOf, brandL, servesL, mateBrands, ownerKeys, fmtMetric, metricPct, metricOk, runWord, asideLaunch, asideRedoLaunch, asideFixLaunch, loginSites, planOf, qtyDefs, qtyNow, canReq, reqMates, REQ_SHAPES, REQ_PRESETS, REQ_STATE_L, reqLine, asideReqLaunch, execOf, formulaHead, formulaSep, movedOut, movedIn } from "../../marketing-hub/crew.js";
+import { CREWS, GONE, crewOf, mateOf, boardOf, brandL, servesL, mateBrands, ownerKeys, fmtMetric, metricPct, metricOk, runWord, asideLaunch, asideRedoLaunch, asideFixLaunch, loginSites, planOf, qtyDefs, qtyNow, canReq, reqMates, REQ_SHAPES, REQ_PRESETS, REQ_STATE_L, reqLine, asideReqLaunch, execOf, formulaHead, formulaSep, movedOut, movedIn, stageOf } from "../../marketing-hub/crew.js";
 import { cycleOf, periodOf, repCrews, repId, repSlots, secState, periodL, dueL, CYCLE_L } from "./aireport.js";   // AI 크루 보고 (2026-10-15)
 import { ASK_STATE_L, canAct, canBack, canRet, isProxy, pickOk, planPass, chainOf, mateOwner, actOwner, hqOf, canUpHQ, mateStats, repeatNotes, itemLine, bossOf, bossRec, bossLoop, asidePlanOf, ranOn, missedOn, goneWaits, GONE_DROP, myTurnN,
   waitWd, workMin, prevWaits, newerOf, routineRanOn, routineMisses, routineAlert, stuckAlert, LATE_WD, BACK_MIN, PREV_DROP, ROUTINE_AT, ROUTINE_CHECK } from "./aiask.js";   // 멈춤 감시 (2026-10-17)
@@ -193,7 +193,7 @@ export function AiTeamBody({ D, cu, A, open, admin }) {
   const mineIds = CREWS.flatMap((c) => c.members).map((x) => x.id).filter(ownsAny);   // AI 팀원 = 크루 (2026-10-14 "포리, 하루, 에코는 없어야지" → 기본 AI 팀원(원형) 칸 없앰 · 아침 루틴 = 여름)
   const [scope0, setScope] = useLocal(LS("ai-scope-" + cu.id), "");
   const scope = scope0 || (mineIds.length && !master ? "mine" : "all");
-  const [bulk, setBulk] = useState(false);
+  const [bulk, setBulk] = useState(false), [stOpen, setStOpen] = useState("");   // 단계 미션 펼친 크루 (2026-10-17 사장님 AARRR 정의 · 읽기만)
   const since = new Date(Date.now() - 7 * 864e5).toISOString();
   const myTurn = myTurnN(asks, cu);
   const gw = master ? goneWaits(asks) : [], [goneAsk, setGoneAsk] = useState(false);   // 쉬는 AI 승인 대기 정리 (2026-10-15 페르소나 시험)
@@ -245,7 +245,13 @@ export function AiTeamBody({ D, cu, A, open, admin }) {
         <div className="v2-filterrow" style={{ marginBottom: 8 }} aria-label={`${formulaHead(c)} 공식 · 이번 주 집중`}><span style={{ fontSize: 13, fontWeight: 800, color: C.ink, flex: "0 0 auto" }}>{formulaHead(c)} =</span>
           {c.formula.map((k, i) => <span key={k} style={{ display: "inline-flex", alignItems: "center", gap: 6, flex: "0 0 auto" }}>{i > 0 && <span style={{ color: C.mute }}>{formulaSep(c)}</span>}
             <Chip on={f === k} onClick={canF ? () => setFocus(c.id, f === k ? "" : k) : undefined} style={{ padding: "6px 11px", cursor: canF ? "pointer" : "default" }}>{k}</Chip></span>)}</div>
-        {f && <div style={{ fontSize: 12.5, color: C.navy, fontWeight: 800, margin: "0 2px 8px" }}>이번 주 집중 · {f} — 가장 약한 칸 하나만 올려도 매출이 달라져요</div>}
+        {f && <div style={{ fontSize: 12.5, color: C.navy, fontWeight: 800, margin: "0 2px 8px" }}>이번 주 집중 · {f}{c.stages && c.stages[f] ? ` (${c.stages[f].goal})` : ""} — 가장 약한 칸 하나만 올려도 매출이 달라져요</div>}
+        {c.stages && <div style={{ margin: "0 2px 8px" }}>
+          <TBtn v="plain" onClick={() => setStOpen(stOpen === c.id ? "" : c.id)} aria-expanded={stOpen === c.id} style={{ padding: 0, minHeight: 28, fontSize: 12.5 }}>{stOpen === c.id ? "단계 미션 접기 ▴" : "단계 미션 보기 ▾ · 사장님 정의"}</TBtn>
+          {stOpen === c.id && <div style={{ display: "grid", gap: 6, marginTop: 4 }}>{c.formula.map((k) => { const sg = c.stages[k], who = c.members.filter((x) => x.slot === k).map((x) => x.name).join("·");
+            return sg ? <div key={k} style={{ fontSize: 12.5, color: C.text, lineHeight: 1.6, padding: "9px 11px", background: "#F7F8FB", border: `1px solid ${C.line}`, borderRadius: 10, wordBreak: "keep-all" }}>
+              <b style={{ color: C.ink }}>{k}</b> · {sg.goal}{who ? <span style={{ color: C.sub }}> · {who}</span> : null}<div>{sg.mission}</div><div style={{ color: C.mute }}>넘겨줄 것 {sg.to} · 숫자 {sg.kpi}</div></div> : null; })}</div>}
+        </div>}
         <Card>{list.map((x, i) => mateRow(x, i === list.length - 1, f && x.slot === f ? C.navy : x.color))}</Card>
       </section>; })}
     {/* 기본 AI 팀원(원형) 칸은 없앰 (2026-10-14 사장님 "포리, 하루, 에코는 없어야지") — 크루가 AI 팀원 · 블로그·재배포 아침 루틴 = 여름 · 옛 하루·포리·에코 결과는 '확인할 것'·승인 한 장에서 그대로 */}
@@ -332,6 +338,7 @@ export function AiMateSheet({ D, cu, A, open, onBack, onClose, id }) {
   return <Sheet title={m.name} kind="AI 팀원" head={`${m.name} · ${m.role}`} path={c ? c.name : "기본 AI 팀원 (원형)"} onBack={onBack} onClose={onClose}>
     <div style={{ fontSize: 13.5, color: C.sub, lineHeight: 1.7, marginTop: 12 }}>
       {m.kpi && <div>KPI · <b style={{ color: C.ink }}>{m.kpi}</b></div>}
+      {stageOf(id) && <div>단계 미션 · <b style={{ color: C.ink }}>{m.slot}</b> ({stageOf(id).goal}) — {stageOf(id).mission}</div>}
       {m.routine && <div>{m.routine}</div>}
       {b && pl && <div>Aside 루틴 · {runWord({ ...b.run, t: pl.t })} · {PC_L(D, pl.owner, cu)} · 보드 지표·할 일 → 이 승인으로 · <a className="v2-lblink" href={`${HUB_CREW_URL}#${b.id}`} target="_blank" rel="noopener">허브 AI 크루 결과 올리기 ›</a></div>}
       {GONE[id] && <div style={{ color: C.text }}>2026-10-14부터 쉬어요 · 이 일은 B2C 크루 {(mateOf(GONE[id]) || {}).name} 몫이에요 · 이미 올라온 결과는 그대로 승인·안 함</div>}

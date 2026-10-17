@@ -75,6 +75,7 @@ th{font-size:11.5px;color:var(--text-md);background:#F9FAFB;white-space:nowrap}
 .rbox{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;min-width:0;box-shadow:var(--shadow)}
 .rbox h3{font-size:14px;margin:0 0 6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .rbox .rl{font-size:13px;line-height:1.6;padding:5px 0;border-top:1px solid var(--border);word-break:keep-all}.rbox .rl:first-of-type{border-top:0}.rbox .rl b{color:var(--navy);margin-right:6px}
+.rbox.stg{margin:0 0 12px}   /* 단계 미션 (2026-10-17 사장님 AARRR 정의) */
 @media (max-width:900px){.mates{grid-template-columns:repeat(2,minmax(0,1fr))}.roles{grid-template-columns:1fr}}
 @media (max-width:700px){main{padding:12px}.mates{grid-template-columns:1fr}.md{padding:4px 12px 14px;font-size:14px}.doc-h{padding:12px}
   .md table.rt thead{display:none}.md table.rt,.md table.rt tbody,.md table.rt tr,.md table.rt td{display:block;width:100%}
@@ -172,6 +173,7 @@ function vCrews(){
   const plan=K.asidePlan(b=>act(K.ownerFor(S.mates[b.mate],b.brand)));
   return K.CREWS.map(c=>`<h2 class="sec">${esc(c.name)} ${c.draft?'<span class="pill dr">초안</span>':''}<span class="sub">${esc(K.servesL(c))}</span></h2>
     <p class="lead">${esc(c.note||'')}${c.formula?` · ${esc(K.formulaL(c))}`:''}</p>
+    ${c.stages?`<div class="rbox stg"><h3>단계 미션 <span class="sub">사장님 정의 · 2026-10-17 · 크루 팀원은 자기 단계 미션을 위해 일해요</span></h3>${c.formula.map(k=>{const s=c.stages[k],who=c.members.filter(m=>m.slot===k).map(m=>m.name).join('·');return s?`<div class="rl"><b>${esc(k)}${who?' · '+esc(who):''}</b>${esc(s.goal)} — ${esc(s.mission)} <span class="sub">· 넘겨줄 것 ${esc(s.to)} · 숫자 ${esc(s.kpi)}</span></div>`:'';}).join('')}</div>`:''}
     <div class="mates">${c.members.map(m=>mateCard(m,c,plan)).join('')}</div>`).join('');
 }
 function vMans(){

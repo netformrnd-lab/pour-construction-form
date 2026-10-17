@@ -34,7 +34,7 @@ eq('위 카드 = 최신 보고서', A.topCards([r15, r16], '2026-10-16'), { last
 eq('주 이름', A.weekL('2026-10-12'), '10/12 주');
 // 광고 AI팀 = 가을 한 명 (2026-10-17 사장님 AARRR 정리 "광고는 가을로 모으기" — 예전 여름 메타 소재 · 겨울 메타 판정 · 우주 리타겟팅 · 하늘 오퍼 · 봄 오늘의집 = 모두 가을)
 eq('광고 몫 = 가을 하나 · 다른 크루원은 광고 몫 없음', K.CREWS.find((c) => c.id === 'b2c').members.map((m) => [m.name, (A.AD_ROLES[m.id] || {}).ad || null]),
-  [['여름', null], ['가을', '광고 전부 (메타·쿠팡·네이버·구글 디맨드젠·오늘의집)'], ['겨울', null], ['우주', null], ['하늘', null], ['바람', null], ['봄', null], ['이음', null], ['별', null], ['달', null]]);
+  [['여름', null], ['가을', '광고 전부 (메타·쿠팡·네이버·구글 디맨드젠·오늘의집)'], ['겨울', null], ['우주', null], ['하늘', null], ['봄', null], ['바람', null], ['이음', null], ['별', null], ['달', null]]);
 eq('가을 광고 몫 = 메타 판정·소재·리타겟팅 · 쿠팡 롱테일 · 바꿀 안 글자가 가을 보드에 있음', [/금요일 외주 판정/.test(A.AD_ROLES.gaeul.does), /소재/.test(A.AD_ROLES.gaeul.does), /리타겟팅/.test(A.AD_ROLES.gaeul.does), /롱테일/.test(A.AD_ROLES.gaeul.does), ['D', 'E', 'G', 'H', 'I'].every((c) => A.AD_ROLES.gaeul.when.includes(`${c} `) && K.actOf('gh-traffic', c))], [true, true, true, true, true]);
 // 가을 보드의 광고 할 일 F = 08:30 광고 루틴 (보고서 화면 링크) · 겨울 F 는 가을 F 에 합침 (2026-10-17)
 eq('보드 F = 광고 일일 보고서 하나 (매일 · 금 주간)', [['gh-traffic', 'gh-conv'].map((id) => { const a = K.actOf(id, 'F'); return a ? [a.when, a.report] : null; })], [[['매일 08:30 · 금 16:00', 'ads'], null]]);

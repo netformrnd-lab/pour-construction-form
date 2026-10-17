@@ -142,12 +142,13 @@ export const RT_AI_HINTS = [
   { re: /인플루언서|쿠팡\s*파트너스|체험단/, mate: "yeoreum", act: "A" },
   { re: /상세/, mate: "gyeoul", act: "C" },
   { re: /리뷰.*(프로모션|이벤트|할인|혜택)|사진\s*후기/, mate: "baram", act: "B" },
-  { re: /리뷰.*(답글|답변|정리|유도|체계|관리)|후기\s*유도/, mate: "gyeoul", act: "E" },
+  { re: /리뷰.*(답글|답변|정리|유도|체계|관리)|후기\s*유도/, mate: "baram", act: "D" },   // 2026-10-17 사장님 AARRR 정의 · 리뷰·만족 = 지인추천 (겨울 E → 바람 D)
   { re: /프로모션|캠페인|시즌/, mate: "bom", act: "H" },   // 2026-10-17 프로모션 = 봄(MD)
   { re: /리스팅|아이템\s*위너|리셀러/, mate: "bom", act: "F" },
   { re: /재구매|알림톡/, mate: "uju", act: "C" },
   { re: /UX|UI/i, mate: "gyeoul", act: "C" },   // 자사몰 UX/UI = 전환 (2026-10-17 AARRR · 볼트 설계표 E 'ak_ux → 겨울 C')
   { re: /세트|키트|추가\s*구성|객단가/, mate: "haneul", act: "A" },
+  { re: /재고|품절/, mate: "ieum", act: "F" },   // 2026-10-17 재고 = 이음 한 명 (비즈로지컴·쿠팡 로켓그로스 · 겨울 A·별 B 에서)
 ];
 const bare = (s) => String(s || "").replace(/\([^)]*\)/g, " ").replace(/\s+/g, " ").trim();
 // rows = [{key, name, brand(보드 brand 와 같은 id · grohome·pourstore …), kind 'ak'|'fx', owners?}] → [{key, name, kind, mate, mateName, act, actT, owner?}]

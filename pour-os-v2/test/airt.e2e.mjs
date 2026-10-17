@@ -29,7 +29,7 @@ const tasks = {
   m1: fx({ id: 'm1', title: '내 메모 정리', scope: 'me', brand: '', fixedTime: '17:00' }),
   // 최종 승인 뒤 실행 업무 (짝 = 상세페이지 점검 · 그로홈 리뷰 답글)
   aix_c0: exec({ id: 'aix_c0', title: '실행 · 겨울 C · 상세 첫 화면 (C1)', aiAsk: 'ai_gyeoul_20261014_c0', aiAct: 'C', aiAk: 'x_sub', aiItems: [{ n: 'C1', t: '상세 첫 화면 문구 고치기', link: '' }], dueDate: '2026-10-15' }),
-  aix_e0: exec({ id: 'aix_e0', title: '실행 · 겨울 E · 리뷰 답글 (E1)', aiAsk: 'ai_gyeoul_20261014_e0', aiAct: 'E', aiAk: 'fx:f4', aiItems: [{ n: 'E1', t: '리뷰 답글 3개 게시', link: '' }], dueDate: '2026-10-15' }),
+  aix_e0: exec({ id: 'aix_e0', title: '실행 · 바람 D · 리뷰 답글 (D1)', aiMate: 'baram', aiBoard: 'gh-ref', aiAsk: 'ai_baram_20261014_e0', aiAct: 'D', aiAk: 'fx:f4', aiItems: [{ n: 'D1', t: '리뷰 답글 3개 게시', link: '' }], dueDate: '2026-10-15' }),   // 리뷰 = 바람 D (2026-10-17 겨울 E 에서)
 };
 const AK = [
   { id: 'x_call', name: '고객안내전화', cyc: 'W', goal: 4, unit: '건', who: ['yj'], brand: 'pourstore', active: true, core: true, startDate: '2026-09-01' },
@@ -42,7 +42,7 @@ const ask = (o) => askDoc({ at: T0, run: '2026-10-15', ...o });
 const aiasks = {
   // 실행 업무의 승인 건 (최종 승인 끝)
   ai_gyeoul_20261014_c0: { ...ask({ id: 'ai_gyeoul_20261014_c0', run: '2026-10-14', mate: 'gyeoul', brand: 'grohome', board: 'gh-conv', act: 'C', title: '전환 보드 C · 상세 첫 화면', items: [{ n: 'C1', c: { 상품: '롤러일체형' } }], exec: '승인되면 담당이 상세에 올린다', owner: 'yj' }), state: 'ok', execTask: 'aix_c0' },
-  ai_gyeoul_20261014_e0: { ...ask({ id: 'ai_gyeoul_20261014_e0', run: '2026-10-14', mate: 'gyeoul', brand: 'grohome', board: 'gh-conv', act: 'E', title: '전환 보드 E · 리뷰 답글', items: [{ n: 'E1', c: { 상품: '롤러일체형' } }], exec: '승인되면 담당이 답글을 게시한다', owner: 'yj' }), state: 'ok', execTask: 'aix_e0' },
+  ai_baram_20261014_e0: { ...ask({ id: 'ai_baram_20261014_e0', run: '2026-10-14', mate: 'baram', brand: 'grohome', board: 'gh-ref', act: 'D', title: '지인추천 보드 D · 리뷰 답글', items: [{ n: 'D1', c: { 상품: '롤러일체형' } }], exec: '승인되면 담당이 답글을 게시한다', owner: 'yj' }), state: 'ok', execTask: 'aix_e0' },
   ai_gyeoul_20261015_c1: ask({ id: 'ai_gyeoul_20261015_c1', mate: 'gyeoul', brand: 'grohome', board: 'gh-conv', act: 'C', title: '전환 보드 C · 상세 첫 화면 다시', cols: ['상품', '고칠 곳'], items: [{ n: 'C1', c: { 상품: '롤러일체형', '고칠 곳': '첫 화면 문구' } }], exec: '승인되면 담당이 상세에 올린다', owner: 'yj' }),
 };
 const brands = { grohome: { id: 'grohome', name: '그로홈', active: true, order: '2' }, pourstore: { id: 'pourstore', name: 'POUR스토어', active: true, order: '1' } };
@@ -78,39 +78,39 @@ for (const w of [375, 1280]) {
   await tab(pg, '반복 실행');
   const panel = pg.locator('.a-rtset', { has: pg.getByRole('button', { name: /^AI 크루 짝/ }) });
   const head = () => panel.getByRole('button', { name: /^AI 크루 짝/ }).innerText();
-  ok(`관리자 ${w} · AI 크루 짝 0 / 7 · 추천 4`, /AI 크루 짝 0 \/ 7 .*추천 4/.test(await head()), await head());
+  ok(`관리자 ${w} · AI 크루 짝 0 / 7 · 추천 5`, /AI 크루 짝 0 \/ 7 .*추천 5/.test(await head()), await head());
   const sug = await panel.locator('.a-rtsrow').allInnerTexts();
-  ok(`관리자 ${w} · 추천: 블로그 포스팅 ← 여름 아침 루틴 · 체험단 ← 여름 A · 상세페이지 ← 겨울 C · 그로홈 리뷰 답글(체크) ← 겨울 E`,
+  ok(`관리자 ${w} · 추천: 블로그 포스팅 ← 여름 아침 루틴 · 체험단 ← 여름 A · 상세페이지 ← 겨울 C · 그로홈 리뷰 답글(체크) ← 바람 D · 주간 재고 점검 ← 이음 F (2026-10-17)`,
     sug.some((x) => x.includes('블로그 포스팅') && x.includes('여름 · 아침 루틴 원고')) && sug.some((x) => x.includes('체험단 모집 공지') && x.includes('여름 · A '))
-    && sug.some((x) => x.includes('상세페이지 점검') && x.includes('겨울 · C ') && x.includes('결과 확인·실행 남윤정')) && sug.some((x) => x.includes('그로홈 리뷰 답글') && x.includes('겨울 · E ')), sug);
+    && sug.some((x) => x.includes('상세페이지 점검') && x.includes('겨울 · C ') && x.includes('결과 확인·실행 남윤정')) && sug.some((x) => x.includes('그로홈 리뷰 답글') && x.includes('바람 · D ')) && sug.some((x) => x.includes('주간 재고 점검') && x.includes('이음 · F ')), sug);
   ok(`관리자 ${w} · 넘침 없음`, !(await over(pg)));
   await panel.screenshot({ path: path.join(SHOTS, `airt-admin-${w}.png`) });
   if (w === 375) {
-    await panel.getByRole('button', { name: '추천대로 4개 짝 짓기' }).click(); await pg.waitForTimeout(700);
+    await panel.getByRole('button', { name: '추천대로 5개 짝 짓기' }).click(); await pg.waitForTimeout(700);
     const m = await mates(pg);
-    ok('추천대로 → 토스트 · 짝 4개 저장(아침 루틴 _ · A · C · E=fx:f4) · 담당 한 명이면 할 일 담당(_ 빼고)', /AI 짝 4개를 정했어요/.test(await toast(pg))
-      && m.yeoreum.actAk._ === 'x_blog' && m.yeoreum.actAk.A === 'x_done' && m.gyeoul.actAk.C === 'x_sub' && m.gyeoul.actAk.E === 'fx:f4'
-      && m.gyeoul.actOwners.C === 'yj' && m.gyeoul.actOwners.E === 'yj' && !(m.yeoreum.actOwners || {}).A && !(m.yeoreum.actOwners || {})._, m);
-    ok('짝 지은 뒤: AI 크루 짝 4 / 7 · 추천 0 · 한 판 줄에 AI 이름', /AI 크루 짝 4 \/ 7 .*추천 0/.test(await head()) && (await pg.locator('.a-rtgrp', { hasText: '상세페이지 점검' }).innerText()).includes('AI 겨울'));
+    ok('추천대로 → 토스트 · 짝 5개 저장(아침 루틴 _ · A · C · 바람 D=fx:f4 · 이음 F=fx:f3) · 담당 한 명이면 할 일 담당(_ 빼고)', /AI 짝 5개를 정했어요/.test(await toast(pg))
+      && m.yeoreum.actAk._ === 'x_blog' && m.yeoreum.actAk.A === 'x_done' && m.gyeoul.actAk.C === 'x_sub' && m.baram.actAk.D === 'fx:f4' && m.ieum.actAk.F === 'fx:f3'
+      && m.gyeoul.actOwners.C === 'yj' && m.baram.actOwners.D === 'yj' && !(m.yeoreum.actOwners || {}).A && !(m.yeoreum.actOwners || {})._, m);
+    ok('짝 지은 뒤: AI 크루 짝 5 / 7 · 추천 0 · 한 판 줄에 AI 이름', /AI 크루 짝 5 \/ 7 .*추천 0/.test(await head()) && (await pg.locator('.a-rtgrp', { hasText: '상세페이지 점검' }).innerText()).includes('AI 겨울'));
     await pg.locator('.v2-toast').getByRole('button', { name: '되돌리기' }).click(); await pg.waitForTimeout(700);
     const m2 = await mates(pg);
-    ok('되돌리기 → 짝·할 일 담당 이전 값', !m2.gyeoul.actAk.C && !m2.gyeoul.actAk.E && !m2.yeoreum.actAk._ && !m2.gyeoul.actOwners.C, m2);
+    ok('되돌리기 → 짝·할 일 담당 이전 값', !m2.gyeoul.actAk.C && !((m2.baram || {}).actAk || {}).D && !((m2.ieum || {}).actAk || {}).F && !m2.yeoreum.actAk._ && !m2.gyeoul.actOwners.C, m2);
     // 줄 하나만 [짝 짓기]
     await panel.locator('.a-rtsrow', { hasText: '상세페이지 점검' }).getByRole('button', { name: '짝 짓기' }).click(); await pg.waitForTimeout(600);
-    ok('줄 [짝 짓기] → 그 짝만', (await mates(pg)).gyeoul.actAk.C === 'x_sub' && !(await mates(pg)).gyeoul.actAk.E);
+    ok('줄 [짝 짓기] → 그 짝만', (await mates(pg)).gyeoul.actAk.C === 'x_sub' && !(((await mates(pg)).baram || {}).actAk || {}).D);
   }
   ok(`관리자 ${w} · 화면 오류 없음`, errs.length === before, errs.slice(before));
   await s.close();
 }
 
 // ── ② 팀 앱 (남윤정): 짝 지은 뒤 ──
-const mates1 = { gyeoul: { id: 'gyeoul', owners: { grohome: 'yj' }, actAk: { C: 'x_sub', E: 'fx:f4' }, actOwners: { C: 'yj', E: 'yj' } }, yeoreum: { id: 'yeoreum', owners: { _: 'yj' }, actAk: { _: 'x_blog' } } };
+const mates1 = { gyeoul: { id: 'gyeoul', owners: { grohome: 'yj' }, actAk: { C: 'x_sub' }, actOwners: { C: 'yj' } }, baram: { id: 'baram', owners: { grohome: 'yj' }, actAk: { D: 'fx:f4' }, actOwners: { D: 'yj' } }, yeoreum: { id: 'yeoreum', owners: { _: 'yj' }, actAk: { _: 'x_blog' } } };   // 리뷰 = 바람 D (2026-10-17)
 for (const w of [375, 768, 1280]) {
   const s = await session('yj', { w, h: w > 700 ? 1000 : 1400, st: store(mates1) }), pg = s.pg, before = errs.length;
   await tab(pg, '오늘');
   const card = pg.locator('.v2-ts.rt'), rowOf = (name) => card.locator('[role=button]', { hasText: name }).first();
   ok(`팀 ${w} · 상세페이지 점검 줄 'AI 겨울 · 확인할 결과 1 · 실행 1 ›'`, (await rowOf('상세페이지 점검').locator('.v2-rtai').innerText()).replace(/\s+/g, ' ').trim() === 'AI 겨울 · 확인할 결과 1 · 실행 1 ›', await rowOf('상세페이지 점검').innerText());
-  ok(`팀 ${w} · 그로홈 리뷰 답글(정한 날 체크) 줄 'AI 겨울 · 실행 1' · 블로그 포스팅은 기다리는 것 없음 → 줄 없음`, (await rowOf('그로홈 리뷰 답글').locator('.v2-rtai').innerText()).includes('실행 1') && (await rowOf('블로그 포스팅').locator('.v2-rtai').count()) === 0);
+  ok(`팀 ${w} · 그로홈 리뷰 답글(정한 날 체크) 줄 'AI 바람 · 실행 1' · 블로그 포스팅은 기다리는 것 없음 → 줄 없음`, (await rowOf('그로홈 리뷰 답글').locator('.v2-rtai').innerText()).includes('실행 1') && (await rowOf('블로그 포스팅').locator('.v2-rtai').count()) === 0);
   ok(`팀 ${w} · 넘침 없음`, !(await over(pg)));
   if (w === 375) {
     await card.screenshot({ path: path.join(SHOTS, 'airt-today-375.png') });
@@ -138,8 +138,8 @@ for (const w of [375, 768, 1280]) {
     await pg.keyboard.press('Escape'); await pg.waitForTimeout(250); await pg.keyboard.press('Escape'); await pg.waitForTimeout(250);
     // 정한 날 체크 짝: [했어요] → 오늘 체크
     await rowOf('그로홈 리뷰 답글').locator('.v2-rtai').click(); await pg.waitForTimeout(500);
-    await pg.locator('.v2-sheet').last().getByRole('button', { name: 'E1 했어요' }).click(); await pg.waitForTimeout(700);
-    ok("실행 [E1 했어요] → '그로홈 리뷰 답글' 오늘 체크", /'그로홈 리뷰 답글' 오늘 체크/.test(await toast(pg)) && (await pg.evaluate(() => window.__V2.v2.tasks.f4.doneDates.yj)) === '2026-10-15', await toast(pg));
+    await pg.locator('.v2-sheet').last().getByRole('button', { name: 'D1 했어요' }).click(); await pg.waitForTimeout(700);
+    ok("실행 [D1 했어요] → '그로홈 리뷰 답글' 오늘 체크", /'그로홈 리뷰 답글' 오늘 체크/.test(await toast(pg)) && (await pg.evaluate(() => window.__V2.v2.tasks.f4.doneDates.yj)) === '2026-10-15', await toast(pg));
     await pg.keyboard.press('Escape'); await pg.waitForTimeout(400);
     ok('오늘 카드: 그로홈 리뷰 답글은 끝낸 것으로', (await card.locator('[role=button]', { hasText: '그로홈 리뷰 답글' }).count()) === 0 && (await card.innerText()).includes('끝낸 것'));
     ok('375 · 넘침 없음 (누른 뒤)', !(await over(pg)));

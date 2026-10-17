@@ -24,11 +24,11 @@ eq("저장된 보고서 기간 그대로", [R.periodOfDoc({ cycle: "week", start
 eq("글: 기간 · 마감", [R.periodL(R.periodOf(W, "2026-10-15")), R.dueL(R.periodOf(W, "2026-10-15"))], ["10/12~10/18", "금 10/16 마감"]);
 
 // ② 크루 칸 — 보드가 있는 칸만 (B2B·바라스데이 크루는 아직 없음 · 2026-10-15 '13번은 냅둬')
-eq("B2C 7칸(AARRR 순서 + 봄 MD · 2026-10-17) + 맨 위 공통 숫자(별) · 이음·달 빼고 · B2B 크루(보드 있어도 noReport)·바라스데이 없음", [R.repSlots("b2c").map((m) => `${m.slot}:${m.name}`), R.repSlots("b2b").length, R.repSlots("bd").length, R.repCrews().map((c) => c.id)], [["공통 숫자:별", "유입:여름", "유입:가을", "전환:겨울", "재구매:우주", "매출:하늘", "지인추천:바람", "MD:봄"], 0, 0, ["b2c"]]);
+eq("B2C 7칸(AARRR 순서 · 봄 = 매출 볼륨(2026-10-17 사장님 정의)) + 맨 위 공통 숫자(별) · 이음·달 빼고 · B2B 크루(보드 있어도 noReport)·바라스데이 없음", [R.repSlots("b2c").map((m) => `${m.slot}:${m.name}`), R.repSlots("b2b").length, R.repSlots("bd").length, R.repCrews().map((c) => c.id)], [["공통 숫자:별", "유입:여름", "유입:가을", "전환:겨울", "재구매:우주", "매출:하늘", "매출:봄", "지인추천:바람"], 0, 0, ["b2c"]]);
 eq("보고서 id = 크루-기간 시작", R.repId("b2c", R.periodOf(W, "2026-10-15")), "b2c-2026-10-12");
 
 // ③ 칸 사람 — 담당(AI 담당) · 같이 쓰는 사람(할 일 담당) · 리드(담당 위 첫 리드 · 없으면 담당이 바로)
-const mates = { gyeoul: { owners: { grohome: "yj" }, actOwners: { B: "mj", C: "mj", D: "off" }, actAk: { E: "x_rv" } }, yeoreum: { owners: { _: "cw" } }, haneul: { owners: { grohome: "hj" } } };
+const mates = { gyeoul: { owners: { grohome: "yj" }, actOwners: { B: "mj", C: "mj", D: "off" }, actAk: { C: "x_rv" } }   /* 짝 = 지금 있는 할 일(C) · 겨울 E 는 2026-10-17 바람 D 로 */, yeoreum: { owners: { _: "cw" } }, haneul: { owners: { grohome: "hj" } } };
 const D0 = { users: U, settings: [], ai: { mates, boards: {}, asks: [], reports: {} }, tasks: [], ak: { items: [{ id: "x_rv", name: "리뷰 신고·답글" }] } };
 const slot = (id) => R.repSlots("b2c").find((m) => m.id === id);
 eq("겨울: 담당 남윤정 · 같이 김민지(쉬는 사람 빼고) · 리드 김소연", R.secPeople(D0, slot("gyeoul")), { owner: "yj", writers: ["yj", "mj"], lead: "sy" });
@@ -58,7 +58,7 @@ eq("흔적: 이번 기간 했어요 2 · 안 함 1 · 링크", [d.trace.done, d.
 eq("승인: 올라옴 4 · 승인 1 · 안 함 1 · 열린 것 2 · 맡긴 일 1", d.asks, { made: 4, ok: 1, no: 1, open: 2, req: 1 });
 const cv = d.metrics.find((x) => x.k === "cv_mall");
 eq("결과: 자사몰 전환 7.4% ← 6.1% · 목표", [cv.cur, cv.prev, R.metricLine(cv), R.trend(cv)], [{ v: 7.4, date: "2026-10-15" }, { v: 6.1, date: "2026-10-09" }, `7.4% ← 6.1% · 목표 ${cv.target}% ✓`, 1]);
-eq("값 없는 지표 = —", R.metricLine(d.metrics.find((x) => x.k === "soldout")).startsWith("—"), true);
+eq("값 없는 지표 = —", R.metricLine(d.metrics.find((x) => x.k === "bounce")).startsWith("—"), true);   // 품절(soldout)은 2026-10-17 이음으로
 eq("KPI: 짝지은 반복 실행 = 이번 기간 [했어요] 수", d.ak, [{ id: "x_rv", name: "리뷰 신고·답글", n: 1 }]);
 eq("다음: AI [다음주] = 이번 기간 마지막", [d.aiNext, d.aiNextRun], ["- 롤러 재입고 알림\n- 상세 첫 화면", "2026-10-16"]);
 eq("여름 = 옛 포리 실행 업무도 (쉬는 팀원 → 여름)", R.secData(D1, slot("yeoreum"), P, PV, []).doneN, 1);
@@ -88,7 +88,7 @@ eq("쉬는 사람·없는 사람 = 줄 없음", [R.repInbox(D0, "off", new Date(
 const s0 = { note: "전환 올랐음", plan: "- 리뷰 이벤트", done: { byName: "남윤정" } }, sn = R.snapOf(d, s0);
 eq("얼린 칸 = 숫자 + 담당 글", [sn.doneN, sn.note, sn.plan, sn.doneBy, sn.metrics.length], [1, "전환 올랐음", "- 리뷰 이벤트", "남윤정", d.metrics.length]);
 const crew = { id: "b2c", short: "B2C 크루" }, txt = R.repText(crew, P, [{ m: slot("gyeoul"), d, s: s0 }], { leads: { sy: { note: "가격 실험은 다음 주 결정", byName: "김소연" } } });
-eq("글: 머리 · 칸 · 실행 · 결과 · KPI · 한 줄 · 다음(AI + 사람) · 리드 한마디", [txt.split("\n")[0], txt.includes("■ 전환 · 겨울(AI) 전환마케터 · 담당 확인 남윤정"), txt.includes("- 실행: 실행 업무 끝냄 1건 · 흔적 2건 (안 함 1) · 승인 1건 · 올라옴 4건 · 남은 실행 1건"),
+eq("글: 머리 · 칸 · 실행 · 결과 · KPI · 한 줄 · 다음(AI + 사람) · 리드 한마디", [txt.split("\n")[0], txt.includes("■ 전환 · 겨울(AI) 전환마케터 · UX/UI·응대 · 담당 확인 남윤정"), txt.includes("- 실행: 실행 업무 끝냄 1건 · 흔적 2건 (안 함 1) · 승인 1건 · 올라옴 4건 · 남은 실행 1건"),
   txt.includes("- 결과 자사몰 구매전환율: 7.4% ← 6.1%"), txt.includes("- KPI 리뷰 신고·답글: +1"), txt.includes("- 다음: 롤러 재입고 알림 / 상세 첫 화면 / 리뷰 이벤트"), txt.endsWith("리드 한마디 (김소연): 가격 실험은 다음 주 결정")],
   ["[AI 크루 주간 보고] B2C 크루 · 10/12~10/18 · 금 10/16 마감", true, true, true, true, true, true]);
 

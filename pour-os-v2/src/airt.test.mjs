@@ -1,5 +1,5 @@
 // node src/airt.test.mjs — AI 크루 ↔ 반복 실행 (계산만 · 2026-10-16)
-import { rtKey, isFxKey, fxIdOf, actTitle, pairActs, rtPairs, rtAiNow, rtSuggest, pairLabel, NO_ACT, akKeys, pairVal, taskAks, keyOwners, countKeys, splitExec, keyName, SPLIT_MAX, liveAk, liveActOwners } from "./airt.js";
+import { rtKey, isFxKey, fxIdOf, actTitle, pairActs, rtPairs, rtAiNow, rtSuggest, pairLabel, NO_ACT, akKeys, pairVal, taskAks, keyOwners, countKeys, splitExec, keyName, SPLIT_MAX, liveAk, liveActOwners, fxTimeCome, normK } from "./airt.js";
 import { brId } from "./routine.js";
 
 let ok = 0, bad = 0;
@@ -85,7 +85,7 @@ ck("추천: 여름 D 공구 ← '(B2B)' 인플루언서 공동구매 제안(B2C 
 ck("추천: B2B 보드 = 이름에 B2B 있는 것 · POUR스토어 것 (단단 체험단 · 척척 미전환·이탈자 · 튼튼 NPS·위탁) · B2C 겨울 G·바람 C(NPS · 2026-10-17 우주 F 에서) 는 (B2C) 것", by["dandan.B"] === "ak_trial" && by["cheokcheok.B"] === "ak_call_b2b" && by["cheokcheok.C"] === "akmuw1ygt4" && by["teunteun.A"] === "ak_nps_b2b" && by["teunteun.B"] === "ak_gh_resale" && by["gyeoul.G"] === "ak_call_b2c" && by["baram.C"] === "ak_nps_b2c", by);
 ck("추천: B2B 보드는 B2B 표시 없는 업무를 안 가져감 ('체험단 모집 공지' = 여름 A · 그로홈·POUR스토어 둘 다) · 시공의뢰 이탈자는 B2B(척척 C)", ["grohome", "pourstore"].every((br) => { const x = rtSuggest([{ key: "fx:c1", name: "체험단 모집 공지", brand: br, kind: "fx", owners: ["cr"] }], {}); return x.length === 1 && x[0].mate === "yeoreum" && x[0].act === "A"; }) && rtSuggest([{ key: "fx:c2", name: "시공의뢰 이탈자 재연락", brand: "pourstore", kind: "fx" }], {})[0].mate === "cheokcheok");
 ck("추천: AARRR 정리 (2026-10-17) — 추천제 = 바람 A · 타겟 광고 = 가을 G(그로홈 먼저) · 광고 확인 = 가을 F", by["baram.A"] === "ak_ref" && by["gaeul.G"] === "ak_gh_ad" && rtSuggest([{ key: "fx:ad", name: "광고 확인", brand: "common", kind: "fx", owners: ["mj"] }], {})[0].act === "F", by);
-ck("추천: 겨울 C ← 상세페이지 고도화 · 봄 H ← 그로홈 프로모션 진행(2026-10-17 우주 E 에서) · 우주 B ← 자사몰 UX/UI", by["gyeoul.C"] === "ak_gh_detail" && by["bom.H"] === "ak_gh_promo" && by["uju.B"] === "ak_ux", by);
+ck("추천: 겨울 C ← 상세페이지 고도화 · 봄 H ← 그로홈 프로모션 진행(2026-10-17 우주 E 에서) · 자사몰 UX/UI = 겨울 C(전환 · 볼트 설계표 E) — 할 일 하나엔 추천 하나라 상세가 먼저면 UX 는 추천 없음", by["gyeoul.C"] === "ak_gh_detail" && by["bom.H"] === "ak_gh_promo" && !by["uju.B"] && !Object.values(by).includes("ak_ux") && rtSuggest([{ key: "ak_ux", name: "자사몰 UX/UI 관리개선 확인", brand: "pourstore", kind: "ak" }], {})[0].mate === "gyeoul", by);
 ck("추천: 바람 B ← 리뷰 프로모션 진행확인(2026-10-17 우주 D 에서) · 겨울 E ← 리뷰·후기 유도(인플루언서 리뷰 아님)", by["baram.B"] === "ak_gh_rvpromo" && by["gyeoul.E"] === "ak_review", by);
 ck("추천: 할 일 하나엔 반복 실행 하나 · 반복 실행 하나엔 할 일 하나", new Set(S.map((s) => s.key)).size === S.length && new Set(S.map((s) => s.mate + s.act)).size === S.length);
 ck("추천: 담당 한 명이면 그 사람(결과 확인·실행) · 여럿이면 비움", S.find((s) => s.key === "ak_gh_detail").owner === "u_ak_gh_detail" && S.find((s) => s.key === "ak_c_b2c").owner === "");
@@ -115,6 +115,15 @@ const tA = { aiAks: ["ak_influch", "ak_gh_influch", "fx:g1", "fx:all"], brand: "
 ck("[했어요] 셀 열쇠: 그로홈 실행 = 그로홈 인플루언서 + 그로홈 체크 + 전체 체크 (POUR 것은 안 셈)", countKeys(DK, tA, "chaerim").map((x) => x.key).join() === "ak_gh_influch,fx:g1,fx:all", countKeys(DK, tA, "chaerim").map((x) => x.key));
 ck("[했어요] 셀 열쇠: 남의 것은 안 셈 (송희가 누르면 전체 체크만)", countKeys(DK, tA, "songhee").map((x) => x.key).join() === "fx:all");
 ck("[했어요] 셀 열쇠: 담당을 아무도 안 정한 반복 실행 = 누른 사람에게 셈", countKeys({ ...DK, ak: { items: [{ id: "ak_free", name: "빈 담당", who: [] }] } }, { aiAk: "ak_free" }, "mini").length === 1);
+{ // 달 A keyBy '신제품' (2026-10-17) — 본부장 신제품 상시 업무 8개 중 그 줄 이름이 든 것만 · 이름이 없거나 안 맞으면 정한 날 체크는 안 셈 · 여러 번 하는 것은 그대로
+  const fxT = (id, title) => ({ id, title, isFixed: true, assigneeIds: ["GM"], brand: "grohome" });
+  const DH = { users: [{ id: "GM", name: "허지은" }], ak: { items: [{ id: "ak_launch", name: "신제품 출시", who: ["GM"], brand: "grohome" }] }, tasks: [fxT("s1", "신제품 출시 :스티커페인트 제조사(용인) RnD/기획/인증/디자인"), fxT("h1", "신제품출시 : 헤라형 줄눈 제조사 소싱/기획/인증/디자인"), fxT("h2", "신제품출시 : 헤라형 줄눈보수제 제조사 소싱/기획/인증/디자인"), fxT("w1", "월 2회 신제품 출시")] };
+  const tD = { aiBoard: "hq-plan", aiAct: "A", brand: "grohome", aiAks: ["fx:s1", "fx:h1", "fx:h2", "fx:w1", "ak_launch"] };
+  const k = (p) => countKeys(DH, tD, "GM", "", p).map((x) => x.key).join();
+  ck("[했어요] 달 A 신제품 이름 짝: 스티커페인트 = 그 체크만 · 헤라형 줄눈 = 둘 · 없는 이름·빈 이름 = 정한 날 체크 없음 · 행동지표는 늘 · 다른 할 일은 이름 안 봄", k("스티커 페인트") === "fx:s1,ak_launch" && k("헤라형 줄눈") === "fx:h1,fx:h2,ak_launch" && k("루바보드") === "ak_launch" && k("") === "ak_launch" && countKeys(DH, { ...tD, aiAct: "D" }, "GM", "", "루바보드").length === 5, [k("스티커 페인트"), k("헤라형 줄눈"), k("루바보드")]);
+  ck("이름 비교 = 띄어쓰기·기호 무시", normK("신제품 출시 :스티커페인트") === "신제품출시스티커페인트" && normK(" 헤라형/줄눈 ") === "헤라형줄눈");
+  ck("보고 승인 그날 체크 = 그 체크 시각이 됐을 때만 (시각 없으면 됨)", fxTimeCome("08:40", "10:00") && !fxTimeCome("16:30", "10:00") && fxTimeCome("16:30", "16:30") && fxTimeCome("", "07:00") && fxTimeCome(null, "07:00"));
+}
 ck("[했어요] 셀 열쇠: 브랜드 섞인 결과(실행 브랜드 없음) = 내 것 모두", countKeys(DK, { aiAks: ["ak_influch", "ak_gh_influch"] }, "chaerim").length === 2 && countKeys(DK, { aiAk: "ak_kwtop" }, "songhee")[0].kind === "ak");
 // 그 줄 브랜드('브랜드' 칸 · aiItems[n].b) — 있으면 그 브랜드 + 브랜드 없는 열쇠만 · 없으면 실행 브랜드 → 같은 게 없으면 내 것 모두 (2026-10-17)
 ck("[했어요] 줄 브랜드 POUR스토어 = POUR 인플루언서 + 전체 체크 (이름 'POUR스토어' 도 같은 브랜드)", countKeys(DK, tA, "chaerim", "pourstore").map((x) => x.key).join() === "ak_influch,fx:all", countKeys(DK, tA, "chaerim", "pourstore").map((x) => x.key));

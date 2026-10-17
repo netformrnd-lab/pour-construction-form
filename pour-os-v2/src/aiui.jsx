@@ -12,8 +12,8 @@ import { md, hm, ago, ymd, addDays, isMaster, nameOf, activeUsers, isOffDay } fr
 import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, inp, Linked, useLocal } from "./ui.jsx";
 import { Thread, useItemNotes } from "./task.jsx";
 import { LS } from "./core.jsx";
-import { RtSelect } from "./airtui.jsx";   // AI 크루 ↔ 반복 실행 (2026-10-16)
-import { isFxKey, fxIdOf, NO_ACT } from "./airt.js";
+import { RtMulti } from "./airtui.jsx";   // AI 크루 ↔ 반복 실행 (2026-10-16) · 여러 개 (2026-10-17)
+import { isFxKey, fxIdOf, NO_ACT, akKeys } from "./airt.js";
 import { CREWS, GONE, crewOf, mateOf, boardOf, brandL, servesL, mateBrands, ownerKeys, fmtMetric, metricPct, metricOk, runWord, asideLaunch, asideRedoLaunch, asideFixLaunch, loginSites, planOf, qtyDefs, qtyNow, canReq, reqMates, REQ_SHAPES, REQ_PRESETS, REQ_STATE_L, reqLine, asideReqLaunch, execOf } from "../../marketing-hub/crew.js";
 import { cycleOf, periodOf, repCrews, repId, repSlots, secState, periodL, dueL, CYCLE_L } from "./aireport.js";   // AI 크루 보고 (2026-10-15)
 import { ASK_STATE_L, canAct, canBack, canRet, isProxy, pickOk, planPass, chainOf, mateOwner, actOwner, hqOf, canUpHQ, mateStats, repeatNotes, itemLine, bossOf, bossRec, bossLoop, asidePlanOf, ranOn, missedOn, goneWaits, GONE_DROP, myTurnN,
@@ -104,7 +104,8 @@ export function AiAskSheet({ D, cu, A, open, onBack, onClose, id, focus, note })
   const pv = can ? planPass(a, cu, D.users, items.length ? pick : null, "", { hq }) : null, nextN = pv && pv.next ? nameOf(D.users, pv.next) : "";
   const go = async (fn) => { if (busy) return; setBusy(true); try { const ok = await fn(); if (ok) { setMode(""); setTxt(""); setPick(null); } } finally { setBusy(false); } };
   const passL = `${items.length ? `고른 ${pick.length}개 ` : ""}${pv && pv.next ? `승인 → ${nextN}님께` : "최종 승인"}`;
-  const exT = a.execTask ? (D.tasks || []).find((t) => t.id === a.execTask) : null;
+  const exIds = (a.execTasks && a.execTasks.length ? a.execTasks : a.execTask ? [a.execTask] : []), exMine = exIds.find((x) => { const t = (D.tasks || []).find((y) => y.id === x); return t && (t.assigneeIds || [t.assigneeId]).includes(cu.id); });
+  const exT = (exMine || a.execTask) ? (D.tasks || []).find((t) => t.id === (exMine || a.execTask)) : null;   // 열쇠 담당별 실행 업무 (2026-10-17) — 내 몫 먼저
   // 멈춤 감시 (2026-10-17): 평일 n일째 기다림 · 같은 할 일의 이전 결과 / 더 새 결과 · AI 가 반나절 넘게 못 고침
   const nowD = new Date(), allAsks = (D.ai && D.ai.asks) || [], lateWd = a.state === "wait" ? waitWd(a, nowD) : 0;
   const pw = a.state === "no" ? [] : prevWaits(allAsks, a), pwMine = pw.filter((x) => canAct(x, cu)), nw = a.state === "wait" && !(a.step > 0) ? newerOf(allAsks, a) : null;
@@ -115,7 +116,7 @@ export function AiAskSheet({ D, cu, A, open, onBack, onClose, id, focus, note })
       {proxy && <div style={{ fontSize: 12.5, color: C.sub, marginTop: 6 }}>관리자로 대신 눌러요 · 지금 차례는 {nameOf(D.users, a.to)}님 · 기록엔 내 이름이 남아요</div>}</>
     : a.state === "wait" ? <Big disabled>{a.to ? `${nameOf(D.users, a.to)}님 승인 기다리는 중` : "담당 미정 · 관리자가 승인해요"}</Big>
     : a.state === "back" ? <Big disabled>{m.name}(AI)가 고치는 중 · 다시 올리면 알려 드려요</Big>
-    : a.state === "ok" ? (a.execTask ? <Big tone="white" onClick={() => open({ type: "task", id: a.execTask })}>실행 업무 보기{exT ? ` · ${exT.status === "done" ? "끝남" : nameOf(D.users, (exT.assigneeIds || [exT.assigneeId])[0]) + " 담당"}` : ""}</Big> : <Big disabled>최종 승인됨</Big>)
+    : a.state === "ok" ? (a.execTask ? <Big tone="white" onClick={() => open({ type: "task", id: exT ? exT.id : a.execTask })}>{exIds.length > 1 && exMine ? "내 실행 업무 보기" : "실행 업무 보기"}{exT ? ` · ${exT.status === "done" ? "끝남" : nameOf(D.users, (exT.assigneeIds || [exT.assigneeId])[0]) + " 담당"}` : ""}</Big> : <Big disabled>최종 승인됨</Big>)
     : <Big disabled>안 하기로 함</Big>;
   return <Sheet title="AI 승인" kind="AI 승인" head={a.title} path={`AI 팀원 · ${m.name}${m.role ? " · " + m.role : ""}`} onPath={() => open({ type: "aiMate", id: a.mate })} onBack={onBack} onClose={onClose} foot={foot}>
     <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6, marginTop: 12 }}>
@@ -144,8 +145,10 @@ export function AiAskSheet({ D, cu, A, open, onBack, onClose, id, focus, note })
       {!b && stuckMin >= BACK_MIN && <div style={{ marginTop: 8 }}><CopyText text={stuckAlert(a, nowD)} label="사장님께 보낼 글 복사" /></div>}</Banner>}
     {a.state === "no" && <Banner><b>안 함</b> · {a.noByName} · {a.noAt ? ago(a.noAt) : ""}{a.noReason ? <div>{a.noReason}</div> : null}</Banner>}
     {a.state === "ok" && <Banner><b>최종 승인</b> · {a.okByName} · {a.okAt ? `${md(ymd(new Date(a.okAt)))} ${hm(a.okAt)}` : ""}{a.exec ? <div>실제 반영은 사람이 해요 · '실행' 업무에서 번호마다 흔적을 남기고 끝내 주세요</div> : null}
+      {exIds.length > 1 && <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 }}><span style={{ fontSize: 12.5, color: C.sub }}>반복업무 담당마다 실행 업무 {exIds.length}개 ·</span>
+        {exIds.map((x) => { const t = (D.tasks || []).find((y) => y.id === x); return t ? <TBtn key={x} onClick={() => open({ type: "task", id: x })}>{nameOf(D.users, (t.assigneeIds || [t.assigneeId])[0]) || "담당"}{t.status === "done" ? " ✓" : ""} ›</TBtn> : null; })}</div>}
       {a.trace && Object.keys(a.trace).length > 0 && <div style={{ marginTop: 6 }}>{Object.entries(a.trace).filter(([, v]) => v).sort(([x], [y]) => x.localeCompare(y)).map(([n, v]) => <div key={n} style={{ fontSize: 13, lineHeight: 1.6 }}>
-        <b style={{ color: v.skip ? C.sub : C.green }}>{n === "_" ? "흔적" : n} {v.skip ? "안 함" : "했어요 ✓"}</b> · {v.byName} {v.date ? md(v.date) : ""}{v.link ? <> · <Linked text={v.link} /></> : null}{v.note ? ` · ${v.note}` : ""}</div>)}</div>}</Banner>}
+        <b style={{ color: v.skip ? C.sub : C.green }}>{n.split("@")[0] === "_" ? "흔적" : n.split("@")[0]} {v.skip ? "안 함" : "했어요 ✓"}</b> · {v.byName} {v.date ? md(v.date) : ""}{v.link ? <> · <Linked text={v.link} /></> : null}{v.note ? ` · ${v.note}` : ""}</div>)}</div>}</Banner>}
 
     {(a.sum || a.body) && <Card style={{ marginTop: 12, padding: "12px 14px" }}>
       {a.sum && <div style={{ fontSize: 14.5, fontWeight: 800, color: C.text, lineHeight: 1.6 }}>{a.sum}</div>}
@@ -266,7 +269,8 @@ function BoardView({ D, cu, A, b, open, asks, doc }) {
   const master = isMaster(cu), mine = Object.values((doc && doc.owners) || {}).includes(cu.id), users = activeUsers(D.users), akItems = ((D.ak && D.ak.items) || []);
   const ownL = (c) => { const x = actOwner(doc, b.brand, c, D.users); return x ? nameOf(D.users, x) : "담당 미정"; };
   const hqL = (a) => hqOf({ board: b.id, act: a.c, exec: execOf(a), hq: a.hq }, doc);   // 외주 기간 광고 할 일 = 실행 없음 → 표시 없음
-  const akL = (c) => { const id = ((doc && doc.actAk) || {})[c]; if (!id) return ""; if (isFxKey(id)) { const t = (D.tasks || []).find((x) => x.id === fxIdOf(id)); return t ? t.title : ""; } const it = akItems.find((x) => x.id === id); return it ? it.name : ""; };
+  const akL1 = (id) => { if (isFxKey(id)) { const t = (D.tasks || []).find((x) => x.id === fxIdOf(id)); return t ? t.title : ""; } const it = akItems.find((x) => x.id === id); return it ? it.name : ""; };
+  const akL = (c) => akKeys(((doc && doc.actAk) || {})[c]).map(akL1).filter(Boolean).join(" · ");   // 짝 여러 개 (2026-10-17)
   return <>
     <Head>{b.title}</Head>
     <div style={{ fontSize: 13, color: C.sub, lineHeight: 1.65, margin: "-4px 2px 8px" }}>{b.desc}</div>
@@ -291,8 +295,8 @@ function BoardView({ D, cu, A, b, open, asks, doc }) {
               {master && execOf(a) && <label style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}><b style={{ color: C.ink, minWidth: 74 }}>본부장 승인</b>
                 <select value={(() => { const x = ((doc && doc.actHq) || {})[a.c]; return x === true ? "on" : x === false ? "off" : ""; })()} onChange={(e) => A.mateActSet(b.mate, "actHq", a.c, e.target.value === "on" ? true : e.target.value === "off" ? false : null)} aria-label={`${a.c} 본부장 승인`} style={{ ...inp, width: "auto", maxWidth: 220, padding: "6px 8px", fontSize: 13 }}>
                   <option value="">기본 ({a.hq ? `받음 · ${a.hq}` : "리드에서 끝"})</option><option value="on">받음</option><option value="off">안 받음 (리드에서 끝)</option></select></label>}
-              {execOf(a) && <label style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}><b style={{ color: C.ink, minWidth: 74 }}>반복 실행 짝</b>
-                <RtSelect D={D} value={((doc && doc.actAk) || {})[a.c] || ""} onChange={(v) => A.mateActSet(b.mate, "actAk", a.c, v)} label={`${a.c} 반복 실행 짝`} /></label>}
+              {execOf(a) && <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}><b style={{ color: C.ink, minWidth: 74 }}>반복 실행 짝</b>
+                <RtMulti D={D} value={((doc && doc.actAk) || {})[a.c]} onChange={(ks) => A.mateActSet(b.mate, "actAk", a.c, ks)} label={`${a.c} 반복 실행 짝`} /></div>}
               <div style={{ fontSize: 12, color: C.mute, lineHeight: 1.5 }}>담당 = 승인 첫 단계·실행 업무 받는 사람 · 반복 실행 짝 = 실행 업무 번호마다 [했어요]가 그 반복에 +1 (KPI)</div></div>}
             <div><b style={{ color: C.ink }}>상황</b> · {a.w}</div>
             <ol style={{ margin: "6px 0 0", paddingLeft: 18 }}>{a.s.map((s, k) => <li key={k} style={{ marginTop: 2 }}>{s}</li>)}</ol>
@@ -346,8 +350,8 @@ export function AiMateSheet({ D, cu, A, open, onBack, onClose, id }) {
         <option value="">미정</option>{users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select> : null} last={i === owners.length - 1} />)}</Card>
     {/* 아침 루틴 원고 → 반복 실행 짝 (2026-10-16) — 원고 승인 뒤 실행 업무 [했어요](발행 링크) = 그 반복 실행 +1 · 보드 할 일 짝은 아래 할 일마다 */}
     {m.routine && canRule && <><Head>아침 루틴 원고 → 반복 실행</Head>
-      <Card style={{ padding: "10px 14px" }}><label style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}><b style={{ color: C.ink, minWidth: 74, fontSize: 13.5 }}>반복 실행 짝</b>
-        <RtSelect D={D} value={(doc.actAk || {})[NO_ACT] || ""} onChange={(v) => A.mateActSet(id, "actAk", NO_ACT, v)} label="아침 루틴 반복 실행 짝" /></label>
+      <Card style={{ padding: "10px 14px" }}><div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}><b style={{ color: C.ink, minWidth: 74, fontSize: 13.5 }}>반복 실행 짝</b>
+        <RtMulti D={D} value={(doc.actAk || {})[NO_ACT]} onChange={(ks) => A.mateActSet(id, "actAk", NO_ACT, ks)} label="아침 루틴 반복 실행 짝" /></div>
         <div style={{ fontSize: 12, color: C.mute, marginTop: 6, lineHeight: 1.5 }}>원고를 승인하고 실행 업무에서 [했어요](발행 링크) = 그 반복 실행 +1 · 보드 할 일은 아래 할 일마다 정해요</div></Card></>}
 
     <Head>이번 주 (7일)</Head>

@@ -12,7 +12,7 @@ import { addDays, ymd, md, nameOf, isMaster, isDone, isRemoved } from "./model.j
 import { CREWS, GONE, mateOf, boardOf, fmtMetric, metricOk } from "../../marketing-hub/crew.js";
 import { mateOwner, bossOf, isLeadU, isHQ, MAX_UP } from "./aiask.js";
 import { doneDay, dayOfIso } from "./report.js";
-import { isFxKey, fxIdOf } from "./airt.js";
+import { isFxKey, fxIdOf, akKeys, taskAks } from "./airt.js";
 
 export const CYCLE_L = { week: "주간", "2week": "2주", month: "월간" };
 export const CYCLE_FROM = "2026-10-12";   // 첫 보고 기간 (월요일)
@@ -86,8 +86,9 @@ export function secData(D, m, p, pv, asks) {
     return { k: x.k, l: x.l, u: x.u || "", dir: x.dir || "up", target: x.target, cur, prev, ok: !!cur && metricOk(x, cur.v) }; });
   // ③ KPI — 이 AI 할 일과 짝지은 반복 실행(aimates.actAk) · 이번 기간 흔적 [했어요] 수 (사람이 직접 누른 것)
   const mdoc = (D.ai && D.ai.mates && D.ai.mates[m.id]) || {}, items = (D.ak && D.ak.items) || [];
-  const ak = [...new Set(Object.values(mdoc.actAk || {}).filter(Boolean))].map((id) => { const it = items.find((x) => x.id === id);
-    const n = tasks.filter((t) => t.aiAk === id).reduce((s, t) => s + Object.values(t.aiTrace || {}).filter((r) => r && r.done && inP(r.date)).length, 0);
+  //   짝 여러 개 (2026-10-17): 흔적이 센 열쇠(cnt)로 셈 · cnt 없는 예전 흔적은 그 실행 업무의 aiAk
+  const ak = [...new Set(Object.values(mdoc.actAk || {}).flatMap(akKeys))].map((id) => { const it = items.find((x) => x.id === id);
+    const n = tasks.filter((t) => taskAks(t).includes(id)).reduce((s, t) => s + Object.values(t.aiTrace || {}).filter((r) => r && r.done && inP(r.date) && (Array.isArray(r.cnt) ? r.cnt.includes(id) : t.aiAk === id)).length, 0);
     const ft = !it && isFxKey(id) ? ((D.tasks || []).find((x) => x.id === fxIdOf(id)) || null) : null;   // 정한 날 체크 짝 (2026-10-16)
     return { id, name: it ? it.name : ft ? ft.title : id, n }; });
   // ④ 다음 — AI [다음주] (aiboards.nextHist · 이번 기간 안에서 마지막)

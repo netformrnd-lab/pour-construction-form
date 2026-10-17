@@ -3,14 +3,56 @@
 //     열쇠: 여러 번 하는 것 = 행동지표 id · 정한 날 체크 = 'fx:' + 고정업무 id
 //   AI 결과 최종 승인 → 실행 업무(aiAk = 그 열쇠) → 번호마다 [했어요] = 여러 번 +1 / 정한 날 체크 = 오늘 체크(아직이면 · core.aiTrace)
 //   화면: 오늘 '반복 실행' 줄 'AI 겨울 · 확인할 결과 1 · 실행 2 ›' · 반복 실행 시트 'AI 크루' 칸(짝 · 추천 · 맡기기) · 관리자 반복 실행 'AI 크루 짝' 칸([추천대로 짝 짓기])
+//   2026-10-17 사장님 "현재 반복업무들 모두 ai크루든 도움받아서 해야해" → 할 일 하나 ↔ 열쇠 여러 개(actAk 값 = 열쇠 하나(예전) 또는 목록 · akKeys)
+//     [했어요] = 누른 사람이 그 열쇠 담당인 것만 · 실행 브랜드와 맞는 것만 (countKeys) · 열쇠 담당이 실행 담당과 다르면 그 사람 몫 실행 업무도 (splitExec)
+//     실행이 없는 보고(광고 보고 F)는 담당이 승인하면 그 사람 정한 날 체크를 그날 체크 (core.aiPass)
 import { mateOf, boardOf, actOf, execOf, GONE } from "../../marketing-hub/crew.js";
 import { traceLeft } from "./aiask.js";
-import { isDone, isMine } from "./model.js";
+import { isDone, isMine, fxIds, fxIsMine } from "./model.js";
+import { akWho } from "../../pour-os/src/actionKpi.js";
+import { brId } from "./routine.js";
 
 export const FX_KEY = "fx:", NO_ACT = "_";
 export const rtKey = (kind, id) => (kind === "fx" ? FX_KEY + id : String(id || ""));
 export const isFxKey = (k) => String(k || "").startsWith(FX_KEY);
 export const fxIdOf = (k) => (isFxKey(k) ? String(k).slice(FX_KEY.length) : "");
+// 짝 값 → 열쇠 목록 (예전 글자 하나 · 목록 · 빈 값) / 저장 모양 (없음 null · 하나 = 글자(예전과 같음) · 여럿 = 목록)
+export const akKeys = (v) => [...new Set((Array.isArray(v) ? v : v ? [v] : []).filter((k) => typeof k === "string" && k))];
+export const pairVal = (ks) => { const a = akKeys(ks); return !a.length ? null : a.length === 1 ? a[0] : a; };
+// 실행 업무의 짝 열쇠 (aiAks 목록 · 예전 aiAk 하나)
+export const taskAks = (t) => akKeys(t && (Array.isArray(t.aiAks) && t.aiAks.length ? t.aiAks : t.aiAk));
+const fxOf = (D, k) => ((D && D.tasks) || []).find((x) => x && x.id === fxIdOf(k) && x.isFixed) || null;
+const akOf = (D, k) => (((D && D.ak && D.ak.items) || []).find((x) => x && x.id === k)) || null;
+// 열쇠 이름 (정한 날 체크 = 고정업무 이름 · 여러 번 = 반복 실행 이름 · 없앤 것 '')
+export const keyName = (D, k) => (isFxKey(k) ? (fxOf(D, k) || {}).title || "" : (akOf(D, k) || {}).name || "");
+// 열쇠 담당 (따로 정한 사람만 · '전체' 고정업무는 빼고 · 쉬는 사람 빼고) — 열쇠 담당별 실행 업무를 나눌 때
+export function keyOwners(D, k) {
+  const act = (id) => ((D && D.users) || []).some((u) => u && u.id === id && u.active !== false);
+  if (isFxKey(k)) { const t = fxOf(D, k); return t && !t.forAll ? fxIds(t).filter(act) : []; }
+  const it = akOf(D, k); return it ? akWho((D && D.users) || [], it).filter(act) : [];
+}
+// 실행 브랜드와 맞나 — 실행 업무 브랜드가 없거나(브랜드 섞인 결과) 열쇠 브랜드가 없거나 공통 운영이면 맞음
+export const keyBrandOk = (keyBrand, execBrand) => { const kb = brId(keyBrand), eb = brId(execBrand); return !eb || !kb || kb === "common" || kb === eb; };
+// [했어요] 한 번에 셀 열쇠 = 누른 사람이 그 열쇠 담당 + 실행 브랜드와 맞음 → [{key, kind 'ak'|'fx', it|ft}] (남의 것은 안 건드림 · 2026-10-17)
+//   담당을 아무도 안 정한 반복 실행은 누른 사람에게 셈(남의 것이 아니라서 · 예전처럼)
+export function countKeys(D, t, uid) {
+  return taskAks(t).map((k) => {
+    if (isFxKey(k)) { const ft = fxOf(D, k); return ft && fxIsMine(ft, uid) && keyBrandOk(ft.brand, t && t.brand) ? { key: k, kind: "fx", ft } : null; }
+    const it = akOf(D, k), ow = it ? akWho((D && D.users) || [], it) : [];
+    return it && (!ow.length || ow.includes(uid)) && keyBrandOk(it.brand, t && t.brand) ? { key: k, kind: "ak", it } : null;
+  }).filter(Boolean);
+}
+// 열쇠 담당별 실행 업무 (2026-10-17 · 같은 할 일을 여러 사람이 쓰는 칸: 겨울 A 송희·미니 · 가을 B 송희·채림 · 가을 E 송희·이란 · 별 A …)
+//   실행 담당(ex.assigneeId)이 아닌 열쇠 담당마다 같은 승인 번호의 실행 업무 하나 더 (id = 실행 id~사람 · 그 사람 열쇠만 · 실행 브랜드와 맞는 열쇠만)
+export function splitExec(D, ex, keys, cu, at) {
+  if (!ex) return [];
+  const main = ex.assigneeId, by = new Map();
+  akKeys(keys).forEach((k) => {
+    const kb = isFxKey(k) ? (fxOf(D, k) || {}).brand : (akOf(D, k) || {}).brand; if (!keyBrandOk(kb, ex.brand)) return;
+    keyOwners(D, k).forEach((u) => { if (u === main) return; if (!by.has(u)) by.set(u, []); by.get(u).push(k); }); });
+  return [...by.entries()].map(([u, ks]) => { const { ackAt, ...rest } = ex;
+    return { ...rest, id: `${ex.id}~${u}`, assigneeId: u, assigneeIds: [u], aiAk: ks[0], aiAks: ks, ...(cu && u === cu.id ? { ackAt: at } : {}) }; });
+}
 // 할 일 글자 → 보이는 이름 ('_' = 아침 루틴 원고)
 export function actTitle(mateId, act) {
   const m = mateOf(mateId); if (!m) return "";
@@ -28,10 +70,9 @@ export function rtPairs(mates) {
   const out = new Map();
   Object.entries(mates || {}).forEach(([mid, doc]) => {
     const m = mateOf(mid); if (!m || GONE[mid]) return;
-    Object.entries((doc && doc.actAk) || {}).forEach(([act, key]) => {
-      const t = key ? actTitle(mid, act) : ""; if (!t) return;
-      if (!out.has(key)) out.set(key, []);
-      out.get(key).push({ mate: mid, mateName: m.name, act, actT: t });
+    Object.entries((doc && doc.actAk) || {}).forEach(([act, v]) => {
+      const t = actTitle(mid, act); if (!t) return;
+      akKeys(v).forEach((key) => { if (!out.has(key)) out.set(key, []); out.get(key).push({ mate: mid, mateName: m.name, act, actT: t }); });
     });
   });
   return out;
@@ -43,7 +84,7 @@ export function rtAiNow(key, pairs, asks, tasks, uid) {
   const ps = pairs || []; if (!ps.length) return null;
   const hit = (a) => ps.some((p) => askHit(a, p));
   const wait = (asks || []).filter((a) => a && a.state === "wait" && a.to === uid && hit(a));
-  const exec = (tasks || []).filter((t) => t && t.aiAsk && t.aiAk === key && !isDone(t) && t.status !== "dropped" && isMine(t, uid) && traceLeft(t) > 0);
+  const exec = (tasks || []).filter((t) => t && t.aiAsk && taskAks(t).includes(key) && !isDone(t) && t.status !== "dropped" && isMine(t, uid) && traceLeft(t) > 0);
   const last = (asks || []).filter(hit).sort((p, q) => String(q.createdAt || "").localeCompare(String(p.createdAt || "")))[0] || null;
   return { pairs: ps, wait, exec, last };
 }
@@ -66,7 +107,7 @@ const bare = (s) => String(s || "").replace(/\([^)]*\)/g, " ").replace(/\s+/g, "
 // rows = [{key, name, brand(보드 brand 와 같은 id · grohome·pourstore …), kind 'ak'|'fx', owners?}] → [{key, name, kind, mate, mateName, act, actT, owner?}]
 export function rtSuggest(rows, mates) {
   const usedAct = new Set(), usedKey = new Set();
-  Object.entries(mates || {}).forEach(([mid, doc]) => Object.entries((doc && doc.actAk) || {}).forEach(([act, key]) => { if (key) { usedAct.add(mid + "." + act); usedKey.add(key); } }));
+  Object.entries(mates || {}).forEach(([mid, doc]) => Object.entries((doc && doc.actAk) || {}).forEach(([act, v]) => { const ks = akKeys(v); if (ks.length) { usedAct.add(mid + "." + act); ks.forEach((k) => usedKey.add(k)); } }));
   const out = [];
   RT_AI_HINTS.forEach((h) => {
     const k = h.mate + "." + h.act; if (usedAct.has(k) || !pairActs(h.mate).some((a) => a.c === h.act)) return;

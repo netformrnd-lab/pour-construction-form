@@ -90,7 +90,7 @@ export const itemLine = (it, cols) => { const c = (it && it.c) || {}, ks = (cols
 // 최종 승인 뒤 '실행' 업무 (담당에게 · 사람이 반영) — 실행 한 줄이 없으면(보고만) 없음
 //   흔적(2026-10-15 사장님 "마케터들은 업무 흔적 꼭 · 어떤 포스팅·어떤 인플루언서인지 AI가 알아서 세팅 · 사람이 확인 · KPI 추적"):
 //   aiItems = 승인한 번호마다 {n, t(한 줄), link(표의 링크)} — AI 가 미리 채움 → 사람이 번호마다 [했어요](링크 고침 가능)·[안 함] → aiTrace.<번호>
-//   aiAk = 그 할 일과 짝지은 반복 실행(aimates.actAk) → [했어요] 마다 반복 실행 +1 (흔적이 같이 남음) = KPI 추적
+//   aiAk = 그 할 일과 짝지은 반복 실행(aimates.actAk) → [했어요] 마다 반복 실행 +1 (흔적이 같이 남음) = KPI 추적 · aiAks = 열쇠 여러 개(2026-10-17 · 누른 사람 것만 셈)
 const URL_RE = /https?:\/\/[^\s<>"')]+/;
 //   칸 순서: 초안·게시물·링크(사람이 확인할 그것) → URL·주소·프로필·계정(최종 URL 같은 도착 주소) → 아무 칸의 주소 (디맨드젠 '초안 링크' > '최종 URL' · 2026-10-15)
 const URL_KEYS = [/초안|게시|링크|link/i, /URL|주소|프로필|계정/i];
@@ -112,7 +112,7 @@ export function planExec(a, pick, cu, users, at, due, opt = {}) {
   return { id, title, isFixed: false, type: "general", status: "todo", assigneeId: owner, assigneeIds: [owner], projectId: "", parentId: null, dueDate: due || "", workDate: "", memo, attachments: [], weekDay: null, weekSlot: null, priority: "mid",
     ...(a.brand && brandL(a.brand) ? { brand: a.brand } : {}), noReview: true, ...(owner === cu.id ? { ackAt: at } : {}), v2At: at,
     requestedBy: cu.id, requestedAt: at, createdAt: at, createdBy: cu.id, statusLog: [{ by: cu.id, byName: cu.name, at, status: "todo" }], madeIn: "v2", aiAsk: a.id, aiMate: a.mate || "",
-    aiAct: a.act || "", aiBoard: a.board || "", aiAk: opt.ak || "", aiItems: chosen.map(traceItem),
+    aiAct: a.act || "", aiBoard: a.board || "", aiAk: (opt.aks || [])[0] || opt.ak || "", ...((opt.aks || []).length ? { aiAks: opt.aks } : {}), aiItems: chosen.map(traceItem),   // 짝 열쇠 여러 개 (2026-10-17 · airt.akKeys)
     ...(a.launch ? { aiLaunch: a.launch, aiProd: a.prod || "", aiLaunchTask: opt.launchTask || "" } : {}) };   // 디맨드젠: [했어요] = 그 신제품 칸 +1
 }
 

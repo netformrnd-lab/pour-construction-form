@@ -325,7 +325,7 @@ ST.v2.aiasks.ai_gyeoul_20261014_ghconvC = ask({ id: 'ai_gyeoul_20261014_ghconvC'
   await s.S().getByText('E · 리뷰 정리 + 진짜 포토리뷰 확보', { exact: true }).click(); await s.pg.waitForTimeout(300);
   await s.S().getByLabel('E 할 일 담당').selectOption('mj'); await s.pg.waitForTimeout(600);
   ok('할 일 담당 → 토스트 · 열린 승인 1건 넘김', (await s.pg.locator('.v2-toast').innerText()).includes('E 담당 남윤정(AI 담당) → 김민지 · 열린 승인 1건 넘김'));
-  await s.S().getByLabel('E 반복 실행 짝').selectOption('x_rv'); await s.pg.waitForTimeout(600);
+  await s.S().getByLabel('E 반복 실행 짝 더하기').selectOption('x_rv'); await s.pg.waitForTimeout(600);
   ok('반복 실행 짝 → 토스트', (await s.pg.locator('.v2-toast').innerText()).includes("E 반복 실행 짝 리뷰 신고·답글"));
   const tx = await s.S().innerText();
   ok('할 일 줄: E 담당 김민지 · 반복 · B 본부장 승인(판매가) · C 리드에서 끝', tx.includes("담당 김민지 · 매일 11:00 · 반복 '리뷰 신고·답글'") && tx.includes('담당 남윤정 · 본부장 승인(판매가 조정)') && tx.includes('담당 남윤정 · 히어로 4종 순서대로'));
@@ -381,7 +381,7 @@ ST.v2.aiasks.ai_gyeoul_20261014_ghconvC = ask({ id: 'ai_gyeoul_20261014_ghconvC'
   eq('본부장 최종 → 남윤정 실행 업무', [doc('aiasks', 'ai_gyeoul_20261014_ghconvC').state, (doc('tasks', 'aix_ai_gyeoul_20261014_ghconvC') || {}).assigneeId], ['ok', 'yj']); }
 { let s = await session('mj', { now: NOW9 });
   await inbox(s.pg, '실행 · 겨울').first().click(); await s.pg.waitForTimeout(500);
-  ok('흔적 상자: 2개 · 짝지은 반복 실행에도 +1 안내 · AI 링크 채워짐', (await s.S().innerText()).includes('2개 중 0개 남김') && (await s.S().innerText()).includes('짝지은 반복 실행에도 +1') && (await s.S().getByLabel('E1 링크').inputValue()) === 'https://www.coupang.com/vp/products/1');
+  ok('흔적 상자: 2개 · 짝지은 반복 실행에도 +1 안내 · AI 링크 채워짐', (await s.S().innerText()).includes('2개 중 0개 남김') && (await s.S().innerText()).includes('짝지은 반복 실행(내 것)에도 +1') && (await s.S().getByLabel('E1 링크').inputValue()) === 'https://www.coupang.com/vp/products/1');
   await s.S().getByRole('button', { name: 'E1 했어요' }).click(); await s.pg.waitForTimeout(700);
   ok("E1 했어요 → 반복 '리뷰 신고·답글' +1", (await s.pg.locator('.v2-toast').innerText()).includes("반복 '리뷰 신고·답글' +1"));
   await s.S().getByRole('button', { name: 'E2 안 함' }).click(); await s.S().getByLabel('E2 안 한 이유').fill('판매자 답글 권한 없음'); await s.S().getByRole('button', { name: 'E2 안 함 남기기' }).click(); await s.pg.waitForTimeout(600);
@@ -593,6 +593,63 @@ ST.v2.aiboards['gh-traffic'] = { id: 'gh-traffic', board: 'gh-traffic', at: '202
   await expand(s.pg);
   eq('겨울 담당(남윤정) = 평일 2일째 안 올렸어요', await inbox(s.pg, '겨울(AI)가 평일 2일째 안 올렸어요').count(), 1);
   ok('768 넘침 없음', !(await over(s.pg)));
+  await s.close(); }
+
+// ⑬ 할 일 하나 ↔ 반복업무 여러 개 (2026-10-17 사장님 "현재 반복업무들 모두 ai크루든 도움받아서 해야해") — 10/20(화) 10:00
+//   허지은(관리자) = 겨울 A 짝 = 재고 확인(송희) + 재고 확인/발주(김민지) · 최종 승인(김송희 · 리드) → 실행 업무 2개(송희 · 민지 몫)
+//   [했어요] = 누른 사람 것만 체크 · 가을 F(광고 보고 · 실행 없음) 짝 = 광고 확인(민지) → 민지가 승인하면 그날 체크
+const TUE = '2026-10-20T10:00:00+09:00';
+const fx = (id, title, who) => ({ id, title, isFixed: true, type: 'fixed', recurType: 'daily', status: 'todo', assigneeId: who, assigneeIds: [who], brand: 'common', scope: 'brand', createdAt: T0, statusLog: [] });
+Object.assign(ST.v2.tasks, { fx_stock_sh: fx('fx_stock_sh', '재고 확인', 'sh'), fx_stock_mj: fx('fx_stock_mj', '재고 확인/발주', 'mj'), fx_ad_mj: fx('fx_ad_mj', '광고 확인', 'mj') });
+ST.v2.aimates.gyeoul = { ...(ST.v2.aimates.gyeoul || { owners: {}, rules: [] }), actOwners: { ...((ST.v2.aimates.gyeoul || {}).actOwners || {}), A: 'sh' } };
+ST.v2.aimates.gaeul = { ...(ST.v2.aimates.gaeul || { owners: {}, rules: [] }), actAk: { F: 'fx:fx_ad_mj' }, actOwners: { F: 'mj' } };
+ST.v2.aiasks.ai_gyeoul_20261020_ghconvA = ask({ id: 'ai_gyeoul_20261020_ghconvA', at: '2026-10-20T00:30:00.000Z', run: '2026-10-20', mate: 'gyeoul', brand: 'grohome', board: 'gh-conv', act: 'A', owner: 'sh', title: '전환 보드 A · 품절 0', cols: ['상품', '가용재고'], items: [{ n: 'A1', c: { 상품: '롤러 미니', 가용재고: '0' } }, { n: 'A2', c: { 상품: '유리블러', 가용재고: '12' } }], exec: '승인되면 담당이 재고를 확인하고 발주한다' });
+ST.v2.aiasks.ai_gaeul_20261020_ghtrafficF = ask({ id: 'ai_gaeul_20261020_ghtrafficF', at: '2026-10-20T00:30:00.000Z', run: '2026-10-20', mate: 'gaeul', brand: 'grohome', board: 'gh-traffic', act: 'F', owner: 'mj', title: '유입 보드 F · 광고 분석', sum: '쿠팡·네이버 ROAS', exec: '' });
+{ let s = await session('hj', { now: TUE });
+  await s.pg.locator('.v2-nav').getByRole('button', { name: '더보기' }).click(); await s.pg.waitForTimeout(300);
+  await s.pg.getByText(/^크루\(브랜드·고객별\) · 담당 → 리드 승인/).click(); await s.pg.waitForTimeout(500);
+  await s.S().getByText('겨울 · 전환마케터').click(); await s.pg.waitForTimeout(600);
+  await s.S().getByText(/^A · /).first().click(); await s.pg.waitForTimeout(300);
+  await s.S().getByLabel('A 반복 실행 짝 더하기').selectOption('fx:fx_stock_sh'); await s.pg.waitForTimeout(600);
+  await s.S().getByLabel('A 반복 실행 짝 더하기').selectOption('fx:fx_stock_mj'); await s.pg.waitForTimeout(600);
+  let m = await s.pg.evaluate(() => window.__V2.v2.aimates.gyeoul);
+  eq('짝 여러 개 = 목록으로 저장 · 기록은 {list}(배열 안 배열 아님)', [m.actAk.A, m.hist.slice(-1)[0].ch['actAk.A']], [['fx:fx_stock_sh', 'fx:fx_stock_mj'], ['fx:fx_stock_sh', { list: ['fx:fx_stock_sh', 'fx:fx_stock_mj'] }]]);
+  ok('짝 칩 2개 · 토스트', (await s.S().getByRole('button', { name: /A 반복 실행 짝 빼기/ }).count()) === 2 && (await s.pg.locator('.v2-toast').innerText()).includes('A 반복 실행 짝 재고 확인 · 재고 확인/발주'));
+  await s.pg.waitForTimeout(5300);   // 토스트(5초) 지나고
+  await s.S().getByText('반복 실행 짝', { exact: true }).first().click(); await s.pg.waitForTimeout(400);
+  eq("'반복 실행 짝' 글자를 눌러도 칩이 안 빠짐 (label 안에 ✕ 버튼 없음)", (await s.pg.evaluate(() => window.__V2.v2.aimates.gyeoul.actAk.A)).length, 2);
+  await s.S().getByRole('button', { name: /A 반복 실행 짝 빼기/ }).first().scrollIntoViewIfNeeded();
+  await shot(s.pg, 'hj-multipair-375'); ok('짝 여러 개 시트 넘침 없음 375', !(await over(s.pg)));
+  await s.close(); }
+{ let s = await session('sh', { now: TUE });
+  await s.pg.evaluate(() => { location.hash = '#a-ai_gyeoul_20261020_ghconvA'; }); await s.pg.waitForTimeout(800);
+  await s.S().getByRole('button', { name: '모두 고르기' }).click();
+  await s.S().getByRole('button', { name: '고른 2개 최종 승인' }).click(); await s.pg.waitForTimeout(800);
+  const t1 = await s.pg.evaluate(() => window.__V2.v2.tasks.aix_ai_gyeoul_20261020_ghconvA), t2 = await s.pg.evaluate(() => window.__V2.v2.tasks['aix_ai_gyeoul_20261020_ghconvA~mj']), a = await s.pg.evaluate(() => window.__V2.v2.aiasks.ai_gyeoul_20261020_ghconvA);
+  eq('최종 승인 → 실행 업무 2개 (송희 · 민지 몫 = 민지 열쇠만)', [t1 && t1.assigneeId, t1 && t1.aiAks, t2 && t2.assigneeId, t2 && t2.aiAks, a.execTasks], ['sh', ['fx:fx_stock_sh', 'fx:fx_stock_mj'], 'mj', ['fx:fx_stock_mj'], ['aix_ai_gyeoul_20261020_ghconvA', 'aix_ai_gyeoul_20261020_ghconvA~mj']]);
+  ok('토스트 = 두 사람께 실행 업무', (await s.pg.locator('.v2-toast').innerText()).includes("김송희·김민지님께 '실행' 업무가 생겼어요"));
+  ok('승인 한 장: 반복업무 담당마다 실행 업무 2개 · 내 실행 업무 보기', (await s.S().innerText()).includes('반복업무 담당마다 실행 업무 2개') && (await s.S().getByRole('button', { name: /^내 실행 업무 보기/ }).count()) === 1);
+  await s.S().getByRole('button', { name: /^내 실행 업무 보기/ }).click(); await s.pg.waitForTimeout(500);
+  await s.S().getByRole('button', { name: 'A1 했어요' }).click(); await s.pg.waitForTimeout(700);
+  ok('송희 [했어요] = 송희 재고 확인만 체크', (await s.pg.locator('.v2-toast').innerText()).includes("'재고 확인' 오늘 체크") && !(await s.pg.locator('.v2-toast').innerText()).includes('재고 확인/발주'));
+  eq('체크: 송희 것 오늘 · 민지 것 그대로', [(await s.pg.evaluate(() => window.__V2.v2.tasks.fx_stock_sh.doneDates || {})).sh, (await s.pg.evaluate(() => window.__V2.v2.tasks.fx_stock_mj.doneDates || {})).mj], ['2026-10-20', undefined]);
+  await s.close(); }
+{ let s = await session('mj', { now: TUE });
+  await s.pg.evaluate(() => { location.hash = '#t-aix_ai_gyeoul_20261020_ghconvA~mj'; }); await s.pg.waitForTimeout(800);
+  await s.S().getByRole('button', { name: 'A2 했어요' }).click(); await s.pg.waitForTimeout(700);
+  ok('민지 몫 실행 [했어요] = 민지 재고 확인/발주 체크', (await s.pg.locator('.v2-toast').innerText()).includes("'재고 확인/발주' 오늘 체크"));
+  eq('체크: 민지 것 오늘', (await s.pg.evaluate(() => window.__V2.v2.tasks.fx_stock_mj.doneDates || {})).mj, '2026-10-20');
+  const tr = await s.pg.evaluate(() => window.__V2.v2.aiasks.ai_gyeoul_20261020_ghconvA.trace || {});
+  eq('승인 건 흔적: 송희 A1 · 민지 몫 A2@mj (서로 안 덮음)', [!!(tr.A1 && tr.A1.done), !!(tr['A2@mj'] && tr['A2@mj'].done), Object.keys(tr).sort()], [true, true, ['A1', 'A2@mj']]);
+  await s.pg.keyboard.press('Escape'); await s.pg.waitForTimeout(300);
+  await s.pg.evaluate(() => { location.hash = '#a-ai_gyeoul_20261020_ghconvA'; }); await s.pg.waitForTimeout(800);
+  { const at = await s.S().innerText(); ok('승인 한 장 흔적 = A1·A2 둘 다 (사람 칸 글자 없음)', at.includes('A1 했어요 ✓') && at.includes('A2 했어요 ✓') && !at.includes('A2@'), at.slice(0, 600)); }
+  await s.pg.keyboard.press('Escape'); await s.pg.waitForTimeout(300);
+  await s.pg.evaluate(() => { location.hash = '#a-ai_gaeul_20261020_ghtrafficF'; }); await s.pg.waitForTimeout(800);
+  await s.S().getByRole('button', { name: /^승인 → 김송희님께/ }).click(); await s.pg.waitForTimeout(800);
+  ok('광고 보고(실행 없음) 승인 = 광고 확인 오늘 체크', (await s.pg.locator('.v2-toast').innerText()).includes("'광고 확인' 오늘 체크"));
+  eq('체크: 광고 확인 오늘 (민지)', (await s.pg.evaluate(() => window.__V2.v2.tasks.fx_ad_mj.doneDates || {})).mj, '2026-10-20');
+  await shot(s.pg, 'mj-report-check-375'); ok('보고 승인 넘침 없음 375', !(await over(s.pg)));
   await s.close(); }
 
 ok('화면 오류 없음', errs.length === 0, errs);

@@ -8,7 +8,7 @@ import { C, TBtn, Act, Head, Card, Row, inp, useLocal } from "./ui.jsx";
 import { LS } from "./core.jsx";
 import { md, isMaster, nameOf, scopeOf, fxPeople } from "./model.js";
 import { canReq } from "../../marketing-hub/crew.js";
-import { rtPairs, rtAiNow, rtSuggest, pairLabel, fxIdOf, rtKey, isFxKey } from "./airt.js";
+import { rtPairs, rtAiNow, rtSuggest, pairLabel, fxIdOf, rtKey, isFxKey, akKeys } from "./airt.js";
 import { brId } from "./routine.js";
 import { akWho } from "../../pour-os/src/actionKpi.js";
 
@@ -38,7 +38,7 @@ export function RtAiCard({ D, cu, A, open, rkey, name, brand, kind, owners }) {
     <Head>AI 크루</Head>
     <Card>
       {pairs.map((p) => <Row key={p.mate + p.act} title={pairLabel(p)} sub={stat(p)} onClick={() => open({ type: "aiMate", id: p.mate })}
-        right={canPair(cu, mates, p.mate) ? <Act onClick={() => A.rtPairMany([{ mate: p.mate, act: p.act, key: "" }], { text: `짝을 풀었어요 · ${pairLabel(p)}` })} aria-label={`${pairLabel(p)} 짝 풀기`}>짝 풀기</Act> : null} />)}
+        right={canPair(cu, mates, p.mate) ? <Act onClick={() => A.rtPairMany([{ mate: p.mate, act: p.act, key: "", drop: rkey }], { text: `짝을 풀었어요 · ${pairLabel(p)}` })} aria-label={`${pairLabel(p)} 짝 풀기`}>짝 풀기</Act> : null} />)}
       {ai && ai.wait.length > 0 && <Row tag="내 차례" title={`확인할 결과 ${ai.wait.length}건`} sub={ai.wait[0].title} onClick={() => open({ type: "aiask", id: ai.wait[0].id })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} />}
       {ai && ai.exec.length > 0 && <Row tag="실행" title={`실행 업무 ${ai.exec.length}건`} sub={`[했어요]마다 여기 ${what} · ${ai.exec[0].title}`} onClick={() => open({ type: "task", id: ai.exec[0].id })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} />}
       {!pairs.length && <Row title="도와주는 AI 크루가 아직 없어요" sub={sug ? `추천 · ${pairLabel(sug)}` : "AI 팀원 화면의 할 일마다 '반복 실행 짝'을 정해요"}
@@ -76,20 +76,32 @@ export function AiPairPanel({ D, cu, A, open, rows }) {
       </div>)}
       {shownP.map((r) => <div key={r.key} className="a-rtsrow">
         <button type="button" className="a-rtname" onClick={() => go(r)}><b>{r.name}</b><small>AI {P.get(r.key).map(pairLabel).join(" · ")}</small></button>
-        {P.get(r.key).every((p) => canPair(cu, mates, p.mate)) && <div className="a-rtschips" role="group" aria-label={`${r.name} AI 짝 풀기`}><button type="button" disabled={busy} onClick={() => run(P.get(r.key).map((p) => ({ mate: p.mate, act: p.act, key: "" })))}>풀기</button></div>}
+        {P.get(r.key).every((p) => canPair(cu, mates, p.mate)) && <div className="a-rtschips" role="group" aria-label={`${r.name} AI 짝 풀기`}><button type="button" disabled={busy} onClick={() => run(P.get(r.key).map((p) => ({ mate: p.mate, act: p.act, key: "", drop: r.key })))}>풀기</button></div>}
       </div>)}
       {paired.length > 4 && <button type="button" className="a-rtmore" onClick={() => setAll(!all)}>{all ? "접기 ▴" : `짝 지은 것 ${paired.length - 4}개 더 ▾`}</button>}
       <div className="a-rtsnote">짝이면 AI 결과를 최종 승인한 뒤 실행 업무 번호마다 [했어요] = 그 반복 실행 +1 (정한 날 체크는 오늘 체크) · 추천은 이름 낱말로 고른 것이라 맞지 않으면 [풀기] · 결과 확인·실행은 반복 실행 담당 한 명에게 · 5초 안에 되돌릴 수 있어요</div></>}
   </div>;
 }
 
+// AI 팀원 할 일 '반복 실행 짝' 여러 개 (2026-10-17 · 할 일 하나 ↔ 반복업무 여러 개) — 고른 것은 칩(✕ 빼기) + [+ 반복 실행 더하기] 고르기
+//   [했어요]는 누른 사람이 그 반복업무 담당인 것만 셈 · 담당이 다른 반복업무가 있으면 최종 승인 때 그 사람 몫 실행 업무도 생김
+export function RtMulti({ D, value, onChange, label }) {
+  const rows = useMemo(() => rtRows(D), [D.ak, D.tasks]), ks = akKeys(value);
+  const nameOf2 = (k) => { const r = rows.find((x) => x.key === k); return r ? r.name : isFxKey(k) ? "(없앤 체크)" : "(없앤 반복 실행)"; };
+  return <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }} aria-label={label}>
+    {ks.map((k) => <span key={k} className="v2-chip on" style={{ display: "inline-flex", alignItems: "center", gap: 4, maxWidth: "100%" }}>
+      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 220 }}>{nameOf2(k)}</span>
+      <button type="button" onClick={() => onChange(ks.filter((x) => x !== k))} aria-label={`${label} 빼기 ${nameOf2(k)}`} style={{ border: "none", background: "none", color: "inherit", cursor: "pointer", fontWeight: 800, padding: "0 2px" }}>✕</button></span>)}
+    <RtSelect D={D} value="" exclude={ks} placeholder={ks.length ? "+ 더하기" : "없음"} onChange={(v) => v && onChange([...ks, v])} label={`${label} 더하기`} />
+  </div>;
+}
 // AI 팀원 할 일 '반복 실행 짝' 고르기 — 여러 번 하는 것 + 정한 날 체크(브랜드 정한 것·미정)
-export function RtSelect({ D, value, onChange, label }) {
+export function RtSelect({ D, value, onChange, label, exclude, placeholder }) {
   const rows = useMemo(() => rtRows(D), [D.ak, D.tasks]);
-  const ak = rows.filter((r) => r.kind === "ak"), fx = rows.filter((r) => r.kind === "fx").sort((a, b) => a.name.localeCompare(b.name, "ko"));
+  const ex = new Set(exclude || []), ak = rows.filter((r) => r.kind === "ak" && !ex.has(r.key)), fx = rows.filter((r) => r.kind === "fx" && !ex.has(r.key)).sort((a, b) => a.name.localeCompare(b.name, "ko"));
   const has = !value || rows.some((r) => r.key === value);
   return <select value={value || ""} onChange={(e) => onChange(e.target.value)} aria-label={label} style={{ ...inp, width: "auto", maxWidth: 240, padding: "6px 8px", fontSize: 13 }}>
-    <option value="">없음</option>
+    <option value="">{placeholder || "없음"}</option>
     {!has && <option value={value}>{isFxKey(value) ? "(없앤 체크)" : "(없앤 반복 실행)"}</option>}
     {ak.length > 0 && <optgroup label="여러 번 하는 것">{ak.map((r) => <option key={r.key} value={r.key}>{r.name}</option>)}</optgroup>}
     {fx.length > 0 && <optgroup label="정한 날 체크">{fx.map((r) => <option key={r.key} value={r.key}>{r.name}</option>)}</optgroup>}

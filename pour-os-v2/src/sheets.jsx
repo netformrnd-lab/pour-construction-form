@@ -13,6 +13,7 @@ import { AiReportSheet } from "./aireport.jsx";
 import { ApprSheet, ApprOneSheet } from "./apprui.jsx";
 import { Sheet, Empty } from "./ui.jsx";
 import { DevReqSheet } from "./devreq.jsx";
+import { FeedSheet } from "./feedui.jsx";
 
 // extra: { [type]: (props, s) => element } — 관리자 앱 등에서 시트 종류를 덧붙일 때
 // 시트마다 key(깊이·종류·id) → 업무에서 다른 업무로 넘어가도 앞 업무에 쓰던 글·고른 것·스크롤이 따라가지 않음
@@ -53,6 +54,7 @@ function route(s, p, extra) {
   if (s.type === "appr") return <ApprSheet {...p} s={s} />;
   if (s.type === "apprOne") return <ApprOneSheet {...p} id={s.id} item={s.item} />;
   if (s.type === "aiReport") return <AiReportSheet {...p} crew={s.crew} start={s.start} />;   // AI 크루 보고서 (2026-10-15 · 크루 칸별 · 금요일 리드 → 본부장)
+  if (s.type === "feeds") return <FeedSheet {...p} />;   // 결과 숫자 · 들어온 날 (2026-10-17 · feedui.jsx)
   return null;
 }
 

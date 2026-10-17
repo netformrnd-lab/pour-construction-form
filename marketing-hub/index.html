@@ -63,6 +63,7 @@ a.btn{display:inline-block;text-decoration:none;text-align:center}
 #obsidian-send{width:100%;max-width:360px;padding:12px}
 .btn:disabled{opacity:.5}
 .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+.feeds{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin:-4px 0 14px;font-size:12.5px}.feeds .feed{background:#fff;border:1px solid var(--border);border-radius:999px;padding:3px 10px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}.feeds .feed.bad{border-color:#F3C2C2;background:var(--red-l);color:var(--red)}
 .kpi{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:14px}
 .kpi .l{font-size:12px;color:var(--text-md)}.kpi .v{font-size:22px;font-weight:800;margin-top:4px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
@@ -226,7 +227,7 @@ const fmtTs=(t)=>{const m=tsMs(t);if(!m)return '-';const d=new Date(m+9*3600e3);
 const HASH_TAB={'#voc':'voc','#team':'team'}; // 업무OS 바로가기 (…/marketing-hub/#voc)
 const HASH_NOTE=/^#note-(.+)$/.exec(location.hash); // AI 승인 '결과 전체 보기' (…/marketing-hub/#note-<노트 id>) → AI 팀 탭 + 그 노트
 const LS=(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:v;}catch(e){return d;}}, LSset=(k,v)=>{try{localStorage.setItem(k,v);}catch(e){}};
-const S={autoCat:LS('mkt_auto_cat','all'),autoSt:LS('mkt_auto_st','all'),autoTrace:{},user:null,tab:HASH_TAB[location.hash]||(HASH_NOTE?'team':'home'),roles:null,settings:{...DEFAULT_SET},sales:[],ads:[],stock:[],log:[],voc:[],links:[],asks:[],osUsers:[],team:{},msg:null,temp:null,busy:false,note:null,pub:[],chcfg:{}};
+const S={autoCat:LS('mkt_auto_cat','all'),autoSt:LS('mkt_auto_st','all'),autoTrace:{},user:null,tab:HASH_TAB[location.hash]||(HASH_NOTE?'team':'home'),roles:null,settings:{...DEFAULT_SET},sales:[],ads:[],stock:[],log:[],voc:[],links:[],asks:[],osUsers:[],team:{},msg:null,temp:null,busy:false,note:null,pub:[],chcfg:{},auto:{},riskLinks:[],autoErr:''};
 
 /* ── 로그인 ── */
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(e=>console.error('[auth] persistence',e));
@@ -349,7 +350,18 @@ async function loadData(){
     S.sales=sa.docs.map(d=>d.data()); S.ads=ad.docs.map(d=>d.data()); S.stock=stk.docs.map(d=>d.data());
     console.log(`[${COLL.sales}] ${S.sales.length}건 · [${COLL.ads}] ${S.ads.length}건 · [${COLL.stock}] ${S.stock.length}건`);
   }catch(e){console.error('[데이터] 로드 실패',e);setMsg('err','데이터 불러오기 실패: '+(e.code||e.message));}
+  await loadAuto();
   await loadTeamVoc();
+}
+// ③ 결과 숫자 (업무OS · 2026-10-17): 자동 판매(업무OS 관리자 기기·CRM 이 3시간마다 · pour-os/v2/salesdays 두 장) + CRM 재고 위험(links kind lowStock)
+//   실패해도 업로드 숫자 화면은 그대로 (요약에 '자동 판매 못 불러옴')
+const v2Col=(n)=>db.collection('pour-os').doc('v2').collection(n);
+async function loadAuto(){
+  try{
+    const [sd,lk]=await Promise.all([v2Col('salesdays').get(),v2Col('links').where('kind','==','lowStock').get()]);
+    S.auto=Object.fromEntries(sd.docs.map(d=>[d.id,d.data()]));S.riskLinks=lk.docs.map(d=>d.data());S.autoErr='';
+    console.log(`[salesdays] ${sd.size}장 (${Object.values(S.auto).map(x=>`${x.id||''} ${x.to||'-'}까지`).join(' · ')}) · [links lowStock] ${lk.size}건`);
+  }catch(e){console.error('[자동 판매·재고 위험] 로드 실패',e);S.autoErr=e.code||e.message||'실패';}
 }
 // AI 팀 · 고객의 소리 (따로 — 실패해도 숫자 화면엔 영향 없음)
 async function loadTeamVoc(){
@@ -395,9 +407,27 @@ async function syncVocLinks(){
 
 /* ── 계산 (화면용) ── */
 // 계산은 core.js (매일 숫자 작업 scripts/mkt-numbers 와 같은 식)
-const stockRows=()=>C.stockRows(S.stock,S.sales,S.settings);
-const salesRows=()=>C.salesRows(S.sales,todayKST());
-const dailyRevenue=()=>C.dailyRevenue(S.sales,todayKST());
+// ③ 판매 = 자동(CRM · 그로홈 대시보드) + 카페24 리포트(Aside · CRM 숫자 없는 날만) · 재고 리포트가 오래되면 CRM 재고 위험
+const allSales=()=>C.mergeSales(S.sales,C.autoSalesRows(S.auto));
+const stockRows=()=>C.stockRows(S.stock,allSales(),S.settings);
+const salesRows=()=>C.salesRows(allSales(),todayKST());
+const dailyRevenue=(b)=>C.dailyRevenue(b?allSales().filter(x=>x.brand===b):allSales(),todayKST());
+const brandSales=()=>C.brandSales(allSales(),S.auto,todayKST());
+const riskRows=()=>C.crmRiskRows(S.riskLinks);
+const lastOf=(rows,f)=>(rows||[]).reduce((m,x)=>(x[f]>m?x[f]:m),'');
+const agoOf=(to)=>C.daysSince(to,todayKST()), mdOf=(x)=>x?`${+x.slice(5,7)}/${+x.slice(8,10)}`:'';
+const stockOld=()=>{const t=lastOf(S.stock,'reportDate');return !t||agoOf(t)>C.STALE_STOCK;};
+// 최근 14일 판매 숫자가 하나도 없으면 '발주 필요'를 0 으로 세지 않음 (볼트 점검 P0-4 · 2026-10-17)
+const noSalesWin=()=>!allSales().some(x=>x.reportDate>=C.addDays(todayKST(),-14));
+// 숫자 들어온 날 한 줄 (비면 '없음' · 오래되면 'n일째' 빨강)
+function feedStrip(){
+  const lastUp=S.log.reduce((m,x)=>Math.max(m,tsMs(x.uploadCreatedAt)),0), b=brandSales();
+  const it=(l,to,warnAt,none)=>{const g=to?agoOf(to):null,bad=!to||g>=warnAt;return `<span class="feed${bad?' bad':''}">${esc(l)} <b>${to?`${mdOf(to)}${g>=warnAt?` · ${g}일째`:''}`:esc(none||'없음')}</b></span>`;};
+  return `<div class="feeds" role="note" aria-label="숫자 들어온 날"><span class="sub">숫자 들어온 날</span>
+    ${b.map(x=>it(`${x.label} 판매 (${x.brand==='pourstore'?'CRM':'그로홈 대시보드'})`,x.to,C.STALE_SALES,S.autoErr?'못 불러옴':'아직 없음')).join('')}
+    ${it('카페24 리포트 (Aside)',lastOf(S.sales,'reportDate'),2,'없음')}${it('재고 리포트 (Aside)',lastOf(S.stock,'reportDate'),C.STALE_STOCK+1,'없음')}${it('광고 리포트 (Aside)',lastOf(S.ads,'reportDate'),2,'없음')}
+    <span class="feed"><span class="sub">마지막 업로드</span> <b>${lastUp?fmtTs(lastUp):'없음'}</b></span></div>`;
+}
 const pct=(a,b)=>b>0?Math.round((a-b)/b*100):null;
 const chName=(id)=>(C.channelOf(id)||{label:id}).label;
 
@@ -419,17 +449,20 @@ document.addEventListener('click',(e)=>{const o=e.target.closest('#obs-hub');if(
 document.addEventListener('click',(e)=>{const t=e.target.closest('[data-tab]');if(t){if(TAB_LINK[t.dataset.tab]){location.href=TAB_LINK[t.dataset.tab];return;}S.tab=t.dataset.tab;render();window.scrollTo(0,0);}});
 
 function vHome(){
-  const st=stockRows(), need=st.filter(r=>r.reorderNeeded), adv=C.keywordAdvice(S.ads,S.settings);
-  const dr=dailyRevenue(), r7=dr.slice(7).reduce((a,x)=>a+x.v,0), rp=dr.slice(0,7).reduce((a,x)=>a+x.v,0), p=pct(r7,rp);
+  const st=stockRows(), need=st.filter(r=>r.reorderNeeded), adv=C.keywordAdvice(S.ads,S.settings), risk=riskRows(), noS=noSalesWin(), useRisk=(stockOld()||noS)&&!!S.riskLinks.length;
   const fails=S.log.filter(x=>x.result==='fail'&&tsMs(x.uploadCreatedAt)>Date.now()-7*864e5).length;
-  const lastUp=S.log.reduce((m,x)=>Math.max(m,tsMs(x.uploadCreatedAt)),0);
+  // ③ 매출 = 브랜드별 자동(CRM · 그로홈 대시보드) · 숫자가 없으면 0원이 아니라 '없음'
+  const bk=(b)=>{const p=pct(b.r7,b.rp7);return `<div class="kpi"><div class="l">${esc(b.label)} 7일 매출</div><div class="v">${b.to?won(b.r7):'<span class="sub" style="font-size:15px">판매 숫자 없음</span>'}</div>
+    <div class="sub">${b.to?`${p==null?'전주 기록 없음':`전주 대비 <span class="${p>=0?'up':'down'}">${p>=0?'▲':'▼'}${Math.abs(p)}%</span>`} · ${mdOf(b.to)}까지`:esc(b.brand==='pourstore'?'CRM 을 열면 3시간마다 들어와요':'업무OS(관리자)를 열면 3시간마다 들어와요')}</div></div>`;};
   return `<div class="kpis">
-    <div class="kpi"><div class="l">최근 7일 매출 (카페24)</div><div class="v">${won(r7)}</div><div class="sub">${p==null?'전주 기록 없음':`전주 대비 <span class="${p>=0?'up':'down'}">${p>=0?'▲':'▼'}${Math.abs(p)}%</span>`}</div></div>
-    <div class="kpi"><div class="l">발주 필요 품목</div><div class="v" style="color:${need.length?'var(--red)':'inherit'}">${need.length}</div><div class="sub">재고 ${st.length}개 중</div></div>
-    <div class="kpi"><div class="l">끌 키워드 · 줄일 키워드</div><div class="v">${adv.off.length} · ${adv.down.length}</div><div class="sub">최근 ${S.settings.adsDays}일 기준</div></div>
-    <div class="kpi"><div class="l">마지막 업로드</div><div class="v" style="font-size:16px">${lastUp?fmtTs(lastUp):'없음'}</div><div class="sub">${fails?`<span class="down">최근 7일 실패 ${fails}건</span>`:'최근 7일 실패 없음'}</div></div></div>
+    ${brandSales().map(bk).join('')}
+    ${useRisk?`<div class="kpi"><div class="l">CRM 재고 위험</div><div class="v" style="color:${risk.length?'var(--red)':'inherit'}">${risk.length}</div><div class="sub">CRM 재고 계산기 · 재고 리포트(Aside) ${lastOf(S.stock,'reportDate')?`${mdOf(lastOf(S.stock,'reportDate'))} · ${agoOf(lastOf(S.stock,'reportDate'))}일째`:'없음'}</div></div>`
+      :`<div class="kpi"><div class="l">발주 필요 품목</div><div class="v" style="color:${!noS&&need.length?'var(--red)':'inherit'}">${noS?'<span class="sub" style="font-size:15px">판매 숫자 없음 · 계산 안 함</span>':need.length}</div><div class="sub">재고 ${st.length}개 중${fails?` · <span class="down">업로드 실패 ${fails}건</span>`:''}</div></div>`}
+    <div class="kpi"><div class="l">끌 키워드 · 줄일 키워드</div><div class="v">${S.ads.length?`${adv.off.length} · ${adv.down.length}`:'<span class="sub" style="font-size:15px">광고 리포트 없음</span>'}</div><div class="sub">최근 ${S.settings.adsDays}일 기준</div></div></div>
+  ${feedStrip()}
   <div class="grid2">
-    <div class="card"><h3>🔴 발주 필요 <span class="sub">레오</span><span class="sp"></span><button class="btn sm" data-tab="stock">전체 ›</button></h3>${stockTable(need.slice(0,8),true)}</div>
+    ${useRisk?`<div class="card"><h3>🔴 재고 위험 <span class="sub">CRM 재고 계산기 · 레오</span><span class="sp"></span><button class="btn sm" data-tab="stock">전체 ›</button></h3>${riskTable(risk.slice(0,8))}</div>`
+      :`<div class="card"><h3>🔴 발주 필요 <span class="sub">레오</span><span class="sp"></span><button class="btn sm" data-tab="stock">전체 ›</button></h3>${noS?'<div class="empty">판매 숫자가 없어 발주 필요를 계산하지 않았습니다 (0개가 아님) · CRM 을 열거나 Aside 판매 업로드를 확인</div>':stockTable(need.slice(0,8),true)}</div>`}
     <div class="card"><h3>✂️ 끌 키워드 <span class="sub">케이</span><span class="sp"></span><button class="btn sm" data-tab="ads">전체 ›</button></h3>${advList(adv.off.slice(0,8))}</div></div>
   ${homeTeamVoc()}
   <div class="card"><h3>🟣 옵시디언</h3><div class="bd">
@@ -440,7 +473,7 @@ function vHome(){
 // 기본 = 빈칸(옵시디언에 지금 열린 볼트) — 아이폰에서 볼트 이름을 넣으면 노트가 안 생기고 빈칸이면 됨(2026-10-09 사용자 확인)
 function obsVault(){try{const v=localStorage.getItem('mkt_obsidian_vault');return v==null?'':v;}catch(e){return '';}}
 function obsHubDone(){try{return localStorage.getItem('mkt_obsidian_hub')==='1';}catch(e){return false;}}
-function obsidianText(){return C.numbersNote({sales:S.sales,ads:S.ads,stock:S.stock,voc:S.voc,settings:S.settings,today:todayKST()});}
+function obsidianText(){return C.numbersNote({sales:S.sales,ads:S.ads,stock:S.stock,voc:S.voc,settings:S.settings,today:todayKST(),auto:S.auto,links:S.riskLinks});}
 function obsidianLink(){return C.obsidianUri(obsVault(),C.OBSIDIAN_NOTE,obsidianText(),'overwrite');}
 function stockTable(rows,short){
   if(!rows.length)return `<div class="empty">${S.stock.length?'발주할 품목이 없습니다':'재고 리포트가 아직 없습니다'}</div>`;
@@ -449,9 +482,15 @@ function stockTable(rows,short){
     <td class="n">${num(r.available)}</td><td class="n">${num(r.avgDailySales,1)}</td><td class="n">${r.daysLeft==null?'<span class="sub">판매 없음</span>':num(r.daysLeft,1)+'일'}</td>
     ${short?'':`<td class="n">${r.leadTimeDays}일</td>`}<td class="n"><b>${r.reorderQty?num(r.reorderQty):'-'}</b></td>${short?'':`<td>${esc(r.reportDate)}</td>`}</tr>`).join('')}</tbody></table></div>`;
 }
+// CRM 재고 위험 표 (③ · 상품 · 남은 재고 · 기준 · 원가 없음)
+function riskTable(rows){
+  if(!rows.length)return `<div class="empty">${S.autoErr?'CRM 재고 위험을 못 불러왔습니다':'CRM 재고 위험 품목이 없습니다'}</div>`;
+  return `<div class="tbl"><table><thead><tr><th>상품</th><th>남은 재고 · 위험 기준</th></tr></thead><tbody>${rows.map(r=>`<tr><td><span class="pill err">위험</span> ${esc(r.name)}</td><td>${esc(r.sub)}</td></tr>`).join('')}</tbody></table></div>`;
+}
 function vStock(){
-  const rows=stockRows();
-  return `<div class="card"><h3>📦 재고·발주 <span class="sub">남은 일수 ≤ 리드타임 + 안전재고 ${S.settings.safetyDays}일 → 발주 · 발주 수량 = (리드타임+30일)×일평균 − 가용재고</span><span class="sp"></span>
+  const rows=stockRows(), risk=riskRows(), t=lastOf(S.stock,'reportDate');
+  return `${S.riskLinks.length||S.autoErr?`<div class="card"><h3>🔴 CRM 재고 위험 ${risk.length} <span class="sub">CRM 재고 발주 계산기 '위험' 그대로 · 발주는 CRM 입고 요청</span><span class="sp"></span><button class="btn sm" data-copy="risk">📋 표 복사</button></h3>${riskTable(risk)}</div>`:''}
+  <div class="card"><h3>📦 재고·발주 <span class="sub">${t?`재고 리포트(Aside) ${mdOf(t)}${stockOld()?` · <span class="down">${agoOf(t)}일째 새 리포트 없음</span>`:''} · `:''}${noSalesWin()?'<span class="down">최근 14일 판매 숫자 없음 → 남은 일수·발주 계산 안 함</span> · ':''}남은 일수 ≤ 리드타임 + 안전재고 ${S.settings.safetyDays}일 → 발주 · 발주 수량 = (리드타임+30일)×일평균 − 가용재고</span><span class="sp"></span>
     <button class="btn sm" data-copy="stock">📋 표 복사</button></h3>${stockTable(rows,false)}</div>`;
 }
 function advList(list){
@@ -468,14 +507,16 @@ function vAds(){
   <div class="card"><h3>✂️ 끌 키워드 ${a.off.length}<span class="sp"></span><button class="btn sm" data-copy="ads">📋 케이에게 줄 표 복사</button></h3>${advList(a.off)}</div>`;
 }
 function vSales(){
-  const rows=salesRows(), dr=dailyRevenue(), max=Math.max(1,...dr.map(x=>x.v));
-  const bars=`<div class="tbl"><div style="display:flex;align-items:flex-end;gap:6px;height:120px;min-width:420px;padding:10px 4px 0">${dr.map(x=>`<div style="flex:1;text-align:center" title="${x.d} ${won(x.v)}원">
-    <div style="height:${Math.round(x.v/max*90)}px;background:var(--accent);border-radius:3px 3px 0 0;min-height:${x.v?2:0}px"></div><div class="sub" style="font-size:10px;margin-top:3px">${x.d.slice(8)}</div></div>`).join('')}</div></div>`;
-  return `<div class="card"><h3>📈 일별 매출 (최근 14일)</h3><div class="bd">${S.sales.length?bars:'<div class="empty">판매 리포트가 아직 없습니다</div>'}</div></div>
+  const rows=salesRows(), all=allSales();
+  // ③ 브랜드마다 14일 막대 (CRM · 그로홈 대시보드 + 카페24 리포트(Aside) 없는 날) — 숫자가 없는 브랜드는 '판매 숫자 없음'
+  const bars=(b)=>{const dr=dailyRevenue(b.brand), max=Math.max(1,...dr.map(x=>x.v));
+    return `<div class="card"><h3>📈 ${esc(b.label)} 일별 매출 <span class="sub">최근 14일 · ${b.brand==='pourstore'?'CRM · 전 채널':'그로홈 대시보드 · 전 채널'}${b.to?` · ${mdOf(b.to)}까지`:''}</span></h3><div class="bd">${b.to?`<div class="tbl"><div style="display:flex;align-items:flex-end;gap:6px;height:120px;min-width:420px;padding:10px 4px 0">${dr.map(x=>`<div style="flex:1;text-align:center" title="${x.d} ${won(x.v)}원">
+    <div style="height:${Math.round(x.v/max*90)}px;background:var(--accent);border-radius:3px 3px 0 0;min-height:${x.v?2:0}px"></div><div class="sub" style="font-size:10px;margin-top:3px">${x.d.slice(8)}</div></div>`).join('')}</div></div>`:'<div class="empty">판매 숫자가 아직 없습니다</div>'}</div></div>`;};
+  return `${brandSales().map(bars).join('')}
   <div class="card"><h3>🛒 제품별 판매 <span class="sub">최근 7일 vs 그 전 7일</span><span class="sp"></span><button class="btn sm" data-copy="sales">📋 표 복사</button></h3>
-  ${rows.length?`<div class="tbl"><table><thead><tr><th>상품</th><th class="n">7일 수량</th><th class="n">7일 매출</th><th class="n">전주 수량</th><th class="n">변화</th></tr></thead><tbody>
-  ${rows.map(r=>{const p=pct(r.q7,r.qp);return `<tr><td>${esc(r.name||r.code)}${r.code&&r.name?` <span class="sub">${esc(r.code)}</span>`:''}</td><td class="n">${num(r.q7)}</td><td class="n">${won(r.r7)}</td><td class="n">${num(r.qp)}</td>
-    <td class="n">${p==null?'-':`<span class="${p>=0?'up':'down'}">${p>=0?'▲':'▼'}${Math.abs(p)}%</span>`}</td></tr>`;}).join('')}</tbody></table></div>`:'<div class="empty">판매 리포트가 아직 없습니다</div>'}</div>`;
+  ${rows.length?`<div class="tbl"><table><thead><tr><th>상품</th><th>브랜드 · 채널</th><th class="n">7일 수량</th><th class="n">7일 매출</th><th class="n">전주 수량</th><th class="n">변화</th></tr></thead><tbody>
+  ${rows.map(r=>{const p=pct(r.q7,r.qp);return `<tr><td>${esc(r.name||r.code)}${r.code&&r.name?` <span class="sub">${esc(r.code)}</span>`:''}</td><td><span class="sub">${esc([C.BRAND_L[r.brand]||'',(r.chs||[]).slice(0,3).join('·')].filter(Boolean).join(' · '))}</span></td><td class="n">${num(r.q7)}</td><td class="n">${won(r.r7)}</td><td class="n">${num(r.qp)}</td>
+    <td class="n">${p==null?'-':`<span class="${p>=0?'up':'down'}">${p>=0?'▲':'▼'}${Math.abs(p)}%</span>`}</td></tr>`;}).join('')}</tbody></table></div>`:`<div class="empty">${all.length?'최근 14일 판매가 없습니다':'판매 숫자가 아직 없습니다 · CRM·업무OS(관리자)를 열면 3시간마다 들어와요'}</div>`}</div>`;
 }
 function vLog(){
   const rows=[...S.log].sort((a,b)=>tsMs(b.uploadCreatedAt)-tsMs(a.uploadCreatedAt));
@@ -871,7 +912,8 @@ async function copyTable(kind){
   if(kind==='stock')rows=[['상품코드','상품명','가용재고','일평균','남은일수','리드타임','발주필요','발주수량','기준일'],...stockRows().map(r=>[r.productCode,r.productName,r.available,r.avgDailySales,r.daysLeft==null?'':r.daysLeft,r.leadTimeDays,r.reorderNeeded?'Y':'',r.reorderQty,r.reportDate])];
   else if(kind==='ads'){const a=C.keywordAdvice(S.ads,S.settings);rows=[['판단','채널','캠페인','키워드','노출','클릭','비용','전환매출','ROAS%'],...[['올리기',a.up],['줄이기',a.down],['끄기',a.off],['유지',a.keep]].flatMap(([l,list])=>list.map(d=>[l,chName(d.channel),d.campaign,d.keyword,d.impressions,d.clicks,Math.round(d.cost),Math.round(d.revenue),d.roas]))];}
   else if(kind==='voc')rows=[['날짜','제품','종류','들은곳','내용','끝남'],...S.voc.map(v=>[v.date,v.product,v.type,v.source,v.text,v.resolved?'Y':''])];
-  else rows=[['상품코드','상품명','7일수량','7일매출','전주수량'],...salesRows().map(r=>[r.code,r.name,r.q7,Math.round(r.r7),r.qp])];
+  else if(kind==='risk')rows=[['상품','남은재고·기준'],...riskRows().map(r=>[r.name,r.sub])];
+  else rows=[['브랜드','상품코드','상품명','채널','7일수량','7일매출','전주수량'],...salesRows().map(r=>[C.BRAND_L[r.brand]||'',r.code,r.name,(r.chs||[]).join('·'),r.q7,Math.round(r.r7),r.qp])];
   const tsv=rows.map(r=>r.map(c=>String(c==null?'':c).replace(/[\t\n]/g,' ')).join('\t')).join('\n');
   try{await navigator.clipboard.writeText(tsv);setMsg('ok',`${rows.length-1}줄을 복사했습니다 (Claude·옵시디언에 붙여넣기)`);}
   catch(e){console.error('[복사] 실패',e);setMsg('err','복사 실패 — 브라우저가 클립보드를 막았습니다');}

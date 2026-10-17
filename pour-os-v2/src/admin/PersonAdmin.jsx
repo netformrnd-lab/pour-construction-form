@@ -1,10 +1,11 @@
 // 관리자 · 사람 보기 (넓힌 판) — 실사용판 내용(지금 하는 일 · 다음 할 일 · 2주 띠 · 책임 프로젝트 · 최근 대화)에 더해
 // 열린 · 지남 · 곧 마감인데 시작 전 · 진행 중 · 최근 30일 기한 지킴 % · 기한 없음 · 이 사람을 기다리는 뒤 일 · 주 한도 · PIN 초기화 · [이 사람에게 맡기기]
 // 새로 저장하는 개인 평가 값은 없다 (있는 데이터에서 계산만). 주 한도(users.weekCap)·PIN 초기화만 users 문서에 씀
+// 결과 KPI 넣기 권한(users.perms.kpiLag · ③ 결과 숫자 2026-10-17 볼트 점검 "결과 KPI 넣기가 마스터만 → 전환율 담당 김민지가 못 넣음") — 관리자가 켜고 끔
 import { useState } from "react";
 import * as fb from "../fb.js";
 import { pinHash } from "../sha.js";
-import { ymd, ddays, ddayLabel, md, ago, hm, isDone, isOneOff, isMine, ownersOf, dueOf, nameOf, riskOf, projOpen, personHealth, onTimeOf, fxIsMine, fxDueOn, fxMeDone, fxLabel, fxTime, TEAMS, teamOf, DEFAULT_TEAMS, projLabelOf } from "../model.js";
+import { ymd, ddays, ddayLabel, md, ago, hm, isDone, isOneOff, isMine, ownersOf, dueOf, nameOf, riskOf, projOpen, personHealth, onTimeOf, fxIsMine, fxDueOn, fxMeDone, fxLabel, fxTime, TEAMS, teamOf, DEFAULT_TEAMS, projLabelOf, isMaster } from "../model.js";
 import { nextsOf } from "../turn.js";
 import { C, Big, TBtn, Act, Head, Card, Row, Empty, Sheet, Ask, More, inp, Chip } from "../ui.jsx";
 import { Lv, pName } from "./common.jsx";
@@ -29,6 +30,11 @@ export function PersonAdmin({ D, cu, A, idx, open, onBack, onClose, id, setToast
   const fx = D.tasks.filter((t) => t.isFixed && !t.paused && fxIsMine(t, u.id) && fxDueOn(t, key));
   const talk = D.notes.filter((n) => n.by === u.id && !n.deleted).sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, 5);
   const curCap = Number(u.weekCap) || 15;
+  // 결과 KPI 넣기 (perms.kpiLag) — 연 때 본 값 그대로일 때만(patchIf) · 기록 · 5초 되돌리기
+  const lagOn = !!(u.perms && u.perms.kpiLag === true);
+  const toggleLag = async () => { if (busy) return; setBusy(true); const next = !lagOn;
+    try { const ok = await A.setPerm(u, "kpiLag", next, lagOn); if (ok === false) return; }
+    finally { setBusy(false); } };
   const saveCap = async () => { const v = Math.round(Number(cap)); if (!v || v < 1 || v > 99) { setToast({ text: "1~99 사이 숫자로 넣어 주세요" }); return; }
     setBusy(true);
     try { await fb.patch("users", u._doc || u.id, { weekCap: v }); A.log("edit", { col: "users", targetId: u.id, label: `${u.name} · 주 한도 ${curCap} → ${v}`, prev: curCap }); setToast({ text: `${u.name}님 주 한도를 ${v}건으로 바꿨어요` }); setCap(""); }
@@ -78,6 +84,10 @@ export function PersonAdmin({ D, cu, A, idx, open, onBack, onClose, id, setToast
     </Card>
     <Head>상급자 (AI 승인 길)</Head>
     <BossCard D={D} cu={cu} A={A} u={u} />
+    {!isMaster(u) && <><Head>결과 KPI 넣기</Head>
+    <Card style={{ padding: "12px 14px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+      <div style={{ flex: "1 1 200px", fontSize: 13.5, color: C.text, lineHeight: 1.6 }}>월말 결과 KPI(유입·전환율·재구매율…) 값을 넣을 수 있어요 · 지금 <b>{lagOn ? "켬" : "끔"}</b><div style={{ fontSize: 12.5, color: C.mute }}>관리자는 늘 넣어요 · 켜면 그 사람 '확인할 것'에 월말 넣기 줄이 떠요</div></div>
+      <Act onClick={toggleLag} style={busy ? { opacity: 0.5 } : lagOn ? undefined : { background: C.navy, color: "#fff", borderColor: C.navy }} aria-pressed={lagOn}>{lagOn ? "끄기" : "켜기"}</Act></Card></>}
     <Head>주 한도</Head>
     <Card style={{ padding: "12px 14px" }}>
       <div style={{ fontSize: 13.5, color: C.text, lineHeight: 1.6 }}>한 주 마감이 <b>{curCap}건</b>을 넘으면 사람 표에서 숫자가 빨갛게 보여요{u.weekCap ? "" : " (기본값)"}.</div>

@@ -180,6 +180,33 @@ const ghBody = '설명\n'.repeat(20) + '[링크: 구매 → https://grohome.co.k
 eq('구조 검사: 그로홈은 마지막 구매 링크 하나면 됨', ['GH 1. 녹 칠하기 — 그로홈 · [[GH-P011]]', '1. 옥상 — POUR스토어'].map((h) => C.blogCheck({ channel: 'naver_blog', heading: h, body: ghBody, tags: [] }).items.find((x) => x.k === 'cta').level), ['ok', 'warn']);
 const emptyN = C.numbersNote({ sales: [], ads: [], stock: [], voc: [], settings: {}, today: '2026-10-12' });
 eq('오늘 숫자: 리포트 없으면 0원이 아니라 없음', [emptyN.includes('판매 리포트 없음'), emptyN.includes('**0원**'), emptyN.includes('광고 리포트 없음'), /매출7일: \n/.test(emptyN)], [true, false, true, true]);
+// ③ 결과 숫자 (2026-10-17): 자동 판매(CRM · 그로홈 대시보드) · CRM 재고 위험 · 없음 n일째
+const AUTO = { 'crm-pourstore': { id: 'crm-pourstore', to: '2026-10-16', at: '2026-10-17T00:00:00Z', days: { '2026-10-16': [{ c: '자사몰', p: '만능 방수 페인트 4kg', q: 3, r: 117000 }, { c: '전화', p: '옥상 방수 세트', q: 1, r: 250000 }], '2026-10-08': [{ c: '쿠팡', p: '만능 방수 페인트 4kg', q: 1, r: 39000 }] } },
+  grohome: { id: 'grohome', to: '2026-10-12', days: { '2026-10-12': [{ c: '쿠팡', p: '유리블러 페인트', q: 2, r: 72000 }] } } };
+const ar = C.autoSalesRows(AUTO);
+eq('자동 판매 → 판매 줄 (브랜드 · 채널 · 원가 없음)', [ar.length, ar[0].brand, ar[0].channel, ar[0].chLabel, ar[0].productKey, ar.find((x) => x.brand === 'grohome').revenue, Object.keys(ar[0]).some((k) => /cost|원가|supply/i.test(k))], [4, 'pourstore', 'pourstore:자사몰', '자사몰', 'name:만능방수페인트4kg', 72000, false]);
+const up = [{ reportDate: '2026-10-16', channel: 'cafe24', productName: '만능 방수 페인트 4kg', qty: 9, revenue: 999 }, { reportDate: '2026-10-15', channel: 'cafe24', productName: '만능 방수 페인트 4kg', qty: 1, revenue: 39000 }];
+const mg = C.mergeSales(up, ar);
+eq('합치기: CRM 숫자가 있는 날(10/16)의 카페24 리포트는 뺌 · 없는 날(10/15)은 씀 · 카페24 = POUR스토어', [mg.length, mg.filter((x) => x.channel === 'cafe24').map((x) => x.reportDate), mg.find((x) => x.channel === 'cafe24').brand, mg.find((x) => x.channel === 'cafe24').chLabel], [5, ['2026-10-15'], 'pourstore', '카페24 판매']);
+const bs = C.brandSales(mg, AUTO, '2026-10-17');
+eq('브랜드별 7일 · 전주 · 마지막 날', bs.map((b) => [b.label, b.r7, b.rp7, b.to]), [['POUR스토어', 406000, 39000, '2026-10-16'], ['그로홈', 72000, 0, '2026-10-12']]);
+eq('브랜드: 자동 없으면 to 빈칸', C.brandSales([], {}, '2026-10-17').map((b) => b.to), ['', '']);
+const LK = [{ kind: 'lowStock', open: true, title: '롤러 미니 재고 위험', sub: '남음 3개 · 위험 기준 10' }, { kind: 'lowStock', open: false, title: '닫힌 것 재고 위험' }, { kind: 'recall', open: true, title: '홍길동' }, { kind: 'lowStock', open: true, title: '가나다 페인트 재고 위험', sub: '남음 0개 · 위험 기준 5' }];
+eq('CRM 재고 위험: 열린 것만 · 이름 순 · 이름에서 "재고 위험" 뺌', C.crmRiskRows(LK).map((r) => [r.name, r.sub]), [['가나다 페인트', '남음 0개 · 위험 기준 5'], ['롤러 미니', '남음 3개 · 위험 기준 10']]);
+eq('며칠 지남', [C.daysSince('2026-10-07', '2026-10-17'), C.daysSince('', '2026-10-17'), C.daysSince('2026-10-17T09:00:00Z', '2026-10-17')], [10, null, 0]);
+const an = C.numbersNote({ sales: [], ads: [], stock: [{ reportDate: '2026-10-07', productName: '롤러 미니', available: 3 }], voc: [], settings: {}, today: '2026-10-17', auto: AUTO, links: LK });
+eq('오늘 숫자(자동): 브랜드별 매출 · 그로홈 5일째 · 카페24 없음 · CRM 재고 위험 2 · 매출7일 합 · 발주필요 = 위험 수',
+  [an.includes('- 최근 7일 매출 · POUR스토어 (CRM · 전 채널): **367,000원** (전주 대비 ▲841%) · 10/16까지'), an.includes('그로홈 (그로홈 대시보드 · 전 채널): **72,000원** (전주 대비 -) · 10/12까지 · ⚠️ 5일째 새 판매 없음'),
+    an.includes('- 카페24 리포트(Aside): 없음'), an.includes('- 재고: CRM 재고 위험 **2개** (CRM 재고 계산기) · 재고 리포트(Aside) 10/7 · 10일째'), an.includes('| 가나다 페인트 | 남음 0개 · 위험 기준 5 |'),
+    /매출7일: 439000\n/.test(an), /발주필요: 2\n/.test(an), an.includes('| POUR스토어 | 옥상 방수 세트 | 1 | 250,000 | 0 | 전화 |'), an.includes('**0원**')],
+  [true, true, true, true, true, true, true, true, false]);
+const an0 = C.numbersNote({ sales: [], ads: [], stock: [], voc: [], settings: {}, today: '2026-10-17', auto: {}, links: [] });
+eq('오늘 숫자(자동 · 아무것도 없음): 판매 숫자 없음 · 0원 아님 · 매출7일 빈칸 · 발주 필요도 0 아님(계산 못 함)', [an0.includes('POUR스토어 (CRM · 전 채널): **판매 숫자 없음**'), an0.includes('**0원**'), /매출7일: \n/.test(an0), /발주필요: \n/.test(an0), an0.includes('발주 필요: **판매 숫자 없음** — 0개가 아니라 계산 못 함 (재고 리포트도 없음)'), an0.includes('판매 숫자가 없어 계산하지 않음')], [true, false, true, true, true, true]);
+// 재고 리포트는 새것인데 판매 숫자가 없음 → '발주 필요 0' 대신 CRM 재고 위험 (CRM 다리가 있으면) · 없으면 '판매 숫자 없음'
+const stk1 = [{ reportDate: '2026-10-16', productCode: 'P1', productName: '롤러', available: 3, leadTimeDays: 7 }];
+const an1 = C.numbersNote({ sales: [], ads: [], stock: stk1, voc: [], settings: {}, today: '2026-10-17', auto: {}, links: [{ kind: 'lowStock', open: true, title: '롤러 재고 위험', sub: '남은 3 · 기준 10' }] });
+const an2 = C.numbersNote({ sales: [], ads: [], stock: stk1, voc: [], settings: {}, today: '2026-10-17', auto: {}, links: [] });
+eq('재고 리포트 새것 + 판매 없음: CRM 재고 위험 1개 · 발주필요 1 / CRM 다리 없음: 판매 숫자 없음 · 발주필요 빈칸', [an1.includes('CRM 재고 위험 **1개**'), /발주필요: 1\n/.test(an1), an2.includes('발주 필요: **판매 숫자 없음**'), /발주필요: \n/.test(an2), /발주필요: 0/.test(an1 + an2)], [true, true, true, true, false]);
 // 전화 카드 (1:1 맞춤 시공 상담 = 전화 1800-8203 · 2026-10-12)
 const telB = C.postBlocks('[링크: 1:1 맞춤 시공 상담 → 1800-8203]\n[링크: 카카오톡 상담 → https://pf.kakao.com/_YAbxexj/chat]');
 eq('전화 카드: 번호 · 주소 확인 필요 아님', [telB[0].tel, telB[0].note, telB[1].url], ['1800-8203', undefined, 'https://pf.kakao.com/_YAbxexj/chat']);

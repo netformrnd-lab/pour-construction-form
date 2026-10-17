@@ -81,6 +81,7 @@ export async function txDocs(docs, fn) { guardWrite(); const curs = docs.map((d)
 // 버전1 읽기 (읽기만)
 export async function readV1State() { return clone(W.__V1_DATA || {}); }
 export async function readV1Launch() { return clone(W.__V1_LAUNCH || []); }
+export async function getHubNumbers() { if (W.__HUB_FAIL) throw new Error("시험: 허브 숫자 못 읽음"); return clone(W.__HUB_NUMBERS || { counts: {}, at: "" }); }   // 결과 숫자 (2026-10-17)
 export function listenV1Doc(id, cb) { setTimeout(() => cb(clone((W.__V1_DOCS || {})[id] || null)), 0); return () => {}; }
 export async function readV1Notes() { return clone(W.__V1_NOTES || []); }
 export function listenLaunch(cb) { setTimeout(() => { const a = clone(W.__V1_LAUNCH || []); a.structure = null; cb(a, false); }, 0); return () => {}; }

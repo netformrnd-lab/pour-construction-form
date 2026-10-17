@@ -46,6 +46,8 @@
 | `pour-os/marketing-hub/mkt-posts/{노트 id}~{n}` | 게시할 글 한 편 `{noteId, n, member, date, channel, heading, title, titleB, tags, thumbs, notice, body, plain, products, brand, status, failNote, url, queuedBy/At, draftBy/At, publishedBy/At}` · status `queued`(Aside 대기) → `draft`(임시저장됨) → `published`(사람이 발행) · `failed` · `canceled` | 늘 공개 자리 |
 | `pour-os/marketing-hub/mkt-config/channels` | 채널 글쓰기 주소 `{naver_blog, tistory, cafe(줄마다 "이름\|주소")}` | 늘 공개 자리 |
 | `mkt-products/{상품코드}` | (예정) 제품 87개 마스터 · 옵시디언 `제품코드`와 같게 | 관리자 |
+| `pour-os/v2/salesdays/{crm-pourstore \| grohome}` | 자동 판매 (③ · 2026-10-17) `{brand, src, from, to(판매 마지막 날), days:{날짜:[{c 채널, p 상품, q 수량, r 판매금액}]}, n, at, by}` — 최근 35일 · 원가·주문자·연락처 없음 · 허브는 **읽기만** | 공개 규칙(업무OS·CRM 다리) |
+| `pour-os/v2/links` kind `lowStock` | CRM 재고 위험(CRM 재고 발주 계산기 '위험' 품목) — 허브는 **읽기만** | 공개 규칙(CRM 다리) |
 
 - **같은 날짜·채널을 다시 올리면 그날 데이터를 통째로 바꾼다.** 같은 ID는 덮어쓰고, 새 리포트에 없는 줄은 지운다. 루틴이 두 번 돌아도 중복이 생기지 않는다.
 - 상품코드가 없는 리포트는 상품명으로 묶는다(`name:상품명`).
@@ -64,6 +66,17 @@
   - 올리기: ROAS 400% 이상이고 클릭 10회 이상
   - 기준값은 모두 대시보드 ⚙️ 설정에서 바꾼다.
 - **채널별 열 이름**은 `core.js`의 `FIELDS`에 있다. 실제 CSV 샘플을 받으면 거기만 고친다.
+
+## 자동 판매 · CRM 재고 위험 · 숫자 들어온 날 (③ 결과 숫자 채우기 · 2026-10-17)
+- 볼트 점검 P0-4 "허브 판매 0 · 판매가 없으면 '발주 필요 0'(CRM 재고 위험 56 과 어긋나는 틀린 0)" → **Aside 업로드가 없어도 이미 있는 판매 원본으로 채움**
+  - POUR스토어 = CRM 매출(출고·수기 · 전 채널) — CRM(관리자·직원 누구나)이 열려 있으면 3시간마다 `salesdays/crm-pourstore` (pour-crm `src/utils/salesDays.js`)
+  - 그로홈 = 그로홈 대시보드 판매(전 채널) — 업무OS 관리자 기기가 3시간마다 `salesdays/grohome` (pour-os-v2 `src/ghsales.js` · 모양 `src/salesdays.js` · 두 곳 같이 고칠 것)
+  - 카페24 리포트(Aside 업로드 · POUR스토어 자사몰)는 **CRM 숫자가 있는 날은 빼고** 없는 날만 씀(같은 판매를 두 번 세지 않게 · `core.mergeSales`)
+- 대시보드 요약: 브랜드마다 '7일 매출'(숫자가 없으면 0원이 아니라 '판매 숫자 없음') · 그 아래 **숫자 들어온 날** 한 줄(브랜드 판매 · 카페24·재고·광고 리포트 · 마지막 업로드 — 비면 '없음', 오래되면 'n일째' 빨강) · 판매 탭 = 브랜드마다 14일 막대 + 상품 표(브랜드 · 채널)
+- 재고: 재고 리포트(Aside)가 3일 넘게 없으면 '발주 필요'(재고 리포트 계산) 대신 **CRM 재고 위험**(업무OS 다리 `links` kind `lowStock` · CRM 재고 발주 계산기 그대로 · 발주는 CRM 입고 요청)을 보여 줌 · 재고 탭 맨 위 'CRM 재고 위험 n'
+- '05 오늘 숫자'(매일 06:10 · `scripts/mkt-numbers/run.mjs`)도 같은 계산(`core.numbersNote({…, auto, links})`) → 볼트 노트에 브랜드별 매출 · 'n일째 새 판매 없음' · CRM 재고 위험 표 · 판매 표 브랜드·채널 칸
+- 업무OS: '확인할 것' **결과 숫자 n곳 비어 있음**(관리자) · 관리자 한눈에 '결과 숫자' 카드 · 결과 숫자 시트(판매 · 광고 일일 보고서 · 허브 리포트 · 보드 지표 · 비면 'n일째') — 자세히 pour-os-v2/CLAUDE.md '결과 숫자'
+- 쓰기 없음(허브는 읽기만) · 원가·주문자·연락처 없음 · 보안규칙 변경 없음
 
 ## 처음 한 번 (사용자)
 1. **보안 규칙 게시**: Firebase 콘솔 → pour-app-new → Firestore → 규칙 → 저장소 `firestore.rules` 전체를 붙여넣고 게시 (`FIREBASE-DEPLOY.md`). 게시 전에는 대시보드가 권한 오류를 낸다.

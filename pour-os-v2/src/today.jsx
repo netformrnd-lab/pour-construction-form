@@ -57,7 +57,8 @@ export function inboxFns(D, A, open, setSeen) {
     if (x.kind === "aiSetup" || x.kind === "aiMiss" || x.kind === "aiMissLong") return open({ type: "aiSetup", ...(x.owner !== undefined ? { owner: x.owner } : {}) });   // 내 PC Aside 세팅 · 안 돎 (2026-10-15) · 담당 미정 크루·2일 넘게 = 그 PC (2026-10-17 멈춤 감시)
     if (x.kind === "aiRoutine") return open({ type: "aiMate", id: x.mate });   // 아침 루틴 안 올라옴 (2026-10-17) → 그 AI 한 장 '오늘 아침 루틴' · 사장님께 보낼 글
     if (x.kind === "aiOwnerless") return open({ type: "aiTeam" });   // AI 크루 담당 미정 → AI 팀원(관리자 [담당 한꺼번에 정하기])
-    if (x.kind === "adsAside") { window.open(HUB_ADS, "_blank", "noopener"); return; }   // 광고 Aside 예약 글 (2026-10-17) → 광고 운영 화면 맨 위 [예약 글 복사]
+    if (x.kind === "adsAside") { window.open(HUB_ADS, "_blank", "noopener"); return; }
+    if (x.kind === "feed") return open({ type: "feeds" });   // 결과 숫자 비어 있음 (2026-10-17) → 결과 숫자 시트 (들어온 날 · 어디서 고치나)   // 광고 Aside 예약 글 (2026-10-17) → 광고 운영 화면 맨 위 [예약 글 복사]
     if (x.kind === "aiRep") return open({ type: "aiReport", crew: x.crew, start: x.start, id: `${x.crew}-${x.start}` });   // AI 크루 보고 (2026-10-15): 칸 쓰기 · 보내기 · 읽기
     if (x.kind === "appr") return open({ type: "appr", tab: "asg" });   // 구매 품의 요청 (2026-10-16): 품의 요청 n건 → 내가 맡은 것
     if (x.apprId) return open({ type: "apprOne", id: x.apprId });   // 새 품의 요청 · 품의 완료 → 그 요청 한 건

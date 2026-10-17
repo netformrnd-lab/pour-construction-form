@@ -88,6 +88,8 @@ export async function readV1State() {
 }
 export async function readV1Launch() { const snap = await getDocs(collection(db, "pour-os", "launch-board", "products")); console.log(`[v1 신제품 읽기] ${snap.size}건`); return snap.docs.map((d) => ({ ...d.data(), id: d.id })); }
 // v1 문서 하나 실시간 읽기 (관리자 반복 실행: state-actionKPIs · kpi-act-YYYY-Qn) — 읽기만, 쓰지 않음
+// 허브 '오늘 숫자' (pour-os/marketing-hub/mkt-notes/today-numbers · 매일 06:10 GitHub) — 결과 숫자 경고(feeds.js)가 counts 만 봄 · 읽기만 (2026-10-17)
+export async function getHubNumbers() { const s = await getDoc(doc(db, "pour-os", "marketing-hub", "mkt-notes", "today-numbers")); const d = s.exists() ? s.data() : null; console.log(`[허브 오늘 숫자] ${d ? d.date || "있음" : "없음"}`); return d ? { counts: d.counts || {}, at: d.at || "", date: d.date || "" } : { counts: {}, at: "" }; }
 export function listenV1Doc(id, cb, onErr) {
   return onSnapshot(doc(db, "pour-os", String(id)), (s) => { const d = s.exists() ? s.data() : null; console.log(`[v1 ${id} 읽기] ${d ? "있음" : "없음"}`); cb(d); },
     (e) => { console.error(`[v1 ${id}] 읽기 실패:`, e); onErr && onErr(e); });

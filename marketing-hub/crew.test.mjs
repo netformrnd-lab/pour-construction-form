@@ -135,26 +135,26 @@ eq('Aside 지시문에 지표 키', K.asideText(K.boardOf('gh-conv')).includes('
 // Aside 루틴 (2026-10-14 사장님 "모든 크루들의 행위들 모두 가능하게 세팅해줘") — 보드 하나 = 예약 작업 하나 · 평일
 // 2026-10-15 "사람 담당자들 모두 어사이드 돌릴 수 있어. 각각 돌려서 빨리" → 담당마다 자기 PC · 담당이 다르면 동시에 09:00 · 같은 PC 여럿이면 한 시간씩
 const AB = K.asideBoards();
-eq('Aside 루틴 15개 · 같은 PC 안 순서(가을 → 겨울 → 봄 → 여름 → 우주 → 바람 → 하늘 → 운영·전략 → B2B) · 바라는 시각·요일', AB.map((b) => [K.mateOf(b.mate).name, K.runWord(b.run)]), [['가을', '평일 09:00'], ['겨울', '평일 09:00'], ['봄', '평일 09:00'], ['여름', '평일 09:00'], ['우주', '평일 09:00'], ['바람', '평일 09:00'], ['하늘', '평일 09:00'],
-  ['이음', '평일 15:00'], ['별', '매주 금 09:00'], ['달', '매주 월 09:00'], ['척척', '평일 09:00'], ['단단', '매주 월·목 10:00'], ['꼼꼼', '매주 화 10:00'], ['든든', '매주 수 10:00'], ['튼튼', '매주 목 11:00']]);
-eq('허브 자동 작업(core.js CREW_ASIDE) = crew.js 보드 시각·요일·이름', C.CREW_ASIDE.map((c) => [c.board, c.mate, c.name, c.t, (c.dow || [1, 2, 3, 4, 5]).join()]).sort(), AB.map((b) => [b.id, b.mate, K.mateOf(b.mate).name, b.run.t, b.run.dow.join()]).sort());
-eq('허브 자동 작업 15개 = Aside (담당 PC) · 준비 중 · 보드 요일·시각', C.automations().filter((a) => /^aside-crew-/.test(a.id)).map((a) => [C.AUTO_WHERE[a.where], C.autoWord(a), a.status]), AB.map((b) => ['Aside (담당 PC)', C.autoWord({ run: b.run }), 'wait']));
+eq('Aside 루틴 10개 · 같은 PC 안 순서(가을 → 겨울 → 봄 → 여름 → 우주 → 바람 → 하늘 → 운영·전략) · 바라는 시각·요일 · B2B 는 닫음(2026-10-17)', AB.map((b) => [K.mateOf(b.mate).name, K.runWord(b.run)]), [['가을', '평일 09:00'], ['겨울', '평일 09:00'], ['봄', '평일 09:00'], ['여름', '평일 09:00'], ['우주', '평일 09:00'], ['바람', '평일 09:00'], ['하늘', '평일 09:00'],
+  ['이음', '평일 15:00'], ['별', '매주 금 09:00'], ['달', '매주 월 09:00']]);
+eq('허브 자동 작업(core.js CREW_ASIDE · 닫힌 크루 빼고) = crew.js 보드 시각·요일·이름', C.CREW_ASIDE.filter((c) => !c.closed).map((c) => [c.board, c.mate, c.name, c.t, (c.dow || [1, 2, 3, 4, 5]).join()]).sort(), AB.map((b) => [b.id, b.mate, K.mateOf(b.mate).name, b.run.t, b.run.dow.join()]).sort());
+eq('허브 자동 작업 10개 = Aside (담당 PC) · 준비 중 · 보드 요일·시각', C.automations().filter((a) => /^aside-crew-/.test(a.id)).map((a) => [C.AUTO_WHERE[a.where], C.autoWord(a), a.status]), AB.map((b) => ['Aside (담당 PC)', C.autoWord({ run: b.run }), 'wait']));
 {
   const own = { 'gh-conv': 'sy', 'gh-rep': 'sy', 'gh-ohou': 'yj' }, plan = K.asidePlan((b) => own[b.id] || '');
   const gh = (g) => g.runs.filter((r) => /^gh-/.test(r.board.id)).map((r) => r.t + ' ' + r.board.id);
   eq('담당별 PC 계획: 다른 담당 = 동시에 · 같은 PC = 한 시간씩 · 미정 = 관리자 PC 한 곳(맨 뒤) — 그로홈 6개 + 바람', plan.map((g) => [g.owner, gh(g)]),
     [['sy', ['09:00 gh-conv', '10:00 gh-rep']], ['yj', ['09:00 gh-ohou']], ['', ['09:00 gh-traffic', '10:00 gh-exp', '11:00 gh-ref', '12:00 gh-aov']]]);
   eq('담당 미정 PC 한 곳 = 같은 요일에 겹칠 때만 뒤로 (주 1회 보드는 비는 시각에 · 주문·배송은 15:00 그대로)', plan[2].runs.map((r) => r.t + ' ' + r.board.id),
-    ['09:00 gh-traffic', '10:00 gh-exp', '11:00 gh-ref', '12:00 gh-aov', '13:00 ops-report', '13:00 hq-plan', '13:00 b2b-deal', '13:00 b2b-aov', '13:00 b2b-re', '14:00 b2b-inq', '15:00 ops-order', '16:00 b2b-exp']);
-  eq('담당이 모두 다르면 = 보드마다 바라는 시각 (그로홈 7개 09:00)', K.asidePlan((b) => 'u_' + b.id).flatMap((g) => g.runs.map((r) => r.t)), ['09:00', '09:00', '09:00', '09:00', '09:00', '09:00', '09:00', '15:00', '09:00', '09:00', '09:00', '10:00', '10:00', '10:00', '11:00']);
-  eq('보드 하나의 PC·시각', [K.planOf(plan, 'gh-rep'), K.planOf(plan, 'gh-aov'), K.planOf(plan, 'x')], [{ owner: 'sy', t: '10:00', n: 2 }, { owner: '', t: '12:00', n: 12 }, null]);
+    ['09:00 gh-traffic', '10:00 gh-exp', '11:00 gh-ref', '12:00 gh-aov', '13:00 ops-report', '13:00 hq-plan', '15:00 ops-order']);
+  eq('담당이 모두 다르면 = 보드마다 바라는 시각 (그로홈 7개 09:00)', K.asidePlan((b) => 'u_' + b.id).flatMap((g) => g.runs.map((r) => r.t)), ['09:00', '09:00', '09:00', '09:00', '09:00', '09:00', '09:00', '15:00', '09:00', '09:00']);
+  eq('보드 하나의 PC·시각', [K.planOf(plan, 'gh-rep'), K.planOf(plan, 'gh-aov'), K.planOf(plan, 'x')], [{ owner: 'sy', t: '10:00', n: 2 }, { owner: '', t: '12:00', n: 7 }, null]);
   const real = { 'ops-order': 'mini', 'ops-report': 'mini', 'hq-plan': 'hj', 'b2b-exp': 'ran', 'b2b-inq': 'ran', 'b2b-deal': 'ran', 'b2b-aov': 'ran', 'b2b-re': 'ran' }, p2 = K.asidePlan((b) => real[b.id] || '');
   eq('실제 담당(윤미니 · 허지은 · 이란 PC) = 요일이 다르면 같은 시각도 됨 · 시각 순', p2.filter((g) => g.owner).map((g) => [g.owner, g.runs.map((r) => K.runWord({ ...r.board.run, t: r.t }) + ' ' + r.board.id)]),
-    [['mini', ['매주 금 09:00 ops-report', '평일 15:00 ops-order']], ['hj', ['매주 월 09:00 hq-plan']], ['ran', ['평일 09:00 b2b-inq', '매주 월·목 10:00 b2b-exp', '매주 화 10:00 b2b-deal', '매주 수 10:00 b2b-aov', '매주 목 11:00 b2b-re']]]);
+    [['mini', ['매주 금 09:00 ops-report', '평일 15:00 ops-order']], ['hj', ['매주 월 09:00 hq-plan']]]);   // 이란 PC(B2B 5) = 2026-10-17 닫음 → 없음
   eq('그 PC 로그인해 둘 곳 = 그 보드들 것만', K.loginSites([K.boardOf('gh-conv'), K.boardOf('gh-rep')]).map((x) => x.s), ['카페24', '스마트스토어센터', '쿠팡윙', 'POUR스토어 CRM', '채널톡', '카카오 비즈니스 채널']);   // 겨울 I 응대 스토리 = 채널톡·카카오 구매 전 문의 (2026-10-17)
 }
 eq('보드마다 여는 곳 있음 · 비밀번호 같은 말 없음', AB.map((b) => b.logins.length > 0 && !/비밀번호|password|pw/i.test(JSON.stringify(b.logins))), AB.map(() => true));
-eq('로그인해 둘 곳 (로그인 없는 곳 뺌 · 같은 사이트는 한 줄)', K.loginSites().map((x) => x.s), ['카페24', '스마트스토어센터', '쿠팡 광고센터', '메타 광고관리자', '네이버 검색광고 (그로홈 광고 계정)', '오늘의집 파트너센터', '구글 애즈 (그로홈)', '쿠팡윙', 'POUR스토어 CRM', '채널톡', '카카오 비즈니스 채널', '인스타그램', '틱톡', 'POUR스토어 블로그·티스토리·네이버 카페', '셀러오션', '이지어드민', '잔디', '업무OS', '유튜브', '하이웍스 메일 · 네이버 메일', '도매꾹 · 도매매 · 위탁 채널']);   // 2026-10-17 재고 화면(쿠팡윙 로켓그로스·이지어드민)은 가을에서 이음으로
+eq('로그인해 둘 곳 (로그인 없는 곳 뺌 · 같은 사이트는 한 줄)', K.loginSites().map((x) => x.s), ['카페24', '스마트스토어센터', '쿠팡 광고센터', '메타 광고관리자', '네이버 검색광고 (그로홈 광고 계정)', '오늘의집 파트너센터', '구글 애즈 (그로홈)', '쿠팡윙', 'POUR스토어 CRM', '채널톡', '카카오 비즈니스 채널', '인스타그램', '틱톡', 'POUR스토어 블로그·티스토리·네이버 카페', '셀러오션', '이지어드민', '잔디', '업무OS', '유튜브']);   // B2B(하이웍스·도매꾹) = 2026-10-17 닫음   // 2026-10-17 재고 화면(쿠팡윙 로켓그로스·이지어드민)은 가을에서 이음으로
 eq('카페24 = 여덟 명 (그로홈 여섯 + 이음·별 · 여름은 광고를 가을에 넘겨 안 씀)', K.loginSites().find((x) => x.s === '카페24').uses.map((u) => u.mate), ['가을', '겨울', '봄', '우주', '바람', '하늘', '이음', '별']);
 // 할 일 단계: '승인…'으로 시작 = 사람 몫 · 중간 '· 승인되면' = 앞만 AI
 eq('단계 나누기', [K.stepParts('승인되면 담당이 반영한다'), K.stepParts('사람마다 다른 제안 메시지를 쓴다 · 승인되면 담당이 신청한다'), K.stepParts('리뷰를 모은다')],
@@ -221,8 +221,8 @@ eq('지금 횟수 = 담당이 정한 수 → 없으면 기본 · 0·이상한 �
 
 // 맡긴 일 (2026-10-15 사장님 "ai팀원에게 업무요청을 별도로해서 진행도 가능했으면") — aireqs → crew.html [이 일 하기] → [R] → 승인 한 건
 {
-  eq('맡길 수 있는 AI = 보드가 있는 크루 15명 (B2B 보드 2026-10-17 · 바라스데이·원형 빼고)', [K.reqMates().map((m) => m.name), K.canReq('dandan'), K.canReq('saessak'), K.canReq('luna')], [['여름', '가을', '겨울', '우주', '하늘', '봄', '바람', '이음', '별', '달', '단단', '척척', '꼼꼼', '든든', '튼튼'], true, false, false]);   // 2026-10-17 봄 = 매출 칸 → 하늘 다음
-  eq('자주 맡기는 일 = 맡길 수 있는 AI 마다', Object.keys(K.REQ_PRESETS).sort(), K.reqMates().map((m) => m.id).sort());
+  eq('맡길 수 있는 AI = 열린 크루의 보드 있는 10명 (B2B·바라스데이 = 2026-10-17 닫음 · 원형 빼고)', [K.reqMates().map((m) => m.name), K.canReq('dandan'), K.canReq('saessak'), K.canReq('luna')], [['여름', '가을', '겨울', '우주', '하늘', '봄', '바람', '이음', '별', '달'], false, false, false]);   // 2026-10-17 봄 = 매출 칸 → 하늘 다음
+  eq('자주 맡기는 일 = 맡길 수 있는 AI 마다 있음 (닫힌 크루 것은 남겨 둠)', K.reqMates().every((m) => !!K.REQ_PRESETS[m.id]), true);
   const id = K.reqId('gyeoul', 1760500000000, 'x9z'), r = K.reqDoc({ id, mate: 'gyeoul', title: '  상세 이탈 진단 010-1234-5678 ', body: '참고 a@b.com', shape: '표', n: '3', due: '2026-10-17', by: 'sy', byName: '김소연', at: 'T' });
   eq('맡긴 일 문서: 보드·브랜드 · 개인정보 가림 · 대기', [r.id, r.board, r.brand, r.title, r.body, r.shape, r.n, r.due, r.state, r.askId, r.log[0].act], [id, 'gh-conv', 'grohome', '상세 이탈 진단 010-****-****', '참고 (메일 가림)', '표', 3, '2026-10-17', 'open', '', 'req']);
   eq('이상한 값 = 비움', [K.reqDoc({ id: 'q', mate: 'bom', shape: '그림', n: -2, due: '내일' }).shape, K.reqDoc({ id: 'q', mate: 'bom', n: 0 }).n, K.reqDoc({ id: 'q', mate: 'bom', due: '내일' }).due], ['', null, '']);
@@ -381,7 +381,33 @@ const ok = (name, cond) => eq(name, !!cond, true);
   const has = (bd, c, re) => re.test(K.actOf(bd, c).s.join(' '));
   eq('우주 H 장부 먼저', [['gh-ref', 'A'], ['gh-ref', 'B'], ['gh-ref', 'C'], ['gh-rep', 'C'], ['gh-rep', 'G'], ['gh-ohou', 'H']].map(([bd, c]) => has(bd, c, /우주 H 장부|H 장부/)), [true, true, true, true, true, true]);
   ok('겨울 I = 택배 동봉 안내', /택배 동봉/.test(K.actOf('gh-conv', 'I').t) && has('gh-conv', 'I', /동봉 안내/));
-  ok('지시문 판 10-17.3', K.ASIDE_VER === '2026-10-17.3');
+  ok('지시문 판 10-17.4', K.ASIDE_VER === '2026-10-17.4');
+}
+
+// ── 2026-10-17 사장님 확정 (2팀 운영 · 1A 2A 4-1) ──
+{ // 4-1 닫힌 크루: B2B("닫아놔") · 바라스데이 = 미생성 · 크루 설정 필요 — 정의·옛 기록은 그대로, 돌거나 맡겨지지 않음
+  eq('열린 크루 = B2C 하나 · 닫힌 = B2B·바라스데이', [K.liveCrews().map((c) => c.id), K.closedCrews().map((c) => c.id), K.CLOSED_L], [['b2c'], ['b2b', 'bd'], '미생성 · 크루 설정 필요']);
+  eq('닫힌 크루 보드 = Aside 안 돎 · 정의는 남음', [K.isLiveBoard('b2b-inq'), K.isLiveBoard('gh-conv'), !!K.boardOf('b2b-inq'), K.asideBoards().some((b) => /^b2b-/.test(b.id)), K.isLiveMate('dandan'), K.isLiveMate('yeoreum')], [false, true, true, false, false, true]);
+  ok('닫힌 보드 멈춤 안내', /\[닫힌 보드\] 척척 · .*\n.*미생성 · 크루 설정 필요.*\n아무것도 하지 말고 끝낸다/.test(K.closedStop(K.boardOf('b2b-inq'))));
+}
+{ // 1A 승인 길 기본 = 담당에서 끝 (안에서 보는 점검·분석·목록·장부) 17개 · 밖으로 나가는 것은 리드까지 · 본부장 일은 그대로
+  const inner = Object.values(K.BOARDS).flatMap((b) => b.actions.filter((a) => a.inner).map((a) => b.id + ' ' + a.c));
+  eq('담당에서 끝 17개', inner, ['gh-exp G', 'gh-exp H', 'gh-traffic A', 'gh-traffic F', 'gh-conv G', 'gh-aov F', 'gh-rep A', 'gh-rep H', 'gh-ref C', 'ops-order A', 'ops-order B', 'ops-order C', 'ops-order D', 'ops-order E', 'ops-order F', 'ops-report A', 'ops-report C']);
+  eq('담당에서 끝인 할 일엔 본부장 일 없음', Object.values(K.BOARDS).flatMap((b) => b.actions.filter((a) => a.inner && a.hq)).length, 0);
+}
+{ // 1A 승인 길 (2026-10-17) — 보드 할 일 inner = 담당에서 끝 · hq = 본부장까지 · 그 밖 리드까지 · 덧칠 actPath
+  const g = K.pathGroups(K.BOARDS['ops-order'], null), c = K.pathGroups(K.BOARDS['gh-conv'], null), t = K.pathGroups(K.BOARDS['gh-traffic'], { actPath: { A: 'lead' } });
+  eq('이음 = 모두 담당에서 끝 · 겨울 = 판매가(B) 본부장 · G 콜 목록 담당 · C·H·I 리드 · 가을 A 덧칠 = 리드', [g.owner.join(''), g.lead.length + g.hq.length, c.hq.join(''), c.owner.join(''), c.lead.join(''), t.owner.includes('A'), t.lead.includes('A')], ['ABCDEF', 0, 'B', 'G', 'CHI', false, true]);
+  eq('묶음 글', K.pathGroupsL({ owner: ['A'], lead: ['B', 'C'], hq: [] }), '담당에서 끝 A · 리드까지 B·C');
+}
+{ // 2A 변화 없음 셈 (crew.html 이 stHist·actHist 를 씀 · 업무OS 금요일 보고가 셈)
+  const bv = { stHist: { '2026-10-19': { A: '변화 없음', B: '대기: 자료 없음', C: '표 올림' }, '2026-10-20': { A: '누락 0', R: '맡긴 일' }, '2026-10-26': { A: '변화 없음' } }, actHist: { '2026-10-19': { C: true } } };
+  eq('변화 없음 = [상태]만 남긴 할 일 (결과 올린 날 · 대기·막힘 · 맡긴 일 · 기간 밖 빼고)', K.quietOf(bv, '2026-10-19', '2026-10-25', new Set(['2026-10-20~A'])), { A: 1 });
+  eq('불러온 승인 건이 없으면 그날도 셈 · 글', [K.quietOf(bv, '2026-10-19', '2026-10-25', null), K.quietLine({ A: 2, F: 1 }), K.quietLine({})], [{ A: 2 }, '변화 없음 3번 (A 2 · F 1)', '']);
+  eq('그날 올린 할 일 = 승인 건 글자 (맡긴 일 R 빼고)', K.actDayOf([{ act: 'A' }, { act: 'C' }, { act: 'R' }, { act: '' }]), { A: true, C: true });
+}
+{ // 2A 할 게 있을 때만 — 지시문 '언제 하나요'
+  ok("지시문 = 매일 할 일은 할 게 있을 때만 · 없으면 [상태] '변화 없음'", K.asideText(K.BOARDS['gh-traffic']).includes("- 매일 하는 할 일은 바꿀 것·할 것이 있을 때만 표를 올린다 (사장님 2026-10-17) — 없으면 그 [ ] 묶음을 통째로 지우고 [상태]에 '변화 없음'만 쓴다"));
 }
 
 console.log(`\n${n - bad}/${n} 통과`); if (bad) process.exit(1);

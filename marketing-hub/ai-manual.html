@@ -171,11 +171,12 @@ function vRoles(){
 }
 function vCrews(){
   const plan=K.asidePlan(b=>act(K.ownerFor(S.mates[b.mate],b.brand)));
-  return K.CREWS.map(c=>`<h2 class="sec">${esc(c.name)} ${c.draft?'<span class="pill dr">초안</span>':''}<span class="sub">${esc(K.servesL(c))}</span></h2>
+  return K.liveCrews().map(c=>`<h2 class="sec">${esc(c.name)} ${c.draft?'<span class="pill dr">초안</span>':''}<span class="sub">${esc(K.servesL(c))}</span></h2>
     <p class="lead">${esc(c.note||'')}${c.formula?` · ${esc(K.formulaL(c))}`:''}</p>
     ${c.stages?`<div class="rbox stg"><h3>단계 미션 <span class="sub">사장님 정의 · 2026-10-17 · 크루 팀원은 자기 단계 미션을 위해 일해요</span></h3>${c.formula.map(k=>{const s=c.stages[k],who=c.members.filter(m=>m.slot===k).map(m=>m.name).join('·');return s?`<div class="rl"><b>${esc(k)}${who?' · '+esc(who):''}</b>${esc(s.goal)} — ${esc(s.mission)} <span class="sub">· 넘겨줄 것 ${esc(s.to)} · 숫자 ${esc(s.kpi)}</span></div>`:'';}).join('')}</div>`:''}
     ${c.id==='b2c'?`<div class="rbox stg"><h3>넘겨받기 <span class="sub">2026-10-17 사장님 확정 · 사람이 최종 승인한 결과만 다른 AI 지시문 '넘겨받은 것'에 들어가요 · 승인 화면에서 끌 수 있어요</span></h3>${K.HANDOFFS.map(h=>{const [fm,fc]=h.from.split('.');return `<div class="rl"><b>${esc((K.mateOf(fm)||{}).name||fm)} ${esc(fc)} → ${esc(K.handoffLabel(fm,fc))}</b>${esc(h.use)}${h.done?' <span class="sub">· 담당이 [했어요]한(허락받은) 줄만</span>':''}</div>`;}).join('')}<div class="rl"><b>${esc(K.LEDGER_ACTS.map(k=>`${(K.mateOf(k.split('.')[0])||{}).name} ${k.split('.')[1]}`).join(' · '))} → 크루 모두</b>공용 이긴 소재 장부 — A/B 판정 중 승인된 '이긴 것' (최근 ${K.LEDGER_WEEKS}주)</div></div>`:''}
-    <div class="mates">${c.members.map(m=>mateCard(m,c,plan)).join('')}</div>`).join('');
+    <div class="mates">${c.members.map(m=>mateCard(m,c,plan)).join('')}</div>`).join('')
+    + (K.closedCrews().length?`<h2 class="sec">다른 채널 크루 <span class="sub">${esc(K.CLOSED_L)}</span></h2><div class="rbox">${K.closedCrews().map(c=>`<div class="rl"><b>${esc(c.name)}</b>${esc(K.CLOSED_L)} — 그 채널에서 크루를 따로 설정해 업무를 정리해요</div>`).join('')}</div>`:'');   // 닫힌 크루 (2026-10-17 사장님 '스토어 b2c ai크루만 · 나머지는 미생성 표시')
 }
 function vMans(){
   const head=`<h2 class="sec" id="manuals">매뉴얼 <span class="pill ro">Aside가 관리하는 문서 · 읽기 전용</span></h2>

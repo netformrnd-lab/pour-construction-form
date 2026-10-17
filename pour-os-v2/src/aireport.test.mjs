@@ -72,6 +72,13 @@ eq("겨울 단계 숫자 = 구매전환율 (자사몰) 7.4% ← 6.1%", [d.stage.
   eq("글로 복사: 단계 숫자 · 넘겨받은 것 줄", [tx.includes("- 단계 숫자 구매전환율: 7.4% ← 6.1% · 목표"), tx.includes("- 넘겨받은 것: 이음 F 10/14 재고 F · 품절 1")], [true, true]);
   eq("단계 밖(별) = 단계 숫자 없음", R.secData(D2, slot("byeol"), P, PV, []).stage, null); }
 eq("여름 = 옛 포리 실행 업무도 (쉬는 팀원 → 여름)", R.secData(D1, slot("yeoreum"), P, PV, []).doneN, 1);
+// 변화 없음 (2026-10-17 사장님 2A "할 것이 있을 때만 승인 · 없으면 상태 한 줄 · 금요일 보고에 '변화 없음 n번'")
+{ const bq = { "gh-conv": { stHist: { "2026-10-12": { A: "변화 없음", C: "표 올림" }, "2026-10-13": { A: "변화 없음", B: "막힘: 로그인", R: "맡긴 일 하는 중" }, "2026-10-14": { A: "누락 0" }, "2026-10-08": { A: "변화 없음" } }, actHist: { "2026-10-12": { C: true } } } };
+  const Dq = { ...D1, ai: { ...D1.ai, boards: bq } }, aq = [{ mate: "gyeoul", board: "gh-conv", act: "A", run: "2026-10-14", state: "wait" }];
+  const q = R.secData(Dq, slot("gyeoul"), P, PV, aq);
+  eq("변화 없음 = 이번 기간 [상태]만 남긴 할 일 (결과 올린 날·막힘·맡긴 일·지난주 빼고 · 불러온 승인 건도 봄)", q.quiet, { A: 2 });
+  eq("보고 글에 '변화 없음 n번'", R.repText({ name: "B2C 크루" }, P, [{ m: slot("gyeoul"), d: q, s: {} }], {}).includes("변화 없음 2번 (A 2)"), true);
+  eq("변화 없음이 없으면 글에 안 붙음", R.repText({ name: "B2C 크루" }, P, [{ m: slot("gyeoul"), d, s: {} }], {}).includes("변화 없음"), false); }
 
 // ⑤ 칸 상태 · '확인할 것'
 const rep = (secs, extra) => ({ "b2c-2026-10-12": { id: "b2c-2026-10-12", crew: "b2c", cycle: "week", start: "2026-10-12", end: "2026-10-18", due: "2026-10-16", secs, ...extra } });

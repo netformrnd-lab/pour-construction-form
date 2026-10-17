@@ -14,9 +14,9 @@ import { Thread, useItemNotes } from "./task.jsx";
 import { LS } from "./core.jsx";
 import { RtMulti } from "./airtui.jsx";   // AI 크루 ↔ 반복 실행 (2026-10-16) · 여러 개 (2026-10-17)
 import { isFxKey, fxIdOf, NO_ACT, akKeys, pairable } from "./airt.js";
-import { CREWS, GONE, crewOf, mateOf, boardOf, brandL, servesL, mateBrands, ownerKeys, fmtMetric, metricPct, metricOk, runWord, asideLaunch, asideRedoLaunch, asideFixLaunch, loginSites, planOf, qtyDefs, qtyNow, canReq, reqMates, REQ_SHAPES, REQ_PRESETS, REQ_STATE_L, reqLine, asideReqLaunch, execOf, formulaHead, formulaSep, movedOut, movedIn, stageOf, designOf, designBad, DESIGN_MAX, BRAND_L, handoffTargets, handoffLabel, handoffNeedsDone, INBOX_DAYS } from "../../marketing-hub/crew.js";
+import { GONE, liveCrews, closedCrews, CLOSED_L, pathGroups, pathGroupsL, crewOf, mateOf, boardOf, brandL, servesL, mateBrands, ownerKeys, fmtMetric, metricPct, metricOk, runWord, asideLaunch, asideRedoLaunch, asideFixLaunch, loginSites, planOf, qtyDefs, qtyNow, canReq, reqMates, REQ_SHAPES, REQ_PRESETS, REQ_STATE_L, reqLine, asideReqLaunch, execOf, formulaHead, formulaSep, movedOut, movedIn, stageOf, designOf, designBad, DESIGN_MAX, BRAND_L, handoffTargets, handoffLabel, handoffNeedsDone, INBOX_DAYS } from "../../marketing-hub/crew.js";
 import { cycleOf, periodOf, repCrews, repId, repSlots, secState, periodL, dueL, CYCLE_L } from "./aireport.js";   // AI 크루 보고 (2026-10-15)
-import { ASK_STATE_L, canAct, canBack, canRet, isProxy, pickOk, planPass, chainOf, mateOwner, actOwner, hqOf, canUpHQ, mateStats, repeatNotes, itemLine, bossOf, bossRec, bossLoop, asidePlanOf, ranOn, missedOn, goneWaits, GONE_DROP, myTurnN,
+import { ASK_STATE_L, canAct, canBack, canRet, isProxy, pickOk, planPass, chainOf, mateOwner, actOwner, hqOf, canUpHQ, pathOf, pathDef, upLeadTo, PATH_L, mateStats, repeatNotes, itemLine, bossOf, bossRec, bossLoop, asidePlanOf, ranOn, missedOn, goneWaits, GONE_DROP, myTurnN,
   waitWd, workMin, prevWaits, newerOf, routineRanOn, routineMisses, routineAlert, stuckAlert, LATE_WD, BACK_MIN, PREV_DROP, ROUTINE_AT, ROUTINE_CHECK } from "./aiask.js";   // 멈춤 감시 (2026-10-17)
 
 export const HUB_CREW_URL = "../marketing-hub/crew.html";   // Aside 결과 올리기 (허브)
@@ -49,9 +49,9 @@ export function useAsk(D, id) {
   return live || extra;
 }
 
-// 승인 길 한 줄: 겨울(AI) → 남윤정 ✓ → 김소연 ● → 허지은
-export function ChainLine({ a, users, hq }) {
-  const ch = chainOf(a, users, hq), mk = { done: "✓", now: "●", next: "", wait: "" };
+// 승인 길 한 줄: 겨울(AI) → 남윤정 ✓ → 김소연 ● → 허지은 · pth = 승인 길(담당에서 끝이면 담당에서 끊김 · 2026-10-17)
+export function ChainLine({ a, users, hq, pth }) {
+  const ch = chainOf(a, users, hq, pth), mk = { done: "✓", now: "●", next: "", wait: "" };
   return <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6, fontSize: 13, color: C.sub, lineHeight: 1.7 }}>
     <span style={{ fontWeight: 800, color: C.ink }}>{a.mateName || "AI"} (AI)</span>
     {ch.map((x, i) => <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><span style={{ color: C.mute }}>→</span>
@@ -100,8 +100,9 @@ export function AiAskSheet({ D, cu, A, open, onBack, onClose, id, focus, note })
   const items = a.items || [], can = canAct(a, cu), proxy = can && isProxy(a, cu), ho = handoffTargets(a.mate, a.act);   // 넘기기 (2026-10-17 사장님 넘기기 A)
   const pick = pick0 || (Array.isArray(a.pick) ? a.pick : []), pset = new Set(pick);
   const toggle = (n) => setPick(pset.has(n) ? pick.filter((x) => x !== n) : [...pick, n]);
-  const hq = hqOf(a, ((D.ai && D.ai.mates) || {})[a.mate]), upOk = canUpHQ(a, cu, D.users, hq);   // 본부장 승인 일 (2026-10-15 · 광고비 예산·원가·판매가 조정)
-  const pv = can ? planPass(a, cu, D.users, items.length ? pick : null, "", { hq }) : null, nextN = pv && pv.next ? nameOf(D.users, pv.next) : "";
+  const md0 = ((D.ai && D.ai.mates) || {})[a.mate], hq = hqOf(a, md0), pth = pathOf(a, md0), upOk = canUpHQ(a, cu, D.users, hq);   // 본부장 승인 일 (2026-10-15 · 광고비 예산·원가·판매가 조정)
+  const upL = upLeadTo(a, cu, D.users, pth);   // 담당에서 끝나는 일 → [리드에게도 올리기] (2026-10-17 승인 길)
+  const pv = can ? planPass(a, cu, D.users, items.length ? pick : null, "", { hq, path: pth }) : null, nextN = pv && pv.next ? nameOf(D.users, pv.next) : "";
   const go = async (fn) => { if (busy) return; setBusy(true); try { const ok = await fn(); if (ok) { setMode(""); setTxt(""); setPick(null); } } finally { setBusy(false); } };
   const passL = `${items.length ? `고른 ${pick.length}개 ` : ""}${pv && pv.next ? `승인 → ${nextN}님께` : "최종 승인"}`;
   const exIds = (a.execTasks && a.execTasks.length ? a.execTasks : a.execTask ? [a.execTask] : []), exMine = exIds.find((x) => { const t = (D.tasks || []).find((y) => y.id === x); return t && (t.assigneeIds || [t.assigneeId]).includes(cu.id); });
@@ -113,6 +114,7 @@ export function AiAskSheet({ D, cu, A, open, onBack, onClose, id, focus, note })
   const dropPrev = async () => { setPrevAsk(false); await go(() => A.aiDropMany(pwMine, PREV_DROP)); };
   const foot = can ? <><Big disabled={busy || !pickOk(a, pick)} onClick={() => go(() => A.aiPass(a, items.length ? pick : null))}>{passL}</Big>
       {upOk && <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, fontSize: 12.5, color: C.sub, flexWrap: "wrap" }}><span style={{ flex: "1 1 160px" }}>리드에서 끝나는 일이에요 · 본부장 확인이 필요하면</span><TBtn disabled={busy || !pickOk(a, pick)} onClick={() => go(() => A.aiPass(a, items.length ? pick : null, true))}>본부장에게도 올리기</TBtn></div>}
+      {upL && <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, fontSize: 12.5, color: C.sub, flexWrap: "wrap" }}><span style={{ flex: "1 1 160px" }}>담당에서 끝나는 일이에요 · {nameOf(D.users, upL)}님 확인이 필요하면</span><TBtn disabled={busy || !pickOk(a, pick)} onClick={() => go(() => A.aiPass(a, items.length ? pick : null, "lead"))}>리드에게도 올리기</TBtn></div>}
       {proxy && <div style={{ fontSize: 12.5, color: C.sub, marginTop: 6 }}>관리자로 대신 눌러요 · 지금 차례는 {nameOf(D.users, a.to)}님 · 기록엔 내 이름이 남아요</div>}</>
     : a.state === "wait" ? <Big disabled>{a.to ? `${nameOf(D.users, a.to)}님 승인 기다리는 중` : "담당 미정 · 관리자가 승인해요"}</Big>
     : a.state === "back" ? <Big disabled>{m.name}(AI)가 고치는 중 · 다시 올리면 알려 드려요</Big>
@@ -124,9 +126,10 @@ export function AiAskSheet({ D, cu, A, open, onBack, onClose, id, focus, note })
       {a.brand && <Pill color={C.sub} bg="#F1F2F6">{brandL(a.brand)}</Pill>}
       {(a.ver || 1) > 1 && <Pill color={C.sub} bg="#F1F2F6">{a.ver}번째로 다시 올림</Pill>}
       {hq && <Pill color="#9A3412" bg="#FFF1E6">본부장 승인 · {hq}</Pill>}
+      {pth === "owner" && !(a.step > 0) && (a.state === "wait" || a.state === "back") && <Pill color={C.sub} bg="#F1F2F6">담당에서 끝</Pill>}
       <span style={{ fontSize: 12.5, color: C.mute }}>{a.run ? md(a.run) + " 실행" : ""}{a.createdAt ? ` · ${ago(a.createdAt)}` : ""}</span>
     </div>
-    <div style={{ marginTop: 10 }}><ChainLine a={a} users={D.users} hq={hq} /></div>
+    <div style={{ marginTop: 10 }}><ChainLine a={a} users={D.users} hq={hq} pth={pth} /></div>
     {lateWd >= LATE_WD && <Banner red><b>평일 {lateWd}일째 기다리는 중</b> · {a.to ? `${nameOf(D.users, a.to)}님 차례` : "담당 미정 · 관리자 누구나"}
       {a.to && a.to !== cu.id && <div style={{ fontSize: 12.5, color: C.sub, marginTop: 4 }}>물어보려면 아래 대화에 @{nameOf(D.users, a.to)}</div>}</Banner>}
     {nw && <Banner><b>더 새 결과가 있어요</b> · {nw.run ? md(nw.run) + " 실행 · " : ""}{ASK_STATE_L[nw.state] || nw.state}{nw.state === "wait" && nw.step > 0 ? ` · ${nw.step + 1}단계` : ""} · 같은 할 일이에요
@@ -194,7 +197,7 @@ function crewFocus(D, crewId) { const s = (D.settings || []).find((x) => (x.id |
 export function AiTeamBody({ D, cu, A, open, admin }) {
   const master = isMaster(cu), mates = (D.ai && D.ai.mates) || {}, asks = (D.ai && D.ai.asks) || [];
   const ownsAny = (id) => { const o = (mates[id] && mates[id].owners) || {}; return Object.values(o).includes(cu.id); };
-  const mineIds = CREWS.flatMap((c) => c.members).map((x) => x.id).filter(ownsAny);   // AI 팀원 = 크루 (2026-10-14 "포리, 하루, 에코는 없어야지" → 기본 AI 팀원(원형) 칸 없앰 · 아침 루틴 = 여름)
+  const mineIds = liveCrews().flatMap((c) => c.members).map((x) => x.id).filter(ownsAny);   // AI 팀원 = 크루 (2026-10-14 "포리, 하루, 에코는 없어야지" → 기본 AI 팀원(원형) 칸 없앰 · 아침 루틴 = 여름) · 닫힌 크루 빼고 (2026-10-17)
   const [scope0, setScope] = useLocal(LS("ai-scope-" + cu.id), "");
   const scope = scope0 || (mineIds.length && !master ? "mine" : "all");
   const [bulk, setBulk] = useState(false), [stOpen, setStOpen] = useState("");   // 단계 미션 펼친 크루 (2026-10-17 사장님 AARRR 정의 · 읽기만)
@@ -230,7 +233,7 @@ export function AiTeamBody({ D, cu, A, open, admin }) {
       const dn = sl.filter((m) => ["done", "sent"].includes(secState(rp, m.id))).length, sn = sl.filter((m) => secState(rp, m.id) === "sent").length;
       return <Card style={{ marginTop: 10 }}><Row title="AI에게 업무 맡기기" tag={mine ? `진행 ${mine}` : null} sub="무엇을 · 몇 개 · 언제까지 → 담당 PC Aside 가 한 시간 안에 · 결과는 승인으로 와요" onClick={() => open({ type: "aiReq" })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last={!rc} />
         {rc && <Row title={`AI 크루 보고 · ${CYCLE_L[p.cycle]}`} tag={sn === sl.length ? "보냄" : null} sub={`${periodL(p)} · ${dueL(p)} · 담당 확인 ${dn}/${sl.length} · 보냄 ${sn}/${sl.length}`} onClick={() => open({ type: "aiReport", crew: rc.id })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last />}</Card>; })()}
-    <p style={{ fontSize: 12.5, color: C.sub, lineHeight: 1.6, margin: "8px 2px 0" }}>AI가 결과를 올리면 담당 → 리드 순서로 승인해요(광고비 예산·원가·판매가 조정만 본부장까지) · 실제 반영은 늘 사람이 해요 · 실행 업무엔 번호마다 흔적{myTurn ? ` · 지금 내 차례 ${myTurn}건` : ""} · <a className="v2-lblink" href={HUB_MANUAL_URL} target="_blank" rel="noopener">매뉴얼 보기 ›</a> · <a className="v2-lblink" href={HUB_ADS_URL} target="_blank" rel="noopener">광고 운영 ›</a></p>
+    <p style={{ fontSize: 12.5, color: C.sub, lineHeight: 1.6, margin: "8px 2px 0" }}>AI가 결과를 올리면 할 일마다 정한 승인 길로 가요 — 점검·분석·장부는 담당에서 끝 · 밖으로 나가는 것은 리드까지 · 광고비·원가·판매가는 본부장까지 · 실제 반영은 늘 사람이 해요 · 실행 업무엔 번호마다 흔적{myTurn ? ` · 지금 내 차례 ${myTurn}건` : ""} · <a className="v2-lblink" href={HUB_MANUAL_URL} target="_blank" rel="noopener">매뉴얼 보기 ›</a> · <a className="v2-lblink" href={HUB_ADS_URL} target="_blank" rel="noopener">광고 운영 ›</a></p>
     {gw.length > 0 && <Card style={{ marginTop: 10 }}>
       <Row title={`쉬는 AI 승인 대기 ${gw.length}건`} tag="정리" sub={`${[...new Set(gw.map((a) => (mateOf(a.mate) || {}).name || a.mateName || a.mate))].join("·")} · 2026-10-14부터 쉬어요 · 같은 일은 B2C 크루 여름이 매일 새로 올려요 · '확인할 것'엔 안 떠요`} last={false} />
       {gw.slice(0, 6).map((a) => <Row key={a.id} title={a.title} sub={`${a.createdAt ? md(ymd(new Date(a.createdAt))) : ""} 올라옴 · 담당 미정 · 열어서 승인할 수도 있어요`} onClick={() => open({ type: "aiask", id: a.id })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last={false} />)}
@@ -242,7 +245,7 @@ export function AiTeamBody({ D, cu, A, open, admin }) {
       {master && noneG && <Row title={`담당 미정 크루 ${noneG.runs.length}명 · 관리자 PC 에서`} sub={`${noneG.runs.map((r) => (mateOf(r.board.mate) || {}).name).join(" · ")} · 담당을 정하면 그 사람 PC 로 옮겨가요`} onClick={() => open({ type: "aiSetup", owner: "" })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last />}
     </Card>}
     {scope === "mine" && !mineIds.length && <Card style={{ marginTop: 10 }}><Empty>아직 맡은 AI 팀원이 없어요 · 관리자가 담당을 정하면 여기에 보여요</Empty></Card>}
-    {CREWS.map((c) => { const list = c.members.filter((x) => show(x.id)); if (!list.length) return null; const f = crewFocus(D, c.id), canF = master || c.members.some((x) => ownsAny(x.id));
+    {liveCrews().map((c) => { const list = c.members.filter((x) => show(x.id)); if (!list.length) return null; const f = crewFocus(D, c.id), canF = master || c.members.some((x) => ownsAny(x.id));
       return <section key={c.id}>
         <Head right={c.draft ? <Pill color={C.sub} bg="#F1F2F6">초안</Pill> : null}>{c.name}</Head>
         <div style={{ fontSize: 12.5, color: C.sub, margin: "-4px 2px 8px", lineHeight: 1.6 }}>{servesL(c)}{c.note ? ` · ${c.note}` : ""}</div>
@@ -259,6 +262,11 @@ export function AiTeamBody({ D, cu, A, open, admin }) {
         <Card>{list.map((x, i) => mateRow(x, i === list.length - 1, f && x.slot === f ? C.navy : x.color))}</Card>
       </section>; })}
     {/* 기본 AI 팀원(원형) 칸은 없앰 (2026-10-14 사장님 "포리, 하루, 에코는 없어야지") — 크루가 AI 팀원 · 블로그·재배포 아침 루틴 = 여름 · 옛 하루·포리·에코 결과는 '확인할 것'·승인 한 장에서 그대로 */}
+    {/* 닫힌 크루 (2026-10-17 사장님 "스토어 b2c ai크루만 나타내 … 미생성으로 표시해서 별도로 크루 설정해서 업무 정리해야한다는것만") — 이름 한 줄씩 · 크루원·보드는 안 보임 · 정의·옛 기록은 그대로 */}
+    {scope === "all" && closedCrews().length > 0 && <section>
+      <Head>다른 채널 크루</Head>
+      <Card>{closedCrews().map((c, i, arr) => <Row key={c.id} title={c.name} tag={CLOSED_L} sub={(c.closed && c.closed.why) || "그 채널에서 크루를 따로 설정해 업무 정리"} last={i === arr.length - 1} />)}</Card>
+    </section>}
     {admin && <p className="a-hint">담당 = AI 결과를 먼저 보고 승인하는 사람 · 비어 있으면 관리자 누구나 · 상급자는 [사람] 탭에서 · Aside 결과 올리기 = <a href={HUB_CREW_URL} target="_blank" rel="noopener">마케팅 허브 › AI 크루 결과 올리기</a></p>}
   </>;
 }
@@ -308,6 +316,10 @@ function BoardView({ D, cu, A, b, open, asks, doc }) {
   const master = isMaster(cu), mine = Object.values((doc && doc.owners) || {}).includes(cu.id), users = activeUsers(D.users), akItems = ((D.ak && D.ak.items) || []);
   const ownL = (c) => { const x = actOwner(doc, b.brand, c, D.users); return x ? nameOf(D.users, x) : "담당 미정"; };
   const hqL = (a) => hqOf({ board: b.id, act: a.c, exec: execOf(a), hq: a.hq }, doc);   // 외주 기간 광고 할 일 = 실행 없음 → 표시 없음
+  // 승인 길 (2026-10-17 사장님 1A) — 담당에서 끝 · 리드까지 · 본부장까지(이유) · 관리자가 할 일마다 바꿈(aimates.actPath)
+  const pthOf = (a) => pathOf({ board: b.id, act: a.c, exec: execOf(a), hq: a.hq }, doc), pthDef = (a) => pathDef({ board: b.id, act: a.c, exec: execOf(a), hq: a.hq });
+  const pthL = (a) => { const p = pthOf(a), why = p === "hq" ? hqL(a) : ""; return `${PATH_L[p]}${why ? `(${why}${a.hqIf ? ` · ${a.hqIf} 칸이 있을 때` : ""})` : ""}`; };
+  const pthVal = (a) => { const ov = ((doc && doc.actPath) || {})[a.c], old = ((doc && doc.actHq) || {})[a.c]; return ov || (old === true ? "hq" : old === false ? "lead" : ""); };
   const akL1 = (id) => { if (isFxKey(id)) { const t = (D.tasks || []).find((x) => x.id === fxIdOf(id)); return t ? t.title : ""; } const it = akItems.find((x) => x.id === id); return it ? it.name : ""; };
   const akL = (c) => akKeys(((doc && doc.actAk) || {})[c]).map(akL1).filter(Boolean).join(" · ");   // 짝 여러 개 (2026-10-17)
   return <>
@@ -323,7 +335,7 @@ function BoardView({ D, cu, A, b, open, asks, doc }) {
     <Head>할 일 {b.actions[0].c}~{b.actions[b.actions.length - 1].c}</Head>
     <Card>{b.actions.map((a, i) => { const last = asks.filter((x) => x.board === b.id && x.act === a.c).sort((p, q) => String(q.createdAt || "").localeCompare(String(p.createdAt || "")))[0];
       return <div key={a.c} style={{ borderBottom: i === b.actions.length - 1 ? "none" : `1px solid ${C.line}` }}>
-        <Row title={`${a.c} · ${a.t}`} tag={a.admin ? "관리자 자리" : last ? ASK_STATE_L[last.state] : null} sub={[a.admin ? "" : `담당 ${ownL(a.c)}`, a.admin ? "" : hqL(a) ? `본부장 승인(${hqL(a)}${a.hqIf ? ` · ${a.hqIf} 칸이 있을 때` : ""})` : "", a.when, akL(a.c) ? `반복 '${akL(a.c)}'` : ""].filter(Boolean).join(" · ")} sub2={last ? `최근 ${last.run ? md(last.run) : ""} · ${last.title}` : null}
+        <Row title={`${a.c} · ${a.t}`} tag={a.admin ? "관리자 자리" : last ? ASK_STATE_L[last.state] : null} sub={[a.admin ? "" : `담당 ${ownL(a.c)}`, a.admin ? "" : `승인 ${pthL(a)}`, a.when, akL(a.c) ? `반복 '${akL(a.c)}'` : ""].filter(Boolean).join(" · ")} sub2={last ? `최근 ${last.run ? md(last.run) : ""} · ${last.title}` : null}
           onClick={() => setOpenA(openA === a.c ? "" : a.c)} right={<span style={{ color: C.navy, fontWeight: 800 }}>{openA === a.c ? "▴" : "▾"}</span>} last />
         {openA === a.c && <div style={{ padding: "0 14px 12px", fontSize: 13, color: C.sub, lineHeight: 1.65 }}>
           {a.admin ? <div style={{ color: C.text }}>{a.admin}</div> : <>
@@ -331,12 +343,12 @@ function BoardView({ D, cu, A, b, open, asks, doc }) {
               {master && <label style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}><b style={{ color: C.ink, minWidth: 74 }}>이 할 일 담당</b>
                 <select value={((doc && doc.actOwners) || {})[a.c] || ""} onChange={(e) => A.mateActSet(b.mate, "actOwners", a.c, e.target.value)} aria-label={`${a.c} 할 일 담당`} style={{ ...inp, width: "auto", maxWidth: 180, padding: "6px 8px", fontSize: 13 }}>
                   <option value="">AI 담당 그대로 ({nameOf(D.users, mateOwner(doc, b.brand, D.users)) || "미정"})</option>{users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></label>}
-              {master && execOf(a) && <label style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}><b style={{ color: C.ink, minWidth: 74 }}>본부장 승인</b>
-                <select value={(() => { const x = ((doc && doc.actHq) || {})[a.c]; return x === true ? "on" : x === false ? "off" : ""; })()} onChange={(e) => A.mateActSet(b.mate, "actHq", a.c, e.target.value === "on" ? true : e.target.value === "off" ? false : null)} aria-label={`${a.c} 본부장 승인`} style={{ ...inp, width: "auto", maxWidth: 220, padding: "6px 8px", fontSize: 13 }}>
-                  <option value="">기본 ({a.hq ? `받음 · ${a.hq}` : "리드에서 끝"})</option><option value="on">받음</option><option value="off">안 받음 (리드에서 끝)</option></select></label>}
+              {master && <label style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}><b style={{ color: C.ink, minWidth: 74 }}>승인 길</b>
+                <select value={pthVal(a)} onChange={(e) => A.mateActSet(b.mate, "actPath", a.c, e.target.value || null)} aria-label={`${a.c} 승인 길`} style={{ ...inp, width: "auto", maxWidth: 240, padding: "6px 8px", fontSize: 13 }}>
+                  <option value="">기본 ({PATH_L[pthDef(a)]}{pthDef(a) === "hq" && a.hq ? ` · ${a.hq}` : ""})</option><option value="owner">담당에서 끝</option><option value="lead">리드까지</option>{execOf(a) && <option value="hq">본부장까지</option>}</select></label>}
               {pairable(a) && <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}><b style={{ color: C.ink, minWidth: 74 }}>반복 실행 짝{a.report ? " (승인 = 그날 체크)" : ""}</b>
                 <RtMulti D={D} value={((doc && doc.actAk) || {})[a.c]} onChange={(ks) => A.mateActSet(b.mate, "actAk", a.c, ks)} label={`${a.c} 반복 실행 짝`} /></div>}
-              <div style={{ fontSize: 12, color: C.mute, lineHeight: 1.5 }}>담당 = 승인 첫 단계·실행 업무 받는 사람 · 반복 실행 짝 = 실행 업무 번호마다 [했어요]가 그 반복에 +1 (KPI)</div></div>}
+              <div style={{ fontSize: 12, color: C.mute, lineHeight: 1.5 }}>담당 = 승인 첫 단계·실행 업무 받는 사람 · 승인 길 = 안에서 보는 점검·분석·목록·장부는 담당에서 끝 · 밖으로 나가는 것은 리드까지 · 광고비·원가·판매가는 본부장까지 · 반복 실행 짝 = 실행 업무 번호마다 [했어요]가 그 반복에 +1 (KPI)</div></div>}
             <DesignBox D={D} cu={cu} A={A} b={b} a={a} doc={doc} />
             <div><b style={{ color: C.ink }}>상황</b> · {a.w}</div>
             <ol style={{ margin: "6px 0 0", paddingLeft: 18 }}>{a.s.map((s, k) => <li key={k} style={{ marginTop: 2 }}>{s}</li>)}</ol>
@@ -376,6 +388,7 @@ export function AiMateSheet({ D, cu, A, open, onBack, onClose, id }) {
       {m.routine && <div>{m.routine}</div>}
       {b && pl && <div>Aside 루틴 · {runWord({ ...b.run, t: pl.t })} · {PC_L(D, pl.owner, cu)} · 보드 지표·할 일 → 이 승인으로 · <a className="v2-lblink" href={`${HUB_CREW_URL}#${b.id}`} target="_blank" rel="noopener">허브 AI 크루 결과 올리기 ›</a></div>}
       {GONE[id] && <div style={{ color: C.text }}>2026-10-14부터 쉬어요 · 이 일은 B2C 크루 {(mateOf(GONE[id]) || {}).name} 몫이에요 · 이미 올라온 결과는 그대로 승인·안 함</div>}
+      {c && c.closed && <div style={{ color: C.text }}><b>{CLOSED_L}</b> · {c.closed.why} · 지금은 Aside·보드가 안 돌아요 (정의·옛 기록은 그대로)</div>}
       {c && <div>일하는 곳 · {servesL(c)}</div>}
       {m.from && m.from.length > 0 && <div>원형 · {m.from.map((f) => (mateOf(f) || {}).name || f).join(" · ")} <span style={{ color: C.mute }}>(파생 · 짐작)</span></div>}
       {m.admin && <div style={{ color: C.text }}>관리자 자리 일(원가·제조사)이라 업무OS 승인으로 올리지 않아요 · 마진 대시보드에서</div>}
@@ -391,6 +404,7 @@ export function AiMateSheet({ D, cu, A, open, onBack, onClose, id }) {
       sub={[!o.bb && brands.length ? "아침 루틴 원고처럼 브랜드가 섞인 결과 · 브랜드 담당을 안 정한 브랜드" : "", o.uid ? [`${m.name}(AI) → ${nameOf(D.users, o.uid)}`, ...chainFrom(o.uid)].join(" → ") : "정할 때까지 관리자 누구나 승인해요"].filter(Boolean).join(" · ")}
       right={master && !m.admin ? <select value={o.uid} onChange={(e) => A.mateOwnerSet(id, o.bb || "_", e.target.value)} aria-label={`담당 바꾸기${o.bb ? " " + brandL(o.bb) : ""}`} style={{ ...inp, width: "auto", maxWidth: 140, padding: "6px 8px", fontSize: 13 }}>
         <option value="">미정</option>{users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select> : null} last={i === owners.length - 1} />)}</Card>
+    {b && !(c && c.closed) && <div style={{ fontSize: 12.5, color: C.sub, lineHeight: 1.6, margin: "6px 2px 0" }}>할 일마다 승인 길 · {pathGroupsL(pathGroups(b, doc))} — 아래 할 일을 펼치면 {master ? "바꿀 수 있어요" : "보여요"}</div>}
     {/* 아침 루틴 원고 → 반복 실행 짝 (2026-10-16) — 원고 승인 뒤 실행 업무 [했어요](발행 링크) = 그 반복 실행 +1 · 보드 할 일 짝은 아래 할 일마다 */}
     {m.routine && canRule && <><Head>아침 루틴 원고 → 반복 실행</Head>
       <Card style={{ padding: "10px 14px" }}><div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}><b style={{ color: C.ink, minWidth: 74, fontSize: 13.5 }}>반복 실행 짝</b>
@@ -418,9 +432,9 @@ export function AiMateSheet({ D, cu, A, open, onBack, onClose, id }) {
     {qs.length > 0 && <><Head>횟수 (담당이 정함)</Head>
       <Card>{qs.map((q, i) => <QtyRow key={q.key} q={q} n={qtyNow(doc, q.key, q.n)} can={canRule} onSet={(v) => A.mateQty(id, q.key, v)} last={i === qs.length - 1} />)}</Card>
       <div style={{ fontSize: 12.5, color: st.more >= 2 ? C.navy : C.sub, fontWeight: st.more >= 2 ? 800 : 400, margin: "8px 2px 0", lineHeight: 1.6 }}>{st.more >= 2 ? `이번 주 [더 만들기] ${st.more}번 — 매번 모자라면 위 횟수를 늘려 주세요 · ` : ""}다음 실행부터 이 수만큼 만들어요 · 이번 결과에서 더 필요하면 승인 한 장에서 [더 만들기]</div></>}
-    {b ? <BoardView D={D} cu={cu} A={A} b={b} open={open} asks={asks} doc={doc} />
+    {b && !(c && c.closed) ? <BoardView D={D} cu={cu} A={A} b={b} open={open} asks={asks} doc={doc} />
       : m.first ? <><Head>첫 할 일 (초안)</Head><Card style={{ padding: "12px 14px", fontSize: 13.5, color: C.text, lineHeight: 1.7 }}>{m.first}<div style={{ fontSize: 12.5, color: C.sub, marginTop: 6 }}>보드(지표·할 일 A~E)는 아직 없어요 · 같이 정하면 넣어요</div></Card></> : null}
-    {b && <p style={{ fontSize: 12.5, color: C.sub, margin: "10px 2px 0", lineHeight: 1.6 }}>Aside 결과는 <a className="v2-lblink" href={`${HUB_CREW_URL}#${b.id}`} target="_blank" rel="noopener">마케팅 허브 › AI 크루 결과 올리기 ›</a>에 붙여 넣어요</p>}
+    {b && !(c && c.closed) && <p style={{ fontSize: 12.5, color: C.sub, margin: "10px 2px 0", lineHeight: 1.6 }}>Aside 결과는 <a className="v2-lblink" href={`${HUB_CREW_URL}#${b.id}`} target="_blank" rel="noopener">마케팅 허브 › AI 크루 결과 올리기 ›</a>에 붙여 넣어요</p>}
 
     {done.length > 0 && <><Head>최근 끝난 것 (7일)</Head><Card>{done.slice(0, doneN).map((x, i, arr) => askRow(x, i === arr.length - 1 && done.length <= doneN))}{done.length > doneN && <More onClick={() => setDoneN(doneN + 10)}>{done.length - doneN}개 더 ▾</More>}</Card></>}
   </Sheet>;

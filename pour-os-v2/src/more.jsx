@@ -11,7 +11,7 @@ import { fileKind } from "./files.jsx";
 import { noteWhere } from "./search.js";
 import { tplTrashRows, canEditTpl } from "./tpl.js";
 import { mateOwner, myTurnN } from "./aiask.js";
-import { allMates } from "../../marketing-hub/crew.js";
+import { allMates, isLiveMate } from "../../marketing-hub/crew.js";
 import { apprLists } from "./appr.js";
 
 const BTN_ON = { background: C.navy, color: "#fff", borderColor: C.navy };
@@ -61,8 +61,8 @@ export function MoreTab({ D, cu, A, meta, logout, open, BUILD, setToast, view })
     {/* AI 팀원(2026-10-12): 크루(브랜드+고객별) · 내가 맡은 AI · 내 차례 승인 (2026-10-14 기본 AI 팀원(원형)은 목록에서 뺌 · 아침 루틴 = 여름) */}
     <Head>AI 팀원</Head>
     {(() => { const asks = (D.ai && D.ai.asks) || [], turn = myTurnN(asks, cu);   // 쉬는 AI 담당 미정은 뺌 (2026-10-15)
-      const mine = allMates().filter((m) => m.crew !== "base" && Object.values(((D.ai && D.ai.mates[m.id]) || {}).owners || {}).includes(cu.id)).length;   // 크루만 (2026-10-14 기본 AI 팀원 칸 없앰)
-      return <Card><Row title={`AI 팀원${mine ? ` · 내가 맡은 AI ${mine}` : ""}`} tag={turn ? `승인 차례 ${turn}` : null} sub="크루(브랜드·고객별) · 담당 → 리드 승인(광고비 예산·원가·판매가 조정만 본부장까지) · 확정 규칙" onClick={() => open({ type: "aiTeam" })} right={arrow} last={false} />
+      const mine = allMates().filter((m) => m.crew !== "base" && isLiveMate(m.id) && Object.values(((D.ai && D.ai.mates[m.id]) || {}).owners || {}).includes(cu.id)).length;   // 크루만 (2026-10-14 기본 AI 팀원 칸 없앰 · 닫힌 크루 빼고 2026-10-17)
+      return <Card><Row title={`AI 팀원${mine ? ` · 내가 맡은 AI ${mine}` : ""}`} tag={turn ? `승인 차례 ${turn}` : null} sub="B2C 크루 · 할 일마다 승인 길(점검·장부는 담당에서 끝 · 밖으로 나가는 것은 리드까지 · 광고비·원가·판매가는 본부장까지) · 확정 규칙" onClick={() => open({ type: "aiTeam" })} right={arrow} last={false} />
         {/* 광고 운영 · AI 팀 매뉴얼(2026-10-15) — 허브 화면(읽기 전용 · Aside 가 매일 08:30 올림) */}
         <a href="../marketing-hub/ads.html" target="_blank" rel="noopener" style={{ textDecoration: "none" }}><Row title="광고 운영" sub="Aside 광고 일일 보고서 · 끈 것 기록 · 메타·쿠팡·네이버" right={arrow} last={false} /></a>
         <a href="../marketing-hub/ai-manual.html" target="_blank" rel="noopener" style={{ textDecoration: "none" }}><Row title="AI 팀 매뉴얼" sub="크루 팀원별 역할·KPI·담당·루틴 · 광고 AI팀 매뉴얼" right={arrow} last /></a></Card>; })()}

@@ -9,7 +9,7 @@
 //   리드(그 칸 담당의 상급자 중 리드) 한마디 → [본부장에게 보내기] = 그때 숫자를 얼림(snap) · 본부장 [읽었어요]
 //   저장: pour-os/v2/aireports/{크루}-{기간 시작} = {crew, cycle, start, end, due, secs:{AI id:{note, plan, done, sent, snap}}, leads:{리드 id:{note, at}}, read, log[]}
 import { addDays, ymd, md, nameOf, isMaster, isDone, isRemoved, fxIds } from "./model.js";
-import { CREWS, GONE, mateOf, boardOf, fmtMetric, metricOk, stageNum, handoffsIn } from "../../marketing-hub/crew.js";
+import { CREWS, GONE, mateOf, boardOf, fmtMetric, metricOk, stageNum, handoffsIn, quietOf, quietLine } from "../../marketing-hub/crew.js";
 import { mateOwner, bossOf, isLeadU, isHQ, MAX_UP } from "./aiask.js";
 import { doneDay, dayOfIso } from "./report.js";
 import { isFxKey, fxIdOf, akKeys, taskAks, liveAk, liveActOwners } from "./airt.js";
@@ -83,6 +83,8 @@ export function secData(D, m, p, pv, asks) {
     req: mine.filter((a) => a.act === "R" && inP(a.run)).length };
   // ② 결과 — 보드 지표 (aiboards.hist{지표:{날짜:값}}) 이번 기간 마지막 값 ← 지난 기간 마지막 값 · 목표
   const bv = (D.ai && D.ai.boards && D.ai.boards[b.id]) || {}, hist = bv.hist || {};
+  // 변화 없음 (2026-10-17 사장님 2A) — 할 것이 없어 [상태] 한 줄만 남긴 날 · 할 일마다 셈 (crew.quietOf)
+  const quiet = quietOf(bv, p.start, p.end, new Set(mine.filter((a) => a.board === b.id && a.act).map((a) => `${a.run}~${a.act}`)));
   const lastIn = (k, a, z) => { const h = hist[k] || {}, d = Object.keys(h).filter((x) => x >= a && x <= z).sort().pop(); return d ? { v: h[d], date: d } : null; };
   const metrics = b.metrics.map((x) => { const cur = lastIn(x.k, p.start, p.end), prev = pv ? lastIn(x.k, pv.start, pv.end) : null;
     return { k: x.k, l: x.l, u: x.u || "", dir: x.dir || "up", target: x.target, cur, prev, ok: !!cur && metricOk(x, cur.v) }; });
@@ -104,7 +106,7 @@ export function secData(D, m, p, pv, asks) {
   const nh = bv.nextHist || {}, nd = Object.keys(nh).filter(inP).sort().pop() || "";
   return { mate: m.id, name: m.name, slot: m.slot, role: m.role, board: b.id, title: b.title,
     done: doneT.slice(0, 20).map((t) => ({ id: t.id, title: t.title, day: doneDay(t) })), doneN: doneT.length, openN: openT.length,
-    trace: tr, asks: st, metrics, ak, stage, inbox, aiNext: nd ? String(nh[nd] || "").slice(0, 2000) : "", aiNextRun: nd };
+    trace: tr, asks: st, quiet, metrics, ak, stage, inbox, aiNext: nd ? String(nh[nd] || "").slice(0, 2000) : "", aiNextRun: nd };
 }
 // 숫자 한 줄 (지표) — '7.4% ← 6.1% · 목표 12% ✓'
 export function metricLine(x) {
@@ -165,7 +167,7 @@ export function repText(crew, p, rows, r) {
   const L = [`[AI 크루 ${CYCLE_L[p.cycle]} 보고] ${crew.short || crew.name} · ${periodL(p)} · ${dueL(p)}`];
   rows.forEach(({ m, d, s }) => {
     L.push("", `■ ${m.slot} · ${m.name}(AI) ${m.role}${s.done ? ` · 담당 확인 ${s.done.byName || ""}` : " · 담당 확인 전"}`);
-    L.push(`- 실행: 실행 업무 끝냄 ${d.doneN}건 · 흔적 ${d.trace.done}건${d.trace.skip ? ` (안 함 ${d.trace.skip})` : ""} · 승인 ${d.asks.ok}건 · 올라옴 ${d.asks.made}건${d.openN ? ` · 남은 실행 ${d.openN}건` : ""}`);
+    L.push(`- 실행: 실행 업무 끝냄 ${d.doneN}건 · 흔적 ${d.trace.done}건${d.trace.skip ? ` (안 함 ${d.trace.skip})` : ""} · 승인 ${d.asks.ok}건 · 올라옴 ${d.asks.made}건${d.openN ? ` · 남은 실행 ${d.openN}건` : ""}${quietLine(d.quiet) ? ` · ${quietLine(d.quiet)}` : ""}`);
     if (d.stage) L.push(`- 단계 숫자 ${stageLine(d.stage)}`);
     d.metrics.filter((x) => x.cur || x.prev).forEach((x) => L.push(`- 결과 ${x.l}: ${metricLine(x)}`));
     if ((d.inbox || []).length) L.push(`- 넘겨받은 것: ${d.inbox.map((x) => `${x.name} ${x.act} ${md(x.at)} ${x.title}`).join(" · ")}`);

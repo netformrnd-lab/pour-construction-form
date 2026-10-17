@@ -12,7 +12,7 @@ import { CopyText } from "./aiui.jsx";
 import { useDoneSince } from "./reportui.jsx";
 import { isHQ, ASK_STATE_L } from "./aiask.js";
 import { FileList, useUploads, UpList, UpBtn, pasteFiles, rmProps, PASTE_HINT } from "./files.jsx";
-import { boardOf, runWord } from "../../marketing-hub/crew.js";
+import { boardOf, runWord, quietLine } from "../../marketing-hub/crew.js";
 import { CYCLE_L, WORD, cycleOf, periodOf, prevPeriod, nextPeriod, periodOfDoc, periodL, dueL, repSlots, repCrews, repId, secPeople, canWriteSec, secData, secState, SEC_L, metricLine, stageLine, trend, repText, repFxOf, secFiles } from "./aireport.js";
 
 const Pill = ({ children, color = C.navy, bg = C.soft }) => <span style={{ display: "inline-block", fontSize: 12, fontWeight: 800, padding: "3px 8px", borderRadius: 6, color, background: bg, whiteSpace: "nowrap" }}>{children}</span>;
@@ -122,7 +122,7 @@ function SecCard({ D, cu, A, c, p, row, open, expand, asks }) {
           <button type="button" className="v2-lblink" onClick={() => open({ type: "aiask", id: x.id })} style={{ cursor: "pointer", fontFamily: "inherit", textAlign: "left", maxWidth: "100%" }}>{x.name} {x.act} · {x.title} ›</button><span style={{ fontSize: 12.5, color: C.sub }}>{md(x.at)}{x.n ? ` · ${x.n}줄` : ""}</span></div>)}</Sec>}
       <Sec t="① 실행">
         <div>실행 업무 끝냄 <b>{d.doneN}</b>{d.openN ? ` · 남음 ${d.openN}` : ""} · 흔적 <b>{d.trace.done}</b>{d.trace.skip ? ` · 안 함 ${d.trace.skip}` : ""}</div>
-        <div style={{ color: C.sub, fontSize: 12.5 }}>AI 결과 올라옴 {d.asks.made} · 승인 {d.asks.ok} · 안 함 {d.asks.no}{d.asks.req ? ` · 맡긴 일 ${d.asks.req}` : ""}{d.asks.open ? ` · 아직 열림 ${d.asks.open}` : ""}</div>
+        <div style={{ color: C.sub, fontSize: 12.5 }}>AI 결과 올라옴 {d.asks.made} · 승인 {d.asks.ok} · 안 함 {d.asks.no}{d.asks.req ? ` · 맡긴 일 ${d.asks.req}` : ""}{d.asks.open ? ` · 아직 열림 ${d.asks.open}` : ""}{quietLine(d.quiet) ? ` · ${quietLine(d.quiet)}` : ""}</div>
         {d.done.slice(0, 5).map((t) => <div key={t.id} style={{ fontSize: 13, marginTop: 2 }}><button type="button" className="v2-lblink" onClick={() => open({ type: "task", id: t.id })} style={{ background: "none", border: "none", padding: 0, color: C.navy, cursor: "pointer", textAlign: "left", fontFamily: "inherit", fontSize: 13, textDecoration: "underline", wordBreak: "break-word" }}>{t.title}</button> <span style={{ color: C.mute }}>{md(t.day)}</span></div>)}
         {d.trace.links.slice(0, 5).map((x, i) => <div key={i} style={{ fontSize: 12.5, minWidth: 0, wordBreak: "break-all" }}>{x.n !== "_" ? `${x.n} · ` : ""}<Linked text={x.link} /></div>)}
       </Sec>

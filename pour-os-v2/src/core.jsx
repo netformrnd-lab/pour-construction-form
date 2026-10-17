@@ -24,7 +24,7 @@ import { flowOwners } from "./flow.js";
 import { sumAk, akWrite, countFields, countOf, baseTitle } from "./routine.js";
 import { linkInbox } from "./links.js";
 import { apprInbox, apprMerge } from "./appr.js";   // 구매 품의 요청 (2026-10-16)
-import { askInbox, asideInbox, planPass, planBack, planRet, planDrop, planExec, canAct, canBack, canRet, pickOk, bossLoop, moreText, MORE_MAX, hqOf, traceOf, traceLeft, mateOwner, actOwner, isHQ, launchTaskOf, adsAsideVer, adsAsideOwner, canAdsAside } from "./aiask.js";   // AI 승인 (2026-10-12) · Aside 담당 PC (2026-10-15)
+import { askInbox, asideInbox, planPass, planBack, planRet, planDrop, planExec, canAct, canBack, canRet, pickOk, bossLoop, moreText, MORE_MAX, hqOf, pathOf, PATHS, PATH_L, traceOf, traceLeft, mateOwner, actOwner, isHQ, launchTaskOf, adsAsideVer, adsAsideOwner, canAdsAside } from "./aiask.js";   // AI 승인 (2026-10-12) · Aside 담당 PC (2026-10-15)
 import { moneyInbox } from "./money.js";   // 돈·결재 7건 알림 (2026-10-17 · 계산만)
 import { feedInbox, adChecker } from "./feeds.js";   // 결과 숫자 · 비면 n일째 (2026-10-17 · 계산만)
 import { mateOf, boardOf, brandL, qtyDefs, canReq, reqDoc, reqId, designBad, DESIGN_MAX, handoffLabel, handoffTargets } from "../../marketing-hub/crew.js";
@@ -616,11 +616,12 @@ export function useActs(D, cu, setToast, idx = null) {
     // ── AI 승인 (aiask.js · 사용자 결정 2026-10-12 'AI → 담당 → 리드 → 본부장') ──
     //   승인 문서(pour-os/v2/aiasks)가 연 때 본 차례(state·to·step·ver) 그대로일 때만 씀(transaction) · 기록 log 는 더하기만 · 5초 되돌리기
     //   최종 승인 + 실행 한 줄 → 담당에게 '실행' 업무(같은 transaction · 없을 때만) — 실제 반영(가격·광고·발송·게시)은 늘 사람
-    // up = [본부장에게도 올리기] (2026-10-15 최종 승인 = 리드 · 본부장은 광고비 예산·원가·판매가 조정만 = hqOf)
+    // up = true [본부장에게도 올리기] (2026-10-15 최종 승인 = 리드 · 본부장은 광고비 예산·원가·판매가 조정만 = hqOf)
+    //      "lead" [리드에게도 올리기] (2026-10-17 승인 길 · 담당에서 끝나는 일을 리드까지 = pathOf)
     aiPass: async (a, pick, up) => {
       if (!canAct(a, cu)) { setToast({ text: "지금 내 차례가 아니에요" }); return false; }
       if (!pickOk(a, pick)) { setToast({ text: "승인할 번호를 골라 주세요" }); return false; }
-      const md0 = ((D.ai && D.ai.mates) || {})[a.mate] || {}, at = nowIso(), pl = planPass(a, cu, D.users, pick, at, { hq: hqOf(a, md0), up: !!up });
+      const md0 = ((D.ai && D.ai.mates) || {})[a.mate] || {}, at = nowIso(), pl = planPass(a, cu, D.users, pick, at, { hq: hqOf(a, md0), path: pathOf(a, md0), up: up === "lead" ? "lead" : !!up });
       const keys = akKeys((md0.actAk || {})[a.act || NO_ACT]);   // 짝 열쇠 (여러 개 · 2026-10-17) — 할 일 글자 · 글자 없는 결과(여름 아침 루틴)는 '_' (2026-10-16)
       const ex = pl.final ? planExec({ ...a, ...pl.fields }, pl.fields.pick, cu, D.users, at, nextWorkday(addDays(ymd(new Date()), 1)), { aks: keys, launchTask: launchTaskOf(D, a) }) : null;   // 디맨드젠 = 그 신제품 칸
       const exs = ex ? [ex, ...splitExec(D, ex, keys, cu, at)] : [];   // 열쇠 담당이 실행 담당과 다르면 그 사람 몫 실행 업무도 (2026-10-17)
@@ -703,13 +704,14 @@ export function useActs(D, cu, setToast, idx = null) {
       return true;
     },
     // 할 일 설정 (2026-10-15 사장님 "재고/발주 = 윤미니 · 재고0·쿠팡 단가·상페분석 = 김민지" · 본부장 승인 일 · KPI 반복 실행 짝)
-    //   field: actOwners(할 일 담당 · 관리자) · actHq(본부장 승인 켬 true/끔 false/보드대로 null · 관리자) · actAk(반복 실행 짝 · 관리자·AI 담당)
+    //   field: actOwners(할 일 담당 · 관리자) · actPath(승인 길 owner·lead·hq / 기본 null · 관리자 · 2026-10-17 · 예전 actHq 보다 먼저) · actHq(예전 본부장 승인 켬 true/끔 false · 화면은 이제 actPath) · actAk(반복 실행 짝 · 관리자·AI 담당)
     //   할 일 담당을 바꾸면 그 할 일의 담당 단계 승인(대기·AI가 고치는 중)도 새 담당에게 · 5초 되돌리기
     mateActSet: async (mateId, field, act, value) => {
       const rtName = (k) => (k && keyName(D, k)) || "없음";
       const doc = D.ai.mates[mateId] || {}, m = mateOf(mateId) || { name: mateId }, mine = Object.values(doc.owners || {}).includes(cu.id);
-      if (!["actOwners", "actHq", "actAk"].includes(field) || !act) return false;
-      if (!(isMaster(cu) || (field === "actAk" && mine))) { setToast({ text: field === "actAk" ? "반복 실행 짝은 그 AI 담당·관리자가 정해요" : "할 일 담당·본부장 승인은 관리자가 정해요" }); return false; }
+      if (!["actOwners", "actPath", "actHq", "actAk"].includes(field) || !act) return false;
+      if (field === "actPath" && value != null && value !== "" && !PATHS.includes(value)) return false;
+      if (!(isMaster(cu) || (field === "actAk" && mine))) { setToast({ text: field === "actAk" ? "반복 실행 짝은 그 AI 담당·관리자가 정해요" : "할 일 담당·승인 길은 관리자가 정해요" }); return false; }
       const at = nowIso(), v = value === undefined || value === "" ? null : Array.isArray(value) ? pairVal(value) : value; let was = null;   // 반복 실행 짝 = 열쇠 하나 또는 목록 (2026-10-17)
       try { await fb.txDoc("aimates", mateId, (cur) => { was = ((cur && cur[field]) || {})[act]; was = was === undefined ? null : was; if (sameV(was, v)) return {};
           const h = { at, by: cu.id, byName: cu.name, ch: { [`${field}.${act}`]: [histOf(was), histOf(v)] } };   // 목록은 {list} 로 (Firestore 는 배열 안 배열을 못 씀)
@@ -724,6 +726,7 @@ export function useActs(D, cu, setToast, idx = null) {
           catch (e) { console.error("[v2] 할 일 담당 · 열린 승인 넘기기 실패:", e); } }
       }
       const L = field === "actOwners" ? `${act} 담당 ${who(was)}${was ? "" : "(AI 담당)"} → ${who(v)}${v ? "" : "(AI 담당)"}${moved ? ` · 열린 승인 ${moved}건 넘김` : ""}`
+        : field === "actPath" ? `${act} 승인 길 ${v ? PATH_L[v] : "기본(보드대로)"}`
         : field === "actHq" ? `${act} 본부장 승인 ${v === true ? "켬" : v === false ? "끔" : "보드대로"}` : `${act === NO_ACT ? "아침 루틴" : act} 반복 실행 짝 ${akKeys(v).length ? akKeys(v).map(rtName).join(" · ") : "없음"}`;
       log("aiAct", { col: "aimates", targetId: mateId, label: `${m.name} · ${L}` });
       setToast({ text: `${m.name} · ${L}`, undo: () => A.mateActSet(mateId, field, act, was) });

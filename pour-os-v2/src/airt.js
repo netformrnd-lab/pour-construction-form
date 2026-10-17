@@ -6,7 +6,7 @@
 //   2026-10-17 사장님 "현재 반복업무들 모두 ai크루든 도움받아서 해야해" → 할 일 하나 ↔ 열쇠 여러 개(actAk 값 = 열쇠 하나(예전) 또는 목록 · akKeys)
 //     [했어요] = 누른 사람이 그 열쇠 담당인 것만 · 실행 브랜드와 맞는 것만 (countKeys) · 열쇠 담당이 실행 담당과 다르면 그 사람 몫 실행 업무도 (splitExec)
 //     실행이 없는 보고(광고 보고 F)는 담당이 승인하면 그 사람 정한 날 체크를 그날 체크 (core.aiPass)
-import { mateOf, boardOf, actOf, execOf, GONE } from "../../marketing-hub/crew.js";
+import { mateOf, boardOf, actOf, execOf, GONE, isLiveMate } from "../../marketing-hub/crew.js";
 import { traceLeft } from "./aiask.js";
 import { isDone, isMine, fxIds, fxIsMine } from "./model.js";
 import { akWho } from "../../pour-os/src/actionKpi.js";
@@ -78,10 +78,10 @@ export function actTitle(mateId, act) {
   if (act === NO_ACT) return m.routine ? "아침 루틴 원고" : "";
   const a = m.board ? actOf(m.board, act) : null; return a && !a.admin ? a.t : "";
 }
-// 짝 지을 수 있는 할 일 = 실행 한 줄이 있는 것(최종 승인 뒤 실행 업무 → [했어요]) + 광고 보고(report · 승인하면 짝 정한 날 체크 · 2026-10-17) + 아침 루틴 · 쉬는 AI 는 없음
+// 짝 지을 수 있는 할 일 = 실행 한 줄이 있는 것(최종 승인 뒤 실행 업무 → [했어요]) + 광고 보고(report · 승인하면 짝 정한 날 체크 · 2026-10-17) + 아침 루틴 · 쉬는 AI · 닫힌 크루(B2B·바라스데이 · 2026-10-17)는 없음
 export const pairable = (a) => !!a && !a.admin && (!!execOf(a) || !!a.report);
 export function pairActs(mateId) {
-  const m = mateOf(mateId); if (!m || GONE[mateId]) return [];
+  const m = mateOf(mateId); if (!m || GONE[mateId] || !isLiveMate(mateId)) return [];
   const b = m.board ? boardOf(m.board) : null;
   return [...(m.routine ? [{ c: NO_ACT, t: "아침 루틴 원고" }] : []), ...((b && b.actions) || []).filter(pairable).map((a) => ({ c: a.c, t: a.t }))];
 }
@@ -91,11 +91,11 @@ export function liveAk(mateId, doc) {
   return out;
 }
 export const liveActOwners = (mateId, doc) => Object.fromEntries(Object.entries((doc && doc.actOwners) || {}).filter(([act, u]) => u && actTitle(mateId, act)));
-// 짝 목록: 열쇠 → [{mate, mateName, act, actT}] (쉬는 AI · 없는 할 일 · 빈 값은 뺌)
+// 짝 목록: 열쇠 → [{mate, mateName, act, actT}] (쉬는 AI · 닫힌 크루 · 없는 할 일 · 빈 값은 뺌 — 닫힌 크루의 옛 짝 기록은 aimates 에 그대로)
 export function rtPairs(mates) {
   const out = new Map();
   Object.entries(mates || {}).forEach(([mid, doc]) => {
-    const m = mateOf(mid); if (!m || GONE[mid]) return;
+    const m = mateOf(mid); if (!m || GONE[mid] || !isLiveMate(mid)) return;
     Object.entries((doc && doc.actAk) || {}).forEach(([act, v]) => {
       const t = actTitle(mid, act); if (!t) return;
       akKeys(v).forEach((key) => { if (!out.has(key)) out.set(key, []); out.get(key).push({ mate: mid, mateName: m.name, act, actT: t }); });
@@ -154,7 +154,7 @@ const bare = (s) => String(s || "").replace(/\([^)]*\)/g, " ").replace(/\s+/g, "
 // rows = [{key, name, brand(보드 brand 와 같은 id · grohome·pourstore …), kind 'ak'|'fx', owners?}] → [{key, name, kind, mate, mateName, act, actT, owner?}]
 export function rtSuggest(rows, mates) {
   const usedAct = new Set(), usedKey = new Set();
-  Object.entries(mates || {}).forEach(([mid, doc]) => Object.entries(liveAk(mid, doc)).forEach(([act, ks]) => { usedAct.add(mid + "." + act); ks.forEach((k) => usedKey.add(k)); }));
+  Object.entries(mates || {}).forEach(([mid, doc]) => { if (!isLiveMate(mid)) return; Object.entries(liveAk(mid, doc)).forEach(([act, ks]) => { usedAct.add(mid + "." + act); ks.forEach((k) => usedKey.add(k)); }); });   // 닫힌 크루의 옛 짝은 '이미 짝'으로 안 셈 → B2C 크루 추천에 다시 나옴
   const out = [];
   RT_AI_HINTS.forEach((h) => {
     const k = h.mate + "." + h.act; if (usedAct.has(k) || !pairActs(h.mate).some((a) => a.c === h.act)) return;

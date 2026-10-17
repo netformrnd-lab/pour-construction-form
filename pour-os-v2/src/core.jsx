@@ -759,7 +759,7 @@ export function useActs(D, cu, setToast, idx = null) {
       if (val && val.skip && !val.note) { setToast({ text: "안 한 이유를 한 줄 써 주세요" }); return false; }
       // 짝 열쇠 (2026-10-17 · 여러 개 · 누른 사람이 그 열쇠 담당이고 실행 브랜드와 맞는 것만 · 남의 것은 안 건드림): 여러 번 = ±1 · 정한 날 체크 = 오늘 체크(아래)
       //   되돌리기 = 그때 센 열쇠(cnt)만 −1 · cnt 없는 예전 흔적 = 예전처럼 aiAk 하나
-      const was = !!(prev && prev.done), now = !!(val && val.done), ck = countKeys(D, t, cu.id), akItem = (k) => ((D.ak && D.ak.items) || []).find((x) => x.id === k) || null;
+      const was = !!(prev && prev.done), now = !!(val && val.done), ck = countKeys(D, t, cu.id, ((t.aiItems || []).find((x) => x && x.n === n) || {}).b), akItem = (k) => ((D.ak && D.ak.items) || []).find((x) => x.id === k) || null;
       const akDo = now && !was ? ck.filter((x) => x.kind === "ak").map((x) => x.it)
         : !now && was ? (Array.isArray(prev.cnt) ? prev.cnt.map(akItem) : t.aiAk && !isFxKey(t.aiAk) ? [akItem(t.aiAk)] : []).filter(Boolean) : [];
       if (val && now) val.cnt = ck.map((x) => x.key);   // 이 [했어요]로 센 열쇠 (여러 번 · 정한 날 체크) — 되돌리기는 여러 번만 −1 · 크루 보고 ③ KPI 가 셈

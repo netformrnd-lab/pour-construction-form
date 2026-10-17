@@ -24,7 +24,7 @@ eq("저장된 보고서 기간 그대로", [R.periodOfDoc({ cycle: "week", start
 eq("글: 기간 · 마감", [R.periodL(R.periodOf(W, "2026-10-15")), R.dueL(R.periodOf(W, "2026-10-15"))], ["10/12~10/18", "금 10/16 마감"]);
 
 // ② 크루 칸 — 보드가 있는 칸만 (B2B·바라스데이 크루는 아직 없음 · 2026-10-15 '13번은 냅둬')
-eq("B2C 6칸 · 다른 크루 없음", [R.repSlots("b2c").map((m) => `${m.slot}:${m.name}`), R.repSlots("b2b").length, R.repSlots("bd").length, R.repCrews().map((c) => c.id)], [["채널:봄", "노출:여름", "유입:가을", "전환:겨울", "객단가:하늘", "재구매:우주"], 0, 0, ["b2c"]]);
+eq("B2C 7칸(AARRR 순서 + 봄 MD · 2026-10-17) + 맨 위 공통 숫자(별) · 이음·달 빼고 · B2B 크루(보드 있어도 noReport)·바라스데이 없음", [R.repSlots("b2c").map((m) => `${m.slot}:${m.name}`), R.repSlots("b2b").length, R.repSlots("bd").length, R.repCrews().map((c) => c.id)], [["공통 숫자:별", "유입:여름", "유입:가을", "전환:겨울", "재구매:우주", "매출:하늘", "지인추천:바람", "MD:봄"], 0, 0, ["b2c"]]);
 eq("보고서 id = 크루-기간 시작", R.repId("b2c", R.periodOf(W, "2026-10-15")), "b2c-2026-10-12");
 
 // ③ 칸 사람 — 담당(AI 담당) · 같이 쓰는 사람(할 일 담당) · 리드(담당 위 첫 리드 · 없으면 담당이 바로)
@@ -76,7 +76,7 @@ eq("금요일: 본부장 = 보낸 게 없으면 줄 없음 · 하늘 담당이�
 const D2 = { ...D0, ai: { ...D0.ai, reports: rep({ gyeoul: { note: "전환 올랐음", done: { at: "2026-10-16T05:00:00.000Z", byName: "남윤정" } } }) } };
 eq("담당 [다 썼어요] → 쓰기 줄 사라짐 · 리드 확인 1/1", [ib(D2, "yj", "2026-10-16").length, R.repInbox(D2, "sy", new Date("2026-10-16T10:00:00"))[0].text.includes("담당 확인 1/1칸")], [0, true]);
 const D3 = { ...D0, ai: { ...D0.ai, reports: rep({ gyeoul: { done: { at: "a" }, sent: { at: "2026-10-16T07:00:00.000Z", by: "sy", byName: "김소연" } } }) } };
-eq("리드가 보냄 → 리드 줄 사라짐 · 본부장 '보고 도착'", [ib(D3, "sy", "2026-10-16").length, R.repInbox(D3, "hj", new Date("2026-10-16T16:00:00")).filter((x) => x.btn === "읽기").map((x) => [x.tag, x.title, x.whoName])], [0, [["보고 도착", "B2C 크루 주간 보고 · 1/6칸", "김소연"]]]);
+eq("리드가 보냄 → 리드 줄 사라짐 · 본부장 '보고 도착'", [ib(D3, "sy", "2026-10-16").length, R.repInbox(D3, "hj", new Date("2026-10-16T16:00:00")).filter((x) => x.btn === "읽기").map((x) => [x.tag, x.title, x.whoName])], [0, [["보고 도착", "B2C 크루 주간 보고 · 1/8칸", "김소연"]]]);
 const D4 = { ...D0, ai: { ...D0.ai, reports: rep({ gyeoul: { sent: { at: "2026-10-16T07:00:00.000Z", byName: "김소연" } } }, { read: { by: "hj", at: "2026-10-16T08:00:00.000Z" } }) } };
 eq("본부장 [읽었어요] → 사라짐 · 그 뒤 또 보내면 다시", [R.repInbox(D4, "hj", new Date("2026-10-16T16:00:00")).filter((x) => x.btn === "읽기").length,
   R.repInbox({ ...D4, ai: { ...D4.ai, reports: rep({ gyeoul: { sent: { at: "2026-10-16T07:00:00.000Z" } }, yeoreum: { sent: { at: "2026-10-16T09:00:00.000Z", byName: "김채원" } } }, { read: { by: "hj", at: "2026-10-16T08:00:00.000Z" } }) } }, "hj", new Date("2026-10-16T16:00:00")).filter((x) => x.btn === "읽기").length], [0, 1]);

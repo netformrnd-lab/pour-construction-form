@@ -140,7 +140,7 @@ function ownersL(mid){
 function runL(m,plan){
   const out=[], b=m.board?K.boardOf(m.board):null;
   if(m.routine)out.push(m.routine.split(' · ').slice(0,2).join(' '));
-  if(b&&b.run){const p=K.planOf(plan,b.id);out.push(`보드 Aside 평일 ${p?p.t:b.run.t}${p&&!p.owner?' (관리자 PC)':''}`);}
+  if(b&&b.run){const p=K.planOf(plan,b.id);out.push(`보드 Aside ${K.runWord({...b.run,t:p?p.t:b.run.t})}${p&&!p.owner?' (관리자 PC)':''}`);}   // 주 1~2회 보드는 그 요일 (2026-10-17)
   const ad=A.AD_ROLES[m.id]; if(ad)out.push(`광고 ${ad.when}`);
   return out;
 }
@@ -154,6 +154,7 @@ function mateCard(m,crew,plan){
       ${runs.length?`<dt>루틴</dt><dd>${runs.map(esc).join('<br>')}</dd>`:''}
       ${b?`<dt>보드</dt><dd>${esc(K.brandL(b.brand))} ${esc(b.title)}</dd>`:''}</dl>
     ${ad?`<div class="adbox"><b>광고 업무</b> ${srcB(A.SRC.A)} ${esc(ad.does)}<br><b>실행</b> ${esc(ad.exec)}</div>`:''}
+    ${(()=>{const mv=K.movedOut(m.id);return mv.length?`<div class="first"><b>옮긴 할 일 (2026-10-17 AARRR 정리)</b> · ${mv.map(x=>`${esc(x.c)} → ${esc(x.name)} ${esc(x.to.c)}`).join(' · ')}</div>`:'';})()}
     ${acts.length?`<details class="acts"><summary>할 일 ${acts.map(a=>a.c).join('·')} (${acts.length})</summary><ol>${acts.map(a=>`<li><b>${esc(a.c)}</b>${esc(a.t)}${a.admin?' <span class="pill">관리자 자리</span>':''}${a.report?` <span class="pill ad">광고 보고서</span>${srcB(A.SRC.A)}`:''}<span class="w">${esc(a.when)}${a.k?' · '+esc(a.k):''}</span></li>`).join('')}</ol></details>`
       :m.first?`<div class="first"><b>첫 할 일 (초안)</b> · ${esc(m.first)}</div>`:''}
   </div>`;
@@ -165,12 +166,12 @@ function vRoles(){
     <p class="lead">제안서에 적힌 역할과, Aside 가 크루에 나눠 붙인 광고 분담을 따로 보여요 · 크루 분담은 제안서에 없는 <b>Aside 추가</b>예요</p>
     ${A.AD_MODE.mode==='outsourced'||A.AD_MODE.mode==='parallel'?`<div class="mode"><b>${esc(A.AD_MODE.label)}</b> ${srcB(A.SRC.D)} · ${A.AD_MODE.mode==='parallel'?`외주 ${esc(A.AD_MODE.from)}부터 ${esc(A.AD_MODE.until)} · 내부 관리 ${esc(A.AD_MODE.inhouse)}부터 ${esc(A.AD_MODE.manager)} → ${esc(A.AD_MODE.reportTo)}께 매주 보고`:`${esc(A.AD_MODE.from)}부터 ${esc(A.AD_MODE.until)}`} — ${esc(A.AD_MODE.note)} 운영 기준 ${srcB(A.SRC.K)} · 보고 ${esc(A.AD_MODE.daily)} 일일 · ${esc(A.AD_MODE.weekly)} 주간 · <a href="ads.html">광고 운영 ›</a></div>`:''}
     <div class="roles"><div class="rbox"><h3>제안서의 원래 역할 ${srcB(A.SRC.P)}</h3>${P.roles.map(r=>`<div class="rl"><b>${esc(r.who||'')}</b>${esc(r.does||'')} ${srcB(r.src||A.SRC.P,r.page)}</div>`).join('')}</div>
-    <div class="rbox"><h3>크루 광고 분담 ${srcB(A.SRC.A)} <span class="sub">제안서에 없음</span></h3>${crew.map(m=>{const ad=A.AD_ROLES[m.id];return `<div class="rl"><b>${esc(m.name)}</b>${esc(ad.ad)} · ${esc(ad.when)} <span class="sub">· 실행 ${esc(ad.exec)}</span></div>`;}).join('')}</div></div>`;
+    <div class="rbox"><h3>크루 광고 분담 ${srcB(A.SRC.A)} <span class="sub">제안서에 없음 · 2026-10-17부터 광고는 가을 한 명</span></h3>${crew.map(m=>{const ad=A.AD_ROLES[m.id];return `<div class="rl"><b>${esc(m.name)}</b>${esc(ad.ad)} · ${esc(ad.when)} <span class="sub">· 실행 ${esc(ad.exec)}</span></div>`;}).join('')}</div></div>`;
 }
 function vCrews(){
   const plan=K.asidePlan(b=>act(K.ownerFor(S.mates[b.mate],b.brand)));
   return K.CREWS.map(c=>`<h2 class="sec">${esc(c.name)} ${c.draft?'<span class="pill dr">초안</span>':''}<span class="sub">${esc(K.servesL(c))}</span></h2>
-    <p class="lead">${esc(c.note||'')}${c.formula?` · 매출 = ${c.formula.map(esc).join(' × ')}`:''}</p>
+    <p class="lead">${esc(c.note||'')}${c.formula?` · ${esc(K.formulaL(c))}`:''}</p>
     <div class="mates">${c.members.map(m=>mateCard(m,c,plan)).join('')}</div>`).join('');
 }
 function vMans(){

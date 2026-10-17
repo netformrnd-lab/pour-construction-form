@@ -31,10 +31,12 @@ const aiasks = {
   ai_bom_20261012_blog3: ask({ id: 'ai_bom_20261012_blog3', mate: 'bom', brand: 'pourstore', title: '봄 · 블로그 원고 3 (균열 보수 빠데)', sum: '27칸 표준 · 구조 검사 ✓9', url: 'https://example.test/hub#team', exec: '승인되면 담당이 [임시저장 맡기기] 뒤 블로그에서 발행한다' }),
   ai_pori_20261012_old: ask({ id: 'ai_pori_20261012_old', mate: 'pori', brand: 'pourstore', title: '포리 · 예전 원고 (쉬는 AI)', url: 'https://example.test/hub#team' }),   // 2026-10-14 쉼 → '확인할 것' 아님 · AI 팀원 '쉬는 AI 승인 대기'
 };
+// 새 크루원(바람·이음·별·달)·B2B 보드(2026-10-17)는 변유림 PC — 아래 시험은 그로홈 6개 기준 (담당 미정 4명 등)
+const NEWM = Object.fromEntries(['baram', 'ieum', 'byeol', 'dal', 'dandan', 'cheokcheok', 'kkomkkom', 'deundeun', 'teunteun'].map((m) => [m, { id: m, owners: { _: 'yr' } }]));   // 바람(지인추천 · 2026-10-17 AARRR)도 변유림 PC
 const seed = () => ({ meta: { seededAt: '2026-10-01T00:00:00.000Z', counts: {} }, writes: [],
   v2: { users, projects: {}, tasks: { t1: { id: 't1', title: '추석 이벤트 배너 문구', isFixed: false, status: 'todo', assigneeId: 'yj', assigneeIds: ['yj'], projectId: '', dueDate: '2026-10-13', createdAt: T0, statusLog: [] } },
     notes: {}, log: {}, events: {}, brands: { grohome: { id: 'grohome', name: '그로홈', active: true, order: '2' }, pourstore: { id: 'pourstore', name: 'POUR스토어', active: true, order: '1' } },
-    workflows: {}, mainKPIs: {}, subKPIs: {}, settings: {}, kpiact: {}, links: {}, lagvals: {}, kpisales: {}, kpidefs: {}, templates: {}, checks: {}, aiasks, aimates: {}, aiboards: { 'gh-conv': { id: 'gh-conv', board: 'gh-conv', metrics: { cv_mall: { v: 7.4, date: '2026-10-12' }, cv_cp: { v: 2.4, date: '2026-10-12' }, soldout: { v: 0, date: '2026-10-12' } } } } } });
+    workflows: {}, mainKPIs: {}, subKPIs: {}, settings: {}, kpiact: {}, links: {}, lagvals: {}, kpisales: {}, kpidefs: {}, templates: {}, checks: {}, aiasks, aimates: NEWM, aiboards: { 'gh-conv': { id: 'gh-conv', board: 'gh-conv', metrics: { cv_mall: { v: 7.4, date: '2026-10-12' }, cv_cp: { v: 2.4, date: '2026-10-12' }, soldout: { v: 0, date: '2026-10-12' } } } } } });
 let ST = seed();
 const V1D = {};   // 버전1 문서(window.__V1_DOCS) — ⑨ 반복 실행 정의
 
@@ -128,7 +130,7 @@ const boxOf = (S, label) => S().getByLabel(label + ' 글').inputValue().catch(()
   await shot(s.pg, 'yj-aiteam-375'); ok('AI 팀원 목록 넘침 없음 375', !(await over(s.pg)));
   await s.S().getByText('겨울 · 전환마케터').click(); await s.pg.waitForTimeout(600);
   const tx = await s.S().innerText();
-  ok('AI 한 장: 보드 지표 · 할 일 · 고칠 점 · Aside 루틴 줄', tx.includes('전환 보드') && tx.includes('자사몰 구매전환율') && tx.includes('7.4%') && tx.includes('할 일 A~F') && tx.includes('쿠팡 로켓그로스 재고도') && tx.includes('Aside 루틴 · 평일 09:00 · 내 PC') && tx.includes('횟수 (담당이 정함)') && tx.includes('B · 옵션안') && (await s.S().getByRole('button', { name: '지금 돌리기 — Aside 글 복사' }).count()) === 1 && (await s.S().locator('a[href$="crew.html#gh-conv"]').count()) > 0);
+  ok('AI 한 장: 보드 지표 · 할 일 · 고칠 점 · Aside 루틴 줄', tx.includes('전환 보드') && tx.includes('자사몰 구매전환율') && tx.includes('7.4%') && tx.includes('할 일 A~G') && tx.includes('쿠팡 로켓그로스 재고도') && tx.includes('Aside 루틴 · 평일 09:00 · 내 PC') && tx.includes('횟수 (담당이 정함)') && tx.includes('B · 옵션안') && (await s.S().getByRole('button', { name: '지금 돌리기 — Aside 글 복사' }).count()) === 1 && (await s.S().locator('a[href$="crew.html#gh-conv"]').count()) > 0);
   ok('보드에 마진·원가 칸 없음', !/마진 \d|원가|공급 단가/.test(tx));
   await shot(s.pg, 'yj-mate-top-375');
   await s.S().getByRole('button', { name: '규칙으로' }).first().click(); await s.pg.waitForTimeout(500);
@@ -278,7 +280,7 @@ ST.v2.aiboards['gh-conv'].at = '2026-10-12T00:10:00.000Z';
   await s.pg.locator('.v2-nav').getByRole('button', { name: '더보기' }).click(); await s.pg.waitForTimeout(300);
   await s.pg.getByText(/^AI 팀원 · 내가 맡은 AI 1/).click(); await s.pg.waitForTimeout(500);
   await s.S().getByText('AI에게 업무 맡기기').click(); await s.pg.waitForTimeout(500);
-  ok('맡기기 시트: AI 6명 · 버튼 잠김(아직 안 고름)', (await s.S().getByText('겨울 · 전환마케터').count()) > 0 && (await s.S().getByText('봄 · 오늘의집 MD').count()) > 0 && await s.pg.getByRole('button', { name: 'AI 팀원을 골라 주세요' }).isDisabled());
+  ok('맡기기 시트: AI 6명 · 버튼 잠김(아직 안 고름)', (await s.S().getByText('겨울 · 전환마케터').count()) > 0 && (await s.S().getByText('봄 · MD · 프로모션·판매채널').count()) > 0 && await s.pg.getByRole('button', { name: 'AI 팀원을 골라 주세요' }).isDisabled());
   await s.S().getByText('겨울 · 전환마케터').click(); await s.S().getByText('상품 상세 이탈 진단 1건').click();
   await s.S().getByText('표', { exact: true }).click(); await s.S().getByText('3개', { exact: true }).click(); await s.S().getByText('내일', { exact: true }).click();
   await s.S().getByLabel('자세히').fill('쿠팡 유리블러 상세 · 리뷰가 맨 끝이라 이탈');
@@ -407,9 +409,9 @@ const FRI = '2026-10-16T10:00:00+09:00', RID = 'b2c-2026-10-12';
   eq('금요일: 남윤정 = 겨울 칸 쓰기 줄', await inbox(s.pg, '겨울 칸 쓰기 · B2C 크루').count(), 1);
   await inbox(s.pg, '겨울 칸 쓰기 · B2C 크루').first().getByRole('button', { name: '쓰기', exact: true }).click(); await s.pg.waitForTimeout(600);
   const tx = await s.S().innerText();
-  ok('보고서: 이번 주 · 다음 할 일 = 내 칸 겨울 · 칸 6개', tx.includes('이번 주') && tx.includes('10/12~10/18') && tx.includes('내 칸 겨울') && tx.includes('크루 칸 6'));
+  ok('보고서: 이번 주 · 다음 할 일 = 내 칸 겨울 · 칸 8개 (공통 숫자 별 + AARRR 6 + 봄 MD · 2026-10-17)', tx.includes('이번 주') && tx.includes('10/12~10/18') && tx.includes('내 칸 겨울') && tx.includes('크루 칸 8'), tx.slice(0, 400));
   ok('겨울 칸: 실행 2 · 남음 1 · 흔적 2 · 안 함 1 · 전환 7.4% ← 6.1% · KPI +1 · AI 다음', tx.includes('실행 업무 끝냄 2 · 남음 1 · 흔적 2 · 안 함 1') && tx.includes('7.4% ← 6.1% · 목표 7% ✓') && tx.includes("반복 '리뷰 신고·답글' +1") && tx.includes('롤러 재입고 알림 켜기'), tx.slice(0, 900));
-  ok('다른 칸은 접힘 · 담당 미정 · 한 줄 요약', tx.includes('채널 · 봄(AI)') && tx.includes('담당 미정'));
+  ok('다른 칸은 접힘 · 담당 미정 · 한 줄 요약', tx.includes('MD · 봄(AI)') && tx.includes('지인추천 · 바람(AI)') && tx.includes('담당 미정'));
   await s.S().getByLabel('겨울 한 줄').fill('전환 7.4% — 상세 첫 화면 가격 노출 효과');
   await s.S().getByLabel('겨울 다음 계획').fill('- 리뷰 이벤트 기획');
   await shot(s.pg, 'yj-report-375'); ok('보고서 넘침 없음 375', !(await over(s.pg)));
@@ -441,8 +443,8 @@ const FRI = '2026-10-16T10:00:00+09:00', RID = 'b2c-2026-10-12';
   eq('보냄 저장: 누가 · 얼린 숫자 · 리드 한마디', [r.secs.gyeoul.sent.by, r.secs.gyeoul.snap.doneN, r.secs.gyeoul.snap.trace.done, r.secs.gyeoul.snap.note, r.secs.gyeoul.snap.plan, r.leads.sy.note], ['sy', 2, 2, '전환 7.4% — 상세 첫 화면 가격 노출 효과', '- 리뷰 이벤트 기획', '가격 실험 결과는 다음 주에 결정']); }
 { let s = await session('hj', { now: '2026-10-16T16:00:00+09:00', w: 1280, h: 900 });
   await expand(s.pg);
-  eq('본부장 = 보고 도착 줄', await inbox(s.pg, 'B2C 크루 주간 보고 · 1/6칸').count(), 1);
-  await inbox(s.pg, 'B2C 크루 주간 보고 · 1/6칸').first().getByRole('button', { name: '읽기', exact: true }).click(); await s.pg.waitForTimeout(600);
+  eq('본부장 = 보고 도착 줄', await inbox(s.pg, 'B2C 크루 주간 보고 · 1/8칸').count(), 1);
+  await inbox(s.pg, 'B2C 크루 주간 보고 · 1/8칸').first().getByRole('button', { name: '읽기', exact: true }).click(); await s.pg.waitForTimeout(600);
   const tx = await s.S().innerText();
   ok('본부장 보고서: 보낸 겨울 칸 펼침 · 리드 한마디 · 읽었어요', tx.includes('본부장에게 보냄 ✓ 김소연') && tx.includes('7.4% ← 6.1%') && tx.includes('리드 한마디') && tx.includes('가격 실험 결과는 다음 주에 결정') && (await s.pg.getByRole('button', { name: '읽었어요', exact: true }).count()) === 1);
   await s.S().getByRole('button', { name: '보고 글로 복사' }).click(); await s.pg.waitForTimeout(300);
@@ -465,19 +467,20 @@ const FRI = '2026-10-16T10:00:00+09:00', RID = 'b2c-2026-10-12';
   eq('읽음 저장 · 주기 다시 주간', [r.read.by, r.read.note, doc('settings', 'aicrew').reportCycle.cycle], ['hj', '좋아요 · 리뷰 이벤트 진행', 'week']); }
 { let s = await session('cw', { now: FRI, w: 375 });
   await expand(s.pg);
-  eq('김채원(여름 담당 · 리드 본인) = 여름 칸 쓰기 + 보내기', [await inbox(s.pg, '여름 칸 쓰기').count(), await inbox(s.pg, 'B2C 크루 1칸 → 본부장에게 보내기').count()], [1, 1]);
+  { const L = await inbox(s.pg, '본부장에게 보내기').allInnerTexts();
+    ok('김채원(여름 담당 · 리드 본인) = 여름 칸 쓰기 + 보내기 3칸 (여름 + 별·바람 = 변유림 담당 → 리드 김채원 · 2026-10-17)', (await inbox(s.pg, '여름 칸 쓰기').count()) === 1 && L.length === 1 && L[0].includes('B2C 크루 3칸 → 본부장에게 보내기'), L); }
   await s.pg.locator('.v2-nav').getByRole('button', { name: '더보기' }).click(); await s.pg.waitForTimeout(300);
   await s.pg.getByText('크루 칸별 · 실행 · 결과 · 다음 계획 · 금요일 리드 → 본부장').click(); await s.pg.waitForTimeout(500);
   ok('더보기 › 성과 › AI 크루 보고 = 같은 화면', (await s.S().innerText()).includes('내 칸 여름'));
   await s.close(); }
 
-// ⑪ 구글 디맨드젠 (2026-10-15 사장님 "디멘드젠광고 세팅해서 게시까지 · 내일부터 · 외주 상관없어") — 여름 F · 상품마다 승인 한 건 · 새 예산 없으면 리드(김송희)에서 끝
+// ⑪ 구글 디맨드젠 (2026-10-15 사장님 "디멘드젠광고 세팅해서 게시까지 · 내일부터 · 외주 상관없어") — 가을 H(2026-10-17 여름 F 에서 옮김) · 상품마다 승인 한 건 · 새 예산 없으면 리드(김송희)에서 끝
 //   → 김송희 실행 업무: [했어요] = 신제품 '스티커 프라이머 · 디맨드젠 광고 (n/5)' +1 · 되돌리기 −1 · 예산을 적은 건(타일카펫)은 본부장까지
 ST.v2.projects.lb_sp = { id: 'lb_sp', title: '스티커 프라이머', brand: 'grohome', category: 'launch', launchDate: '2026-10-16', status: 'active', assigneeId: 'sh', createdAt: T0 };
 ST.v2.tasks['lb_sp__x_dg'] = { id: 'lb_sp__x_dg', title: '디맨드젠 광고 (0/5)', launchItem: 'x_dg', projectId: 'lb_sp', brand: 'grohome', isFixed: false, status: 'todo', assigneeId: 'sh', assigneeIds: ['sh'], dueDate: '2026-10-23', phase: 'promo', noReview: true, createdAt: T0, statusLog: [] };
-const dgItems = (prod, url) => [1, 2].map((i) => ({ n: `F${i}`, c: { 상품: prod, 광고: String(i), 제목: `칠하고 질리면 떼세요 ${i}`, 설명: '월세집도 원상복구', '최종 URL': url, ...(prod === '타일카펫' && i === 1 ? { 예산: '일 3만' } : {}), '초안 링크': `https://ads.google.com/aw/campaigns/draft?c=${prod === '타일카펫' ? 2 : 1}&ad=${i}` } }));
-ST.v2.aiasks.ai_yeoreum_20261016_ghexpF_스티커프라이머 = ask({ id: 'ai_yeoreum_20261016_ghexpF_스티커프라이머', run: '2026-10-16', mate: 'yeoreum', brand: 'grohome', board: 'gh-exp', act: 'F', owner: 'sh', title: 'AI 노출 보드 F · 스티커 프라이머 · 구글 디맨드젠 광고', sum: '디맨드젠 초안 2개', cols: ['상품', '광고', '제목', '설명', '최종 URL', '초안 링크'], items: dgItems('스티커 프라이머', 'https://grohome.co.kr/p/1'), exec: '승인되면 담당이 구글 애즈에서 초안을 확인하고 [게시]한다', launch: 'x_dg', prod: '스티커 프라이머' });
-ST.v2.aiasks.ai_yeoreum_20261016_ghexpF_타일카펫 = ask({ id: 'ai_yeoreum_20261016_ghexpF_타일카펫', run: '2026-10-16', mate: 'yeoreum', brand: 'grohome', board: 'gh-exp', act: 'F', owner: 'sh', title: 'AI 노출 보드 F · 타일카펫 · 구글 디맨드젠 광고', sum: '새 캠페인 · 일 3만', cols: ['상품', '광고', '제목', '설명', '최종 URL', '예산', '초안 링크'], items: dgItems('타일카펫', 'https://grohome.co.kr/p/2'), exec: '승인되면 담당이 구글 애즈에서 초안을 확인하고 [게시]한다', hq: '광고비 예산 조정', launch: 'x_dg', prod: '타일카펫' });
+const dgItems = (prod, url) => [1, 2].map((i) => ({ n: `H${i}`, c: { 상품: prod, 광고: String(i), 제목: `칠하고 질리면 떼세요 ${i}`, 설명: '월세집도 원상복구', '최종 URL': url, ...(prod === '타일카펫' && i === 1 ? { 예산: '일 3만' } : {}), '초안 링크': `https://ads.google.com/aw/campaigns/draft?c=${prod === '타일카펫' ? 2 : 1}&ad=${i}` } }));
+ST.v2.aiasks.ai_gaeul_20261016_ghtrafficH_스티커프라이머 = ask({ id: 'ai_gaeul_20261016_ghtrafficH_스티커프라이머', run: '2026-10-16', mate: 'gaeul', brand: 'grohome', board: 'gh-traffic', act: 'H', owner: 'sh', title: '광고·검색 유입 보드 H · 스티커 프라이머 · 구글 디맨드젠 광고', sum: '디맨드젠 초안 2개', cols: ['상품', '광고', '제목', '설명', '최종 URL', '초안 링크'], items: dgItems('스티커 프라이머', 'https://grohome.co.kr/p/1'), exec: '승인되면 담당이 구글 애즈에서 초안을 확인하고 [게시]한다', launch: 'x_dg', prod: '스티커 프라이머' });
+ST.v2.aiasks.ai_gaeul_20261016_ghtrafficH_타일카펫 = ask({ id: 'ai_gaeul_20261016_ghtrafficH_타일카펫', run: '2026-10-16', mate: 'gaeul', brand: 'grohome', board: 'gh-traffic', act: 'H', owner: 'sh', title: '광고·검색 유입 보드 H · 타일카펫 · 구글 디맨드젠 광고', sum: '새 캠페인 · 일 3만', cols: ['상품', '광고', '제목', '설명', '최종 URL', '예산', '초안 링크'], items: dgItems('타일카펫', 'https://grohome.co.kr/p/2'), exec: '승인되면 담당이 구글 애즈에서 초안을 확인하고 [게시]한다', hq: '광고비 예산 조정', launch: 'x_dg', prod: '타일카펫' });
 { let s = await session('sh', { now: '2026-10-16T09:40:00+09:00' });
   await expand(s.pg);
   await inbox(s.pg, '타일카펫').first().click(); await s.pg.waitForTimeout(500);
@@ -487,35 +490,35 @@ ST.v2.aiasks.ai_yeoreum_20261016_ghexpF_타일카펫 = ask({ id: 'ai_yeoreum_202
   await s.S().getByRole('button', { name: '모두 고르기' }).click();
   ok('예산 없는 디맨드젠 = 리드(김송희) 최종', (await s.S().getByRole('button', { name: '고른 2개 최종 승인' }).count()) === 1 && !(await s.S().innerText()).includes('본부장 승인 ·'));
   await s.S().getByRole('button', { name: '고른 2개 최종 승인' }).click(); await s.pg.waitForTimeout(700);
-  let x = await s.pg.evaluate(() => window.__V2.v2.tasks['aix_ai_yeoreum_20261016_ghexpF_스티커프라이머']);
+  let x = await s.pg.evaluate(() => window.__V2.v2.tasks['aix_ai_gaeul_20261016_ghtrafficH_스티커프라이머']);
   eq('실행 업무 = 김송희 · 신제품 칸 연결 · 줄마다 초안 링크', x && [x.assigneeId, x.aiLaunch, x.aiProd, x.aiLaunchTask, x.aiItems.map((y) => y.link)], ['sh', 'x_dg', '스티커 프라이머', 'lb_sp__x_dg', ['https://ads.google.com/aw/campaigns/draft?c=1&ad=1', 'https://ads.google.com/aw/campaigns/draft?c=1&ad=2']]);
   await s.S().getByRole('button', { name: /^실행 업무 보기/ }).click(); await s.pg.waitForTimeout(500);   // 내가 최종 승인 = 내 실행 업무(맡김 줄 없음) → 승인 한 장에서 바로
   ok('흔적 상자: 신제품 개수에도 +1 · 신제품 칸 링크', (await s.S().innerText()).includes("신제품 '스티커 프라이머' 개수에도 +1") && (await s.S().getByRole('button', { name: /신제품 · 스티커 프라이머 · 디맨드젠 광고 \(0\/5\)/ }).count()) === 1);
-  await s.S().getByLabel('F1 링크').fill('https://ads.google.com/aw/ads?ad=live1');
-  await s.S().getByRole('button', { name: 'F1 했어요' }).click(); await s.pg.waitForTimeout(700);
-  ok('F1 했어요 → 신제품 디맨드젠 1/5', (await s.pg.locator('.v2-toast').innerText()).includes("신제품 '스티커 프라이머' 디맨드젠 광고 1/5"));
+  await s.S().getByLabel('H1 링크').fill('https://ads.google.com/aw/ads?ad=live1');
+  await s.S().getByRole('button', { name: 'H1 했어요' }).click(); await s.pg.waitForTimeout(700);
+  ok('H1 했어요 → 신제품 디맨드젠 1/5', (await s.pg.locator('.v2-toast').innerText()).includes("신제품 '스티커 프라이머' 디맨드젠 광고 1/5"));
   let lt = await s.pg.evaluate(() => window.__V2.v2.tasks.lb_sp__x_dg);
-  eq('신제품 칸: 1/5 · 진행 중 · 기록에 승인 id', [lt.title, lt.count, lt.status, lt.countLog.slice(-1)[0].ask], ['디맨드젠 광고 (1/5)', 1, 'inprogress', 'ai_yeoreum_20261016_ghexpF_스티커프라이머']);
-  await s.S().getByRole('button', { name: 'F1 되돌리기' }).click(); await s.pg.waitForTimeout(700);
+  eq('신제품 칸: 1/5 · 진행 중 · 기록에 승인 id', [lt.title, lt.count, lt.status, lt.countLog.slice(-1)[0].ask], ['디맨드젠 광고 (1/5)', 1, 'inprogress', 'ai_gaeul_20261016_ghtrafficH_스티커프라이머']);
+  await s.S().getByRole('button', { name: 'H1 되돌리기' }).click(); await s.pg.waitForTimeout(700);
   lt = await s.pg.evaluate(() => window.__V2.v2.tasks.lb_sp__x_dg);
   eq('되돌리기 → 0/5', [lt.title, lt.count], ['디맨드젠 광고 (0/5)', 0]);
-  await s.S().getByRole('button', { name: 'F1 했어요' }).click(); await s.pg.waitForTimeout(600);
-  await s.S().getByRole('button', { name: 'F2 했어요' }).click(); await s.pg.waitForTimeout(700);
+  await s.S().getByRole('button', { name: 'H1 했어요' }).click(); await s.pg.waitForTimeout(600);
+  await s.S().getByRole('button', { name: 'H2 했어요' }).click(); await s.pg.waitForTimeout(700);
   await shot(s.pg, 'sh-dg-375'); ok('디맨드젠 실행 업무 넘침 없음 375', !(await over(s.pg)));
   await s.pg.getByRole('button', { name: '끝냈어요', exact: true }).click(); await s.pg.waitForTimeout(600);
   lt = await s.pg.evaluate(() => window.__V2.v2.tasks.lb_sp__x_dg);
-  x = await s.pg.evaluate(() => window.__V2.v2.tasks['aix_ai_yeoreum_20261016_ghexpF_스티커프라이머']);
+  x = await s.pg.evaluate(() => window.__V2.v2.tasks['aix_ai_gaeul_20261016_ghtrafficH_스티커프라이머']);
   eq('게시 2개 → 신제품 2/5 · 실행 업무 끝냄', [lt.title, x.status], ['디맨드젠 광고 (2/5)', 'done']);
   await s.close(); }
 
-// ⑫ 멈춤 감시 (2026-10-17 사장님 고름) — 10/19(월) 10:00 · 김민지 = 우주 B 평일 3일째(빨강·위로) · C 지난 결과 정리(+되돌리기) · D AI 고치는 중 5시간
+// ⑫ 멈춤 감시 (2026-10-17 사장님 고름) — 10/19(월) 10:00 · 김민지 = 우주 B 평일 3일째(빨강·위로) · C 지난 결과 정리(+되돌리기) · A AI 고치는 중 5시간
 //   김송희(상급자) = '승인 밀림' · 김채원(여름 담당) = 아침 루틴 안 올라옴 → 사장님께 보낼 글 · 노트 고치는 중 · 허지은(관리자) = 담당 미정 크루 안 돎 · 2일 넘게 안 돎
 const MON = '2026-10-19T10:00:00+09:00';
 ST.v2.aiasks.ai_uju_20261014_ghrepB = ask({ id: 'ai_uju_20261014_ghrepB', at: '2026-10-14T01:00:00.000Z', run: '2026-10-14', mate: 'uju', brand: 'grohome', board: 'gh-rep', act: 'B', owner: 'mj', title: '재구매 보드 B · 늦은 결과', cols: ['채널'], items: [{ n: 'B1', c: { 채널: '자사몰' } }], exec: '승인되면 담당이 알림톡을 보낸다' });
 ST.v2.aiasks.ai_uju_20261015_ghrepC = ask({ id: 'ai_uju_20261015_ghrepC', at: '2026-10-15T01:00:00.000Z', run: '2026-10-15', mate: 'uju', brand: 'grohome', board: 'gh-rep', act: 'C', owner: 'mj', title: '재구매 보드 C · 지난 결과', exec: '승인되면 담당이 쿠폰을 만든다' });
 ST.v2.aiasks.ai_uju_20261019_ghrepC = ask({ id: 'ai_uju_20261019_ghrepC', at: '2026-10-19T00:10:00.000Z', run: '2026-10-19', mate: 'uju', brand: 'grohome', board: 'gh-rep', act: 'C', owner: 'mj', title: '재구매 보드 C · 새 결과', exec: '승인되면 담당이 쿠폰을 만든다' });
 const BK = { text: '근거를 더', by: 'mj', byName: '김민지', at: '2026-10-16T05:00:00.000Z' };   // 금 14:00 → 월 10:00 = 일하는 시간 5시간
-ST.v2.aiasks.ai_uju_20261016_ghrepD = { ...ask({ id: 'ai_uju_20261016_ghrepD', at: '2026-10-16T01:00:00.000Z', run: '2026-10-16', mate: 'uju', brand: 'grohome', board: 'gh-rep', act: 'D', owner: 'mj', title: '재구매 보드 D · 고치는 중' }), state: 'back', to: '', back: BK, updatedAt: BK.at };
+ST.v2.aiasks.ai_uju_20261016_ghrepA = { ...ask({ id: 'ai_uju_20261016_ghrepA', at: '2026-10-16T01:00:00.000Z', run: '2026-10-16', mate: 'uju', brand: 'grohome', board: 'gh-rep', act: 'A', owner: 'mj', title: '재구매 보드 A · 고치는 중' }), state: 'back', to: '', back: BK, updatedAt: BK.at };
 ST.v2.aiasks.ai_yeoreum_20261016_note = { ...ask({ id: 'ai_yeoreum_20261016_note', at: '2026-10-15T22:00:00.000Z', run: '2026-10-16', mate: 'yeoreum', owner: 'cw', title: '여름 · 블로그 원고 3', src: 'tool' }), state: 'back', to: '', back: { ...BK, by: 'cw', byName: '김채원' }, updatedAt: BK.at };
 ST.v2.aiboards['gh-conv'].at = '2026-10-14T00:10:00.000Z';   // 겨울(남윤정 PC) 수 09:10 뒤로 안 올림 → 목·금 = 평일 2일
 ST.v2.aiboards['gh-traffic'] = { id: 'gh-traffic', board: 'gh-traffic', at: '2026-10-15T00:05:00.000Z' };   // 가을(담당 미정 · 관리자 PC) 목 뒤로 안 올림
@@ -525,9 +528,9 @@ ST.v2.aiboards['gh-traffic'] = { id: 'gh-traffic', board: 'gh-traffic', at: '202
   const iLate = rows.findIndex((t) => t.includes('늦은 결과')), iNew = rows.findIndex((t) => t.includes('새 결과'));
   ok('늦은 승인 = 평일 3일째 · 보통 승인보다 위', iLate >= 0 && iNew > iLate && rows[iLate].includes('평일 3일째'), rows.slice(0, 6));
   eq('같은 할 일 = 새 결과 한 줄 + 이전 결과 1건 · 지난 결과 줄은 없음', [await inbox(s.pg, '재구매 보드 C · 새 결과').count(), (await inbox(s.pg, '재구매 보드 C · 새 결과').first().innerText()).includes('이전 결과 1건'), await inbox(s.pg, '재구매 보드 C · 지난 결과').count()], [1, true, 0]);
-  eq('AI 고치는 중 반나절 넘음 = 한 줄 · [바로 고치기]', [await inbox(s.pg, '재구매 보드 D · 고치는 중').count(), await inbox(s.pg, '재구매 보드 D · 고치는 중').first().getByRole('button', { name: '바로 고치기', exact: true }).count()], [1, 1]);
+  eq('AI 고치는 중 반나절 넘음 = 한 줄 · [바로 고치기]', [await inbox(s.pg, '재구매 보드 A · 고치는 중').count(), await inbox(s.pg, '재구매 보드 A · 고치는 중').first().getByRole('button', { name: '바로 고치기', exact: true }).count()], [1, 1]);
   await shot(s.pg, 'mj-stall-375'); ok('멈춤 감시 줄 넘침 없음 375', !(await over(s.pg)));
-  await inbox(s.pg, '재구매 보드 D · 고치는 중').first().getByRole('button', { name: '바로 고치기', exact: true }).click(); await s.pg.waitForTimeout(500);
+  await inbox(s.pg, '재구매 보드 A · 고치는 중').first().getByRole('button', { name: '바로 고치기', exact: true }).click(); await s.pg.waitForTimeout(500);
   ok('고치는 중 한 장: 일하는 시간 5시간째 · 바로 고치기 글', (await s.S().innerText()).includes('일하는 시간 5시간째 그대로예요') && (await s.S().getByRole('button', { name: '바로 고치기 — Aside 글 복사' }).count()) === 1);
   await s.pg.keyboard.press('Escape'); await s.pg.waitForTimeout(300);
   await inbox(s.pg, '재구매 보드 B · 늦은 결과').first().click(); await s.pg.waitForTimeout(500);
@@ -579,7 +582,7 @@ ST.v2.aiboards['gh-traffic'] = { id: 'gh-traffic', board: 'gh-traffic', at: '202
   eq('아침 루틴이 올라오면 줄 없음', await inbox(s.pg, '아침 루틴이 아직 안 올라왔어요').count(), 0);
   await s.pg.locator('.v2-nav').getByRole('button', { name: '더보기' }).click(); await s.pg.waitForTimeout(300);
   await s.pg.getByText(/^AI 팀원 · 내가 맡은 AI/).click(); await s.pg.waitForTimeout(500);
-  await s.S().getByText('여름 · 노출마케터').first().click(); await s.pg.waitForTimeout(500);
+  await s.S().getByText('여름 · 유입마케터 · 콘텐츠·인플루언서').first().click(); await s.pg.waitForTimeout(500);
   ok('여름 한 장: 오늘 아침 루틴 07:02 올라옴', (await s.S().innerText()).includes('07:02 올라옴 · 승인 1건'));
   await s.close(); }
 { let s = await session('hj', { now: MON, w: 1280, h: 900 });

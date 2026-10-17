@@ -3,7 +3,7 @@
 //     결과는 어떤지(유입, 전환) 다음주는 어떻게 할 예정인지(AI 팀원들의 피드백 + 사람팀원이 직접 넣으면 추가 반영)"
 //     "보고서는 한동안 주간 · 점차 1개월로 늘릴 거야" · "보고서는 크루 칸별로" · "KPI 체크는 담당 사람이 직접"
 //   기간 = settings/aicrew.reportCycle {cycle: week(기본) | 2week | month, from = 바꾼 주 월요일} · 마감 = 그 기간 마지막 금요일
-//   칸 = 크루 팀원 중 보드가 있는 칸 (B2C 6칸 · B2B·바라스데이 크루는 보드가 없어 아직 없음)
+//   칸 = 크루 팀원 중 보드가 있는 칸 (B2C 6칸 + 맨 위 공통 숫자(별) · B2B 크루·이음·달은 noReport · 바라스데이 크루는 보드가 없어 아직 없음)
 //   한 칸 = ① 실행(실행 업무·흔적·승인) ② 결과(보드 지표: 이번 기간 마지막 값 ← 지난 기간 · 목표) ③ KPI(짝지은 반복 실행 +n)
 //           ④ 다음(AI [다음주] = aiboards.nextHist + 사람이 더함) · 담당이 숫자 확인·한 줄 → [다 썼어요]
 //   리드(그 칸 담당의 상급자 중 리드) 한마디 → [본부장에게 보내기] = 그때 숫자를 얼림(snap) · 본부장 [읽었어요]
@@ -12,7 +12,7 @@ import { addDays, ymd, md, nameOf, isMaster, isDone, isRemoved } from "./model.j
 import { CREWS, GONE, mateOf, boardOf, fmtMetric, metricOk } from "../../marketing-hub/crew.js";
 import { mateOwner, bossOf, isLeadU, isHQ, MAX_UP } from "./aiask.js";
 import { doneDay, dayOfIso } from "./report.js";
-import { isFxKey, fxIdOf, akKeys, taskAks } from "./airt.js";
+import { isFxKey, fxIdOf, akKeys, taskAks, liveAk, liveActOwners } from "./airt.js";
 
 export const CYCLE_L = { week: "주간", "2week": "2주", month: "월간" };
 export const CYCLE_FROM = "2026-10-12";   // 첫 보고 기간 (월요일)
@@ -45,8 +45,10 @@ export const WORD = { week: ["이번 주", "지난주", "다음 주"], "2week": 
 export const periodL = (p) => `${md(p.start)}~${md(p.end)}`;
 export const dueL = (p) => `금 ${md(p.due)} 마감`;
 
-// 크루 칸 (보드가 있는 팀원만)
-export const repSlots = (crewId) => { const c = CREWS.find((x) => x.id === crewId); return c ? c.members.filter((m) => m.board && boardOf(m.board)) : []; };
+// 크루 칸 (보드가 있는 팀원만 · noReport 크루·팀원 빼고 — B2B 크루 · 이음(날마다 운영) · 달(본부장 본인 일) · 2026-10-17)
+//   common = 맨 위 '공통 숫자' 칸 (별 · 담당 윤미니 · 리포트 ③)
+export const repSlots = (crewId) => { const c = CREWS.find((x) => x.id === crewId); if (!c || c.noReport) return [];
+  const ms = c.members.filter((m) => m.board && boardOf(m.board) && !m.noReport); return [...ms.filter((m) => m.common), ...ms.filter((m) => !m.common)]; };
 export const repCrews = () => CREWS.filter((c) => repSlots(c.id).length);
 export const repId = (crewId, p) => `${crewId}-${p.start}`;
 
@@ -56,7 +58,7 @@ export function leadOf(users, uid) { for (let k = 0, cur = uid; k <= MAX_UP && c
 export const hqOfUsers = (users) => ((users || []).find((u) => u && u.active !== false && isHQ(users, u.id)) || {}).id || "";
 export function secPeople(D, m) {
   const b = boardOf(m.board), doc = (D.ai && D.ai.mates && D.ai.mates[m.id]) || {}, owner = mateOwner(doc, b.brand, D.users);
-  const acts = [...new Set(Object.values(doc.actOwners || {}).filter((x) => x && actU(D.users, x)))];
+  const acts = [...new Set(Object.values(liveActOwners(m.id, doc)).filter((x) => x && actU(D.users, x)))];   // 지금 있는 할 일 담당만 (옮긴 옛 글자 빼고 · 2026-10-17)
   const writers = [...new Set([owner, ...acts].filter(Boolean))];
   const o = owner || writers[0] || "";
   return { owner, writers, lead: o ? leadOf(D.users, o) || o : "" };   // 위에 리드가 없으면 담당이 바로 본부장에게 · 담당 미정 칸 = 관리자 누구나(화면에서만)
@@ -87,7 +89,7 @@ export function secData(D, m, p, pv, asks) {
   // ③ KPI — 이 AI 할 일과 짝지은 반복 실행(aimates.actAk) · 이번 기간 흔적 [했어요] 수 (사람이 직접 누른 것)
   const mdoc = (D.ai && D.ai.mates && D.ai.mates[m.id]) || {}, items = (D.ak && D.ak.items) || [];
   //   짝 여러 개 (2026-10-17): 흔적이 센 열쇠(cnt)로 셈 · cnt 없는 예전 흔적은 그 실행 업무의 aiAk
-  const ak = [...new Set(Object.values(mdoc.actAk || {}).flatMap(akKeys))].map((id) => { const it = items.find((x) => x.id === id);
+  const ak = [...new Set(Object.values(liveAk(m.id, mdoc)).flat())].map((id) => { const it = items.find((x) => x.id === id);   // 지금 있는 할 일의 짝만 (옮긴 옛 글자 빼고 · 2026-10-17)
     const n = tasks.filter((t) => taskAks(t).includes(id)).reduce((s, t) => s + Object.values(t.aiTrace || {}).filter((r) => r && r.done && inP(r.date) && (Array.isArray(r.cnt) ? r.cnt.includes(id) : t.aiAk === id)).length, 0);
     const ft = !it && isFxKey(id) ? ((D.tasks || []).find((x) => x.id === fxIdOf(id)) || null) : null;   // 정한 날 체크 짝 (2026-10-16)
     return { id, name: it ? it.name : ft ? ft.title : id, n }; });

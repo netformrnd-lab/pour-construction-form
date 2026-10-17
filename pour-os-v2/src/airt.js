@@ -31,27 +31,41 @@ export function keyOwners(D, k) {
   if (isFxKey(k)) { const t = fxOf(D, k); return t && !t.forAll ? fxIds(t).filter(act) : []; }
   const it = akOf(D, k); return it ? akWho((D && D.users) || [], it).filter(act) : [];
 }
-// 실행 브랜드와 맞나 — 실행 업무 브랜드가 없거나(브랜드 섞인 결과) 열쇠 브랜드가 없거나 공통 운영이면 맞음
-export const keyBrandOk = (keyBrand, execBrand) => { const kb = brId(keyBrand), eb = brId(execBrand); return !eb || !kb || kb === "common" || kb === eb; };
-// [했어요] 한 번에 셀 열쇠 = 누른 사람이 그 열쇠 담당 + 실행 브랜드와 맞음 → [{key, kind 'ak'|'fx', it|ft}] (남의 것은 안 건드림 · 2026-10-17)
-//   담당을 아무도 안 정한 반복 실행은 누른 사람에게 셈(남의 것이 아니라서 · 예전처럼)
-export function countKeys(D, t, uid) {
-  return taskAks(t).map((k) => {
-    if (isFxKey(k)) { const ft = fxOf(D, k); return ft && fxIsMine(ft, uid) && keyBrandOk(ft.brand, t && t.brand) ? { key: k, kind: "fx", ft } : null; }
+// 열쇠 브랜드 (정한 날 체크 = 고정업무 브랜드 · 여러 번 = 반복 실행 브랜드) · 없거나 공통 운영 = 브랜드 없는 열쇠
+const brandOfKey = (D, k) => brId(isFxKey(k) ? (fxOf(D, k) || {}).brand : (akOf(D, k) || {}).brand);
+const noBrand = (b) => !b || b === "common";
+// [했어요] 한 번에 셀 열쇠 = 누른 사람이 그 열쇠 담당인 것 (남의 것은 안 건드림 · 담당을 아무도 안 정한 반복 실행은 누른 사람 것) → 브랜드로 고름 (2026-10-17)
+//   그 줄 브랜드(itemBrand = 실행 업무 aiItems[n].b · 표의 '브랜드' 칸)가 있으면 그 브랜드 열쇠 + 브랜드 없는 열쇠만
+//   없으면 실행 업무 브랜드(보드 브랜드)와 같은 열쇠 + 브랜드 없는 열쇠 · 같은 게 하나도 없으면 내 열쇠 모두
+//     (B2C 크루는 두 브랜드를 같이 봄 — 그로홈 보드 할 일에 POUR스토어 반복 실행 하나만 짝지은 것(겨울 E 리뷰·후기 유도)도 셈)
+//   → [{key, kind 'ak'|'fx', it|ft}]
+export function countKeys(D, t, uid, itemBrand) {
+  const mine = taskAks(t).map((k) => {
+    if (isFxKey(k)) { const ft = fxOf(D, k); return ft && fxIsMine(ft, uid) ? { key: k, kind: "fx", ft, b: brId(ft.brand) } : null; }
     const it = akOf(D, k), ow = it ? akWho((D && D.users) || [], it) : [];
-    return it && (!ow.length || ow.includes(uid)) && keyBrandOk(it.brand, t && t.brand) ? { key: k, kind: "ak", it } : null;
+    return it && (!ow.length || ow.includes(uid)) ? { key: k, kind: "ak", it, b: brId(it.brand) } : null;
   }).filter(Boolean);
+  const ib = brId(itemBrand), eb = ib || brId(t && t.brand);
+  if (!eb || eb === "common") return mine;
+  return ib || mine.some((x) => x.b === eb) ? mine.filter((x) => x.b === eb || noBrand(x.b)) : mine;
 }
-// 열쇠 담당별 실행 업무 (2026-10-17 · 같은 할 일을 여러 사람이 쓰는 칸: 겨울 A 송희·미니 · 가을 B 송희·채림 · 가을 E 송희·이란 · 별 A …)
-//   실행 담당(ex.assigneeId)이 아닌 열쇠 담당마다 같은 승인 번호의 실행 업무 하나 더 (id = 실행 id~사람 · 그 사람 열쇠만 · 실행 브랜드와 맞는 열쇠만)
+// 열쇠 담당별 실행 업무 (2026-10-17 · 같은 할 일을 여러 사람이 쓰는 칸: 겨울 A 송희·미니 · 가을 B 송희·채림 · 가을 E 송희·이란 …)
+//   실행 담당(ex.assigneeId)이 아닌 열쇠 담당마다 같은 승인의 실행 업무 하나 더 (id = 실행 id~사람 · 그 사람 열쇠만)
+//   · 번호 = 그 사람 열쇠가 셀 수 있는 줄만 (그 줄 브랜드가 그 사람 열쇠 브랜드이거나 브랜드 칸이 없는 줄) — 셀 줄이 없으면 안 만듦
+//   · 여럿(SPLIT_MAX 넘게)이 같이 하는 일(KPI 기재·주간 미팅 등)은 나누지 않음 — 누른 사람 몫만 셈
+export const SPLIT_MAX = 2;
 export function splitExec(D, ex, keys, cu, at) {
   if (!ex) return [];
   const main = ex.assigneeId, by = new Map();
-  akKeys(keys).forEach((k) => {
-    const kb = isFxKey(k) ? (fxOf(D, k) || {}).brand : (akOf(D, k) || {}).brand; if (!keyBrandOk(kb, ex.brand)) return;
-    keyOwners(D, k).forEach((u) => { if (u === main) return; if (!by.has(u)) by.set(u, []); by.get(u).push(k); }); });
-  return [...by.entries()].map(([u, ks]) => { const { ackAt, ...rest } = ex;
-    return { ...rest, id: `${ex.id}~${u}`, assigneeId: u, assigneeIds: [u], aiAk: ks[0], aiAks: ks, ...(cu && u === cu.id ? { ackAt: at } : {}) }; });
+  akKeys(keys).forEach((k) => { const ow = keyOwners(D, k); if (ow.length > SPLIT_MAX) return;
+    ow.forEach((u) => { if (u === main) return; if (!by.has(u)) by.set(u, []); by.get(u).push(k); }); });
+  const items = ex.aiItems || [];
+  return [...by.entries()].map(([u, ks]) => {
+    const kbs = ks.map((k) => brandOfKey(D, k)), anyBare = kbs.some(noBrand);
+    const its = anyBare ? items : items.filter((x) => !x.b || kbs.includes(brId(x.b)));
+    if (items.length && !its.length) return null;
+    const { ackAt, ...rest } = ex;
+    return { ...rest, id: `${ex.id}~${u}`, assigneeId: u, assigneeIds: [u], aiAk: ks[0], aiAks: ks, aiItems: its, ...(cu && u === cu.id ? { ackAt: at } : {}) }; }).filter(Boolean);
 }
 // 할 일 글자 → 보이는 이름 ('_' = 아침 루틴 원고)
 export function actTitle(mateId, act) {
@@ -59,12 +73,19 @@ export function actTitle(mateId, act) {
   if (act === NO_ACT) return m.routine ? "아침 루틴 원고" : "";
   const a = m.board ? actOf(m.board, act) : null; return a && !a.admin ? a.t : "";
 }
-// 짝 지을 수 있는 할 일 = 실행 한 줄이 있는 것(최종 승인 뒤 실행 업무 → [했어요]) + 아침 루틴 · 쉬는 AI 는 없음
+// 짝 지을 수 있는 할 일 = 실행 한 줄이 있는 것(최종 승인 뒤 실행 업무 → [했어요]) + 광고 보고(report · 승인하면 짝 정한 날 체크 · 2026-10-17) + 아침 루틴 · 쉬는 AI 는 없음
+export const pairable = (a) => !!a && !a.admin && (!!execOf(a) || !!a.report);
 export function pairActs(mateId) {
   const m = mateOf(mateId); if (!m || GONE[mateId]) return [];
   const b = m.board ? boardOf(m.board) : null;
-  return [...(m.routine ? [{ c: NO_ACT, t: "아침 루틴 원고" }] : []), ...((b && b.actions) || []).filter((a) => !a.admin && execOf(a)).map((a) => ({ c: a.c, t: a.t }))];
+  return [...(m.routine ? [{ c: NO_ACT, t: "아침 루틴 원고" }] : []), ...((b && b.actions) || []).filter(pairable).map((a) => ({ c: a.c, t: a.t }))];
 }
+// 지금 있는 할 일의 짝만 (옮긴 옛 글자 · 없앤 할 일의 옛 짝은 빼고 · 2026-10-17 AARRR 정리 — 옛 짝 기록은 aimates 에 그대로) → {글자: 열쇠 목록}
+export function liveAk(mateId, doc) {
+  const out = {}; Object.entries((doc && doc.actAk) || {}).forEach(([act, v]) => { const ks = akKeys(v); if (ks.length && actTitle(mateId, act)) out[act] = ks; });
+  return out;
+}
+export const liveActOwners = (mateId, doc) => Object.fromEntries(Object.entries((doc && doc.actOwners) || {}).filter(([act, u]) => u && actTitle(mateId, act)));
 // 짝 목록: 열쇠 → [{mate, mateName, act, actT}] (쉬는 AI · 없는 할 일 · 빈 값은 뺌)
 export function rtPairs(mates) {
   const out = new Map();
@@ -90,15 +111,35 @@ export function rtAiNow(key, pairs, asks, tasks, uid) {
 }
 // 추천 짝 (실데이터 반복 실행 30 · 정한 날 체크 보고 고름 · 2026-10-16) — 반복 실행 이름(괄호 안 말 빼고) 낱말 → AI 할 일
 //   할 일 하나엔 반복 실행 하나(위 줄 먼저) · 여러 번 하는 것(KPI 로 셈) 먼저 → 그 보드 브랜드와 같은 것 먼저 → 목록 순서 · 이미 짝 지은 할 일·반복 실행은 건너뜀
+//   차례대로 고름 (먼저 고른 열쇠는 뒤에서 안 씀) — B2B 보드 힌트(seg 'B2B' · 이름에 B2B 있는 것만 · loose 힌트(시공 이탈·매칭)는 B2B 표시가 없어도 · '(B2C)' 빼고)를 먼저 · 그다음 B2C 크루 (2026-10-17)
+//     B2C 쪽은 '(B2B)' 이름을 뒤로 미룸(빼지는 않음 — 여름 D ← '(B2B) 인플루언서 공동구매 제안'처럼 B2C 크루가 하는 것도 있음)
 export const RT_AI_HINTS = [
+  { re: /체험단/, mate: "dandan", act: "B", seg: "B2B" },
+  { re: /인플루언서\s*섭외/, mate: "dandan", act: "C", seg: "B2B" },
+  { re: /컨텐츠|콘텐츠/, mate: "dandan", act: "A", seg: "B2B" },
+  { re: /미전환/, mate: "cheokcheok", act: "B", seg: "B2B" },
+  { re: /이탈/, mate: "cheokcheok", act: "C", seg: "B2B", loose: true },   // loose = 이름에 B2B 가 없어도 (시공의뢰 이탈자 = B2B 문의)
+  { re: /시공\s*파트너|매칭/, mate: "kkomkkom", act: "A", seg: "B2B", loose: true },
+  { re: /프로모션/, mate: "deundeun", act: "A", seg: "B2B" },
+  { re: /NPS|만족도/, mate: "teunteun", act: "A", seg: "B2B" },
+  { re: /위탁|도매|철물점/, mate: "teunteun", act: "B", seg: "B2B" },
+  { re: /인플루언서.*리뷰|리뷰\s*회수/, mate: "yeoreum", act: "G" },
+  { re: /포스팅\s*링크|링크\s*수정/, mate: "yeoreum", act: "H" },
+  { re: /오픈\s*채팅|셀러오션|샐러오션/, mate: "yeoreum", act: "I" },
+  { re: /미전환/, mate: "gyeoul", act: "G" },
+  { re: /추천제|추천\s*쿠폰|지인\s*추천|친구\s*추천/, mate: "baram", act: "A" },   // 2026-10-17 지인추천 = 바람
+  { re: /NPS|만족도/, mate: "baram", act: "C" },
+  { re: /광고\s*(확인|점검|보고)/, mate: "gaeul", act: "F" },   // 광고 보고 F (승인 = 그날 체크) · 주간 분석 보고(금 오후)는 아침 보고로 미리 체크되지 않게 사람이 따로
+  { re: /타겟\s*광고|메타\s*광고|인스타\s*광고/, mate: "gaeul", act: "G" },   // 2026-10-17 광고는 가을 (예전 여름 C)
   { re: /블로그|포스팅|컨텐츠|콘텐츠|원고/, mate: "yeoreum", act: NO_ACT },
   { re: /릴스|숏폼|쇼츠|숏츠/, mate: "yeoreum", act: "B" },
   { re: /공동구매|공구/, mate: "yeoreum", act: "D" },
   { re: /인플루언서|쿠팡\s*파트너스|체험단/, mate: "yeoreum", act: "A" },
   { re: /상세/, mate: "gyeoul", act: "C" },
-  { re: /리뷰.*(프로모션|이벤트|할인|혜택)|사진\s*후기/, mate: "uju", act: "D" },
+  { re: /리뷰.*(프로모션|이벤트|할인|혜택)|사진\s*후기/, mate: "baram", act: "B" },
   { re: /리뷰.*(답글|답변|정리|유도|체계|관리)|후기\s*유도/, mate: "gyeoul", act: "E" },
-  { re: /프로모션|캠페인|시즌/, mate: "uju", act: "E" },
+  { re: /프로모션|캠페인|시즌/, mate: "bom", act: "H" },   // 2026-10-17 프로모션 = 봄(MD)
+  { re: /리스팅|아이템\s*위너|리셀러/, mate: "bom", act: "F" },
   { re: /재구매|알림톡/, mate: "uju", act: "C" },
   { re: /UX|UI/i, mate: "uju", act: "B" },
   { re: /세트|키트|추가\s*구성|객단가/, mate: "haneul", act: "A" },
@@ -107,14 +148,16 @@ const bare = (s) => String(s || "").replace(/\([^)]*\)/g, " ").replace(/\s+/g, "
 // rows = [{key, name, brand(보드 brand 와 같은 id · grohome·pourstore …), kind 'ak'|'fx', owners?}] → [{key, name, kind, mate, mateName, act, actT, owner?}]
 export function rtSuggest(rows, mates) {
   const usedAct = new Set(), usedKey = new Set();
-  Object.entries(mates || {}).forEach(([mid, doc]) => Object.entries((doc && doc.actAk) || {}).forEach(([act, v]) => { const ks = akKeys(v); if (ks.length) { usedAct.add(mid + "." + act); ks.forEach((k) => usedKey.add(k)); } }));
+  Object.entries(mates || {}).forEach(([mid, doc]) => Object.entries(liveAk(mid, doc)).forEach(([act, ks]) => { usedAct.add(mid + "." + act); ks.forEach((k) => usedKey.add(k)); }));
   const out = [];
   RT_AI_HINTS.forEach((h) => {
     const k = h.mate + "." + h.act; if (usedAct.has(k) || !pairActs(h.mate).some((a) => a.c === h.act)) return;
     const bb = ((boardOf((mateOf(h.mate) || {}).board) || {}).brand) || "";
-    const cand = (rows || []).map((r, i) => ({ r, i })).filter(({ r }) => r && r.key && !usedKey.has(r.key) && h.re.test(bare(r.name)));
+    const b2bOnly = (name) => /\(\s*B2B\s*\)/i.test(String(name || "")), b2cOnly = (name) => /\(\s*B2C\s*\)/i.test(String(name || ""));
+    const b2bOk = (r) => !b2cOnly(r.name) && (h.loose || /B2B/i.test(String(r.name || "")));   // B2B 보드 = 이름에 B2B 있는 것만 (시공 이탈·매칭 = loose) — '체험단 모집 공지' 같은 B2C 업무는 안 가져감 (2026-10-17)
+    const cand = (rows || []).map((r, i) => ({ r, i })).filter(({ r }) => r && r.key && !usedKey.has(r.key) && !(h.seg === "B2B" && !b2bOk(r)) && h.re.test(bare(r.name)));
     if (!cand.length) return;
-    const score = ({ r, i }) => (r.kind === "ak" ? 0 : 2000) + (bb && r.brand === bb ? 0 : 1000) + i;
+    const score = ({ r, i }) => (r.kind === "ak" ? 0 : 4000) + (bb && r.brand === bb ? 0 : 2000) + ((h.seg === "B2B" ? !/B2B/i.test(String(r.name || "")) : b2bOnly(r.name)) ? 1000 : 0) + i;
     const { r } = cand.sort((a, b) => score(a) - score(b))[0];
     usedAct.add(k); usedKey.add(r.key);
     out.push({ key: r.key, name: r.name, kind: r.kind, mate: h.mate, mateName: (mateOf(h.mate) || {}).name || h.mate, act: h.act, actT: actTitle(h.mate, h.act), owner: h.act !== NO_ACT && (r.owners || []).length === 1 ? r.owners[0] : "" });   // 아침 루틴은 AI 담당(owners)이 받음 → 할 일 담당 없음

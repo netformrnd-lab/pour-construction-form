@@ -203,7 +203,7 @@
     - **횟수**(2026-10-15 "횟수 조절을 사람팀원이하면 더 추가해서 생성가능하게"): 보드 할 일 `qty`(겨울 B 옵션안 3개 · C 히어로 상품 4개 · 여름 A DM 초안 10명 …) · 아침 루틴 `routineQty`(여름 블로그 3 · 티스토리 1 · 카페 2) = `crew.qtyDefs` → 담당이 업무OS AI 팀원 한 장 '횟수'에서 바꾸면 `aimates/{AI}.qty.<열쇠>.n` → 오늘 지시문 '이번 몫: 옵션안 5개 (담당이 정함 · 기본 3개)'(`asideText(b,{qty})`) · 볼트 `team_link.py feedback` '■ 횟수'(`ROUTINE_QTY` = routineQty · crew.test 가 같은지 봄)
     - 고친 보드 단계(Aside 가 그대로 따를 수 있게): 노출 A '그로홈 대시보드 등록' → 넣을 줄만 올림(등록은 담당) · 노출 B '영상 생성하기'(없는 버튼) → 촬영·편집은 담당 · 객단가 A '매주 토요일' → 매주 월요일 지난주
     - 사람이 할 것: 업무OS 담당(AI 팀원 › 담당 한꺼번에) → 담당마다 자기 PC 에서 처음 한 번(업무OS '확인할 것' › [세팅] = 업로더 계정 로그인 · 사이트 로그인 · 크루별 예약 · (권장) 고칠 것 확인 한 시간마다) → 다 걸면 `CREW_ASIDE` 상태를 'on'으로 · 업무OS 가 '오늘 안 돎'(예약 + 90분)을 담당에게 알림
-    - 여름 아침 루틴(Claude · 볼트 노트) 고칠 것 = 평일 10~17시 매시 5분 '고칠 것 확인' 세션(예약 작업 `trig_01XyhdAyyTVvH5fhe5HJknhi` → 세션 `session_01KrdoQ126hPovNXk9XiSVop` · `team_link.py backs 여름` → 0건이면 끝 · 있으면 feedback 대로 같은 노트를 고치거나 이어 쓰고 open 다시) · 아침 루틴 `trig_01CmBYhzb9BGCv8DLX59kuGB` 은 '■ 횟수'만큼
+    - 여름 아침 루틴(Claude · 볼트 노트) 고칠 것 = 평일 10~17시 매시 5분 '고칠 것 확인' 세션(예약 작업 `trig_016xu3x4vRjvZZcdhpX3rfHc` → 세션 `session_01J6XhVQmvVG345c5gLHJJbW` · 2026-10-18 옮김 — 옛 예약 `trig_01XyhdAyyTVvH5fhe5HJknhi`(끔)의 세션은 볼트 받기가 403 · 새 세션은 볼트를 받는 곳(main)으로 붙임 · `team_link.py backs 여름` → 0건이면 끝 · 있으면 feedback 대로 같은 노트를 고치거나 이어 쓰고 open 다시) · 아침 루틴 `trig_01CmBYhzb9BGCv8DLX59kuGB` 은 '■ 횟수'만큼
 
 ## ⏰ 자동 작업 목록 (AI 팀 탭 · 2026-10-12)
 - 대시보드 AI 팀 탭 '⏰ 자동 작업' = `core.js AUTOMATIONS`(실제로 걸어 둔 것: Claude 루틴 · GitHub 자동 작업 · 구글 캘린더 · Aside · 크루 보드 Aside 6 = `CREW_ASIDE` · 2026-10-14 준비 중) + `TEAM` 의 아직 안 켠 팀원 일(계획)

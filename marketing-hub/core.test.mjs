@@ -172,7 +172,11 @@ eq('미리보기: 태그는 글자로', bh.includes('<img'), false);
 eq('붙여넣기: 사진 자리 글자 · 링크 라벨+주소', [C.pasteHtml(blog).includes('<p>[사진 1: 유형 02 시공전 — 외벽에'), C.pasteHtml(blog).includes('<p><b>카카오톡 상담</b><br><a href="https://pf.kakao.com/x">')], [true, true]);
 eq('편집기 글: 링크 = 라벨 줄 + 주소 줄', C.postPlain('[링크: 구매하기 → https://a.com/x]'), '구매하기\nhttps://a.com/x');
 const ck = C.blogCheck({ channel: 'naver_blog', body: blog, tags: Array.from({ length: 16 }, (_, i) => '#t' + i), title: '완벽한 균열 보수 10배' });
-eq('구조 검사: 항목별', Object.fromEntries(ck.items.map((x) => [x.k, x.level])), { greet: 'ok', thumb: 'ok', quotes: 'ok', early: 'ok', cta: 'ok', photos: 'warn', steps: 'ok', tags: 'ok', url: 'warn', risky: 'warn', nums: 'warn' });
+eq('구조 검사: 항목별', Object.fromEntries(ck.items.map((x) => [x.k, x.level])), { greet: 'ok', thumb: 'ok', quotes: 'ok', early: 'ok', cta: 'ok', photos: 'warn', steps: 'ok', tags: 'ok', url: 'warn', home: 'warn', risky: 'warn', nums: 'warn' });   // home = 구매 링크가 자사몰 첫 화면 (2026-10-18 2-4A · 견본 글이 아직 첫 화면 주소)
+{ // 2026-10-18 2-4A — 구매 링크가 상품 페이지면 경고 없음 · 첫 화면(쿼리·# 포함)만 경고 · 상담 링크는 안 봄
+  const ck2 = (u) => (C.blogCheck({ channel: 'naver_blog', heading: '1. 균열', tags: [], body: `[링크: 제품 구매하기 → ${u}]\n[링크: 카카오톡 상담 → https://pf.kakao.com/_x/chat]` }).items.find((x) => x.k === 'home') || {}).level || '';
+  eq('첫 화면 구매 링크만 경고', ['https://www.pourstore.net', 'https://grohome.co.kr/', 'https://www.pourstore.net/?utm_source=a', 'https://www.pourstore.net/product/detail.html?product_no=64', 'https://smartstore.naver.com/pourstore/products/1'].map(ck2), ['warn', 'warn', 'warn', '', '']);
+}
 const ck2 = C.blogCheck({ channel: 'naver_blog', body: '안녕하세요 포어입니다\n' + '설명\n'.repeat(40) + '[링크: 구매 → https://a.com]', tags: ['#a'] });
 eq('구조 검사: 인사말·인용 없음·늦은 링크·태그 부족', ['greet', 'quotes', 'early', 'tags', 'photos'].map((k) => ck2.items.find((x) => x.k === k).level), ['bad', 'bad', 'bad', 'bad', 'bad']);
 eq('구조 검사: 블로그만', C.blogCheck({ channel: 'tistory', body: blog }), null);

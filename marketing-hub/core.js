@@ -894,6 +894,7 @@
      level: ok ✅ · warn ⚠️(사람 확인) · bad ❌(표준 순서에서 빠짐) */
   const RISKY_RE = /완벽|반영구|영구적|평생|국내\s*1위|업계\s*1위|최고의?|100\s*%|무조건|절대(?:로)?\s*(?:안|새지|깨지)/g;
   const NUM_CHECK_RE = /\d+(?:\.\d+)?\s*배|\d+\s*mm\s*이상|(?:특허|협력사|파트너사?)\s*\d|\d[\d,]*\s*(?:여\s*)?(?:개|곳|건)\s*(?:의\s*)?(?:특허|협력사|파트너)/g;
+  const MALL_HOME_RE = /^https?:\/\/(?:www\.|m\.)?(?:pourstore\.net|grohome\.co\.kr)\/?(?:[?#].*)?$/i;   // 자사몰 첫 화면 (상품 페이지 아님)
   function blogCheck(post) {
     if (!post || post.channel !== 'naver_blog') return null;
     const body = String(post.body || ''), bl = postBlocks(body), len = Math.max(1, body.length), items = [];
@@ -919,6 +920,8 @@
     add('tags', tags >= 15 && tags <= 20 ? 'ok' : tags >= 10 && tags <= 25 ? 'warn' : 'bad', `해시태그 ${tags}개${tags >= 15 && tags <= 20 ? '' : ' — 15~20개'}`);
     const noUrl = links.filter((b) => !b.url && !b.tel).length;
     if (noUrl) add('url', 'warn', `링크 주소 확인 필요 ${noUrl}개`);
+    const home = links.filter((b) => b.url && /구매/.test(b.label || '') && MALL_HOME_RE.test(b.url)).length;   // 2026-10-18 사장님 2-4A — 구매 링크는 상품 페이지로
+    if (home) add('home', 'warn', `구매 링크가 자사몰 첫 화면 ${home}개 — 제품 카드 '자사몰주소'(상품 페이지)로`);
     const all = [post.title || '', post.titleB || '', text].join('\n');
     const risky = [...new Set(all.match(RISKY_RE) || [])], nums = [...new Set(all.match(NUM_CHECK_RE) || [])];
     if (risky.length) add('risky', 'warn', `과장 표현 확인: ${risky.join(' · ')}`);

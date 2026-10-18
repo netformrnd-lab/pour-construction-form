@@ -205,6 +205,24 @@
     - 사람이 할 것: 업무OS 담당(AI 팀원 › 담당 한꺼번에) → 담당마다 자기 PC 에서 처음 한 번(업무OS '확인할 것' › [세팅] = 업로더 계정 로그인 · 사이트 로그인 · 크루별 예약 · (권장) 고칠 것 확인 한 시간마다) → 다 걸면 `CREW_ASIDE` 상태를 'on'으로 · 업무OS 가 '오늘 안 돎'(예약 + 90분)을 담당에게 알림
     - 여름 아침 루틴(Claude · 볼트 노트) 고칠 것 = 평일 10~17시 매시 5분 '고칠 것 확인' 세션(예약 작업 `trig_016xu3x4vRjvZZcdhpX3rfHc` → 세션 `session_01J6XhVQmvVG345c5gLHJJbW` · 2026-10-18 옮김 — 옛 예약 `trig_01XyhdAyyTVvH5fhe5HJknhi`(끔)의 세션은 볼트 받기가 403 · 새 세션은 볼트를 받는 곳(main)으로 붙임 · `team_link.py backs 여름` → 0건이면 끝 · 있으면 feedback 대로 같은 노트를 고치거나 이어 쓰고 open 다시) · 아침 루틴 `trig_01CmBYhzb9BGCv8DLX59kuGB` 은 '■ 횟수'만큼
 
+## 링크 꼬리표 · 결과 읽기 · NPS 점수 · 자사몰 주소 (사장님 확정 2026-10-18 "모두 a로 해" · 2-1A~2-4A)
+- **2-2A 링크 꼬리표** — `utm.js`(ES 모듈 · 계산만 · 허브 index.html `window.MktUtm` · crew.js · 업무OS 가 같이 씀)
+  - 자사몰(pourstore.net · grohome.co.kr · www.·m.) = `utm_source/medium/campaign/content` · 스마트스토어·브랜드스토어 = `nt_source/medium/detail/keyword`(같은 값) · 그 밖(쿠팡·오늘의집·인스타·카카오 …)은 안 건드림 · 이미 꼬리표가 있으면 그대로
+  - 글 = 허브 [📝 임시저장 맡기기]·[본문 복사]·바로 등록 때만 붙임 — 채널(naver_blog·tistory·naver_cafe·instagram·naver_kin) · `content` · `2026-10_content` · 세부 = **글 키** `1018-ab12-2`(발행 노트 날짜 · 노트 지문 4자 · 글 번호) → `mkt-posts.tag`·`tagKey`·`tagLinks` · 미리 보기·볼트 원고는 꼬리표 없이
+  - AI 크루 보내는 할 일(`act.utm` · 여름 A·D·G·I · 우주 C·G · 바람 A·B · 봄 H) = crew.html 올릴 때 `asksFromParse` 가 표·요약의 자사몰·스마트스토어 링크에 붙임 · 세부 = **메시지 키** `1020-A3`(올린 날 · 번호) · 캠페인 `2026-10_<보드>`
+  - 업무OS `ui.Linked` = 눌러 열 때 꼬리표를 떼고 엶(직원이 눌러 숫자가 부풀지 않게) · 글자(복사)는 그대로
+  - Aside 지시문: 보내는 할 일마다 '링크: 꼬리표 없이 그대로 쓴다 — 올릴 때 이 화면이 붙인다' · ■5 '꼬리표를 직접 붙이지도 지우지도 않는다' (`ASIDE_VER 2026-10-18.2`)
+- **2-3A 결과 읽기** — 별 D '링크 꼬리표 성과'(매주 금 · 담당에서 끝 · 실행 업무 없음): 카페24 애널리틱스 › 광고 유입 분석 › UTM 분석 · 스마트스토어센터 › 통계 › 마케팅 분석 › 사용자 정의 채널 · 글 화면 조회수 → 표(세부·채널·유형·캠페인·어디서·방문·구매·매출·조회)
+  - 지시문 '■ 잴 글 목록' = crew.html 이 `mkt-posts where status==published` → `postRows`(최근 8주 · 글 키 있는 것만 · 못 읽으면 칸을 안 넣음)
+  - 올리면 글 키 줄 → 그 글 `mkt-posts`(`tagKey in …` · 30개씩)에 `stats.<올린 날>`·`statsLast`·`statsAt`(같은 키 여러 줄 = 방문·구매·매출 합 · 조회 큰 값 · `linkStatRows`) → 허브 [📄 보기] 게시 완료 줄 '꼬리표 … · 지난 7일 방문·구매·매출·조회 (날짜 별 D)' · 허브에 없는 키는 올린 뒤 알림
+  - 볼트: `team_link.py archive` → `04 자료/링크 성과/<달>.md`(최종 승인된 별 D · 글 키엔 허브 글 제목) · `00 최신 요약` '최근 4주 링크 성과'(매출·방문 많은 순 5) → Aside '■ 볼트 최신 요약'(비어 있다는 안내 줄만 있는 칸은 안 넣음 · `VAULT_EMPTY`)
+- **2-1A NPS 점수** — 바람 C(NPS 유선 조사) 실행 업무 [했어요] = 추천 점수 0~10 칩 꼭 + 이유 한 줄(링크 칸 없음) → `tasks.aiTrace.<번호>.score` · `aiasks.trace` 사본 · 계산은 `crew.npsOf` 하나(9~10 비율 − 0~6 비율 · 반올림 · team_link `nps_of` 같은 식 — crew.test 가 봄)
+  - 업무OS 흔적 상자 '이번 조사 NPS' · AI 한 장 바람 'NPS (최근 30일)' · 금요일 보고 바람 칸 ② 결과 NPS(기간 끝까지 30일 · 보드 'nps' 줄 대신) · 글로 복사
+  - crew.html 바람 지시문 ■ 1 nps 줄 '→ 업무OS 계산 값 … [지표] nps 에 n 그대로'(점수 없으면 nps 줄은 지움) · 볼트 `04 자료/NPS/<달>` 줄마다 점수 + 그 달 NPS · `00 최신 요약` '최근 30일 NPS'
+- **2-4A 자사몰 주소** — 볼트 제품 카드 속성 `자사몰주소`(공개 상품 주소 · 원가 아님 · 팀원용 제품 정보 7가지째) · 봄 I '자사몰 상품 주소 표'(1회 + 월 1회 · 담당에서 끝) 최종 승인 → 볼트 루틴 `team_link.py links` 가 빈 칸만 채움(다른 주소면 그대로 두고 알림 · `--replace` 는 사람이 확인 뒤) · `catalog_cards.py` 새 카드에 빈 칸
+  - 블로그 표준: 구매 링크 = 카드 `자사몰주소` · 비면 첫 화면 + ⚠️ 검토 메모 · 허브 글 구조 검사 '구매 링크가 자사몰 첫 화면 n개' ⚠️(`core.blogCheck` home)
+- 시험: `node marketing-hub/crew.test.mjs`(utm · NPS · 잴 글 · 링크 합 · team_link 와 같은 계산) · `core.test.mjs`(첫 화면 경고) · 업무OS `aireport.test.mjs`(NPS) · `test/ai.e2e.mjs` ⑮(NPS 칩 375·768·1280) · 허브 index.html·crew.html 화면(가짜 Firebase · 쓰기 없음)
+
 ## ⏰ 자동 작업 목록 (AI 팀 탭 · 2026-10-12)
 - 대시보드 AI 팀 탭 '⏰ 자동 작업' = `core.js AUTOMATIONS`(실제로 걸어 둔 것: Claude 루틴 · GitHub 자동 작업 · 구글 캘린더 · Aside · 크루 보드 Aside 6 = `CREW_ASIDE` · 2026-10-14 준비 중) + `TEAM` 의 아직 안 켠 팀원 일(계획)
 - 분류 7개(콘텐츠 · 광고·행사 · 재고·발주 · 고객 · 기획·보고 · 숫자·데이터 · 백업·알림) 고르기 · [모두 | 걸어 둔 것 | 계획] · 고른 것은 기기에 기억

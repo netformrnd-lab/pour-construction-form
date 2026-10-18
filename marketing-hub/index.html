@@ -17,6 +17,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="core.js"></script>
+<script type="module">import * as U from './utm.js'; window.MktUtm=U; console.log('[링크 꼬리표] utm.js 불러옴');</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>
 :root{--navy:#0D1B2A;--accent:#2563EB;--accent-l:#EFF6FF;--green:#059669;--green-l:#ECFDF5;--red:#DC2626;--red-l:#FEF2F2;
@@ -135,7 +136,7 @@ details.meta summary{cursor:pointer;font-weight:700;color:var(--text-md);font-si
 .pv-tags{color:#2F80ED;font-size:13px;line-height:1.8;padding:10px 0 4px;word-break:break-all}
 .pv-more{padding:0 16px 8px;font-size:13px}.pv-more summary{cursor:pointer;color:var(--text-md);font-weight:700;padding:6px 0}.pv-more ol{margin:4px 0;padding-left:20px}.pv-more>div{margin:6px 0}
 .pv-act{border-top:1px solid var(--border);padding:10px 12px;background:#FAFAFB;display:grid;gap:8px}
-.pv-st{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.pv-btns{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.pv-btns input{flex:1;min-width:140px;padding:7px 9px}
+.pv-st{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.pv-num{margin-top:4px;font-size:12.5px;line-height:1.55;word-break:break-word}.pv-btns{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.pv-btns input{flex:1;min-width:140px;padding:7px 9px}
 .phb{display:flex;align-items:center;gap:8px;background:var(--gold-l);color:var(--gold);border:1px dashed #FCD34D;border-radius:8px;padding:8px 10px;margin:8px 0;font-size:13px;font-weight:700}
 .pv .phb{flex-direction:column;justify-content:center;text-align:center;aspect-ratio:16/10;background:#F3F4F6;color:var(--text-md);border:1px dashed #CBD5E1;font-weight:600}
 .pv .phb .phi{font-size:28px}
@@ -679,7 +680,9 @@ function postActs(p,st){
   if(s==='queued')return `<div class="pv-st"><span class="pill wait">Aside 대기</span><span class="sub">Aside 가 임시저장 작업대에서 처리</span></div><div class="pv-btns"><button class="btn sm" data-pcancel="${k}">맡기기 취소</button>${copy}</div>`;
   if(s==='draft')return `<div class="pv-st"><span class="pill ok">임시저장됨</span><span class="sub">${esc(C.CHANNEL[p.channel])} 앱 › 임시저장 글 → 사진 넣고 발행</span></div>
     <div class="pv-btns"><input id="pub-url-${k}" placeholder="게시한 주소 (선택)" inputmode="url"><button class="btn sm pri" data-ppub="${k}">✅ 발행 완료</button></div>`;
-  if(s==='published')return `<div class="pv-st"><span class="pill ok">게시 완료</span>${st.url?`<a class="sub" href="${esc(st.url)}" target="_blank" rel="noopener">글 열기 ›</a>`:''}</div>`;
+  if(s==='published'){const sl=st.statsLast,ln=sl?[sl.visits!=null?`방문 ${Number(sl.visits).toLocaleString('ko-KR')}`:'',sl.buys!=null?`구매 ${Number(sl.buys).toLocaleString('ko-KR')}`:'',sl.sales!=null?`매출 ${Number(sl.sales).toLocaleString('ko-KR')}원`:'',sl.views!=null?`조회 ${Number(sl.views).toLocaleString('ko-KR')}`:''].filter(Boolean).join(' · '):'';
+    return `<div class="pv-st"><span class="pill ok">게시 완료</span>${st.url?`<a class="sub" href="${esc(st.url)}" target="_blank" rel="noopener">글 열기 ›</a>`:''}</div>`
+      +`<div class="pv-num">${st.tagKey?`<span class="sub">꼬리표 ${esc(st.tagKey)}</span>`:'<span class="sub">꼬리표 없음 (2026-10-18 전에 나간 글)</span>'}${ln?` <b>지난 7일 ${esc(ln)}</b> <span class="sub">(${esc(String(sl.run||'').slice(5).replace('-','/'))} 별 D)</span>`:st.tagKey?' <span class="sub">· 숫자는 금요일 별 D 가 넣어요</span>':''}</div>`;}
   if(s==='failed')return `<div class="pv-st"><span class="pill err">임시저장 실패</span><span class="sub">${esc(st.failNote||'')}</span></div><div class="pv-btns"><button class="btn sm pri" data-pq="${k}">다시 맡기기</button>${copy}</div>`;
   const gate=noteGate();
   if(!C.canDraft(p.channel))return gate?`<div class="pv-st"><span class="pill m">최종 승인 뒤 등록</span><span class="sub">${esc(gate)}</span></div><div class="pv-btns">${copy}</div>`:`<div class="pv-st"><span class="pill">사람이 직접 등록</span><span class="sub">${esc(C.CHANNEL[p.channel])}은 임시저장이 없어요 — 복사해서 붙여 넣고 등록</span></div>
@@ -750,21 +753,26 @@ async function saveNoteMemo(b){
 // 게시 준비 — mkt-posts/{노트id~번호} (공개 자리 · Aside 작업대가 읽고 씀)
 const curPost=(k)=>{const P=S.note&&noteParsed(S.note);return P?P.pp.posts.find(p=>p.n===Number(k)):null;};
 // 글 한 편 그대로(작업대·기록용) — 맡길 때 · 맡기지 않고 바로 등록 완료할 때
-function postSnap(n,p){const d=n.doc||{},l=n.link||{};
+// 링크 꼬리표 (2026-10-18 사장님 2-2A) — 자사몰 utm · 스마트스토어 nt · 세부 = 글 키(tagKey) · 원고(볼트)·미리 보기는 그대로, 나가는 글(맡기기·복사·바로 등록)에만
+function postTagOf(n,p){const U=window.MktUtm,d=n.doc||{},l=n.link||{};if(!U)throw new Error('링크 꼬리표 도구(utm.js)를 못 불러왔어요 — 새로고침해 주세요');return U.postTag({channel:p.channel,noteId:n.id,n:p.n,date:d.date||l.date||''});}   // 날짜 = 노트 날짜(없으면 노트 id 안 날짜) — 복사한 날·등록한 날이 달라도 같은 글 키
+function taggedBody(n,p){return window.MktUtm.tagLinks(p.body,postTagOf(n,p));}
+function postSnap(n,p){const d=n.doc||{},l=n.link||{},tag=postTagOf(n,p),body=window.MktUtm.tagLinks(p.body,tag);
   return {noteId:n.id,n:p.n,member:l.member||d.member||'',date:d.date||l.date||todayKST(),channel:p.channel,heading:p.heading,title:p.title||p.heading,titleB:p.titleB,
-    tags:p.tags,thumbs:p.thumbs,notice:p.notice,body:p.body,plain:C.postPlain(p.body),products:p.products,brand:BRAND_OF(p)};}
+    tags:p.tags,thumbs:p.thumbs,notice:p.notice,body,plain:C.postPlain(body),products:p.products,brand:BRAND_OF(p),tag,tagKey:tag.content,tagLinks:window.MktUtm.linkCount(body)};}
 async function queuePost(k){
   const n=S.note,p=curPost(k);if(!n||!p)return;const id=C.postId(n.id,p.n);
   if(noteGate()){setMsg('err','최종 승인 뒤에 맡길 수 있어요 · 승인은 업무OS 에서');return;} // AI 승인 길을 건너뛰지 않게
   if(!C.canDraft(p.channel))return; // 임시저장이 없는 곳은 사람이 직접
-  const v={...postSnap(n,p),status:'queued',failNote:'',queuedAt:FV.serverTimestamp(),queuedBy:S.user.email,updatedAt:FV.serverTimestamp()};
+  let snap;try{snap=postSnap(n,p);}catch(e){console.error('[맡기기] 꼬리표',e);setMsg('err',esc(e.message));return;}
+  const v={...snap,status:'queued',failNote:'',queuedAt:FV.serverTimestamp(),queuedBy:S.user.email,updatedAt:FV.serverTimestamp()};
   await postsCol().doc(id).set(v,{merge:true});
   n.posts[p.n]={...(n.posts[p.n]||{}),...v};S.pub=S.pub.filter(x=>x.id!==id).concat([{id,...v}]);
   console.log('[mkt-posts] 맡김',id);
 }
 async function setPost(k,patch){
   const n=S.note,id=C.postId(n.id,Number(k)),p=curPost(k),had=(n.posts[k]||{}).noteId;
-  const v={...(had||!p?{}:postSnap(n,p)),...patch,updatedAt:FV.serverTimestamp()}; // 맡기지 않고 바로 등록한 글도 내용을 남김
+  let snap={};if(!had&&p){try{snap=postSnap(n,p);}catch(e){console.error('[등록] 꼬리표',e);setMsg('err',esc(e.message));return;}}
+  const v={...snap,...patch,updatedAt:FV.serverTimestamp()}; // 맡기지 않고 바로 등록한 글도 내용을 남김 (꼬리표 붙은 본문 · 글 키)
   await postsCol().doc(id).set(v,{merge:true});
   n.posts[k]={...(n.posts[k]||{}),...v};
   S.pub=S.pub.map(x=>x.id===id?{...x,...patch}:x).filter(x=>['queued','draft','failed'].includes(x.status));
@@ -774,10 +782,11 @@ async function setPost(k,patch){
 }
 async function copyPost(what,k){
   const p=curPost(k);if(!p)return;
-  const text=what==='title'?(p.title||p.heading):what==='tags'?p.tags.join(' '):C.postPlain(p.body);
+  let body=p.body;if(what==='body'){try{body=taggedBody(S.note,p);}catch(e){console.error('[복사] 꼬리표',e);S.note.saved=e.message;renderSheet();return;}}
+  const text=what==='title'?(p.title||p.heading):what==='tags'?p.tags.join(' '):C.postPlain(body);
   try{
     if(what==='body'&&window.ClipboardItem&&navigator.clipboard.write){ // 서식 있는 붙여넣기(굵게·소제목) + 글자만
-      await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([C.pasteHtml(p.body,{center:p.channel==='naver_blog'})],{type:'text/html'}),'text/plain':new Blob([text],{type:'text/plain'})})]);
+      await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([C.pasteHtml(body,{center:p.channel==='naver_blog'})],{type:'text/html'}),'text/plain':new Blob([text],{type:'text/plain'})})]);
     }else await navigator.clipboard.writeText(text);
     S.note.saved=({title:'제목',body:'본문',tags:'태그'})[what]+' 복사됨';
   }catch(e){console.error('[복사] 실패',e);S.note.saved='복사 실패 — 길게 눌러 복사';}

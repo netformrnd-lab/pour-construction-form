@@ -15,7 +15,7 @@ import { refCount } from "./refui.jsx";   // AI 한 장 · 참고 레퍼런스 �
 import { LS } from "./core.jsx";
 import { RtMulti } from "./airtui.jsx";   // AI 크루 ↔ 반복 실행 (2026-10-16) · 여러 개 (2026-10-17)
 import { isFxKey, fxIdOf, NO_ACT, akKeys, pairable } from "./airt.js";
-import { GONE, liveCrews, closedCrews, CLOSED_L, pathGroups, pathGroupsL, crewOf, mateOf, boardOf, brandL, servesL, mateBrands, ownerKeys, fmtMetric, metricPct, metricOk, runWord, asideLaunch, asideRedoLaunch, asideFixLaunch, loginSites, planOf, qtyDefs, qtyNow, canReq, reqMates, REQ_SHAPES, REQ_PRESETS, REQ_STATE_L, reqLine, asideReqLaunch, execOf, formulaHead, formulaSep, movedOut, movedIn, stageOf, designOf, designBad, DESIGN_MAX, BRAND_L, handoffTargets, handoffLabel, handoffNeedsDone, INBOX_DAYS } from "../../marketing-hub/crew.js";
+import { GONE, liveCrews, closedCrews, CLOSED_L, pathGroups, pathGroupsL, crewOf, mateOf, boardOf, brandL, servesL, mateBrands, ownerKeys, fmtMetric, metricPct, metricOk, runWord, asideLaunch, asideRedoLaunch, asideFixLaunch, loginSites, planOf, qtyDefs, qtyNow, canReq, reqMates, REQ_SHAPES, REQ_PRESETS, REQ_STATE_L, reqLine, asideReqLaunch, execOf, formulaHead, formulaSep, movedOut, movedIn, stageOf, designOf, designBad, DESIGN_MAX, BRAND_L, handoffTargets, handoffLabel, handoffNeedsDone, INBOX_DAYS, isNpsAct, npsFromTraces, npsLine } from "../../marketing-hub/crew.js";
 import { cycleOf, periodOf, repCrews, repId, repSlots, secState, periodL, dueL, CYCLE_L } from "./aireport.js";   // AI 크루 보고 (2026-10-15)
 import { ASK_STATE_L, canAct, canBack, canRet, isProxy, pickOk, planPass, chainOf, mateOwner, actOwner, hqOf, canUpHQ, pathOf, pathDef, upLeadTo, PATH_L, mateStats, repeatNotes, itemLine, bossOf, bossRec, bossLoop, asidePlanOf, ranOn, missedOn, goneWaits, GONE_DROP, myTurnN,
   waitWd, workMin, prevWaits, newerOf, routineRanOn, routineMisses, routineAlert, stuckAlert, LATE_WD, BACK_MIN, PREV_DROP, ROUTINE_AT, ROUTINE_CHECK } from "./aiask.js";   // 멈춤 감시 (2026-10-17)
@@ -374,6 +374,8 @@ export function AiMateSheet({ D, cu, A, open, onBack, onClose, id }) {
   const canRule = master || owners.some((o) => o.uid === cu.id);
   const plan = asidePlanOf(D), pl = b ? planOf(plan, b.id) : null, qs = qtyDefs(id);   // Aside 담당 PC · 횟수 (2026-10-15)
   const since = new Date(Date.now() - 7 * 864e5).toISOString(), st = mateStats(asks, id, since), rep = new Set(repeatNotes(st.notes).map((x) => x.text));
+  // NPS (2026-10-18 사장님 2-1A) — 이 AI 의 NPS 유선 조사 할 일(바람 C) 흔적 [했어요] 점수 · 최근 30일 (crew.html 지시문 · 볼트와 같은 계산)
+  const npsOn = !!b && !(c && c.closed) && (b.actions || []).some((a) => isNpsAct(id, a.c)), npsR = npsOn ? npsFromTraces(asks, ymd(new Date(Date.now() - 29 * 864e5)), ymd(new Date())) : null;
   const open1 = asks.filter((x) => x.state === "wait" || x.state === "back").sort((p, q) => String(q.updatedAt || "").localeCompare(String(p.updatedAt || "")));
   const done = asks.filter((x) => x.state === "ok" || x.state === "no").sort((p, q) => String(q.updatedAt || "").localeCompare(String(p.updatedAt || "")));
   const rules = (doc.rules || []).filter((r) => !r.off), off = (doc.rules || []).filter((r) => r.off);
@@ -386,6 +388,7 @@ export function AiMateSheet({ D, cu, A, open, onBack, onClose, id }) {
     <div style={{ fontSize: 13.5, color: C.sub, lineHeight: 1.7, marginTop: 12 }}>
       {m.kpi && <div>KPI · <b style={{ color: C.ink }}>{m.kpi}</b></div>}
       {stageOf(id) && <div>단계 미션 · <b style={{ color: C.ink }}>{m.slot}</b> ({stageOf(id).goal}) — {stageOf(id).mission}</div>}
+      {npsOn && <div>NPS (최근 30일 · [했어요]에 남긴 점수) · <b style={{ color: C.ink }}>{npsR ? npsLine(npsR) : "아직 남긴 점수 없음"}</b></div>}
       {m.routine && <div>{m.routine}</div>}
       {b && pl && <div>Aside 루틴 · {runWord({ ...b.run, t: pl.t })} · {PC_L(D, pl.owner, cu)} · 보드 지표·할 일 → 이 승인으로 · <a className="v2-lblink" href={`${HUB_CREW_URL}#${b.id}`} target="_blank" rel="noopener">허브 AI 크루 결과 올리기 ›</a></div>}
       {GONE[id] && <div style={{ color: C.text }}>2026-10-14부터 쉬어요 · 이 일은 B2C 크루 {(mateOf(GONE[id]) || {}).name} 몫이에요 · 이미 올라온 결과는 그대로 승인·안 함</div>}

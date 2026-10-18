@@ -18,6 +18,10 @@
 #   python3 team_link.py archive          — 자료 쌓기 (2026-10-17): 업무OS·허브의 A·B 판정 · 최종 승인 AI 결과 · AI 크루 주간 보고(본부장에게 보낸 칸) · 월말 보고서(확정본)
 #       · 광고 일일·주간 보고 · NPS(설문 + 유선 조사 흔적) · 고객의 소리 → 볼트 '04 자료/' 월별 노트 + '04 자료/00 최신 요약.md' (읽기만)
 #       · 쓰는 것은 하나뿐 (2026-10-18 사장님 3A): '00 최신 요약' 같은 글 → 허브 mkt-notes/vault-latest → Aside 크루 지시문 '■ 볼트 최신 요약' (허브 [📄 보기] 목록엔 안 보임)
+#       · NPS = 유선 조사 [했어요] 점수(0~10 · 2026-10-18 사장님 2-1A) · 링크 성과 = 별 D 꼬리표 표(최종 승인 · 2-3A) → '04 자료/링크 성과/<달>.md'
+#   python3 team_link.py links [--replace] — 제품 카드 '자사몰주소' 채우기 (2026-10-18 사장님 2-4A): 최종 승인된 봄 I(자사몰 상품 주소 표) 마지막 것
+#       → 01 제품마스터 카드(제품코드·자체상품코드가 같은 것) 속성 '자사몰주소:' · 빈 칸만 채움 · 이미 다른 주소면 그대로 두고 알림(--replace 면 바꿈 · 사람이 돌릴 때만)
+#       · 주소는 자사몰(utm.js MALL_HOSTS) https 상품 주소만 · 꼬리표(utm·nt)는 떼고 씀 — 꼬리표는 허브가 글을 내보낼 때 붙임
 # 쓰는 곳 (pour-app-new · 공개 규칙 pour-os/{doc=**} · 규칙 변경 없음):
 #   pour-os/v2/aiasks/{id}                     — AI 승인 한 건 (모양 = pour-construction-form marketing-hub/crew.js askDoc 과 같게)
 #   pour-os/marketing-hub/mkt-notes/{노트 id}  — 노트 본문(마크다운) + 사장님 메모 memo/memoAt/memoBy
@@ -26,7 +30,7 @@
 #   실제 게시·발행·전송은 늘 사람 (최종 승인 → 담당이 허브 [임시저장 맡기기] → Aside 임시저장 → 사람이 발행)
 # 볼트 위치: 환경변수 MKT_VAULT → 이 파일이 볼트 tools/ 안이면 그 볼트 → /home/user/pour-marketing-vault
 # ⚠️ 같은 파일 두 곳(2026-10-11 · 저장소 비공개 전환으로 루틴이 이 저장소를 못 받음): pour-construction-form/marketing-hub/tools/team_link.py · pour-marketing-vault/tools/team_link.py — 고치면 둘 다
-import sys, os, json, re, time, urllib.request, urllib.parse, urllib.error, datetime, hashlib
+import sys, os, json, re, time, math, urllib.request, urllib.parse, urllib.error, datetime, hashlib
 KEY = 'AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU'
 EMU = os.environ.get('FIRESTORE_EMULATOR_HOST')  # 시험(에뮬레이터)에서만 — 실제 DB 안 씀
 DOCS = (f'http://{EMU}' if EMU else 'https://firestore.googleapis.com') + '/v1/projects/pour-app-new/databases/(default)/documents'
@@ -336,9 +340,60 @@ def numbers():
 ARCH = '04 자료'
 SECRET_RE = re.compile(r'마진|원가|공급\s*단가|공급가|매입|제조사|이익')
 LEDGER_ACTS = {('yeoreum', 'J'), ('gaeul', 'J'), ('gyeoul', 'H')}   # A/B 판정 (crew.js LEDGER_ACTS)
-NPS_ACTS = {('baram', 'C'), ('uju', 'F'), ('teunteun', 'A')}        # NPS 유선 조사 (우주 F = 바람 C 로 옮기기 전 옛 자리)
+NPS_ACTS = {('baram', 'C'), ('uju', 'F'), ('teunteun', 'A')}        # NPS 유선 조사 (우주 F = 바람 C 로 옮기기 전 옛 자리 · crew.js NPS_ACTS 와 같게)
+LINK_ACTS = {('byeol', 'D')}   # 링크 꼬리표 성과 표 (crew.js 별 D · act.links)
+MALL_ACTS = {('bom', 'I')}     # 자사몰 상품 주소 표 (crew.js 봄 I) → links 명령
+MALL_HOSTS = ['pourstore.net', 'www.pourstore.net', 'm.pourstore.net', 'grohome.co.kr', 'www.grohome.co.kr', 'm.grohome.co.kr']   # marketing-hub/utm.js MALL_HOSTS 와 같게 (crew.test.mjs 가 봄)
+POST_KEY_RE = re.compile(r'^\d{4}-[0-9a-z]{4}-\d+$'); ACT_KEY_RE = re.compile(r'^\d{4}-[A-Z]\d*$')   # utm.js POST_KEY_RE · ACT_KEY_RE 와 같게 (글 키 · 메시지 키)
 CREW_L = {'b2c': 'B2C 크루', 'b2b': 'B2B 크루', 'bd': '바라스데이 크루'}
 VAULT_NOTE = 'vault-latest'   # crew.js VAULT_NOTE 와 같게 (crew.test.mjs 가 봄) · 허브 [📄 보기]는 노트를 id 로만 열어 목록에 안 보임
+
+def nps_score(v):   # crew.js npsScore 와 같게 — 0~10 정수만
+    if v is None or isinstance(v, bool) or v == '': return None
+    try: x = float(v)
+    except (TypeError, ValueError): return None
+    return int(x) if x == int(x) and 0 <= x <= 10 else None
+
+def nps_of(scores):   # crew.js npsOf 와 같게 — NPS = 9~10점 비율 − 0~6점 비율 (×100 · 반올림은 JS Math.round 처럼 .5 올림)
+    s = [x for x in (nps_score(v) for v in scores) if x is not None]
+    if not s: return None
+    pro, det = sum(1 for x in s if x >= 9), sum(1 for x in s if x <= 6)
+    return {'n': len(s), 'pro': pro, 'mid': len(s) - pro - det, 'det': det, 'nps': math.floor((pro - det) * 100 / len(s) + 0.5)}
+
+def nps_line(r): return f'NPS {r["nps"]} ({r["n"]}명 · 추천 {r["pro"]} · 중립 {r["mid"]} · 비추천 {r["det"]})' if r else ''   # crew.js npsLine 과 같게
+
+def to_num(v):   # crew.js toNum 과 같게 — '1,234원' → 1234 · 숫자 없으면 None
+    m = re.search(r'-?\d+(\.\d+)?', str(v if v is not None else '').replace(',', '').strip())
+    if not m: return None
+    x = float(m.group()); return int(x) if x == int(x) else x
+
+def link_rows(asks, since=''):
+    # 별 D (최종 승인) 표 → 줄마다 {run, key, kind 글|메시지, ch, typ, camp, where, visits, buys, sales, views} · 글 키(utm_content)·메시지 키만 · 숫자 하나는 있어야
+    out = []
+    for a in asks:
+        if (a.get('mate'), a.get('act')) not in LINK_ACTS or a.get('state') != 'ok' or str(a.get('run') or '') < since: continue
+        for it in picked(a):
+            c = it.get('c') or {}; key = str(c.get('세부') or '').strip()
+            r = {'run': str(a.get('run') or ''), 'key': key, 'kind': '글' if POST_KEY_RE.match(key) else '메시지' if ACT_KEY_RE.match(key) else '',
+                 'ch': cl(c.get('채널'), 30), 'typ': cl(c.get('유형'), 20), 'camp': cl(c.get('캠페인'), 40), 'where': cl(c.get('어디서'), 30),
+                 'visits': to_num(c.get('방문')), 'buys': to_num(c.get('구매')), 'sales': to_num(c.get('매출')), 'views': to_num(c.get('조회'))}
+            if r['kind'] and any(r[k] is not None for k in ('visits', 'buys', 'sales', 'views')): out.append(r)
+    return out
+
+def link_sum(rows):   # 같은 키 여러 줄(그로홈·POUR스토어 · 카페24·스마트스토어) = 방문·구매·매출 합 · 조회 큰 값 (crew.js linkStatRows 와 같게)
+    m = {}
+    for r in rows:
+        x = m.get(r['key'])
+        if not x: m[r['key']] = dict(r); continue
+        for k in ('visits', 'buys', 'sales'):
+            if r[k] is not None: x[k] = (x[k] or 0) + r[k]
+        if r['views'] is not None: x['views'] = max(x['views'] or 0, r['views'])
+        x['where'] = ' + '.join(dict.fromkeys(w for w in (x['where'], r['where']) if w))
+    return list(m.values())
+
+def link_num(r):
+    return ' · '.join(x for x in (f'방문 {r["visits"]:,}' if r['visits'] is not None else '', f'구매 {r["buys"]:,}' if r['buys'] is not None else '',
+                                  f'매출 {r["sales"]:,}원' if r['sales'] is not None else '', f'조회 {r["views"]:,}' if r['views'] is not None else '') if x)
 
 def vault_doc(text, today):
     return {'title': '볼트 최신 요약', 'body': text, 'date': today, 'at': now_iso(), 'kind': 'vault', 'from': 'team_link archive'}
@@ -547,8 +602,11 @@ def arch_nps(asks):
         out = []
         if g['t']:
             out.append('## 업무OS 유선 조사 흔적 (바람 C · 튼튼 A · [했어요]에 남긴 점수·메모)')
+            r0 = nps_of([r.get('score') for r, n, a in g['t'] if r.get('done')])   # 2026-10-18 사장님 2-1A — [했어요] 점수 0~10 (그 전 흔적엔 점수 없음)
+            out.append(f'- 이 달 {nps_line(r0)} — 업무OS 바람 한 장·금요일 보고와 같은 계산' if r0 else '- 이 달 남긴 점수 없음 (점수 칸은 2026-10-18부터)')
             for r, n, a in sorted(g['t'], key=lambda x: x[0].get('date') or ''):
-                out.append(f'- {r.get("date", "")} {mate_name(a.get("mate"))} {a.get("act")} {n}번 · {"했어요" if r.get("done") else "안 함"}' + (f' · {cl(r.get("note"), 300)}' if r.get('note') else '') + (f' · {cl(r.get("link"), 120)}' if r.get('link') else ''))
+                sc = nps_score(r.get('score')) if r.get('done') else None
+                out.append(f'- {r.get("date", "")} {mate_name(a.get("mate"))} {a.get("act")} {n}번 · {"했어요" if r.get("done") else "안 함"}' + (f' · {sc}점' if sc is not None else '') + (f' · {cl(r.get("note"), 300)}' if r.get('note') else '') + (f' · {cl(r.get("link"), 120)}' if r.get('link') else ''))
             out.append('')
         camps = {}
         for s in g['s']: camps.setdefault(s.get('campaign') or s.get('surveyType') or '기타', []).append(s)
@@ -566,6 +624,27 @@ def arch_nps(asks):
             if fb: out.append('- 한마디 (이름·회사·전화는 안 옮김)\n' + '\n'.join(f'  - {kday(s.get("createdAt"))} {s.get("score", "")}점: {cl(s.get("feedback"), 300)}' for s in fb))
             out.append('')
         res[ym] = put_note(f'NPS/{ym}.md', f'NPS 조사 결과 {ym}', 'NPS', len(g['s']) + len(g['t']), '\n'.join(out))
+    return res
+
+def arch_links(asks):
+    # 링크 꼬리표 성과 (2026-10-18 사장님 2-3A) — 별 D 최종 승인 표 → 달마다 한 노트 · 잰 날(run)마다 표 · 글 키는 허브 글 제목·채널을 붙임 (주소·숫자만 · 개인정보 없음)
+    posts = {p.get('tagKey'): p for p in list_all(DOCS + '/pour-os/marketing-hub', 'mkt-posts') if p.get('tagKey')}
+    by = {}
+    for r in link_rows(asks): by.setdefault(r['run'][:7], {}).setdefault(r['run'], []).append(r)
+    res = {}
+    for ym, runs in sorted(by.items()):
+        out, n = [], 0
+        for run, rows in sorted(runs.items(), reverse=True):
+            rows = sorted(link_sum(rows), key=lambda x: (-(x['sales'] or 0), -(x['visits'] or 0), x['key']))
+            out += [f'## {run} 잰 것 (지난 7일 · 별 D · {len(rows)}줄)', '| 세부(키) | 무엇 | 채널 | 캠페인 | 어디서 | 방문 | 구매 | 매출 | 조회 |', '|---|---|---|---|---|--:|--:|--:|--:|']
+            for r in rows:
+                p = posts.get(r['key']) or {}
+                what = f'글 · {cl(p.get("title") or p.get("heading"), 40)}' if p else r['kind']
+                f = lambda v, u='': f'{v:,}{u}' if v is not None else ''
+                out.append(f'| {r["key"]} | {what} | {r["ch"]} | {r["camp"]} | {r["where"]} | {f(r["visits"])} | {f(r["buys"])} | {f(r["sales"], "원")} | {f(r["views"])} |')
+            out.append(''); n += len(rows)
+        res[ym] = put_note(f'링크 성과/{ym}.md', f'링크 꼬리표 성과 {ym}', '링크 성과', n,
+                           '> 글 키(예: 1018-ab12-2) = 허브에서 내보낸 블로그·티스토리·카페 글 · 메시지 키(예: 1020-C1) = AI 크루가 만든 인플루언서·공구·문자 링크 · 숫자는 카페24 UTM 분석 · 스마트스토어 사용자 정의 채널 · 글 통계 그대로\n\n' + '\n'.join(out))
     return res
 
 def arch_voc():
@@ -597,6 +676,7 @@ def summary_note(asks, counts):
            '## 최신 자료', f'- A·B 장부: {lk("A·B 장부", latest("A·B 장부"))}', f'- AI 크루 주간 보고: {lk("주간 보고", latest("주간 보고"))}',
            f'- 월말 보고서: {lk("월말 보고", latest("월말 보고"))}', f'- 광고 주간 보고: {lk("광고 보고", latest("광고 보고", r".*주간"))} · 일일: {lk("광고 보고", latest("광고 보고", r".*일일"))}',
            f'- NPS: {lk("NPS", latest("NPS"))}', f'- 고객의 소리: {lk("고객의 소리", latest("고객의 소리"))}', f'- 최종 승인된 AI 결과: {lk("AI 결과", latest("AI 결과"))}',
+           f'- 링크 성과: {lk("링크 성과", latest("링크 성과"))}',
            '- 오늘 숫자: [[05 오늘 숫자]]', '']
     wins = []
     for a in asks:
@@ -604,7 +684,14 @@ def summary_note(asks, counts):
         for it in picked(a):
             c = it.get('c') or {}; w = c.get('이긴 것') or c.get('롱테일·이긴 것') or ''; ju = str(c.get('판정') or '')
             if w or '이김' in ju: wins.append(f'- {kday(a.get("okAt"))} {mate_name(a.get("mate"))} {a.get("act")} · {cl(c.get("실험") or c.get("단계") or c.get("바꾼 것"), 60)} → 이긴 것: {cl(w or ju, 120)}')
+    since30 = (datetime.date.fromisoformat(today) - datetime.timedelta(days=29)).isoformat()
+    r0 = nps_of([r.get('score') for a in asks if (a.get('mate'), a.get('act')) in NPS_ACTS for r in (a.get('trace') or {}).values() if isinstance(r, dict) and r.get('done') and since30 <= str(r.get('date') or '') <= today])
+    md_l = lambda x: f'{int(x[5:7])}/{int(x[8:10])}'
+    out += [f'## 최근 30일 NPS (유선 조사 [했어요] 점수 · {md_l(since30)}~{md_l(today)})', f'- {nps_line(r0)}' if r0 else '- 아직 남긴 점수 없음 — 바람 C 실행 업무 [했어요]에 추천 점수(0~10)를 남기면 쌓여요', '']
     out += ['## 최근 4주 이긴 소재 (A/B)', *(wins[:15] or ['- 아직 없음 — 첫 판정이 최종 승인되면 쌓여요']), '']
+    lk4 = sorted(link_sum(link_rows(asks, since)), key=lambda x: (-(x['sales'] or 0), -(x['visits'] or 0), x['key']))
+    out += ['## 최근 4주 링크 성과 (별 D · 최종 승인 · 매출·방문 많은 순)', *([f'- {x["key"]} {x["kind"]}{" · " + x["ch"] if x["ch"] else ""}{" · " + x["camp"] if x["camp"] else ""} · {link_num(x)}' for x in lk4[:5]]
+            or ['- 아직 없음 — 별 D(매주 금요일 · 링크 꼬리표 성과)가 최종 승인되면 쌓여요']), '']
     wk = latest('주간 보고')
     if wk:
         txt = open(os.path.join(VAULT, ARCH, '주간 보고', wk + '.md'), encoding='utf-8').read()
@@ -619,10 +706,74 @@ def summary_note(asks, counts):
     with open(p, 'w', encoding='utf-8') as f: f.write(text)
     return text
 
+UTM_NT = {'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'nt_source', 'nt_medium', 'nt_detail', 'nt_keyword'}   # utm.js UTM_KEYS · NT_KEYS
+CARD_FIELD = '자사몰주소'   # 제품 카드 속성 (2026-10-18 사장님 2-4A · 공개 상품 주소 · 원가 아님)
+
+def mall_url(v):
+    # 자사몰 상품 주소만 — https · MALL_HOSTS · /product/… 또는 /surl/p/… · 꼬리표(utm·nt)는 뗌 (utm.js untagUrl 과 같은 규칙) · 아니면 ''
+    u = str(v or '').strip()
+    m = re.match(r'^https://([^/?#:\s]+)(/[^\s<>"\'`()\[\]{}|]*)$', u, re.I)
+    if not m or m.group(1).lower() not in MALL_HOSTS: return ''
+    base, _, frag = m.group(0).partition('#')
+    path, _, q = base.partition('?')
+    if not re.match(r'^/(product|surl/p)/', path[len('https://') + len(m.group(1)):], re.I): return ''
+    keep = [kv for kv in q.split('&') if kv and kv.split('=')[0] not in UTM_NT]
+    return path + ('?' + '&'.join(keep) if keep else '') + ('#' + frag if frag else '')
+
+def card_codes(fm):
+    # 카드 속성 → 맞춰 볼 코드들 (제품코드 + 자체상품코드 목록) · catalog_cards.py 가 쓴 모양 그대로
+    codes = set()
+    m = re.search(r'^제품코드:\s*(\S+)\s*$', fm, re.M)
+    if m: codes.add(m.group(1).strip())
+    m = re.search(r'^자체상품코드:\s*(.+)$', fm, re.M)
+    if m:
+        try: codes |= {str(x).strip() for x in json.loads(m.group(1)) if str(x).strip()}
+        except (ValueError, TypeError): codes |= {x.strip(' "\'') for x in m.group(1).strip('[] ').split(',') if x.strip(' "\'')}
+    return codes
+
+def code_hit(code, codes):   # 같은 코드 · 또는 옵션 코드의 앞부분(GH-P001-03031 → GH-P001 · catalog_cards.family 와 같게)
+    return code in codes or (code.count('-') >= 2 and code.rsplit('-', 1)[0] in codes)
+
+def links(replace=False):
+    # 2026-10-18 사장님 2-4A "제품 카드에 '자사몰 상품 주소' 칸 하나 → 구매 링크를 상품 페이지로" — 최종 승인된 봄 I 표(마지막 것이 이김) → 카드 속성
+    asks = [a for a in list_all(DOCS + '/pour-os/v2', 'aiasks') if (a.get('mate'), a.get('act')) in MALL_ACTS and a.get('state') == 'ok']
+    rows, bad = {}, []
+    for a in sorted(asks, key=lambda x: str(x.get('okAt') or '')):
+        for it in picked(a):
+            c = it.get('c') or {}; code = str(c.get('자체상품코드') or '').strip(); u = mall_url(c.get('자사몰 주소'))
+            if not code: continue
+            if not u: bad.append(f'{code} {cl(c.get("상품명"), 30)} — 자사몰 상품 주소가 아님: {cl(c.get("자사몰 주소"), 80) or "(빈칸)"}'); continue
+            rows[code] = (u, cl(c.get('상품명'), 40), kday(a.get('okAt')))
+    print(f'봄 I 최종 승인 {len(asks)}건 · 주소 {len(rows)}개' + (f' · 주소 이상 {len(bad)}개' if bad else ''))
+    root = os.path.join(VAULT, '01 제품마스터'); today = kst_today(); got = {'fill': [], 'same': 0, 'diff': [], 'none': []}; used = set()
+    for d, _, fs in os.walk(root):
+        for fn in sorted(fs):
+            if not fn.endswith('.md'): continue
+            fp = os.path.join(d, fn); txt = open(fp, encoding='utf-8').read(); m = re.match(r'^---\n(.*?)\n---\n', txt, re.S)
+            if not m: continue
+            fm = m.group(1); codes = card_codes(fm); hit = [(k, v) for k, v in rows.items() if code_hit(k, codes)]
+            if not hit: continue
+            urls = sorted({v[0] for k, v in hit}); used |= {k for k, v in hit}
+            if len(urls) > 1: got['diff'].append(f'{fn[:-3]} — 봄 I 주소가 여러 개: {" · ".join(urls)} (그대로 둠)'); continue
+            u = urls[0]; cur = re.search(rf'^{CARD_FIELD}:[ \t]*(.*)$', fm, re.M); now = cur.group(1).strip() if cur else ''
+            if now == u: got['same'] += 1; continue
+            if now and not replace: got['diff'].append(f'{fn[:-3]} — 지금 {now} · 봄 I {u} (그대로 둠 · 바꾸려면 사람이 확인 뒤 --replace)'); continue
+            line = f'{CARD_FIELD}: {u}'
+            fm2 = re.sub(rf'^{CARD_FIELD}:.*$', line, fm, flags=re.M) if cur else (re.sub(r'^(상세페이지:.*)$', lambda x: x.group(1) + '\n' + line, fm, count=1, flags=re.M) if re.search(r'^상세페이지:', fm, re.M) else fm + '\n' + line)
+            fm2 = re.sub(r'^수정일:.*$', f'수정일: {today}', fm2, count=1, flags=re.M)
+            with open(fp, 'w', encoding='utf-8') as f: f.write('---\n' + fm2 + '\n---\n' + txt[m.end():])
+            got['fill'].append(f'{fn[:-3]} → {u}' + (f' (전: {now})' if now else ''))
+    got['none'] = [f'{k} {v[1]}' for k, v in rows.items() if k not in used]
+    print(f'채움 {len(got["fill"])} · 같음 {got["same"]} · 다름(그대로) {len(got["diff"])} · 카드 없음 {len(got["none"])}')
+    for k, lab in (('fill', '채움'), ('diff', '다름 — 사람 확인'), ('none', '카드를 못 찾음 (자체상품코드 확인)')):
+        for x in got[k]: print(f'  {lab}: {x}')
+    for x in bad: print(f'  주소 이상: {x}')
+    return got
+
 def archive():
     asks = list_all(DOCS + '/pour-os/v2', 'aiasks')
     parts = {'A·B 장부': arch_ab(asks), 'AI 결과': arch_results(asks), '주간 보고': arch_weekly(), '월말 보고': arch_monthly(),
-             '광고 보고': arch_ads(), 'NPS': arch_nps(asks), '고객의 소리': arch_voc()}
+             '광고 보고': arch_ads(), 'NPS': arch_nps(asks), '고객의 소리': arch_voc(), '링크 성과': arch_links(asks)}
     counts = {}
     for k, r in parts.items():
         d = os.path.join(VAULT, ARCH, k); counts[k] = len([f for f in os.listdir(d) if f.endswith('.md')]) if os.path.isdir(d) else 0
@@ -646,4 +797,5 @@ if __name__ == '__main__':
     elif a and a[0] == 'asks': asks(a[1] if len(a) > 1 else None)
     elif a and a[0] == 'numbers': numbers()
     elif a and a[0] == 'archive': archive()
+    elif a and a[0] == 'links': links('--replace' in a[1:])
     else: print(open(__file__, encoding='utf-8').read().split('import')[0])

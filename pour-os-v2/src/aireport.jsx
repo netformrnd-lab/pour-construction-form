@@ -12,7 +12,7 @@ import { CopyText } from "./aiui.jsx";
 import { useDoneSince } from "./reportui.jsx";
 import { isHQ, ASK_STATE_L } from "./aiask.js";
 import { FileList, useUploads, UpList, UpBtn, pasteFiles, rmProps, PASTE_HINT } from "./files.jsx";
-import { boardOf, runWord, quietLine } from "../../marketing-hub/crew.js";
+import { boardOf, runWord, quietLine, npsLine } from "../../marketing-hub/crew.js";
 import { CYCLE_L, WORD, cycleOf, periodOf, prevPeriod, nextPeriod, periodOfDoc, periodL, dueL, repSlots, repCrews, repId, secPeople, canWriteSec, secData, secState, SEC_L, metricLine, stageLine, trend, repText, repFxOf, secFiles } from "./aireport.js";
 
 const Pill = ({ children, color = C.navy, bg = C.soft }) => <span style={{ display: "inline-block", fontSize: 12, fontWeight: 800, padding: "3px 8px", borderRadius: 6, color, background: bg, whiteSpace: "nowrap" }}>{children}</span>;
@@ -100,8 +100,8 @@ function SecCard({ D, cu, A, c, p, row, open, expand, asks }) {
   const [nt, setNt] = useState(null), [pl, setPl] = useState(null), [busy, setBusy] = useState(false);
   const note = nt !== null ? nt : s.note || "", plan = pl !== null ? pl : s.plan || "", dirty = (nt !== null && nt !== (s.note || "")) || (pl !== null && pl !== (s.plan || ""));
   const go = async (f) => { if (busy) return; setBusy(true); try { if (await A.aiRepSec(c.id, p, m.id, f)) { setNt(null); setPl(null); } } finally { setBusy(false); } };
-  const cur = d.metrics.filter((x) => x.cur || x.prev), inb = d.inbox || [];   // 단계 숫자 · 넘겨받은 것 (2026-10-17 · 예전에 보낸 칸엔 없음)
-  const sumL = [...(d.stage ? [stageLine(d.stage)] : cur.slice(0, 2).map((x) => `${x.l} ${metricLine(x)}`)), `실행 ${d.doneN}`, `흔적 ${d.trace.done}`, ...(inb.length ? [`넘겨받음 ${inb.length}`] : [])].join(" · ");
+  const cur = d.metrics.filter((x) => (x.cur || x.prev) && !(d.nps && x.k === "nps")), inb = d.inbox || [];   // 단계 숫자 · 넘겨받은 것 (2026-10-17 · 예전에 보낸 칸엔 없음) · NPS = 흔적 점수 줄이 보드 'nps' 대신 (2026-10-18)
+  const sumL = [...(d.stage ? [stageLine(d.stage)] : cur.slice(0, 2).map((x) => `${x.l} ${metricLine(x)}`)), ...(d.nps && d.nps.cur ? [`NPS ${d.nps.cur.nps}`] : []), `실행 ${d.doneN}`, `흔적 ${d.trace.done}`, ...(inb.length ? [`넘겨받음 ${inb.length}`] : [])].join(" · ");
   const others = ppl.writers.filter((x) => x !== ppl.owner).map((x) => nameOf(D.users, x));
   const who = !ppl.writers.length ? "담당 미정 · 담당을 정하면 보고에 들어가요" : `담당 ${ppl.owner ? nameOf(D.users, ppl.owner) : "미정"}${others.length ? ` · 같이 ${others.join("·")}` : ""} · 리드 ${nameOf(D.users, ppl.lead) || "-"}${ppl.lead === ppl.owner ? "(본인)" : ""}`;
   return <Card style={{ marginTop: 10, borderLeft: `4px solid ${m.color || C.navy}` }}>
@@ -126,7 +126,10 @@ function SecCard({ D, cu, A, c, p, row, open, expand, asks }) {
         {d.done.slice(0, 5).map((t) => <div key={t.id} style={{ fontSize: 13, marginTop: 2 }}><button type="button" className="v2-lblink" onClick={() => open({ type: "task", id: t.id })} style={{ background: "none", border: "none", padding: 0, color: C.navy, cursor: "pointer", textAlign: "left", fontFamily: "inherit", fontSize: 13, textDecoration: "underline", wordBreak: "break-word" }}>{t.title}</button> <span style={{ color: C.mute }}>{md(t.day)}</span></div>)}
         {d.trace.links.slice(0, 5).map((x, i) => <div key={i} style={{ fontSize: 12.5, minWidth: 0, wordBreak: "break-all" }}>{x.n !== "_" ? `${x.n} · ` : ""}<Linked text={x.link} /></div>)}
       </Sec>
-      <Sec t="② 결과">{cur.length ? cur.map((x) => { const tr = trend(x); return <div key={x.k} style={{ display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>
+      <Sec t="② 결과">{d.nps && <div style={{ display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>
+          <span style={{ flex: "1 1 140px", minWidth: 0 }}>NPS <span style={{ fontSize: 12, color: C.sub }}>({md(d.nps.from)}~{md(d.nps.to)} · [했어요] 점수)</span></span>
+          <b style={{ color: d.nps.cur ? C.ink : C.mute, fontVariantNumeric: "tabular-nums", wordBreak: "keep-all" }}>{d.nps.cur ? npsLine(d.nps.cur) : "남긴 점수 없음"}{d.nps.prev ? ` ← ${d.nps.prev.nps}` : ""}</b></div>}
+        {cur.length ? cur.map((x) => { const tr = trend(x); return <div key={x.k} style={{ display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>
           <span style={{ flex: "1 1 140px", minWidth: 0 }}>{x.l}</span><b style={{ color: x.ok ? C.green : tr < 0 ? C.red : C.ink, fontVariantNumeric: "tabular-nums" }}>{tr > 0 ? "▲ " : tr < 0 ? "▼ " : ""}{metricLine(x)}</b></div>; })
         : <div style={{ color: C.mute }}>이번 기간 지표 값이 아직 없어요 · AI 가 크루 결과 [지표]로 올려요</div>}</Sec>
       <Sec t="③ KPI (사람이 [했어요]로 센 것)">{d.ak.length ? d.ak.map((x) => <div key={x.id}>반복 '{x.name}' <b>+{x.n}</b></div>)

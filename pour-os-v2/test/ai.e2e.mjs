@@ -10,6 +10,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { pinHash } from '../src/sha.js';
 import { askDoc, askFromReq } from '../../marketing-hub/crew.js';
+import { planExec } from '../src/aiask.js';   // ⑮ NPS 실행 업무 (2026-10-18)
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const TEAM = path.join(here, 'out/team/index.html'), ADMIN = path.join(here, 'out/admin/admin.html');
@@ -857,6 +858,63 @@ ST.v2.aiasks.ai_baram_20261020_refE = ask({ id: 'ai_baram_20261020_refE', at: '2
   await s.S().getByText('단계 숫자 · 전환 = 구매전환율').scrollIntoViewIfNeeded();
   await shot(s.pg, 'yj-report-stage-375'); ok('금요일 칸 넘침 없음 375', !(await over(s.pg)));
   await s.close(); }
+
+
+// ⑮ NPS 점수 칸 (2026-10-18 사장님 2-1A) — 바람 C(유선 조사) 실행 업무 [했어요] = 추천 점수 0~10 꼭 + 이유 한 줄 (링크 칸 없음)
+//   → 흔적 상자 '이번 조사 NPS' · AI 한 장 바람 'NPS (최근 30일)' · 금요일 보고 바람 칸 '② 결과 NPS' (계산 = crew.js npsOf 하나)
+{ const NOWN = '2026-10-21T10:00:00+09:00', at = '2026-10-21T00:30:00.000Z';
+  const a = { ...ask({ id: 'ai_baram_20261021_refC', at, run: '2026-10-21', mate: 'baram', brand: 'grohome', board: 'gh-ref', act: 'C', owner: 'yr', title: '지인추천 보드 C · NPS 유선 조사 대상 3명',
+    cols: ['주문번호', '채널', '상품', '받은 날', '더 물어볼 것'], items: ['C1', 'C2', 'C3'].map((n, i) => ({ n, c: { 주문번호: `2026101${i}-000${i + 1}`, 채널: '자사몰', 상품: ['롤러', '유리블러', '몰딩'][i], '받은 날': '10/1' + i, '더 물어볼 것': '배송' } })),
+    exec: '승인된 대상만 담당이 카페24에서 연락처를 확인해 전화하고, [했어요]에 추천 점수(0~10)와 이유 한 줄을 남긴다' }), state: 'ok', okAt: at, okBy: 'yr', okByName: '변유림' };
+  const x = planExec(a, ['C1', 'C2', 'C3'], { id: 'yr', name: '변유림' }, Object.values(users), at, '2026-10-22');
+  ST.v2.aiasks[a.id] = { ...a, execTask: x.id }; ST.v2.tasks[x.id] = x;
+  for (const w of [375, 768, 1280]) {
+    const s = await session('yr', { now: NOWN, w, h: 900 });
+    await s.pg.evaluate((id) => { location.hash = '#t-' + id; }, x.id); await s.pg.waitForTimeout(800);
+    let tx = await s.S().innerText();
+    if (w === 375) {
+      ok('바람 C 실행 업무: 번호마다 점수 0~10 칩 · 링크 칸 없음 · 아직 점수 없음 안내', (await s.S().getByRole('radio').count()) === 33 && (await s.S().getByLabel('C1 링크').count()) === 0 && tx.includes('추천 점수 · 0 전혀 아님 → 10 꼭 추천') && tx.includes('전화하고 [했어요]에 추천 점수(0~10)를 남기면 NPS 가 저절로 계산돼요'), tx.slice(0, 600));
+      ok('점수 고르기 전 = [했어요] 잠김', await s.S().getByRole('button', { name: 'C1 했어요' }).isDisabled());
+      await s.S().getByRole('radiogroup', { name: 'C1 추천 점수' }).getByRole('radio', { name: '9점' }).click();
+      await s.S().getByLabel('C1 점수 이유').fill('배송이 빨라서');
+      await s.S().getByRole('button', { name: 'C1 했어요' }).click(); await s.pg.waitForTimeout(600);
+      await s.S().getByRole('radiogroup', { name: 'C2 추천 점수' }).getByRole('radio', { name: '5점' }).click();
+      await s.S().getByRole('button', { name: 'C2 했어요' }).click(); await s.pg.waitForTimeout(600);
+      await s.S().getByRole('button', { name: 'C3 안 함' }).click(); await s.S().getByLabel('C3 안 한 이유').fill('부재중');
+      await s.S().getByRole('button', { name: 'C3 안 함 남기기' }).click(); await s.pg.waitForTimeout(600);
+      tx = await s.S().innerText();
+      ok('흔적: 9점 · 5점 · 안 함 → 이번 조사 NPS 0 (2명 · 추천 1 · 중립 0 · 비추천 1)', tx.includes('9점') && tx.includes('5점') && tx.includes('이번 조사 NPS 0 (2명 · 추천 1 · 중립 0 · 비추천 1)') && tx.includes('배송이 빨라서'), tx.slice(0, 900));
+      const wv = await s.pg.evaluate((id) => [window.__V2.v2.tasks[id].aiTrace, window.__V2.v2.aiasks.ai_baram_20261021_refC.trace], x.id);
+      eq('저장 = 실행 업무 + 승인 건 흔적 score (안 함엔 없음)', [wv[0].C1.score, wv[0].C1.note, wv[0].C2.score, wv[0].C3.skip, wv[0].C3.score, wv[1].C1.score, wv[1].C2.score], [9, '배송이 빨라서', 5, true, undefined, 9, 5]);
+      ok('기록 한 줄에 점수', Object.values(await s.pg.evaluate(() => window.__V2.v2.log)).some((l) => l.action === 'aiTrace' && /C1 했어요 · 9점/.test(l.label || '')));
+      await shot(s.pg, 'yr-nps-375');
+    } else ok(`바람 C 흔적 칸 ${w}: 점수 남은 것 그대로 보임`, (await s.S().innerText()).includes('이번 조사 NPS 0 (2명'));
+    ok(`NPS 흔적 칸 넘침 없음 ${w}`, !(await over(s.pg)));
+    if (w === 375) {   // AI 한 장 바람 = NPS (최근 30일)
+      await s.pg.keyboard.press('Escape'); await s.pg.waitForTimeout(300);
+      await s.pg.locator('.v2-nav').getByRole('button', { name: '더보기' }).click(); await s.pg.waitForTimeout(300);
+      await s.pg.getByText(/^AI 팀원 · 내가 맡은 AI/).click(); await s.pg.waitForTimeout(500);
+      await s.S().getByText('바람 · 지인추천마케터').first().click(); await s.pg.waitForTimeout(600);
+      const mt = await s.S().innerText();
+      ok('AI 한 장 바람: NPS (최근 30일 · [했어요]에 남긴 점수) · NPS 0 (2명 …)', mt.includes('NPS (최근 30일 · [했어요]에 남긴 점수) · NPS 0 (2명 · 추천 1 · 중립 0 · 비추천 1)'), mt.slice(0, 700));
+      await shot(s.pg, 'yr-baram-nps-375'); ok('AI 한 장 넘침 없음 375', !(await over(s.pg)));
+    }
+    await s.close();
+  }
+  // 금요일 보고 (10/23) — 바람 칸 ② 결과 NPS · 글로 복사에도
+  { const s = await session('yr', { now: '2026-10-23T10:00:00+09:00' });
+    await expand(s.pg);
+    const row = inbox(s.pg, '바람 칸 쓰기 · B2C 크루');
+    ok('금요일: 변유림 = 바람 칸 쓰기 줄 (이번 주 · 지난주 안 보낸 것은 \'보고 지남\' 줄 따로)', (await row.count()) >= 1 && (await row.filter({ hasText: '주간 보고' }).count()) === 1, await row.allInnerTexts());
+    const rowNow = row.filter({ hasText: '주간 보고' });
+    await rowNow.first().getByRole('button', { name: '쓰기', exact: true }).click(); await s.pg.waitForTimeout(700);
+    const sec = s.S().getByRole('button', { name: '지인추천 바람 칸' });
+    if ((await sec.getAttribute('aria-expanded')) !== 'true') { await sec.click(); await s.pg.waitForTimeout(300); }
+    const tx = await s.S().innerText();
+    ok('바람 칸 ② 결과: NPS (9/26~10/25 · [했어요] 점수) NPS 0 (2명 …) · 접힌 줄에도 NPS', tx.includes('NPS (9/26~10/25 · [했어요] 점수)') && tx.includes('NPS 0 (2명 · 추천 1 · 중립 0 · 비추천 1)'), tx.slice(tx.indexOf('지인추천 · 바람'), tx.indexOf('지인추천 · 바람') + 900));
+    await s.S().getByText(/NPS \(9\/26~10\/25/).first().scrollIntoViewIfNeeded(); await shot(s.pg, 'yr-report-nps-375');
+    ok('보고 바람 칸 넘침 없음 375', !(await over(s.pg)));
+    await s.close(); } }
 
 ok('화면 오류 없음', errs.length === 0, errs);
 await b.close();

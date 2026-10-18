@@ -27,6 +27,10 @@ jobs:
           SA_EMAIL: ${{ secrets.POUR_OS_FIREBASE_CLIENT_EMAIL }}
           SA_KEY: ${{ secrets.POUR_OS_FIREBASE_PRIVATE_KEY }}
         run: |
+          if [ -z "$SA_EMAIL" ] || [ -z "$SA_KEY" ]; then
+            echo "::error::GitHub 에 pour-app-new 서비스 계정 시크릿(POUR_OS_FIREBASE_CLIENT_EMAIL · POUR_OS_FIREBASE_PRIVATE_KEY)이 없어요 — Settings ▸ Secrets and variables ▸ Actions (2026-10-18 확인: 등록된 적 없음 · 사용량 측정·규칙 배포도 같은 이유로 안 돎)"
+            exit 1
+          fi
           npm i --no-save --silent google-auth-library@9
           node -e '
             const { JWT } = require("google-auth-library");

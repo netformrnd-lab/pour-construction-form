@@ -607,6 +607,7 @@ th.chdragover{box-shadow:inset 3px 0 0 0 var(--xl-green)}
 .sl-cnt{display:block;font-size:10px;color:var(--ink-faint);line-height:1.1}
 .sl-bar{display:block;height:4px;border-radius:2px;margin-top:2px}
 .sl-note{border:1px solid #FDBA8C;background:#FFF7F0;color:#9A3412;border-radius:6px;padding:9px 12px;font-size:12px;line-height:1.6;margin-bottom:12px}
+.sl-crm{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}.sl-crm input{flex:1 1 150px;min-width:0;max-width:220px;padding:6px 8px;border:1px solid #E5C9B5;border-radius:6px;font-size:12px}.sl-crm button{padding:6px 12px;border:0;border-radius:6px;background:#9A3412;color:#fff;font-weight:700;font-size:12px;cursor:pointer}#slCrmMsg{font-size:12px}
 .sl-rules{font-size:12.3px;line-height:1.75;color:var(--ink-soft)}
 .sl-rules b{color:var(--ink)}
 .sl-rules ul{margin:4px 0 10px 18px}
@@ -5832,13 +5833,32 @@ const CRM_FB_CONFIG={
   appId:"1:814387236246:web:a17bec34f3c992007aa1b7"
 };
 let _crmDb=null;
+function crmApp(){ return (firebase.apps||[]).find(a=>a.name==='crm') || firebase.initializeApp(CRM_FB_CONFIG,'crm'); }
 function crmDB(){
   if(_crmDb) return _crmDb;
-  try{
-    const app = (firebase.apps||[]).find(a=>a.name==='crm') || firebase.initializeApp(CRM_FB_CONFIG,'crm');
-    _crmDb = app.firestore();
-  }catch(e){ console.error('[crm] 초기화 실패', e.code||e.message||e); return null; }
+  try{ _crmDb = crmApp().firestore(); }
+  catch(e){ console.error('[crm] 초기화 실패', e.code||e.message||e); return null; }
   return _crmDb;
+}
+/* CRM 로그인 (2026-10-18 사장님 0A) — CRM 출고·매출 문서(pour_data/sales_records·shipments)에는 주문자·수령자·연락처가 있어
+   로그인 없이 읽던 길을 닫았다 → 매출 탭은 CRM 계정(pourstorecrm.web.app 로그인과 같음)으로 이 기기에서 한 번 로그인해야 POUR스토어 매출이 보인다
+   · 기기에 남은 CRM 로그인은 처음 한 번 돌아올 때까지 기다린 뒤 읽음 · 로그인 전엔 POUR스토어 숫자를 '모름'으로 보여 주고 다른 숫자는 그대로 */
+let _crmAuthReady=null;
+function crmAuthReady(){
+  if(_crmAuthReady) return _crmAuthReady;
+  try{ const a=crmApp().auth(); _crmAuthReady=new Promise(res=>{ const off=a.onAuthStateChanged(u=>{ off(); res(u||null); }); }); }
+  catch(e){ console.error('[crm] 로그인 상태 확인 실패', e.code||e.message||e); _crmAuthReady=Promise.resolve(null); }
+  return _crmAuthReady;
+}
+async function slCrmLogin(){
+  const em=String(($('#slCrmEmail')||{}).value||'').trim(), pw=String(($('#slCrmPw')||{}).value||''), msg=$('#slCrmMsg');
+  if(!em||!pw){ if(msg) msg.textContent='이메일과 비밀번호를 넣어 주세요'; return; }
+  try{
+    if(msg) msg.textContent='로그인 중…';
+    const cr=await crmApp().auth().signInWithEmailAndPassword(em, pw);
+    _crmAuthReady=Promise.resolve(cr.user); console.log('[crm] 로그인', cr.user&&cr.user.email);
+    SL.loaded=false; await openSalesTab(true);
+  }catch(e){ console.error('[crm] 로그인 실패', e.code||e); if(msg) msg.textContent='로그인 실패: '+(e.code||e.message||e); }
 }
 /* ══════════ CRM(pourstorecrm) 단가 동기화 ══════════
    가격대시보드가 단가의 1차 관리처. 승인된 값만 CRM 프로젝트의 price-book 컬렉션으로 보낸다.
@@ -9396,16 +9416,18 @@ async function loadSales(){
   if(SL.loading) return SL.loading;
   SL.loading=(async()=>{
     const cdb=crmDB(); if(!cdb) throw new Error('POUR스토어 CRM 연결 실패');
+    await crmAuthReady(); SL.crm={};
+    const crmGet=id=>cdb.collection('pour_data').doc(id).get().catch(e=>{ if((e&&e.code)==='permission-denied'){ SL.crm={need:'login'}; console.warn(`[매출] CRM ${id} — 로그인해야 읽혀요 (2026-10-18부터)`); return null; } throw e; });
     const [gRes, pDoc, sDoc, uSnap]=await Promise.all([
       slReadGhSales(),
-      cdb.collection('pour_data').doc('sales_records').get(),
-      cdb.collection('pour_data').doc('shipments').get(),
+      crmGet('sales_records'),
+      crmGet('shipments'),
       db.collection('sales-orders').get().catch(e=>{ console.warn('[매출] 판매 엑셀 기록 읽기 실패', e.code||e); return {docs:[]}; }),
     ]);
     const gRecs=gRes.docs.map(d=>({id:d.id,...d.data()}));
     SL.gh={src:gRes.src, err:gRes.err, from:gRes.from};   // grohome 정상 · central 사본(최근 180일) · none 못 읽음
-    const pRecs=(pDoc.exists&&Array.isArray(pDoc.data().records))?pDoc.data().records:[];
-    const ships=(sDoc.exists&&Array.isArray(sDoc.data().data))?sDoc.data().data:[];
+    const pRecs=(pDoc&&pDoc.exists&&Array.isArray(pDoc.data().records))?pDoc.data().records:[];
+    const ships=(sDoc&&sDoc.exists&&Array.isArray(sDoc.data().data))?sDoc.data().data:[];
     console.log(`[매출] 그로홈 ${gRecs.length}건 · POUR스토어 ${pRecs.length}건 · 출고등록 ${ships.length}건 로드`);
     if(!gRecs.length) console.warn('[매출] 그로홈 salesRecords 0건 — 컬렉션명/권한 확인');
     if(!pRecs.length) console.warn('[매출] POUR스토어 sales_records 0건 — CRM 문서 확인');
@@ -9441,7 +9463,7 @@ async function loadSales(){
     try{ const t=new Date(),y=new Date(t); y.setDate(y.getDate()-1); const ds=[slDay(y),slDay(t)]; SL.marks={};
       await Promise.all(ds.map(async d=>{ const m=await ghDB().collection('salesDays').doc(d).get(); SL.marks[d]=m.exists?m.data():{}; })); }catch(e){ console.warn('[매출] 등록완료 표시 읽기 실패', e.code||e); }
     SL.meta={upN,gN:gRecs.length,pN:pRecs.length,shipN:ships.length,redated,unknownCh,gMax:maxDate('GROHOME'),pMax:maxDate('POUR스토어'),
-      pUpd:(pDoc.exists&&pDoc.data().updatedAt)||'',at:new Date().toISOString()};
+      pUpd:(pDoc&&pDoc.exists&&pDoc.data().updatedAt)||'',at:new Date().toISOString()};
   })();
   try{ await SL.loading; } finally{ SL.loading=null; }
 }
@@ -9493,7 +9515,9 @@ function renderSales(){
   if(SL.gh&&SL.gh.src==='none') notes.push(`⛔ <b>그로홈 매출을 불러오지 못했습니다</b> (${esc(SL.gh.err)}). 아래 그로홈 숫자는 0이 아니라 <b>모름</b>이에요. 잠시 뒤 ↻ 다시 불러오세요.`);
   if(to>=today || (M.gMax && to>M.gMax)) notes.push(`<b>그로홈</b>은 판매채널 엑셀을 다음 날 입력해서 <b>${esc(M.gMax||'—')}</b>까지 들어와 있습니다. 그 뒤 날짜는 그로홈 매출이 아직 비어 있을 수 있어요 (POUR스토어는 <b>${esc(M.pMax||'—')}</b>까지).`);
   const unk=Object.entries(M.unknownCh||{}); if(unk.length) notes.push(`분류 규칙에 없는 채널명 ${unk.map(([c,n])=>`<b>${esc(c)}</b>(${n}건)`).join(', ')} — 기타 온라인으로 넣었습니다.`);
+  if(SL.crm&&SL.crm.need==='login') notes.unshift(`⛔ <b>POUR스토어 매출(CRM)</b>은 주문자·연락처가 들어 있어 2026-10-18부터 <b>CRM 로그인</b> 뒤에만 보여요. 아래 POUR스토어 숫자는 0이 아니라 <b>모름</b>이에요.<span class="sl-crm"><input id="slCrmEmail" type="email" placeholder="CRM 이메일" autocomplete="username" aria-label="CRM 이메일"><input id="slCrmPw" type="password" placeholder="비밀번호" autocomplete="current-password" aria-label="CRM 비밀번호"><button type="button" id="slCrmGo">CRM 로그인</button><span id="slCrmMsg"></span></span>`);
   $('#slNotice').innerHTML=notes.length?`<div class="sl-note">${notes.join('<br>')}</div>`:'';
+  { const go=$('#slCrmGo'); if(go){ go.addEventListener('click',slCrmLogin); const pw=$('#slCrmPw'); if(pw) pw.addEventListener('keydown',e=>{ if(e.key==='Enter') slCrmLogin(); }); } }
   $('#slInfo').textContent=`결제(주문)일 · VAT 포함 결제액 · ${from||'처음'} ~ ${to||'오늘'}`;
   // 카드
   const tot=slSum(inP);

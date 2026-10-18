@@ -1,0 +1,55 @@
+name: Firestore 규칙 비교 (pour-app-new · 읽기만)
+
+# 지금 pour-app-new 에 실제로 적용된 규칙을 받아 저장소 firestore.rules 와 비교만 한다 (배포·변경 없음).
+# - 규칙 자동 배포(firestore-rules-deploy.yml)가 예전에 시크릿 없이 실패해서, 적용된 규칙과 저장소 파일이 다를 수 있음
+#   → 배포 전에 차이를 사람이 확인하려고 만든 것 (2026-10-18 사장님 0A · 소싱 원가 잠금)
+# - 수동: Actions 탭 → 이 워크플로우 → "Run workflow"
+# 인증: 백업·사용량과 같은 서비스계정 시크릿(POUR_OS_FIREBASE_*)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    name: 적용된 규칙 ↔ 저장소 파일
+    runs-on: ubuntu-latest
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Node.js 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 적용된 규칙 받기
+        env:
+          SA_EMAIL: ${{ secrets.POUR_OS_FIREBASE_CLIENT_EMAIL }}
+          SA_KEY: ${{ secrets.POUR_OS_FIREBASE_PRIVATE_KEY }}
+        run: |
+          npm i --no-save --silent google-auth-library@9
+          node -e '
+            const { JWT } = require("google-auth-library");
+            (async () => {
+              const c = new JWT({ email: process.env.SA_EMAIL, key: (process.env.SA_KEY || "").replace(/\\n/g, "\n"), scopes: ["https://www.googleapis.com/auth/cloud-platform"] });
+              const t = (await c.getAccessToken()).token;
+              const get = async (u) => { const r = await fetch(u, { headers: { Authorization: "Bearer " + t } }); const j = await r.json(); if (!r.ok) throw new Error(r.status + " " + JSON.stringify(j).slice(0, 300)); return j; };
+              const rel = await get("https://firebaserules.googleapis.com/v1/projects/pour-app-new/releases/cloud.firestore");
+              const rs = await get("https://firebaserules.googleapis.com/v1/" + rel.rulesetName);
+              const f = ((rs.source && rs.source.files) || [])[0] || {};
+              require("fs").writeFileSync("deployed.rules", f.content || "");
+              console.log("적용된 규칙:", rel.rulesetName, "· 만든 때", rs.createTime, "· 적용된 때", rel.updateTime);
+            })().catch((e) => { console.error("::error::적용된 규칙을 못 받음 — " + e.message); process.exit(1); });
+          '
+
+      - name: 차이 (- 적용된 것에만 · + 저장소 파일에만)
+        run: |
+          wc -l deployed.rules firestore.rules
+          diff -u deployed.rules firestore.rules && echo "차이 없음 — 저장소 파일이 그대로 적용돼 있음" || true
+
+      - name: 적용된 규칙 파일 보관
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployed-firestore-rules
+          path: deployed.rules
+          retention-days: 7

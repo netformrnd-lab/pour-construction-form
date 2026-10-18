@@ -568,6 +568,43 @@ export function refRows(refs, mateId) {
     .sort((a, b) => String(b.at).localeCompare(String(a.at)) || String(b.id).localeCompare(String(a.id))).slice(0, REF_AI_MAX);
 }
 export const refLine = (r) => `- ${r.kind}${r.brand ? ` · ${r.brand}` : ''} · ${mdL(r.at)} 핏${r.by ? `(${r.by})` : ''} — 쓸 부분: ${r.fit}`;
+// ── 볼트 최신 요약 (2026-10-18 사장님 3A "허브에 요약 한 장 올리고 ([보기] 목록엔 안 보임) AI 지시문 앞에 '■ 볼트 최신 요약'") ──
+//   평일 아침 볼트 루틴 `team_link.py archive` 가 '04 자료/00 최신 요약.md' 를 다시 만들 때 같은 글을 허브 pour-os/marketing-hub/mkt-notes/vault-latest 에도 올림
+//   {title, body(마크다운), date(기준일 · 한국), at, kind 'vault', from} — 허브 [📄 보기]는 노트를 id 로만 열어 목록에 안 보임 · 사장님 메모(memo) 칸도 없음
+//   crew.html 이 그 한 장을 읽어 asideText(opt.vault) → '■ 볼트 최신 요약' (■ 단계 미션 다음 · ■ 0 앞)
+//   빼는 것: 볼트 링크 목록·쌓인 수·볼트에서 일하는 법 칸(Aside 는 볼트를 못 엶 · VAULT_SKIP) · 인용(>) 줄 · 원가·마진·제조사·공급가 줄 · 전화·메일은 가림 · 줄 VAULT_MAX_LINES 개
+//   공용 이긴 소재 장부를 같이 넣는 지시문(B2C)은 '이긴 소재' 칸을 뺌 (같은 것 · 장부가 더 새것) · 기준일이 VAULT_OLD 일 넘게 지났으면 안 넣음
+export const VAULT_NOTE = 'vault-latest';
+export const VAULT_MAX_LINES = 24;
+export const VAULT_STALE = 3;
+export const VAULT_OLD = 14;
+export const VAULT_SKIP = /^(최신 자료|쌓인 자료 수|이 자료로 하는 일)/;
+const vaultLine = (x) => maskPII(x.replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, '$2').replace(/\[\[([^\]]+)\]\]/g, (_, p) => p.split('/').pop()).replace(/\*\*/g, '')).trim().slice(0, 200);
+export function vaultRows(doc, now = new Date()) {
+  const body = String((doc && doc.body) || ''), date = /^\d{4}-\d{2}-\d{2}$/.test(String((doc && doc.date) || '')) ? doc.date : '';
+  if (!body.trim() || !date) return null;
+  const age = Math.round((Date.parse(kstDay(now.toISOString())) - Date.parse(date)) / 864e5);
+  if (age > VAULT_OLD) return null;
+  const secs = []; let sec = null;
+  for (const raw of body.replace(/^---\n[\s\S]*?\n---\n/, '').split('\n')) {
+    const x = raw.trim(), h = /^##\s+(.+)$/.exec(x);
+    if (h) { sec = VAULT_SKIP.test(h[1].trim()) ? null : { h: vaultLine(h[1]), lines: [] }; if (sec) secs.push(sec); continue; }
+    if (!sec || !x || /^#|^>/.test(x) || /^\|[\s:|-]+\|?$/.test(x) || SECRET_RE.test(x)) continue;
+    const t = vaultLine(/^\|/.test(x) ? `- ${x.replace(/^\||\|$/g, '').split('|').map((c) => c.trim()).filter(Boolean).join(' · ')}` : x);
+    if (t) sec.lines.push(t);
+  }
+  return { date, age, secs: secs.filter((s) => s.h && s.lines.length) };
+}
+export function vaultText(v, { ledger } = {}) {
+  if (!v) return [];
+  const secs = v.secs.filter((s) => !(ledger && /이긴 소재/.test(s.h)));
+  if (!secs.length) return [];
+  const L = [], n = { left: VAULT_MAX_LINES }, cut = secs.reduce((a, s) => a + s.lines.length, 0) > VAULT_MAX_LINES;
+  secs.forEach((s) => { if (n.left <= 0) return; L.push(`[${s.h}]`, ...s.lines.slice(0, n.left)); n.left -= s.lines.length; });
+  return [`■ 볼트 최신 요약 (기준일 ${mdL(v.date)}${v.age > VAULT_STALE ? ` · ${v.age}일 전 — 자료 쌓기가 멈췄을 수 있음 · 참고만` : ''} · 볼트 '04 자료/00 최신 요약' = 업무OS·허브 기록을 모은 것 · 사람 팀원도 같은 것을 봄)`,
+    ...L, ...(cut ? ["… (더 있음 — 사람 팀원은 볼트 '04 자료/00 최신 요약'에서 전부 봄)"] : []), ...(ledger && secs.length < v.secs.length ? ["(A/B 이긴 소재는 아래 '■ 공용 이긴 소재 장부')"] : []),
+    '  → 오늘 할 일·주제·소재를 고를 때 먼저 본다 · 잘 된 것은 잇고 안 된 것은 피한다 · 이 숫자를 지표로 옮겨 적지 않는다 (지표는 ■ 1 처럼 화면에서 직접 확인)', ''];
+}
 // 단계 숫자 (1A) — 금요일 보고 칸 맨 위 · num.m = [[보드, 지표]] → 지표 정의 함께
 export const stageNum = (mateId) => { const st = stageOf(mateId); if (!st || !st.num) return null; return { l: st.num.l, slot: (mateOf(mateId) || {}).slot || '', ms: st.num.m.map(([bd, k]) => ({ board: bd, ...((((BOARDS[bd] || {}).metrics) || []).find((x) => x.k === k) || { k, l: k }) })) }; };
 // 그 AI 가 일하는 브랜드들 (원형 = 정해진 브랜드 없음 → 모든 브랜드)
@@ -805,7 +842,7 @@ export function asideReqLaunch(req) {
 //   Aside 예약 작업 = 보드 하나에 하나 · 예약 글은 짧게(asideLaunch): crew.html#보드 를 열어 화면 '오늘 지시문'(asideText)을 그대로
 //   → 지시문을 고쳐도(이 파일) Aside 예약은 다시 안 넣어도 됨 · 판 = ASIDE_VER (지시문을 고치면 날짜를 올림)
 //   AI 몫 = 숫자 읽기 · 찾기 · 표 · 초안까지 / 사람 몫 = 승인 뒤 실행(가격·광고·쿠폰·발송·게시·상세·등록) — 할 일 단계 중 '승인…'으로 시작하는 줄은 사람 몫(stepParts)
-export const ASIDE_VER = '2026-10-17.5';   // 10-17.5 = ■ 참고 레퍼런스(사람이 업무OS 레퍼런스에 그 AI 핏을 남긴 것만 · 그 부분만 · 베끼지 않음) · 10-17.4 = 매일 할 일은 할 게 있을 때만(없으면 [상태] '변화 없음') · B2B·바라스데이 크루 닫음(닫힌 보드 = 멈춤 안내) · 10-17.3 = 사장님 확정(논의 뒤) — 단계 숫자 하나 · ■ 넘겨받은 것(사람 최종 승인한 다른 AI 결과) · ■ 공용 이긴 소재 장부 · ■ 브랜드별 설계(우주 G 먼저) · 겨울 I 택배 동봉 안내 · 바람 A·B·C 우주 H 장부 먼저 · 10-17.2 = 사장님 AARRR 정의 → 단계 미션(■ 단계 미션) · 새 할 일(여름 J · 가을 J · 겨울 H·I · 우주 G·H · 하늘 F · 바람 E) · 재고 = 이음 F(비즈로지컴·쿠팡 로켓그로스) · 리뷰 = 바람 D · 10-17 = B2C 크루 AARRR 정리(광고 → 가을 · MD → 봄 · 지인추천 → 바람 · MOVED) · 새 할 일(여름 G·H·I · 겨울 G · 바람 A) · 두 브랜드 할 일 '브랜드' 칸 · 새 보드(이음·별·달 · B2B 5) · 10-16 = 광고 할 일 외주 + 내부 관리(김민지 · 바꿀 안)
+export const ASIDE_VER = '2026-10-18';   // 10-18 = ■ 볼트 최신 요약(볼트 '04 자료/00 최신 요약' 한 장 · 허브 mkt-notes/vault-latest · 단계 미션 다음 · 사장님 3A) · 10-17.5 = ■ 참고 레퍼런스(사람이 업무OS 레퍼런스에 그 AI 핏을 남긴 것만 · 그 부분만 · 베끼지 않음) · 10-17.4 = 매일 할 일은 할 게 있을 때만(없으면 [상태] '변화 없음') · B2B·바라스데이 크루 닫음(닫힌 보드 = 멈춤 안내) · 10-17.3 = 사장님 확정(논의 뒤) — 단계 숫자 하나 · ■ 넘겨받은 것(사람 최종 승인한 다른 AI 결과) · ■ 공용 이긴 소재 장부 · ■ 브랜드별 설계(우주 G 먼저) · 겨울 I 택배 동봉 안내 · 바람 A·B·C 우주 H 장부 먼저 · 10-17.2 = 사장님 AARRR 정의 → 단계 미션(■ 단계 미션) · 새 할 일(여름 J · 가을 J · 겨울 H·I · 우주 G·H · 하늘 F · 바람 E) · 재고 = 이음 F(비즈로지컴·쿠팡 로켓그로스) · 리뷰 = 바람 D · 10-17 = B2C 크루 AARRR 정리(광고 → 가을 · MD → 봄 · 지인추천 → 바람 · MOVED) · 새 할 일(여름 G·H·I · 겨울 G · 바람 A) · 두 브랜드 할 일 '브랜드' 칸 · 새 보드(이음·별·달 · B2B 5) · 10-16 = 광고 할 일 외주 + 내부 관리(김민지 · 바꿀 안)
 export const HUB_CREW = 'https://pour-construction-form.pages.dev/marketing-hub/crew.html';
 const DOW_L = ['일', '월', '화', '수', '목', '금', '토'];
 export const runDays = (r) => (!r ? '' : r.dow.join() === WD.join() ? '평일' : r.dow.length === 7 ? '매일' : `매주 ${r.dow.map((x) => DOW_L[x]).join('·')}`);   // 매주 요일 (2026-10-17 · 주 1~2회 보드)
@@ -944,6 +981,7 @@ export function asideText(b, opt = {}) {
   L.push(`너는 ${c ? c.name : ''}의 ${m.role} AI '${m.name}'이다. ${b.desc}`, '');
   const stg = stageOf(b.mate);   // 단계 미션 (2026-10-17 사장님 AARRR 정의)
   if (stg) L.push(`■ 단계 미션 — ${m.slot} (사장님 정의): ${stg.mission}`, `  → 이 보드의 할 일은 모두 이 미션을 위해 한다 · 다음 단계로 넘겨줄 것: ${stg.to} · 단계 숫자(하나): ${stg.kpi}`, '');
+  L.push(...vaultText(opt.vault, { ledger: Array.isArray(opt.ledger) && (crewOf(b.mate) || {}).id === 'b2c' }));   // 볼트 최신 요약 (2026-10-18 사장님 3A)
   L.push('■ 0. 먼저 (매번)',
     `1) ${crewUrl(b)} 를 연다 (마케팅 허브 업로더 계정).`,
     "2) 화면에 '고쳐서 다시 올릴 것'(더 만들기 포함)이 있으면 그것부터 — [이전 판 불러오기]로 그 건의 날짜·표를 불러와 적힌 말대로 고치거나(더 만들기면 맨 아래에 줄을 더함 · 번호 칸은 비워 둠) 같은 할 일만 다시 올린다 (= 같은 건의 다음 판). 다 올린 뒤 오늘 일을 한다.",

@@ -16,10 +16,12 @@
 #   python3 team_link.py numbers          — 오늘 숫자(판매·광고·재고·고객의 소리 · 원가 없음)를 받아 볼트 '05 오늘 숫자.md' 로 저장 (2026-10-12)
 #       ← 매일 06:10 pour-construction-form GitHub Actions mkt-numbers.yml 이 대시보드와 같은 계산으로 만들어 둔 것 (옵시디언·버튼 없이 GitHub 에 쌓임)
 #   python3 team_link.py archive          — 자료 쌓기 (2026-10-17): 업무OS·허브의 A·B 판정 · 최종 승인 AI 결과 · AI 크루 주간 보고(본부장에게 보낸 칸) · 월말 보고서(확정본)
-#       · 광고 일일·주간 보고 · NPS(설문 + 유선 조사 흔적) · 고객의 소리 → 볼트 '04 자료/' 월별 노트 + '04 자료/00 최신 요약.md' (읽기만 · DB 에 안 씀)
+#       · 광고 일일·주간 보고 · NPS(설문 + 유선 조사 흔적) · 고객의 소리 → 볼트 '04 자료/' 월별 노트 + '04 자료/00 최신 요약.md' (읽기만)
+#       · 쓰는 것은 하나뿐 (2026-10-18 사장님 3A): '00 최신 요약' 같은 글 → 허브 mkt-notes/vault-latest → Aside 크루 지시문 '■ 볼트 최신 요약' (허브 [📄 보기] 목록엔 안 보임)
 # 쓰는 곳 (pour-app-new · 공개 규칙 pour-os/{doc=**} · 규칙 변경 없음):
 #   pour-os/v2/aiasks/{id}                     — AI 승인 한 건 (모양 = pour-construction-form marketing-hub/crew.js askDoc 과 같게)
 #   pour-os/marketing-hub/mkt-notes/{노트 id}  — 노트 본문(마크다운) + 사장님 메모 memo/memoAt/memoBy
+#   pour-os/marketing-hub/mkt-notes/vault-latest — 볼트 '04 자료/00 최신 요약' 한 장 {title, body, date, at, kind 'vault', from} (archive · crew.js VAULT_NOTE)
 #     본문 = 게시할 원고(제품 판매가만 · 원가·제조사·개인정보는 볼트 규칙상 처음부터 없음). 보안 규칙 게시 뒤에도 이 공개 자리에 둠(루틴은 로그인이 없음)
 #   실제 게시·발행·전송은 늘 사람 (최종 승인 → 담당이 허브 [임시저장 맡기기] → Aside 임시저장 → 사람이 발행)
 # 볼트 위치: 환경변수 MKT_VAULT → 이 파일이 볼트 tools/ 안이면 그 볼트 → /home/user/pour-marketing-vault
@@ -336,6 +338,19 @@ SECRET_RE = re.compile(r'마진|원가|공급\s*단가|공급가|매입|제조�
 LEDGER_ACTS = {('yeoreum', 'J'), ('gaeul', 'J'), ('gyeoul', 'H')}   # A/B 판정 (crew.js LEDGER_ACTS)
 NPS_ACTS = {('baram', 'C'), ('uju', 'F'), ('teunteun', 'A')}        # NPS 유선 조사 (우주 F = 바람 C 로 옮기기 전 옛 자리)
 CREW_L = {'b2c': 'B2C 크루', 'b2b': 'B2B 크루', 'bd': '바라스데이 크루'}
+VAULT_NOTE = 'vault-latest'   # crew.js VAULT_NOTE 와 같게 (crew.test.mjs 가 봄) · 허브 [📄 보기]는 노트를 id 로만 열어 목록에 안 보임
+
+def vault_doc(text, today):
+    return {'title': '볼트 최신 요약', 'body': text, 'date': today, 'at': now_iso(), 'kind': 'vault', 'from': 'team_link archive'}
+
+def put_vault(text, today):
+    # '00 최신 요약' 같은 글 → 허브 한 장 (2026-10-18 사장님 3A) → crew.html 이 Aside 크루 지시문 '■ 볼트 최신 요약'에 넣음
+    #   볼트 노트는 이미 썼으니 못 올려도 멈추지 않음 — 알리고 넘어감 (Aside 지시문엔 지난번 요약이 그대로 · 14일 넘으면 crew.js 가 안 넣음)
+    f = vault_doc(text, today)
+    try: patch(f'{NOTES}/{VAULT_NOTE}', f, mask=list(f))
+    except (urllib.error.HTTPError, urllib.error.URLError) as e:
+        sys.stderr.write(f'허브 볼트 최신 요약 못 올림 — Aside 지시문엔 지난번 요약이 남음: {e}\n'); return False
+    return True
 
 def mask_pii(s):
     s = re.sub(r'01[016789][-\s.]?\d{3,4}[-\s.]?\d{4}', '010-****-****', str(s if s is not None else ''))
@@ -600,7 +615,9 @@ def summary_note(asks, counts):
             '- 매월 첫 평일: 지난달 자료로 `03 작업/<날짜> 월간 전략 정리.md` (AARRR 단계마다 잘 된 것 · 안 된 것 · 다음 달 할 것) → 업무OS 승인',
             '- 사람 팀원: 옵시디언에서 이 노트부터 · 결정·생각은 03 작업 노트에 남김 (자료 노트는 다음 날 다시 만들어짐)']
     p = os.path.join(VAULT, ARCH, '00 최신 요약.md'); os.makedirs(os.path.dirname(p), exist_ok=True)
-    with open(p, 'w', encoding='utf-8') as f: f.write('\n'.join(out) + '\n')
+    text = '\n'.join(out) + '\n'
+    with open(p, 'w', encoding='utf-8') as f: f.write(text)
+    return text
 
 def archive():
     asks = list_all(DOCS + '/pour-os/v2', 'aiasks')
@@ -611,8 +628,9 @@ def archive():
         d = os.path.join(VAULT, ARCH, k); counts[k] = len([f for f in os.listdir(d) if f.endswith('.md')]) if os.path.isdir(d) else 0
         w = sum(1 for v in r.values() if v == 'write'); kp = sum(1 for v in r.values() if v == 'keep')
         print(f'{k}: 노트 {counts[k]}' + (f' · 새로/바뀜 {w}' if w else '') + (f' · 원본이 줄어 그대로 둠 {kp}' if kp else ''))
-    summary_note(asks, counts)
+    text = summary_note(asks, counts)
     print(f'{ARCH}/00 최신 요약.md 다시 만듦')
+    if put_vault(text, kst_today()): print(f'허브에도 올림: mkt-notes/{VAULT_NOTE} → Aside 크루 지시문 \'■ 볼트 최신 요약\'')
 
 if __name__ == '__main__':
     a = sys.argv[1:]

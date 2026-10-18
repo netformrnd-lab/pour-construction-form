@@ -311,12 +311,13 @@ eq('달 A = 신제품 이름 짝(keyBy) · 다른 할 일엔 없음', Object.val
 eq('허브 가동 크루(core.js CREW_LIVE) = crew.js 이름·역할·크루', C.CREW_LIVE.map((m) => [m.id, m.name, m.role, m.crew]), C.CREW_LIVE.map((m) => { const x = K.mateOf(m.id) || {}; return [x.id, x.name, x.role, x.crew]; }));
 {
   const { execFileSync } = await import('node:child_process');
-  const py = 'import json,sys; sys.path.insert(0, sys.argv[1]); import team_link as T; print(json.dumps({"crew": {k: list(v) for k, v in T.CREW.items()}, "gone": T.GONE, "rq": {k: [list(x) for x in v] for k, v in T.ROUTINE_QTY.items()}, "refmax": T.REF_AI_MAX, "secret": T.REF_SECRET_RE.pattern, "mask": T.ref_pii("문의 010-1234-5678 · a.b@c.co.kr")}))';
+  const py = 'import json,sys; sys.path.insert(0, sys.argv[1]); import team_link as T; print(json.dumps({"crew": {k: list(v) for k, v in T.CREW.items()}, "gone": T.GONE, "rq": {k: [list(x) for x in v] for k, v in T.ROUTINE_QTY.items()}, "refmax": T.REF_AI_MAX, "secret": T.REF_SECRET_RE.pattern, "mask": T.ref_pii("문의 010-1234-5678 · a.b@c.co.kr"), "vault": T.VAULT_NOTE, "vdoc": sorted(T.vault_doc("x", "2026-10-18"))}))';
   const got = JSON.parse(execFileSync('python3', ['-c', py, new URL('./tools', import.meta.url).pathname], { encoding: 'utf8', env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' } }));
   eq('team_link.py 크루 = crew.js', got.crew, Object.fromEntries(K.CREWS.flatMap((c) => c.members.map((m) => [m.id, [m.name, c.id]]))));
   eq('team_link.py GONE = crew.js', got.gone, K.GONE);
   eq('team_link.py 아침 루틴 횟수 = crew.js routineQty', got.rq, Object.fromEntries(K.allMates().filter((m) => m.routineQty).map((m) => [m.id, m.routineQty.map((q) => [q.k, q.l, q.n, q.u])])));
   eq('team_link.py 참고 레퍼런스 규칙 = crew.js (최근 수 · 막는 말 · 가리기)', [got.refmax, got.secret, got.mask], [K.REF_AI_MAX, K.SECRET_RE.source, K.maskPII('문의 010-1234-5678 · a.b@c.co.kr')]);   // 2026-10-17 4A
+  eq('team_link.py 볼트 최신 요약 = crew.js 한 장 이름 · 칸', [got.vault, got.vdoc], [K.VAULT_NOTE, ['at', 'body', 'date', 'from', 'kind', 'title']]);   // 2026-10-18 3A
 }
 { // 참고 레퍼런스 (2026-10-17 사장님 4A) — 사람이 그 AI 핏을 남긴 것만 · 지시문 '■ 참고 레퍼런스'
   const L = [{ id: 'a', kind: '광고 소재', brand: 'pourstore', text: '이 광고 첫 3초 https://x.com/1', url: 'https://x.com/1', fits: { gaeul: { text: '첫 3초 자막 구성만', byName: '김민지', at: '2026-10-17T02:00:00.000Z' } } },
@@ -390,7 +391,7 @@ const ok = (name, cond) => eq(name, !!cond, true);
   const has = (bd, c, re) => re.test(K.actOf(bd, c).s.join(' '));
   eq('우주 H 장부 먼저', [['gh-ref', 'A'], ['gh-ref', 'B'], ['gh-ref', 'C'], ['gh-rep', 'C'], ['gh-rep', 'G'], ['gh-ohou', 'H']].map(([bd, c]) => has(bd, c, /우주 H 장부|H 장부/)), [true, true, true, true, true, true]);
   ok('겨울 I = 택배 동봉 안내', /택배 동봉/.test(K.actOf('gh-conv', 'I').t) && has('gh-conv', 'I', /동봉 안내/));
-  ok('지시문 판 10-17.5', K.ASIDE_VER === '2026-10-17.5');
+  ok('지시문 판 10-18', K.ASIDE_VER === '2026-10-18');
 }
 
 // ── 2026-10-17 사장님 확정 (2팀 운영 · 1A 2A 4-1) ──
@@ -417,6 +418,41 @@ const ok = (name, cond) => eq(name, !!cond, true);
 }
 { // 2A 할 게 있을 때만 — 지시문 '언제 하나요'
   ok("지시문 = 매일 할 일은 할 게 있을 때만 · 없으면 [상태] '변화 없음'", K.asideText(K.BOARDS['gh-traffic']).includes("- 매일 하는 할 일은 바꿀 것·할 것이 있을 때만 표를 올린다 (사장님 2026-10-17) — 없으면 그 [ ] 묶음을 통째로 지우고 [상태]에 '변화 없음'만 쓴다"));
+}
+
+// ── 2026-10-18 사장님 3A: 볼트 '00 최신 요약' → 허브 mkt-notes/vault-latest → 지시문 '■ 볼트 최신 요약' ──
+{ // team_link.py 가 실제로 만든 요약 글을 crew.js 가 읽음 (두 쪽이 같은 모양인지)
+  const { execFileSync } = await import('node:child_process'), fs = await import('node:fs'), os = await import('node:os'), path = await import('node:path');
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'vault-')), wk = path.join(tmp, '04 자료', '주간 보고');
+  fs.mkdirSync(path.join(tmp, '02 팀원'), { recursive: true }); fs.mkdirSync(wk, { recursive: true });
+  fs.writeFileSync(path.join(wk, '2026-10-12 B2C 크루.md'), '# 주간\n- **단계 숫자** 유입 · 가을: 방문 1,234 ← 1,000\n- **단계 숫자** 전환 · 겨울: 구매전환율 2.1% (문의 010-1234-5678)\n- 다른 줄\n');
+  const py = `import json,sys; sys.path.insert(0, sys.argv[1]); import team_link as T
+asks = [{'mate': 'yeoreum', 'act': 'J', 'state': 'ok', 'okAt': T.now_iso(), 'items': [{'n': 'J1', 'c': {'실험': '릴스 첫 3초', '판정': 'B 이김', '이긴 것': '전후 비교 첫 컷'}}]}]
+t = T.summary_note(asks, {'A·B 장부': 1, '주간 보고': 1}); print(json.dumps({'t': t, 'd': T.kst_today(), 'f': open(T.os.path.join(T.VAULT, T.ARCH, '00 최신 요약.md'), encoding='utf-8').read() == t}))`;
+  const got = JSON.parse(execFileSync('python3', ['-c', py, new URL('./tools', import.meta.url).pathname], { encoding: 'utf8', env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1', MKT_VAULT: tmp } }));
+  fs.rmSync(tmp, { recursive: true, force: true });
+  ok('summary_note = 볼트에 쓴 글 그대로 돌려줌 (그 글을 허브에 올림)', got.f && /^---\n유형: 자료\n자료: 최신 요약\n기준일: /.test(got.t));
+  const v = K.vaultRows({ body: got.t, date: got.d, kind: 'vault' }, new Date());
+  eq('칸 = 이긴 소재 · 주간 단계 숫자 (최신 자료 링크 · 쌓인 수 · 볼트 일하는 법 · 인용 줄 뺌)', v.secs.map((x) => x.h), ['최근 4주 이긴 소재 (A/B)', '최근 주간 보고 단계 숫자 (2026-10-12)']);
+  eq('줄 = 굵게·링크 풀고 · 전화 가림', v.secs[1].lines, ['- 단계 숫자 유입 · 가을: 방문 1,234 ← 1,000', '- 단계 숫자 전환 · 겨울: 구매전환율 2.1% (문의 010-****-****)']);
+  ok('이긴 소재 줄', /^- \d{4}-\d{2}-\d{2} 여름 J · 릴스 첫 3초 → 이긴 것: 전후 비교 첫 컷$/.test(v.secs[0].lines[0]));
+  const t = K.asideText(K.BOARDS['gh-traffic'], { vault: v, ledger: [] }), i = t.indexOf('■ 볼트 최신 요약');
+  ok('지시문 자리 = 단계 미션 다음 · ■ 0 앞', i > t.indexOf('■ 단계 미션') && i < t.indexOf('■ 0. 먼저') && t.indexOf('■ 단계 미션') >= 0);
+  ok('B2C(공용 장부 같이) = 이긴 소재 칸 빼고 장부 안내 · 단계 숫자 칸은 넣음', t.includes(`■ 볼트 최신 요약 (기준일 ${Number(got.d.slice(5, 7))}/${Number(got.d.slice(8, 10))} · 볼트 '04 자료/00 최신 요약'`) && t.includes('[최근 주간 보고 단계 숫자 (2026-10-12)]') && !t.includes('[최근 4주 이긴 소재 (A/B)]') && t.includes("(A/B 이긴 소재는 아래 '■ 공용 이긴 소재 장부')") && t.includes('이 숫자를 지표로 옮겨 적지 않는다'));
+  ok('장부를 못 읽었으면(없음) 이긴 소재 칸도 넣음', K.asideText(K.BOARDS['gh-traffic'], { vault: v }).includes('[최근 4주 이긴 소재 (A/B)]'));
+  ok('요약이 없으면 칸 없음', !K.asideText(K.BOARDS['gh-traffic'], {}).includes('■ 볼트 최신 요약') && !K.asideText(K.BOARDS['gh-traffic'], { vault: null, ledger: [] }).includes('볼트 최신 요약'));
+}
+{ // 거르기 · 오래된 요약 · 줄 수
+  const now = new Date('2026-10-20T03:00:00Z');
+  const body = ['---', '기준일: 2026-10-20', '---', '# 00 최신 요약', '> 인용', '## 최신 자료', '- [[04 자료/A·B 장부/2026-10|2026-10]]', '## 고객 소리', '- 원가 1,000원 줄', '- 많이 나온 말: 냄새 [[04 자료/고객의 소리/2026-10|10월]] · a.b@c.co.kr',
+    '| 말 | 수 |', '|---|---|', '| 냄새 | 4 |', '## 쌓인 자료 수', '| NPS | 2 |', '## 비는 칸', '> 메모만'].join('\n');
+  const v = K.vaultRows({ body, date: '2026-10-20' }, now);
+  eq('원가 줄 뺌 · 링크 = 이름 · 메일 가림 · 표 = 한 줄 · 빈 칸 뺌', v.secs, [{ h: '고객 소리', lines: ['- 많이 나온 말: 냄새 10월 · (메일 가림)', '- 말 · 수', '- 냄새 · 4'] }]);
+  eq('기준일 · 며칠 전', [v.date, v.age, K.vaultRows({ body, date: '2026-10-15' }, now).age], ['2026-10-20', 0, 5]);
+  ok('3일 넘으면 멈췄을 수 있음 · 14일 넘으면 안 넣음 · 날짜·글 없으면 안 넣음', K.vaultText(K.vaultRows({ body, date: '2026-10-15' }, now))[0].includes('· 5일 전 — 자료 쌓기가 멈췄을 수 있음 · 참고만') && K.vaultRows({ body, date: '2026-10-05' }, now) === null && K.vaultRows({ body }, now) === null && K.vaultRows({ body: ' ', date: '2026-10-20' }, now) === null);
+  const many = K.vaultRows({ body: ['## 긴 칸', ...Array.from({ length: 30 }, (_, i) => `- 줄 ${i + 1}`)].join('\n'), date: '2026-10-20' }, now), mt = K.vaultText(many);
+  ok(`줄 ${K.VAULT_MAX_LINES}개까지 + 더 있음`, mt.includes(`- 줄 ${K.VAULT_MAX_LINES}`) && !mt.includes(`- 줄 ${K.VAULT_MAX_LINES + 1}`) && mt.some((x) => x.startsWith('… (더 있음')));
+  eq('남는 칸이 없으면(이긴 소재만 · 장부 같이) 지시문에 안 넣음', K.vaultText({ date: '2026-10-20', age: 0, secs: [{ h: '최근 4주 이긴 소재 (A/B)', lines: ['- x'] }] }, { ledger: true }), []);
 }
 
 console.log(`\n${n - bad}/${n} 통과`); if (bad) process.exit(1);

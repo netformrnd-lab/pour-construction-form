@@ -5,6 +5,11 @@
 //   - POUR스토어 신규: pourstore-renewal/admin·portal·kiosk·preview
 // ============================================================
 // 배포 방법: FIREBASE-DEPLOY.md 참조
+//   ⚠️ 2026-10-18 확인: GitHub 에 pour-app-new 서비스 계정 시크릿이 없어 자동 배포(firestore-rules-deploy.yml)는 한 번도 돌지 않음
+//      → 이 파일 전체를 Firebase 콘솔 › Firestore › 규칙에 붙여 넣어 게시 (사장님 0A · 소싱 원가 잠금)
+//      붙여 넣기 전 확인: 로그인 없이 읽어 본 결과(상태 번호만 · 맨 위 칸 97 · 하위 칸 93 · 코드에서 쓰는 다른 이름 41)가
+//      지금 적용된 규칙과 같음 — 에뮬레이터 시험으로 이 파일도 똑같이 나오는 것 확인 (다른 점은 아래 '바뀌는 것'뿐)
+//      바뀌는 것: sourcing-access·sourcing-cost(관리자만 · 원가 분리 켜짐) · mkt-*(관리자만 · 지금 안 씀)
 // ============================================================
 
 rules_version = '2';
@@ -169,8 +174,11 @@ service cloud.firestore {
     // ─────────────────────────────────────────────
     // 소싱-OS (Sourcing/Sourcing-os.html) — 단가·매출 대시보드
     // 앱 상태를 sourcing-os/state 문서에 저장(+레거시 pour-os/sourcing-os-state 마이그레이션).
+    // 2026-10-18 (사장님 0A): 맨 위 문서만 공개 — 지금 적용돼 있던 규칙과 같게 맞춤.
+    //   하위 컬렉션(🕘 이력 history/versions·changes · AI 기록 ai/log)은 열지 않는다: 원가 분리 전 기기가 올린 이력엔
+    //   원가·제조사가 섞일 수 있음 → 원가 이력은 관리자 전용 sourcing-cost/history/* 에만 (공개 이력은 새 운영 앱 때)
     // ─────────────────────────────────────────────
-    match /sourcing-os/{doc=**}     { allow read, write: if true; }
+    match /sourcing-os/{doc}        { allow read, write: if true; }
 
 
     // ─────────────────────────────────────────────

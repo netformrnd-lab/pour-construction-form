@@ -14,6 +14,7 @@
       pour-os/v2/aiboards/{보드 id}.next·nextHist  [다음주] AI 피드백 → 업무OS 크루 보고서 '다음 기간'
   · 읽는 곳(2026-10-17 사장님 넘기기 A): pour-os/v2/aiasks 의 다른 AI 최종 승인 건 → 지시문 '■ 넘겨받은 것'(crew.HANDOFFS) · '■ 공용 이긴 소재 장부'(여름 J·가을 J·겨울 H) · aimates.design → '■ 브랜드별 설계'
   · 참고 레퍼런스(2026-10-17 사장님 4A): pour-os/v2/refs 중 사람이 이 AI 핏(어느 부분만 쓸지)을 남긴 것(fitMates array-contains) → 지시문 '■ 참고 레퍼런스'(crew.refRows · 최근 8개 · 그 부분만 · 베끼지 않음)
+  · 링크 꼬리표(2026-10-18 사장님 2-2A·2-3A): 보내는 할 일(act.utm)의 자사몰·스마트스토어 링크에 꼬리표(crew.asksFromParse) · 별 D = '■ 잴 글 목록'(mkt-posts 발행 완료 · 글 키) → 올리면 글 키 줄 숫자를 그 글 mkt-posts stats 에 · 바람 = '■ 1 nps'에 업무OS 계산 값(흔적 점수 · 최근 30일)
   · 볼트 최신 요약(2026-10-18 사장님 3A): 허브 pour-os/marketing-hub/mkt-notes/vault-latest(볼트 루틴 team_link.py archive 가 '04 자료/00 최신 요약' 을 올림) → 지시문 '■ 볼트 최신 요약'(crew.vaultRows · 단계 미션 다음 · 볼트 링크·쌓인 수 칸 빼고 · 14일 넘으면 안 넣음)
   · 같은 날 같은 행동을 다시 올리면: 아직 담당 차례이거나 'AI 에게 다시'로 돌려받은 것만 2번째 판으로 고침 · 위로 올라간 뒤엔 그대로(날짜를 바꿔 새로)
   · 빼는 것: 원가·마진·제조사·공급 단가 칸 · 관리자 자리 행동(달 G · 2026-10-17 여름 E 에서 옮김) · 휴대폰 번호·메일(가림) — crew.js
@@ -214,6 +215,14 @@ async function loadMate(){
     const REFS=rf?K.refRows(rf.docs.map(d=>({id:d.id,...d.data()})),m.id):null;
     console.log(`[refs/${m.id}] 핏 남긴 레퍼런스 ${rf?rf.size:'-'}개 → 지시문 ${REFS?REFS.length:'-'}개`);
     const VAULT=vd&&vd.exists?K.vaultRows(vd.data(),new Date()):null;
+    // 링크 꼬리표 성과 (별 D · 2026-10-18 사장님 2-3A) — 허브에서 '발행 완료'로 표시된 글(mkt-posts) · 못 읽으면 지시문에 목록을 안 넣음(없는 것처럼 보이지 않게)
+    let POSTS=null; if(b.actions.some(a=>a.links)){try{const ps=await C.col(db,'mkt-posts','open').where('status','==','published').get();
+      POSTS=K.postRows(ps.docs.map(d=>{const x=d.data(),pa=x.publishedAt;return {...x,id:d.id,publishedAt:pa&&pa.toDate?pa.toDate().toISOString():pa};}),new Date());console.log(`[mkt-posts] 발행 완료 ${ps.size}개 → 잴 글 ${POSTS.length}개`);}
+      catch(e){console.error('[mkt-posts] 잴 글 목록 못 읽음 — 지시문에 안 넣음',e);}}
+    // NPS 점수 (바람 · 2026-10-18 사장님 2-1A) — 이 AI 승인 건 흔적의 점수 · 최근 30일
+    const npsTo=K.kstDay(new Date().toISOString()), npsFrom=K.kstDay(new Date(Date.now()-29*864e5).toISOString());
+    const NPS=b.metrics.some(x=>x.k==='nps')?{r:K.npsFromTraces(back.docs.map(d=>({id:d.id,...d.data()})),npsFrom,npsTo),from:npsFrom,to:npsTo}:null;
+    if(NPS)console.log(`[NPS] ${npsFrom}~${npsTo} ${NPS.r?K.npsLine(NPS.r):'남긴 점수 없음'}`);
     console.log(`[mkt-notes/${K.VAULT_NOTE}] ${vd?(vd.exists?`기준일 ${vd.data().date||'?'}`:'없음'):'-'} → 지시문 ${VAULT?`${VAULT.secs.length}칸`:'안 넣음'}`);
     LAUNCH=await lp;   // 지시문(아래)에 넣기 전에
     // 넘겨받은 것 · 공용 이긴 소재 장부 (2026-10-17 사장님 넘기기 A · 2A) — 사람이 최종 승인한 다른 AI 결과만 · 못 읽으면 지시문에 그 칸을 안 넣음(없는 것처럼 보이지 않게)
@@ -231,7 +240,7 @@ async function loadMate(){
     console.log(`[aireqs/${m.id}] 맡긴 일 ${REQS.length}건 (전체 ${rq.size})`);
     $('crew-reqs').innerHTML=REQS.length?`<div class="reqbox">맡긴 일 ${REQS.length}건 — [이 일 하기]를 누르고 적힌 대로 해서 결과 칸의 <b>[R]</b> 묶음으로 올려요 (하나씩)${REQS.map((r,i)=>`<div class="rq">· <b>${esc(r.title)}</b>${r.state==='doing'?' <span class="pill">하는 중</span>':''} <span class="s">${esc(K.reqLine(r))}</span>
       ${r.body?`<div class="d">${esc(r.body)}</div>`:''}<button type="button" class="btn sm" id="req-load-${i}" data-r="${i}" aria-label="이 일 하기 ${esc(r.title)}" style="margin-top:6px">${REQ&&REQ.id===r.id?'✓ 고름':'이 일 하기'}</button></div>`).join('')}</div>`:'';
-    mateDoc=md.exists?md.data():null; $('crew-guide').textContent=K.asideText(b,{qty:mateDoc&&mateDoc.qty,plan:PLANNOW,launch:LAUNCH||undefined,inbox:INBOX||undefined,ledger:LEDGER||undefined,design:mateDoc&&mateDoc.design,refs:REFS||undefined,vault:VAULT||undefined});   // + 넘겨받은 것 · 공용 장부 · 브랜드별 설계 · 참고 레퍼런스 (2026-10-17) · 볼트 최신 요약 (2026-10-18)   // 이번 몫 = 담당이 정한 횟수 · 사람이 정한 계획 = 업무OS 보고서 · 디맨드젠 남은 신제품
+    mateDoc=md.exists?md.data():null; $('crew-guide').textContent=K.asideText(b,{qty:mateDoc&&mateDoc.qty,plan:PLANNOW,launch:LAUNCH||undefined,inbox:INBOX||undefined,ledger:LEDGER||undefined,design:mateDoc&&mateDoc.design,refs:REFS||undefined,vault:VAULT||undefined,posts:POSTS||undefined,nps:NPS||undefined});   // + 넘겨받은 것 · 공용 장부 · 브랜드별 설계 · 참고 레퍼런스 (2026-10-17) · 볼트 최신 요약 (2026-10-18)   // 이번 몫 = 담당이 정한 횟수 · 사람이 정한 계획 = 업무OS 보고서 · 디맨드젠 남은 신제품
     const need=[...new Set([K.ownerFor(mateDoc,b.brand),...b.actions.map(a=>K.ownerForAct(mateDoc,b.brand,a.c)),...(LAUNCH||[]).map(r=>r.owner)])].filter(id=>id&&!(id in users));   // 할 일 담당 · 신제품 담당까지 (2026-10-15)
     await Promise.all(need.map(async id=>{const ud=await V2().collection('users').doc(id).get();users[id]=ud.exists?{name:ud.data().name||'',active:ud.data().active}:null;}));
     const owner=ownerId(), on=(mateDoc&&mateDoc.rules||[]).filter(r=>!r.off);
@@ -379,9 +388,19 @@ $('save-button').onclick=async()=>{
         tx.update(ref,{...K.redoFields(cur,a,(a.act==='R'?owner:ownerIdAct(a.act,a.prod))||cur.owner||''),log:firebase.firestore.FieldValue.arrayUnion({at,by:'ai:'+m.id,byName:`${m.name} (AI)`,act:'redo'})});res.redo++;});
     }
     console.log(`[aiasks] 새로 ${res.made} · 다시 ${res.redo} · 그대로 ${res.kept.length}`);
+    // 링크 꼬리표 성과 (별 D · 2026-10-18 사장님 2-3A) — 글 키 줄의 숫자 → 그 글 허브 기록(mkt-posts stats.<올린 날> · statsLast) · 글 키가 없는 줄(메시지 키)은 승인 건에만
+    let statN=0, statMiss=[];
+    const lk=b.actions.find(a=>a.links);
+    if(lk&&p.acts[lk.c]){const rows=K.linkStatRows(p.acts[lk.c].items);
+      for(let i=0;i<rows.length;i+=30){const part=rows.slice(i,i+30),q=await C.col(db,'mkt-posts','open').where('tagKey','in',part.map(r=>r.key)).get(),byKey={};
+        q.docs.forEach(d=>{byKey[d.data().tagKey]=d.ref;});
+        for(const r of part){const ref=byKey[r.key];if(!ref){statMiss.push(r.key);continue;}
+          const st={visits:r.visits,buys:r.buys,sales:r.sales,views:r.views,where:r.where,run,at,by:'ai:'+m.id};
+          await ref.set({stats:{[run]:st},statsLast:st,statsAt:at},{merge:true});statN++;}}
+      console.log(`[mkt-posts] 링크 꼬리표 성과 ${statN}개 글에 넣음${statMiss.length?` · 허브에 없는 글 키 ${statMiss.join(', ')}`:''}`);}
     if(reqAsk&&!res.kept.some(k=>k.startsWith('R '))){await V2().collection('aireqs').doc(REQ.id).set({state:'done',askId:reqAsk.id,doneAt:at,updatedAt:at,log:firebase.firestore.FieldValue.arrayUnion({at,by:'ai:'+m.id,byName:`${m.name} (AI)`,act:'done',askId:reqAsk.id})},{merge:true});
       console.log(`[aireqs/${REQ.id}] 결과 올라감 → ${reqAsk.id}`);REQ=null;}
-    setMsg('ok',`올렸어요 · 승인 요청 새로 ${res.made}건${res.redo?` · 고쳐서 다시 ${res.redo}건`:''}${p.metrics.length?` · 지표 ${p.metrics.length}개`:''}${res.kept.length?`<br>그대로 둔 것: ${esc(res.kept.join(' · '))} — 새로 올리려면 날짜를 바꿔 주세요`:''}<br><a href="${OS_URL}" target="_blank" rel="noopener">업무OS에서 보기 ›</a> · 승인 차례: ${whoOf(asks)}`);
+    setMsg('ok',`올렸어요 · 승인 요청 새로 ${res.made}건${res.redo?` · 고쳐서 다시 ${res.redo}건`:''}${p.metrics.length?` · 지표 ${p.metrics.length}개`:''}${statN?` · 글 숫자 ${statN}개 허브에`:''}${statMiss.length?` · 허브에 없는 글 키 ${esc(statMiss.join(', '))}`:''}${res.kept.length?`<br>그대로 둔 것: ${esc(res.kept.join(' · '))} — 새로 올리려면 날짜를 바꿔 주세요`:''}<br><a href="${OS_URL}" target="_blank" rel="noopener">업무OS에서 보기 ›</a> · 승인 차례: ${whoOf(asks)}`);
     loadMate();
   }catch(e){console.error('[AI 크루] 올리기 실패',e);setMsg('err','올리지 못했어요: '+esc(e.code||e.message));}
   finally{$('save-button').disabled=false;}

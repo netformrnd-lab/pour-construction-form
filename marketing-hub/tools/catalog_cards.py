@@ -5,6 +5,7 @@
 #   · 다시 실행하면 속성(가격·옵션 등 자동 칸)과 '모카 자동' 칸만 바꾸고, 사람이 쓴 나머지(소개·특장점·키워드…)는 그대로
 #   · 표에 없어진 카드는 지우지 않음(알림만)
 # 원가·이익·마진·제조사(가칭 포함)는 원본 표에 없음 — 6가지 칸(분류·상품명·옵션·자체상품코드·브랜드·채널별 판매가)만 씀 (2026-10-09 사장님)
+#   + 자사몰주소(공개 상품 주소 · 2026-10-18 사장님 2-4A) — 이 도구는 빈 칸만 만들고, 채우기는 team_link.py links (다시 붙여넣어도 그대로 남음)
 # '회사 자료' 칸은 pour-construction-form CLAUDE.md PART 2(공인시험·시방서)에 있는 것만 — 숫자 지어내지 않음
 import sys, os, re, json, datetime
 
@@ -208,7 +209,7 @@ def write(cards, vault, today):
             open(p, 'w', encoding='utf-8').write(render_front(c['props'], keep) + '\n' + rest)
             upd += 1
         else:
-            keep = [('상세페이지', ''), ('소스폴더', ''), ('프로모션가', ''), ('상세카드', ' 미완성'), ('수정일', ' ' + today)]
+            keep = [('상세페이지', ''), ('자사몰주소', ''), ('소스폴더', ''), ('프로모션가', ''), ('상세카드', ' 미완성'), ('수정일', ' ' + today)]   # 자사몰주소 = 구매 링크 (2026-10-18 사장님 2-4A · team_link.py links 가 봄 I 표로 채움)
             body = f"# {c['name']}\n> 모카가 제품 목록으로 만든 카드. 가격 칸은 목록을 다시 붙여넣으면 바뀌고, 아래 '채울 것'은 사람이 쓰거나 상세페이지를 받아 Claude 가 채움.\n\n" + c['block'] + '\n' + BODY.format(tone=TONE.get(c['brand'], '-'))
             open(p, 'w', encoding='utf-8').write(render_front(c['props'], keep) + '\n' + body)
             made += 1

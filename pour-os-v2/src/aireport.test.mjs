@@ -80,6 +80,20 @@ eq("여름 = 옛 포리 실행 업무도 (쉬는 팀원 → 여름)", R.secData(
   eq("보고 글에 '변화 없음 n번'", R.repText({ name: "B2C 크루" }, P, [{ m: slot("gyeoul"), d: q, s: {} }], {}).includes("변화 없음 2번 (A 2)"), true);
   eq("변화 없음이 없으면 글에 안 붙음", R.repText({ name: "B2C 크루" }, P, [{ m: slot("gyeoul"), d, s: {} }], {}).includes("변화 없음"), false); }
 
+// NPS (2026-10-18 사장님 2-1A) — 바람 C 흔적 [했어요] 점수 · 기간 끝날까지 30일 · 보드 'nps' 줄 대신
+{ const nt = (id, tr, o) => ({ id, title: `실행 · 바람 ${id}`, aiAsk: "ai_" + id, aiMate: "baram", aiAct: "C", status: "todo", assigneeId: "yj", aiTrace: tr, ...o });
+  const Dn = { ...D0, tasks: [nt("n1", { C1: { done: true, score: 10, date: "2026-10-14" }, C2: { done: true, score: 9, date: "2026-10-13" }, C3: { done: true, score: 7, date: "2026-10-12" }, C4: { skip: true, note: "부재중", date: "2026-10-14" } }),
+      nt("n2", { C1: { done: true, score: 3, date: "2026-09-15" }, C2: { done: true, score: 10, date: "2026-10-01" } }),   // 9/15 = 이번 30일(9/19~) 밖 · 지난 기간(9/12~10/11) 안
+      nt("n3", { C1: { done: true, score: 0, date: "2026-10-15" } }, { status: "dropped" }),   // 중단한 업무 = 안 셈
+      nt("n4", { C1: { done: true, score: 2, date: "2026-10-15" } }, { aiAct: "A" }) ],   // 다른 할 일 = 안 셈
+    ai: { ...D0.ai, boards: { "gh-ref": { hist: { nps: { "2026-10-16": 40 } } } } } };
+  const nd = R.secData(Dn, slot("baram"), P, PV, []);
+  eq("바람 NPS = 10/18까지 30일 · 9~10 3명 · 7~8 1명 · 중단·다른 할 일·안 함 빼고", [nd.nps.from, nd.nps.to, nd.nps.cur], ["2026-09-19", "2026-10-18", { n: 4, pro: 3, mid: 1, det: 0, nps: 75 }]);
+  eq("지난 기간(10/11까지 30일) = 3점·10점", nd.nps.prev, { n: 2, pro: 1, mid: 0, det: 1, nps: 0 });
+  const tn = R.repText(R.repCrews()[0], P, [{ m: slot("baram"), d: nd, s: {} }], {});
+  eq("글로 복사: NPS 한 줄 · 보드 'nps' 결과 줄은 안 겹침", [tn.includes("- NPS (9/19~10/18 · [했어요] 점수): NPS 75 (4명 · 추천 3 · 중립 1 · 비추천 0) ← 지난 기간 0"), tn.includes("- 결과 NPS")], [true, false]);
+  eq("NPS 할 일 없는 칸(겨울) = nps 없음 · 점수 없으면 cur null", [d.nps, R.secData({ ...D0, tasks: [] }, slot("baram"), P, PV, []).nps.cur], [null, null]); }
+
 // ⑤ 칸 상태 · '확인할 것'
 const rep = (secs, extra) => ({ "b2c-2026-10-12": { id: "b2c-2026-10-12", crew: "b2c", cycle: "week", start: "2026-10-12", end: "2026-10-18", due: "2026-10-16", secs, ...extra } });
 eq("칸 상태", ["none", "draft", "done", "sent"].map((k, i) => R.secState({ secs: { a: [{}, { note: "x" }, { done: { at: "t" } }, { sent: { at: "t" }, done: { at: "t" } }][i] } }, "a")), ["none", "draft", "done", "sent"]);

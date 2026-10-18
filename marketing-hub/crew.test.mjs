@@ -45,7 +45,7 @@ eq('파생 원형은 있는 AI', K.CREWS.flatMap((c) => c.members.flatMap((m) =>
 eq('보드 15개 · 짝 (그로홈 6 + 2026-10-17 바람 · 이음·별·달 + B2B 5)', Object.values(K.BOARDS).map((b) => [b.id, b.mate, K.mateOf(b.mate).name]), [['gh-ohou', 'bom', '봄'], ['gh-exp', 'yeoreum', '여름'], ['gh-traffic', 'gaeul', '가을'], ['gh-conv', 'gyeoul', '겨울'], ['gh-aov', 'haneul', '하늘'], ['gh-rep', 'uju', '우주'], ['gh-ref', 'baram', '바람'],
   ['ops-order', 'ieum', '이음'], ['ops-report', 'byeol', '별'], ['hq-plan', 'dal', '달'], ['b2b-exp', 'dandan', '단단'], ['b2b-inq', 'cheokcheok', '척척'], ['b2b-deal', 'kkomkkom', '꼼꼼'], ['b2b-aov', 'deundeun', '든든'], ['b2b-re', 'teunteun', '튼튼']]);
 eq('크루 사람 board = 보드 id (B2C 10 · B2B 5 · 바라스데이 아직 없음)', K.CREWS.map((c) => c.members.map((m) => (m.board ? K.boardOf(m.board).mate === m.id : '-')).join('')), ['true'.repeat(10), 'truetruetruetruetrue', '------']);
-eq('할 일 글자 (2026-10-17 AARRR 정리 · 옮긴 옛 글자는 비움: 봄 A · 여름 C·E·F · 가을 C · 겨울 A·D·E·F · 우주 D·E·F · 별 B · 새 J·H·I·G·F·E)', Object.values(K.BOARDS).map((b) => b.actions.map((a) => a.c).join('')), ['BCDEFGH', 'ABDGHIJ', 'ABDEFGHIJ', 'BCGHI', 'ABCDEF', 'ABCGH', 'ABCDE', 'ABCDEF', 'AC', 'ABCDEFG', 'ABC', 'ABC', 'A', 'A', 'AB']);
+eq('할 일 글자 (2026-10-17 AARRR 정리 · 옮긴 옛 글자는 비움: 봄 A · 여름 C·E·F · 가을 C · 겨울 A·D·E·F · 우주 D·E·F · 별 B · 새 J·H·I·G·F·E)', Object.values(K.BOARDS).map((b) => b.actions.map((a) => a.c).join('')), ['BCDEFGHI', 'ABDGHIJ', 'ABDEFGHIJ', 'BCGHI', 'ABCDEF', 'ABCGH', 'ABCDE', 'ABCDEF', 'ACD', 'ABCDEFG', 'ABC', 'ABC', 'A', 'A', 'AB']);
 eq('새 할 일 10개 (2026-10-17 사장님 AARRR 정의 · A/B 실험 · 구매 길 · 응대 스토리 · 구매 후 케어 · 메시지 장부 · 품질·서비스 · 팬 후기 · 재고 한 곳) = 실행 한 줄 있음', ['gh-exp J', 'gh-traffic J', 'gh-conv H', 'gh-conv I', 'gh-rep G', 'gh-rep H', 'gh-aov F', 'gh-ref E', 'ops-order F'].map((x) => { const [b, c] = x.split(' '); return !!K.execOf(K.actOf(b, c)); }), [true, true, true, true, true, true, true, true, true]);
 eq('재고 = 이음 한 곳 (비즈로지컴·쿠팡 로켓그로스) · POUR스토어 CRM 재고는 안 봄', [Object.values(K.BOARDS).flatMap((b) => b.actions.filter((a) => !a.admin && a.s.some((s) => /가용재고|판매가능/.test(s))).map((a) => b.id + a.c)), Object.values(K.BOARDS).filter((b) => JSON.stringify(b).match(/CRM 재고|재고 발주 계산기/)).map((b) => b.id), Object.values(K.BOARDS).filter((b) => (b.logins || []).some((l) => /로켓그로스 재고/.test(l.w))).map((b) => b.id), K.actOf('gh-traffic', 'B').t],
   [['ops-orderF', 'ops-reportA'], [], ['ops-order', 'ops-report'], '롤러일체형 재노출 + 네이버 검색 유입 복구']);
@@ -53,7 +53,7 @@ eq('숫자 주인 하나 (사진 후기 = 바람 · 재구매 매출 비중 = �
   [['gh-ref photo2'], [], ['ops-order soldout', 'ops-report risk_stock']]);   // 별 risk_stock = 금요일 공통 숫자 칸 (이음 F 결과에서 셈)
 eq('기존 고객 메시지는 우주 H 장부 먼저 (우주 C·G · 봄 H)', [/H 장부/.test(K.actOf('gh-rep', 'C').s.join(' ')), /H 장부/.test(K.actOf('gh-rep', 'G').s.join(' ')), /우주 H 장부/.test(K.actOf('gh-ohou', 'H').s.join(' '))], [true, true, true]);
 eq('새 할 일 6개 (2026-10-17 볼트 짝 설계표 B + 바람 A 추천 쿠폰) = 실행 한 줄 있음', ['gh-exp G', 'gh-exp H', 'gh-exp I', 'gh-conv G', 'gh-ref C', 'gh-ref A'].map((x) => { const [b, c] = x.split(' '); return !!K.execOf(K.actOf(b, c)); }), [true, true, true, true, true, true]);
-eq("두 브랜드 할 일 = '브랜드' 칸 (반복 실행 KPI 가 그 줄 브랜드로 셈)", Object.values(K.BOARDS).flatMap((b) => b.actions.filter((a) => a.cols.includes('브랜드')).map((a) => b.id + a.c)), ['gh-expA', 'gh-expG', 'gh-expJ', 'gh-trafficB', 'gh-trafficE', 'gh-trafficG', 'gh-trafficJ', 'gh-convC', 'gh-convH', 'gh-aovF', 'gh-refA', 'gh-refE']);
+eq("두 브랜드 할 일 = '브랜드' 칸 (반복 실행 KPI 가 그 줄 브랜드로 셈)", Object.values(K.BOARDS).flatMap((b) => b.actions.filter((a) => a.cols.includes('브랜드')).map((a) => b.id + a.c)), ['gh-ohouI', 'gh-expA', 'gh-expG', 'gh-expJ', 'gh-trafficB', 'gh-trafficE', 'gh-trafficG', 'gh-trafficJ', 'gh-convC', 'gh-convH', 'gh-aovF', 'gh-refA', 'gh-refE']);
 eq('보고서: B2B 크루 · 이음 · 달 빼고 · 별 = 맨 위 공통 숫자', [K.CREWS.find((c) => c.id === 'b2b').noReport, ['ieum', 'byeol', 'dal'].map((id) => [!!K.mateOf(id).noReport, !!K.mateOf(id).common])], [true, [[true, false], [false, true], [true, false]]]);
 // 개인정보 칸 없음 · 새 보드는 주문번호·CRM 상담 링크만 (2026-10-17)
 eq('표 칸에 이름·전화·연락처 없음', Object.values(K.BOARDS).flatMap((b) => b.actions.flatMap((a) => a.cols.filter((c) => /연락처|전화번호|휴대폰|성함|고객명|이메일/.test(c)).map((c) => b.id + a.c + ' ' + c))), []);
@@ -391,7 +391,7 @@ const ok = (name, cond) => eq(name, !!cond, true);
   const has = (bd, c, re) => re.test(K.actOf(bd, c).s.join(' '));
   eq('우주 H 장부 먼저', [['gh-ref', 'A'], ['gh-ref', 'B'], ['gh-ref', 'C'], ['gh-rep', 'C'], ['gh-rep', 'G'], ['gh-ohou', 'H']].map(([bd, c]) => has(bd, c, /우주 H 장부|H 장부/)), [true, true, true, true, true, true]);
   ok('겨울 I = 택배 동봉 안내', /택배 동봉/.test(K.actOf('gh-conv', 'I').t) && has('gh-conv', 'I', /동봉 안내/));
-  ok('지시문 판 10-18', K.ASIDE_VER === '2026-10-18');
+  ok('지시문 판 10-18.2', K.ASIDE_VER === '2026-10-18.2');
 }
 
 // ── 2026-10-17 사장님 확정 (2팀 운영 · 1A 2A 4-1) ──
@@ -402,7 +402,7 @@ const ok = (name, cond) => eq(name, !!cond, true);
 }
 { // 1A 승인 길 기본 = 담당에서 끝 (안에서 보는 점검·분석·목록·장부) 17개 · 밖으로 나가는 것은 리드까지 · 본부장 일은 그대로
   const inner = Object.values(K.BOARDS).flatMap((b) => b.actions.filter((a) => a.inner).map((a) => b.id + ' ' + a.c));
-  eq('담당에서 끝 17개', inner, ['gh-exp G', 'gh-exp H', 'gh-traffic A', 'gh-traffic F', 'gh-conv G', 'gh-aov F', 'gh-rep A', 'gh-rep H', 'gh-ref C', 'ops-order A', 'ops-order B', 'ops-order C', 'ops-order D', 'ops-order E', 'ops-order F', 'ops-report A', 'ops-report C']);
+  eq('담당에서 끝 19개 (2026-10-18 봄 I 자사몰 주소 표 · 별 D 링크 꼬리표 성과 더함)', inner, ['gh-ohou I', 'gh-exp G', 'gh-exp H', 'gh-traffic A', 'gh-traffic F', 'gh-conv G', 'gh-aov F', 'gh-rep A', 'gh-rep H', 'gh-ref C', 'ops-order A', 'ops-order B', 'ops-order C', 'ops-order D', 'ops-order E', 'ops-order F', 'ops-report A', 'ops-report C', 'ops-report D']);
   eq('담당에서 끝인 할 일엔 본부장 일 없음', Object.values(K.BOARDS).flatMap((b) => b.actions.filter((a) => a.inner && a.hq)).length, 0);
 }
 { // 1A 승인 길 (2026-10-17) — 보드 할 일 inner = 담당에서 끝 · hq = 본부장까지 · 그 밖 리드까지 · 덧칠 actPath
@@ -452,7 +452,92 @@ t = T.summary_note(asks, {'A·B 장부': 1, '주간 보고': 1}); print(json.dum
   ok('3일 넘으면 멈췄을 수 있음 · 14일 넘으면 안 넣음 · 날짜·글 없으면 안 넣음', K.vaultText(K.vaultRows({ body, date: '2026-10-15' }, now))[0].includes('· 5일 전 — 자료 쌓기가 멈췄을 수 있음 · 참고만') && K.vaultRows({ body, date: '2026-10-05' }, now) === null && K.vaultRows({ body }, now) === null && K.vaultRows({ body: ' ', date: '2026-10-20' }, now) === null);
   const many = K.vaultRows({ body: ['## 긴 칸', ...Array.from({ length: 30 }, (_, i) => `- 줄 ${i + 1}`)].join('\n'), date: '2026-10-20' }, now), mt = K.vaultText(many);
   ok(`줄 ${K.VAULT_MAX_LINES}개까지 + 더 있음`, mt.includes(`- 줄 ${K.VAULT_MAX_LINES}`) && !mt.includes(`- 줄 ${K.VAULT_MAX_LINES + 1}`) && mt.some((x) => x.startsWith('… (더 있음')));
+  eq('비어 있다는 안내 줄만 있는 칸 = 뺌 (NPS · 링크 성과 처음) · 다른 줄은 남김', K.vaultRows({ body: ['## 최근 30일 NPS (유선 조사)', '- 아직 남긴 점수 없음 — 바람 C …', '## 최근 4주 링크 성과', '- 아직 없음 — 별 D …', '- 1018-ab12-2 글 · 방문 3', '## 최근 주간 보고 단계 숫자', '- 단계 숫자 칸이 아직 비어 있음'].join('\n'), date: '2026-10-20' }, now).secs,
+    [{ h: '최근 4주 링크 성과', lines: ['- 1018-ab12-2 글 · 방문 3'] }]);
   eq('남는 칸이 없으면(이긴 소재만 · 장부 같이) 지시문에 안 넣음', K.vaultText({ date: '2026-10-20', age: 0, secs: [{ h: '최근 4주 이긴 소재 (A/B)', lines: ['- x'] }] }, { ledger: true }), []);
+}
+
+
+// ── 2026-10-18 사장님 2-2A 링크 꼬리표 (utm.js · 자사몰 utm · 스마트스토어 nt) ──
+{ const T = { source: 'naver_blog', medium: 'content', campaign: '2026-10_content', content: '1018-ab12-2' };
+  const MALL = 'https://grohome.co.kr/product/detail.html?product_no=12', SS = 'https://smartstore.naver.com/grohome/products/1';
+  const UT = 'utm_source=naver_blog&utm_medium=content&utm_campaign=2026-10_content&utm_content=1018-ab12-2', NT = 'nt_source=naver_blog&nt_medium=content&nt_detail=2026-10_content&nt_keyword=1018-ab12-2';
+  eq('자사몰 = utm 4개 · 스마트스토어 = nt 4개 · 쿠팡·인스타·카카오는 그대로', [K.tagUrl(MALL, T), K.tagUrl(SS, T), ...['https://www.coupang.com/vp/products/1', 'https://www.instagram.com/p/x', 'https://pf.kakao.com/_x/chat'].map((u) => K.tagUrl(u, T) === u)],
+    [`${MALL}&${UT}`, `${SS}?${NT}`, true, true, true]);
+  eq('# 뒤 그대로 · 이미 꼬리표 = 그대로 · ? 로 끝나면 & 없이 · m.·www. 도', [K.tagUrl('https://www.pourstore.net/product/a.html#review', T), K.tagUrl('https://grohome.co.kr/p?utm_source=a', T), K.tagUrl('https://grohome.co.kr/p?', T), K.linkKind('https://m.grohome.co.kr/x'), K.linkKind('https://m.brand.naver.com/x'), K.linkKind('https://grohome.co.kr.evil.com/x')],
+    [`https://www.pourstore.net/product/a.html?${UT}#review`, 'https://grohome.co.kr/p?utm_source=a', `https://grohome.co.kr/p?${UT}`, 'mall', 'naver', '']);
+  eq('떼기 = 꼬리표만 · 다른 칸 남김 · 밖은 그대로', [K.untagUrl(`${MALL}&${UT}`), K.untagUrl(`${SS}?${NT}`), K.untagUrl('https://www.pourstore.net/product/d.html?product_no=7&utm_source=x&cate_no=3#a'), K.untagUrl('https://x.com/?utm_source=a')],
+    [MALL, SS, 'https://www.pourstore.net/product/d.html?product_no=7&cate_no=3#a', 'https://x.com/?utm_source=a']);
+  const md = `[링크: 롤러 구매하기 → ${MALL}]\n[글](https://www.pourstore.net/product/a.html). 끝 ${SS}, 그리고 https://pf.kakao.com/_x/chat`, tm = K.tagLinks(md, T);
+  eq('글 안 주소: 링크 카드 · [글](주소) · 끝 문장부호 · 카카오 그대로 · 떼면 원래 글', [K.linkCount(md), tm.includes(`${MALL}&${UT}]`), tm.includes(`a.html?${UT}). 끝`), tm.includes(`${SS}?${NT}, 그리고`), tm.includes('https://pf.kakao.com/_x/chat'), K.untagLinks(tm) === md, K.tagLinks(tm, T) === tm],
+    [3, true, true, true, true, true, true]);
+  const pk = K.postKey('2026-10-18 여름 블로그 원고 3', 2, '2026-10-20');
+  ok('글 키 = 발행 날짜 · 노트 지문 4자 · 번호 (POST_KEY_RE) · 날짜 없으면 노트 날짜', /^1020-[0-9a-z]{4}-2$/.test(pk) && K.POST_KEY_RE.test(pk) && K.postKey('2026-10-18 여름 블로그 원고 3', 2, '').startsWith('1018-') && K.POST_KEY_RE.test(K.postKey('x', 1)) && pk.slice(5, 9) === K.postKey('2026-10-18 여름 블로그 원고 3', 1, '2026-10-21').slice(5, 9));
+  eq('글 꼬리표 = 채널 · content · 달_content · 글 키', [K.postTag({ channel: 'cafe', noteId: '2026-10-18 여름 재배포', n: 1, date: '2026-10-21' }), K.postTag({ channel: '???', noteId: 'n', n: 1, date: '2026-11-02' }).source],
+    [{ source: 'naver_cafe', medium: 'content', campaign: '2026-10_content', content: K.postKey('2026-10-18 여름 재배포', 1, '2026-10-21') }, 'etc']);
+  eq('메시지 꼬리표 = act.utm · 달_보드 · 올린 날-번호 (번호 없으면 할 일 글자)', [K.actTag({ s: 'influencer', m: 'influencer' }, { board: 'gh-exp', act: 'A', run: '2026-10-20', n: 'A3' }), K.actTag(null, { board: 'gh-ref', act: 'B', run: '2026-10-20' }).content, K.tagText({ source: 'crm', medium: 'message', campaign: '2026-10_gh-ref', content: '1020-B1' })],
+    [{ source: 'influencer', medium: 'influencer', campaign: '2026-10_gh-exp', content: '1020-A3' }, '1020-B', 'crm · message · 2026-10_gh-ref · 1020-B1']);
+  ok('메시지 키 ACT_KEY_RE ≠ 글 키', K.ACT_KEY_RE.test('1020-A3') && K.ACT_KEY_RE.test('1020-B') && !K.ACT_KEY_RE.test('1020-a3') && !K.POST_KEY_RE.test('1020-A3') && !K.ACT_KEY_RE.test('1018-ab12-2'));
+  eq('보내는 할 일 = utm 있음 (인플루언서 · 공구 · 문자·알림톡) · 숫자 표(별 D) · 주소 표(봄 I)는 없음', ['gh-exp.A', 'gh-exp.D', 'gh-exp.G', 'gh-exp.I', 'gh-rep.C', 'gh-rep.G', 'gh-ref.A', 'gh-ref.B', 'gh-ohou.H', 'ops-report.D', 'gh-ohou.I', 'gh-ref.C'].map((k) => { const [b, c] = k.split('.'), a = K.actOf(b, c); return a ? (a.utm ? `${a.utm.s}/${a.utm.m}` : '-') : '없음'; }),
+    ['influencer/influencer', 'groupbuy/influencer', 'influencer/influencer', 'community/community', 'crm/message', 'crm/message', 'crm/message', 'crm/message', 'crm/message', '-', '-', '-']);
+  // AI 크루가 올린 표 → 승인 건: 보내는 할 일만 꼬리표 (세부 = 올린 날-번호) · 그 밖 할 일·인스타 주소는 그대로
+  const head = K.actOf('gh-exp', 'A').cols.join('\t'), row = ['살림A', '그로홈', '인스타', '1.2만', '3만', '-', '롤러', 'https://www.instagram.com/p/1', `안녕하세요 롤러 보내 드릴게요 ${MALL}`, SS].join('\t');
+  const pe = K.parseCrew(['[A]', `요약: 후보 1명 ${MALL}`, head, row, '[I]', '요약: 주소', K.actOf('gh-exp', 'I').cols.join('\t'), K.actOf('gh-exp', 'I').cols.map((c, i) => (i === 0 ? `https://www.pourstore.net/product/b.html` : 'x')).join('\t')].join('\n'), K.boardOf('gh-exp'));
+  const ae = K.asksFromParse(pe, { board: 'gh-exp', mate: 'yeoreum', brand: 'grohome', run: '2026-10-20', at: '2026-10-20T00:00:00.000Z', owner: 'u1', src: 'crew' }), aA = ae.find((a) => a.act === 'A'), aI = ae.find((a) => a.act === 'I');
+  const AT = 'utm_source=influencer&utm_medium=influencer&utm_campaign=2026-10_gh-exp&utm_content=1020-A1';
+  eq('gh-exp A: DM 초안 자사몰 = utm(세부 1020-A1) · 링크 스마트스토어 = nt · 인스타 그대로 · 요약 = 1020-A', [aA.items[0].c['DM 초안'], aA.items[0].c['링크'], aA.items[0].c['DM 근거 게시물'], aA.sum],
+    [`안녕하세요 롤러 보내 드릴게요 ${MALL}&${AT}`, `${SS}?nt_source=influencer&nt_medium=influencer&nt_detail=2026-10_gh-exp&nt_keyword=1020-A1`, 'https://www.instagram.com/p/1', `후보 1명 ${MALL}&utm_source=influencer&utm_medium=influencer&utm_campaign=2026-10_gh-exp&utm_content=1020-A`]);
+  ok('gh-exp I(커뮤니티 · utm community) 도 꼬리표', !!aI && Object.values(aI.items[0].c).some((v) => String(v).includes('utm_source=community&utm_medium=community&utm_campaign=2026-10_gh-exp&utm_content=1020-I1')));
+  const po = K.parseCrew(['[I]', '요약: 주소 표', K.actOf('gh-ohou', 'I').cols.join('\t'), ['GH-P001-03031', '롤러일체형 페인트', '그로홈', MALL].join('\t')].join('\n'), K.boardOf('gh-ohou'));
+  eq('봄 I(자사몰 주소 표) = 꼬리표 안 붙음 · 담당에서 끝 · 실행 업무 없음', (([a]) => [a.items[0].c['자사몰 주소'], a.exec, a.hq])(K.asksFromParse(po, { board: 'gh-ohou', mate: 'bom', brand: 'grohome', run: '2026-10-20', at: '', owner: 'u1', src: 'crew' })), [MALL, '', '']);
+  const ta = K.asideText(K.BOARDS['gh-exp']);
+  ok('지시문: 보내는 할 일마다 링크 안내 · ■5 직접 붙이지 않음 · 판 10-18.2', ta.includes('  링크: 자사몰·스마트스토어 상품 주소는 꼬리표 없이 그대로 쓴다 — 올릴 때 이 화면이 이 할 일의 꼬리표(influencer · influencer ·') && ta.includes('- 링크에 utm·nt 꼬리표를 직접 붙이지도 지우지도 않는다') && ta.includes('판 2026-10-18.2'));
+  eq('허브 core.js 글 채널 열쇠 = 꼬리표 채널 열쇠 (글 꼬리표 source)', Object.keys(K.POST_SOURCE), Object.keys(C.CHANNEL));
+}
+// ── 2026-10-18 사장님 2-1A NPS 점수 · 2-3A 링크 성과 ──
+{ eq('NPS 할 일 = 바람 C (예전 우주 F · 튼튼 A)', [K.isNpsAct('baram', 'C'), K.isNpsAct('uju', 'F'), K.isNpsAct('teunteun', 'A'), K.isNpsAct('baram', 'A')], [true, true, true, false]);
+  eq('점수 = 0~10 정수만', ['', null, true, '9', 10, 11, -1, 5.5, 'x', 0].map(K.npsScore), [null, null, null, 9, 10, null, null, null, null, 0]);
+  eq('NPS = 9~10 비율 − 0~6 비율 · 중립 7~8', [K.npsOf([10, 9, 7, 3]), K.npsOf([]), K.npsLine(K.npsOf([10, 9, 7, 3])), K.npsLine(null)], [{ n: 4, pro: 2, mid: 1, det: 1, nps: 25 }, null, 'NPS 25 (4명 · 추천 2 · 중립 1 · 비추천 1)', '']);
+  eq('흔적 점수 = 그 기간 · 했어요만 · NPS 할 일만', K.npsFromTraces([{ mate: 'baram', act: 'C', trace: { C1: { done: true, score: 10, date: '2026-10-15' }, C2: { skip: true, score: 0, date: '2026-10-15' }, C3: { done: true, score: 2, date: '2026-09-01' }, C4: { done: true, date: '2026-10-16' } } },
+    { mate: 'baram', act: 'A', trace: { A1: { done: true, score: 0, date: '2026-10-15' } } }], '2026-10-01', '2026-10-18'), { n: 1, pro: 1, mid: 0, det: 0, nps: 100 });
+  const tb = K.asideText(K.BOARDS['gh-ref'], { nps: { r: K.npsOf([10, 9, 6]), from: '2026-09-19', to: '2026-10-18' } }), tb0 = K.asideText(K.BOARDS['gh-ref'], { nps: { r: null, from: '2026-09-19', to: '2026-10-18' } });
+  ok('바람 지시문: 업무OS 계산 NPS → [지표] nps 그대로 · 점수 없으면 nps 줄 지움 · 못 읽으면 줄 없음', tb.includes('  → 업무OS 계산 값 (사람이 [했어요]에 남긴 점수 · 9/19~10/18): NPS 33 (3명 · 추천 2 · 중립 0 · 비추천 1) — [지표] nps 에 33 그대로 쓴다')
+    && tb0.includes('  → 업무OS 계산 값: 9/19~10/18 남긴 점수 없음 — [지표] nps 줄은 지운다') && !K.asideText(K.BOARDS['gh-ref']).includes('→ 업무OS 계산 값'));
+  ok('바람 C = 추천 점수(0~10) 남김 · 지난 NPS 는 업무OS 계산 값', /\[했어요\]에 추천 점수\(0~10\)와 이유 한 줄/.test(K.execOf(K.actOf('gh-ref', 'C'))) && K.actOf('gh-ref', 'C').s.some((x) => x.includes('■ 1 의 업무OS 계산 값')));
+  // 링크 성과: 잴 글 = 허브 '발행 완료' · 글 키 · 최근 8주 · 개인정보 가림
+  const now = new Date('2026-10-23T03:00:00Z'), P1 = { status: 'published', tagKey: '1018-ab12-2', channel: 'naver_blog', brand: 'pourstore', publishedAt: '2026-10-20T01:00:00.000Z', url: 'https://blog.naver.com/x/1', title: '균열 보수 글 010-1234-5678' };
+  const rows = K.postRows([P1, { ...P1, tagKey: '1018-ab12-3', status: 'draft' }, { ...P1, tagKey: '없음' }, { ...P1, tagKey: '0801-ab12-1', publishedAt: '2026-08-01T01:00:00.000Z' }, { ...P1, tagKey: '1019-cd34-1', url: 'javascript:x', publishedAt: '2026-10-21T01:00:00.000Z', channel: 'cafe', brand: '' }, { ...P1, tagKey: '1019-cd34-2', brand: '그로홈', publishedAt: '2026-10-21T00:00:00.000Z' }, { ...P1, tagKey: '1019-cd34-3', brand: '<b>x', publishedAt: '2026-10-21T00:00:00.000Z' }], now);
+  eq('잴 글 = 발행 완료 · 글 키 모양 · 8주 안 · 새 것 먼저 · 주소는 http 만 · 전화 가림', rows.map((r) => [r.key, r.ch, r.brand, r.at, r.url, r.title]),
+    [['1019-cd34-1', '네이버 카페', '', '2026-10-21', '', '균열 보수 글 010-****-****'], ['1019-cd34-2', '네이버 블로그', '그로홈', '2026-10-21', 'https://blog.naver.com/x/1', '균열 보수 글 010-****-****'], ['1019-cd34-3', '네이버 블로그', '', '2026-10-21', 'https://blog.naver.com/x/1', '균열 보수 글 010-****-****'], ['1018-ab12-2', '네이버 블로그', 'POUR스토어', '2026-10-20', 'https://blog.naver.com/x/1', '균열 보수 글 010-****-****']]);
+  eq('잴 글 한 줄', K.postRowLine(rows[3]), '- 1018-ab12-2 · 네이버 블로그 · POUR스토어 · 10/20 발행 · https://blog.naver.com/x/1 · 균열 보수 글 010-****-****');
+  const ts = K.asideText(K.BOARDS['ops-report'], { posts: rows }), ts0 = K.asideText(K.BOARDS['ops-report'], { posts: [] });
+  ok('별 지시문: ■ 잴 글 목록 (■ 1 앞) · 없으면 안내 · 못 읽으면 칸 없음', ts.indexOf('■ 잴 글 목록') > 0 && ts.indexOf('■ 잴 글 목록') < ts.indexOf('■ 1. 지표') && ts.includes(K.postRowLine(rows[0])) && ts0.includes("- 아직 없음 — 허브에서 '발행 완료'로 표시된 글이 생기면 여기 보인다 (그때까지 D 는 메시지 키 줄만)") && !K.asideText(K.BOARDS['ops-report']).includes('■ 잴 글 목록 —') && !K.asideText(K.BOARDS['gh-exp'], { posts: rows }).includes('■ 잴 글 목록 —'));
+  const it = (n, c) => ({ n, c });
+  const st = K.linkStatRows([it('D1', { 세부: '1018-ab12-2', 어디서: '카페24 그로홈', 방문: '120', 구매: '3', 매출: '45,000원', 조회: '' }), it('D2', { 세부: '1018-ab12-2', 어디서: '스마트스토어 그로홈', 방문: '30', 구매: '1', 매출: '15000', 조회: '800' }),
+    it('D3', { 세부: '1020-C1', 방문: '12' }), it('D4', { 세부: '1018-zz99-1' }), it('D5', { 세부: '1018-ab12-2', 조회: '700' })]);
+  eq('별 D 줄 → 글 키마다: 방문·구매·매출 합 · 조회 큰 값 · 어디서 묶음 · 메시지 키·숫자 없는 줄 빼고', st, [{ key: '1018-ab12-2', where: '카페24 그로홈 + 스마트스토어 그로홈', visits: 150, buys: 4, sales: 60000, views: 800 }]);
+  eq('숫자 한 줄', [K.linkStatLine(st[0]), K.linkStatLine({ visits: 0 }), K.linkStatLine(null)], ['방문 150 · 구매 4 · 매출 60,000원 · 조회 800', '방문 0', '']);
+  // team_link.py (볼트 · 같은 계산) — NPS · 링크 합 · 자사몰 주소 · 키 모양
+  const MALL = 'https://grohome.co.kr/product/detail.html?product_no=12', SS = 'https://smartstore.naver.com/grohome/products/1';
+  const UT = 'utm_source=naver_blog&utm_medium=content&utm_campaign=2026-10_content&utm_content=1018-ab12-2', NT = 'nt_source=naver_blog&nt_medium=content&nt_detail=2026-10_content&nt_keyword=1018-ab12-2';
+  const { execFileSync } = await import('node:child_process');
+  const SC = [[10, 9, 7, 3], [10, 8, 8, 8, 8, 8, 8, 8], [1, 8, 8, 8, 8, 8, 8, 8], [], [0, 0, 10], ['9', 'x', null, true, 11, 5.5], [6, 6, 9]];
+  const IT = [{ 세부: '1018-ab12-2', 어디서: '카페24 그로홈', 방문: '120', 구매: '3', 매출: '45,000원' }, { 세부: '1018-ab12-2', 어디서: '스마트스토어 그로홈', 방문: '30', 매출: '15000', 조회: '800' }, { 세부: '1018-ab12-2', 조회: '700' }, { 세부: '1020-C1', 방문: '12' }];
+  const py = `import json,sys; sys.path.insert(0, sys.argv[1]); import team_link as T
+a = json.loads(sys.argv[2]); asks = [{'mate': 'byeol', 'act': 'D', 'state': 'ok', 'run': '2026-10-23', 'items': [{'n': f'D{i+1}', 'c': c} for i, c in enumerate(a['it'])]}]
+rows = sorted(T.link_sum(T.link_rows(asks)), key=lambda x: x['key'])
+print(json.dumps({'nps': [T.nps_of(x) for x in a['sc']], 'line': T.nps_line(T.nps_of([10, 9, 7, 3])), 'acts': sorted(map(list, T.NPS_ACTS)), 'mall': T.MALL_HOSTS, 'pk': T.POST_KEY_RE.pattern, 'ak': T.ACT_KEY_RE.pattern,
+  'links': [{k: r[k] for k in ('key', 'kind', 'where', 'visits', 'buys', 'sales', 'views')} for r in rows], 'la': sorted(map(list, T.LINK_ACTS)), 'ma': sorted(map(list, T.MALL_ACTS)),
+  'url': [T.mall_url(u) for u in a['urls']], 'card': T.CARD_FIELD}, ensure_ascii=False))`;
+  const URLS = [`${MALL}&${UT}`, 'https://grohome.co.kr/', `${SS}?${NT}`, 'https://www.pourstore.net/product/d.html?product_no=7&utm_source=x&cate_no=3#a'];
+  const got = JSON.parse(execFileSync('python3', ['-c', py, new URL('./tools', import.meta.url).pathname, JSON.stringify({ sc: SC, it: IT, urls: URLS })], { encoding: 'utf8', env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' } }));
+  eq('team_link.py NPS = crew.js npsOf (반올림 .5 올림 · 음수 · 이상한 값)', got.nps, SC.map((x) => K.npsOf(x)));
+  eq('team_link.py NPS 한 줄 · NPS 할 일 = crew.js', [got.line, got.acts], [K.npsLine(K.npsOf([10, 9, 7, 3])), K.NPS_ACTS.map((x) => x.split('.')).sort()]);
+  eq('team_link.py 자사몰 주소 목록 · 키 모양 = utm.js', [got.mall, got.pk, got.ak], [K.MALL_HOSTS, K.POST_KEY_RE.source, K.ACT_KEY_RE.source]);
+  eq('team_link.py 링크 합 = crew.js linkStatRows (글 키 · 메시지 키는 볼트만)', got.links, [{ key: '1018-ab12-2', kind: '글', where: '카페24 그로홈 + 스마트스토어 그로홈', visits: 150, buys: 3, sales: 60000, views: 800 }, { key: '1020-C1', kind: '메시지', where: '', visits: 12, buys: null, sales: null, views: null }]);
+  eq('JS 쪽 같은 줄 = 같은 글 키 숫자', K.linkStatRows(IT.map((c, i) => it(`D${i + 1}`, c))).map((x) => [x.key, x.where, x.visits, x.buys, x.sales, x.views]), [['1018-ab12-2', '카페24 그로홈 + 스마트스토어 그로홈', 150, 3, 60000, 800]]);
+  eq('team_link.py 할 일 = 별 D(links) · 봄 I(자사몰 주소) · 카드 칸 자사몰주소', [got.la, got.ma, got.card, !!K.actOf('ops-report', 'D').links, K.actOf('gh-ohou', 'I').cols.includes('자사몰 주소')], [[['byeol', 'D']], [['bom', 'I']], '자사몰주소', true, true]);
+  eq('team_link.py 자사몰 주소 = 꼬리표 떼고 상품 주소만 (utm.js untagUrl 과 같게 · 첫 화면·스마트스토어 = 빈칸)', got.url, [MALL, '', '', K.untagUrl(URLS[3])]);
 }
 
 console.log(`\n${n - bad}/${n} 통과`); if (bad) process.exit(1);

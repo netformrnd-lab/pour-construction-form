@@ -9,7 +9,7 @@
 //   리드(그 칸 담당의 상급자 중 리드) 한마디 → [본부장에게 보내기] = 그때 숫자를 얼림(snap) · 본부장 [읽었어요]
 //   저장: pour-os/v2/aireports/{크루}-{기간 시작} = {crew, cycle, start, end, due, secs:{AI id:{note, plan, done, sent, snap}}, leads:{리드 id:{note, at}}, read, log[]}
 import { addDays, ymd, md, nameOf, isMaster, isDone, isRemoved, fxIds } from "./model.js";
-import { CREWS, GONE, mateOf, boardOf, fmtMetric, metricOk, stageNum, handoffsIn, quietOf, quietLine } from "../../marketing-hub/crew.js";
+import { CREWS, GONE, mateOf, boardOf, fmtMetric, metricOk, stageNum, handoffsIn, quietOf, quietLine, isNpsAct, npsOf, npsLine } from "../../marketing-hub/crew.js";
 import { mateOwner, bossOf, isLeadU, isHQ, MAX_UP } from "./aiask.js";
 import { doneDay, dayOfIso } from "./report.js";
 import { isFxKey, fxIdOf, akKeys, taskAks, liveAk, liveActOwners } from "./airt.js";
@@ -102,11 +102,15 @@ export function secData(D, m, p, pv, asks) {
     return { k: x.k, l: x.l, u: x.u || "", dir: x.dir || "up", target: x.target, cur, prev, ok: !!cur && metricOk(x, cur.v) }; }) } : null;
   // 넘겨받은 것 (2026-10-17 사장님 넘기기 A) — 이번 기간에 최종 승인된 다른 AI 결과 중 이 AI 에게 온 것
   const inbox = handoffsIn(m.id, asks, p.start, p.end).slice(0, 10).map((x) => ({ id: x.id, name: x.name, act: x.act, at: x.at, title: x.title, n: x.n }));
+  // NPS (2026-10-18 사장님 2-1A) — NPS 유선 조사 실행 업무 흔적 [했어요] 점수 · 기간 끝날까지 30일 (AI 한 장·지시문과 같은 창) · 지난 기간도 · 보드 지표 'nps' 줄 대신 보임
+  const npsT = b.actions.some((a) => isNpsAct(m.id, a.c)) ? tasks.filter((t) => isNpsAct(t.aiMate, t.aiAct)) : null;
+  const npsTo = (z) => npsOf(npsT.flatMap((t) => Object.values(t.aiTrace || {}).filter((r) => r && r.done && r.date && r.date >= addDays(z, -29) && r.date <= z).map((r) => r.score)));
+  const nps = npsT ? { cur: npsTo(p.end), prev: pv ? npsTo(pv.end) : null, from: addDays(p.end, -29), to: p.end } : null;
   // ④ 다음 — AI [다음주] (aiboards.nextHist · 이번 기간 안에서 마지막)
   const nh = bv.nextHist || {}, nd = Object.keys(nh).filter(inP).sort().pop() || "";
   return { mate: m.id, name: m.name, slot: m.slot, role: m.role, board: b.id, title: b.title,
     done: doneT.slice(0, 20).map((t) => ({ id: t.id, title: t.title, day: doneDay(t) })), doneN: doneT.length, openN: openT.length,
-    trace: tr, asks: st, quiet, metrics, ak, stage, inbox, aiNext: nd ? String(nh[nd] || "").slice(0, 2000) : "", aiNextRun: nd };
+    trace: tr, asks: st, quiet, metrics, ak, stage, inbox, nps, aiNext: nd ? String(nh[nd] || "").slice(0, 2000) : "", aiNextRun: nd };
 }
 // 숫자 한 줄 (지표) — '7.4% ← 6.1% · 목표 12% ✓'
 export function metricLine(x) {
@@ -169,7 +173,8 @@ export function repText(crew, p, rows, r) {
     L.push("", `■ ${m.slot} · ${m.name}(AI) ${m.role}${s.done ? ` · 담당 확인 ${s.done.byName || ""}` : " · 담당 확인 전"}`);
     L.push(`- 실행: 실행 업무 끝냄 ${d.doneN}건 · 흔적 ${d.trace.done}건${d.trace.skip ? ` (안 함 ${d.trace.skip})` : ""} · 승인 ${d.asks.ok}건 · 올라옴 ${d.asks.made}건${d.openN ? ` · 남은 실행 ${d.openN}건` : ""}${quietLine(d.quiet) ? ` · ${quietLine(d.quiet)}` : ""}`);
     if (d.stage) L.push(`- 단계 숫자 ${stageLine(d.stage)}`);
-    d.metrics.filter((x) => x.cur || x.prev).forEach((x) => L.push(`- 결과 ${x.l}: ${metricLine(x)}`));
+    if (d.nps) L.push(`- NPS (${md(d.nps.from)}~${md(d.nps.to)} · [했어요] 점수): ${d.nps.cur ? npsLine(d.nps.cur) : "남긴 점수 없음"}${d.nps.prev ? ` ← 지난 기간 ${d.nps.prev.nps}` : ""}`);
+    d.metrics.filter((x) => (x.cur || x.prev) && !(d.nps && x.k === "nps")).forEach((x) => L.push(`- 결과 ${x.l}: ${metricLine(x)}`));
     if ((d.inbox || []).length) L.push(`- 넘겨받은 것: ${d.inbox.map((x) => `${x.name} ${x.act} ${md(x.at)} ${x.title}`).join(" · ")}`);
     d.ak.forEach((x) => L.push(`- KPI ${x.name}: +${x.n}`));
     if (s.note) L.push(`- 한 줄: ${s.note}`);

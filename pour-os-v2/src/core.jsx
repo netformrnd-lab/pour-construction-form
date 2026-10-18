@@ -27,7 +27,7 @@ import { apprInbox, apprMerge } from "./appr.js";   // 구매 품의 요청 (202
 import { askInbox, asideInbox, planPass, planBack, planRet, planDrop, planExec, canAct, canBack, canRet, pickOk, bossLoop, moreText, MORE_MAX, hqOf, pathOf, PATHS, PATH_L, traceOf, traceLeft, mateOwner, actOwner, isHQ, launchTaskOf, adsAsideVer, adsAsideOwner, canAdsAside } from "./aiask.js";   // AI 승인 (2026-10-12) · Aside 담당 PC (2026-10-15)
 import { moneyInbox } from "./money.js";   // 돈·결재 7건 알림 (2026-10-17 · 계산만)
 import { feedInbox, adChecker } from "./feeds.js";   // 결과 숫자 · 비면 n일째 (2026-10-17 · 계산만)
-import { mateOf, boardOf, brandL, qtyDefs, canReq, reqDoc, reqId, designBad, DESIGN_MAX, handoffLabel, handoffTargets } from "../../marketing-hub/crew.js";
+import { mateOf, boardOf, brandL, qtyDefs, canReq, reqDoc, reqId, designBad, DESIGN_MAX, handoffLabel, handoffTargets, isNpsAct, npsScore } from "../../marketing-hub/crew.js";
 import { ASIDE_ADS_LAUNCH_VER } from "../../marketing-hub/adops.js";   // 광고 Aside 예약 글 판 (2026-10-17)
 import { repSlots, repId, canWriteSec, secPeople, snapOf, cycleOf, monOf, CYCLE_L, repInbox, repFxOf, myRepLeft } from "./aireport.js";   // AI 크루 보고서 (2026-10-15) · 리포트 ①~④ (2026-10-17)
 import { NO_ACT, isFxKey, fxIdOf, akKeys, pairVal, countKeys, splitExec, keyName, fxTimeCome } from "./airt.js";   // AI 크루 ↔ 반복 실행 (2026-10-16) · 열쇠 여러 개 (2026-10-17)
@@ -817,6 +817,8 @@ export function useActs(D, cu, setToast, idx = null) {
       const val = f ? { ...(f.skip ? { skip: true } : { done: true }), link: String(f.link || "").trim().slice(0, 500), note: String(f.note || "").trim().slice(0, 300), at, date, wk: akWeekKey(new Date(date + "T00:00:00")), by: cu.id, byName: cu.name } : null;
       if (val && n === "_" && !val.skip && !val.link && !val.note) { setToast({ text: "무엇을 했는지 링크나 한 줄을 써 주세요" }); return false; }
       if (val && val.skip && !val.note) { setToast({ text: "안 한 이유를 한 줄 써 주세요" }); return false; }
+      // NPS 유선 조사 (2026-10-18 사장님 2-1A) — [했어요] = 추천 점수 0~10 꼭 (이유는 한 줄) · 계산은 crew.js npsOf
+      if (val && val.done && isNpsAct(t.aiMate, t.aiAct)) { const sc = npsScore(f.score); if (sc == null) { setToast({ text: "추천 점수(0~10)를 골라 주세요" }); return false; } val.score = sc; }
       // 짝 열쇠 (2026-10-17 · 여러 개 · 누른 사람이 그 열쇠 담당이고 실행 브랜드와 맞는 것만 · 남의 것은 안 건드림): 여러 번 = ±1 · 정한 날 체크 = 오늘 체크(아래)
       //   되돌리기 = 그때 센 열쇠(cnt)만 −1 · cnt 없는 예전 흔적 = 예전처럼 aiAk 하나
       const was = !!(prev && prev.done), now = !!(val && val.done), it0 = (t.aiItems || []).find((x) => x && x.n === n) || {}, ck = countKeys(D, t, cu.id, it0.b, it0.p), akItem = (k) => ((D.ak && D.ak.items) || []).find((x) => x.id === k) || null;
@@ -841,7 +843,7 @@ export function useActs(D, cu, setToast, idx = null) {
         const other = akKeys(t.aiAks && t.aiAks.length ? t.aiAks : t.aiAk).filter((k) => isFxKey(k) && !ck.some((x) => x.key === k)).map((k) => (D.tasks || []).find((x) => x.id === fxIdOf(k) && x.isFixed)).filter(Boolean);
         if (!fxL && other.length === 1 && !fxIsMine(other[0], cu.id)) fxL = ` · '${fxLabel(other[0], cu.id)}' 체크는 그 담당이 해요`; }
       const lcL = lcL0 + fxL;
-      log("aiTrace", { col: "tasks", targetId: t.id, label: `${t.title} · ${n === "_" ? "" : n + " "}${val ? (val.skip ? "안 함" : "했어요") : "되돌림"}${val && val.link ? " · " + val.link : ""}` });
+      log("aiTrace", { col: "tasks", targetId: t.id, label: `${t.title} · ${n === "_" ? "" : n + " "}${val ? (val.skip ? "안 함" : "했어요") : "되돌림"}${val && val.score != null ? ` · ${val.score}점` : ""}${val && val.link ? " · " + val.link : ""}` });
       setToast({ text: val ? (val.skip ? "안 한 이유를 남겼어요" : `흔적을 남겼어요${counted ? ` · 반복 '${it.name}' +1` : ""}${lcL}`) : `되돌렸어요${counted ? ` · 반복 '${it.name}' −1` : ""}${lcL}` });
       return true;
     },

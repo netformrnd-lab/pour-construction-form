@@ -1,5 +1,6 @@
 // 업무OS v2 — 화면 공용 조각 (기업용 간결: 네이비·무채색, 이모지·아이콘 버튼·그라디언트 없음, 기호는 ✓ ✕ ▾ ▴ → ‹ › 만)
 import { useEffect, useRef, useState } from "react";
+import { untagUrl } from "../../marketing-hub/utm.js";   // 링크 꼬리표(utm·nt)는 눌러 열 때 떼고 연다 — 직원이 눌러 꼬리표 숫자가 부풀지 않게 (2026-10-18 · 글자는 그대로라 복사하면 꼬리표 포함)
 
 export const C = { navy: "#24386B", ink: "#0F1F5C", text: "#1B2333", sub: "#5B6475", mute: "#8A92A3", line: "#E3E7F0", bg: "#F4F5F8", card: "#FFFFFF", red: "#B4383F", green: "#2F7D57", soft: "#EEF1F8" };
 const F = "inherit";
@@ -113,7 +114,7 @@ export function useLocal(key, init) {
 export function useAutoFocus() { const r = useRef(null); useEffect(() => { const t = setTimeout(() => r.current && r.current.focus(), 60); return () => clearTimeout(t); }, []); return r; }
 export function Linked({ text }) {
   const s = String(text || ""); const parts = s.split(/(https?:\/\/[^\s<>"']+)/g);
-  return <>{parts.map((p, i) => /^https?:\/\//.test(p) ? <a key={i} href={p} target="_blank" rel="noopener noreferrer" style={{ color: C.navy, wordBreak: "break-all" }}>{p}</a> : <span key={i}>{p}</span>)}</>;
+  return <>{parts.map((p, i) => /^https?:\/\//.test(p) ? <a key={i} href={untagUrl(p)} target="_blank" rel="noopener noreferrer" style={{ color: C.navy, wordBreak: "break-all" }}>{p}</a> : <span key={i}>{p}</span>)}</>;
 }
 
 // 폰 '뒤로'(안드로이드 뒤로 · 아이폰 밀어서 뒤로) = 맨 위 시트만 닫기. 시트를 열 때마다 브라우저 기록을 하나 쌓고,

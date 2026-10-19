@@ -14,7 +14,8 @@
   · [보고서] 위 한 줄 ‹ 고르기 › + 전체/일일/주간 → 보고서(제목 · 한 줄 결론 · 숫자 칸 · md(표 포함 · core.js mdLite = 모든 글자 escape)) · 주소 #YYYY-MM-DD
       2026-10-19 사장님 "보기 매우 불편해" → 보고서를 맨 위로 · 제안서 검증(기본 접힘)·운영 기준(접힌 한 줄)은 아래 · #aside 일 때만 운영 기준·지시문이 맨 위(펼침)
       없는 날짜 주소 = '아직 없어요' 안내 뒤 최신 (주소 그대로 · 올라오면 같은 주소로 보임) · 평일 09시 지나 오늘 일일이 없으면 안내 · [🔗 링크 복사](본부장님께 전달) · [🖨 인쇄](보고서만)
-  · [끈 것 기록] 모든 보고서 offs 합친 표(날짜·매체·캠페인·대상·근거·조치) + 주간·월간 개수 · 주소 #off
+  · [끈 것·변경] 주소 #off — ① Aside 가 끈 것(일일 보고서 offs + 보고서 밖 처리분 AUTO_OFF.noted · 날짜·매체·캠페인·대상·조치·근거) + 규칙 점검(offAudit · 빨간 꼬리표만) + 처리 대기
+      ② 외주 변경(changes) ③ 주간·월간 개수 — 2026-10-19 김송희 확정 "정해진 규칙 안에서는 Aside가 직접 끈다"(쿠팡 30일 1만 원+·주문 0 → 키워드 제외 · 메타 금요일 구매 10+·2주 180% 미만 → OFF)
   · [메타 판정] 금요일 증액/유지/종료/보류 + 근거 — 보고서 judges(JSON 글) 또는 본문 md 의 '판정' 칸 표 → 제안서 기준(350%+ 2주 · 200~350% · 180% 미만 2주 · 구매 10건)과 일치/다름 · 주소 #judge
   · 맨 위 '제안서 검증'(2026-10-15 "진짜 목적 = 데일리그로스 「넷폼_메타운영_제안서_202610」이 정답인지 실제 운영 데이터로 검증"):
       pour-os/v2/proposal/dailygrowth-202610 {title, at, by, json(baseline · structure · hypotheses H1~H6 · gaps_20261015)} — Aside 가 매일 갱신 · 읽기만
@@ -22,7 +23,8 @@
       접기·펴기는 이 기기에만 기억(localStorage · 막히면 늘 펼침)
   · 외주 운영 기간 (2026-10-15 사장님 "메타·네이버·쿠팡 약 2개월 외주 · 세팅 분석만 · 데이터 쌓고 매일·금요일 보고"): 맨 위 띠(adops.js AD_MODE) + [Aside 지시문 복사](asideAdsText)
   · 외주 + 내부 관리 (2026-10-16 사장님 "외주 눈치볼 필요없었어 · 민지님이 분석관리해서 나에게 보고"): 띠에 김민지 → 사장님 매주 보고 · [예약 글 복사](asideAdsLaunch · 한 번만 넣음 → #aside 화면 지시문을 그대로) · [지시문 전체 복사]
-      일일 = adreports/{YYYY-MM-DD} · 주간 = adreports/{금요일}-weekly (kind 'weekly') · [변경 기록] = 외주 변경(changes) + 예전 Aside 끈 것(offs) · 보고서 고르기 = 문서 id (#id)
+      일일 = adreports/{YYYY-MM-DD} · 주간 = adreports/{금요일}-weekly (kind 'weekly') · [끈 것·변경] = Aside 끈 것(offs) + 외주 변경(changes) · 보고서 고르기 = 문서 id (#id)
+  · 규칙 안 끄기 (2026-10-19 김송희): 운영 기준 상자 아래 '자동 끄기 규칙'(adops.AUTO_OFF) · 지시문 판 2026-10-19 · 예약 글 판도 2026-10-19(3번 줄 바뀜 → 업무OS '확인할 것'에 새 예약 글 넣기)
   · 계산 adops.js (시험 node marketing-hub/adops.test.mjs)
 -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -127,6 +129,11 @@ ul.gaps{margin:0;padding-left:20px;font-size:13px;line-height:1.75}
 .mode button{border:1px solid #FDBA74;background:#fff;border-radius:8px;padding:7px 12px;font:inherit;font-size:12.5px;font-weight:800;color:#9A3412;cursor:pointer}
 .mode textarea{width:100%;min-height:180px;margin-top:8px;font:12px/1.5 ui-monospace,Menlo,monospace;border:1px solid #FED7AA;border-radius:8px;padding:8px}
 .mode .basis{margin-top:8px;padding:8px 10px;background:#fff;border:1px solid #FED7AA;border-radius:8px;color:var(--text)}.mode .basis .rl{font-size:12.5px}
+.warn{display:inline-block;font-size:11px;font-weight:800;border-radius:6px;padding:1px 7px;background:var(--red-l);color:var(--red);white-space:nowrap;margin:1px 2px 1px 0}
+.okc{display:inline-block;font-size:11px;font-weight:800;border-radius:6px;padding:1px 7px;background:var(--green-l);color:var(--green);white-space:nowrap}
+tr.warnrow td{background:#FFF7F7}
+.pend{margin:0 16px 12px;padding:8px 12px;border:1px dashed #FDBA74;border-radius:10px;background:#FFFBEB;font-size:12.5px;line-height:1.6;color:#92400E;word-break:keep-all}.pend span{display:block}
+.mode .autooff{border-color:#FCA5A5}.mode .autooff a{color:#9A3412}
 .ref{display:inline-block;font-size:11px;font-weight:800;border-radius:6px;padding:1px 7px;background:#F1F2F6;color:#5B6475;vertical-align:1px;white-space:nowrap}.rl.isref{color:var(--text-md)}
 .kind{display:inline-block;font-size:10.5px;font-weight:800;border-radius:5px;padding:0 6px;margin-left:4px;background:#EEF2FF;color:#4338CA;vertical-align:1px}
 .fil{display:flex;gap:4px;padding:8px 10px;border-bottom:1px solid var(--border)}.fil button{flex:1;border:1px solid var(--border);background:#fff;border-radius:8px;padding:5px;font:inherit;font-size:12px;font-weight:700;color:var(--text-md);cursor:pointer}.fil button.on{background:var(--navy);border-color:var(--navy);color:#fff}
@@ -155,7 +162,7 @@ ul.gaps{margin:0;padding-left:20px;font-size:13px;line-height:1.75}
   <a href="index.html" class="hub">허브</a>
   <a href="../pourstore-renewal/os2.html">업무OS</a>
 </header>
-<nav id="tabs" aria-label="광고 운영 탭"><button type="button" data-v="rep">보고서</button><button type="button" data-v="judge">메타 판정</button><button type="button" data-v="off">변경 기록</button></nav>
+<nav id="tabs" aria-label="광고 운영 탭"><button type="button" data-v="rep">보고서</button><button type="button" data-v="judge">메타 판정</button><button type="button" data-v="off">끈 것·변경</button></nav>
 <main id="app"><div class="empty">불러오는 중…</div></main>
 <script type="module">
 import * as A from './adops.js';
@@ -174,7 +181,7 @@ const S={reps:[],prop:null,propErr:'',cur:'',miss:'',view:'rep',err:'',loaded:fa
 const LSget=(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:v;}catch(e){return d;}}, LSset=(k,v)=>{try{localStorage.setItem(k,v);}catch(e){}};
 let vOpen=LSget('ads_verify_open2','0')==='1';   // 제안서 검증 = 보고서 아래 · 기본 접힘 (2026-10-19 보기 개선 · 예전 키 ads_verify_open 은 안 봄)
 
-// 주소: #off = 끈 것 기록 · #judge = 메타 판정 · #YYYY-MM-DD = 그 보고서
+// 주소: #off = 끈 것·변경 · #judge = 메타 판정 · #YYYY-MM-DD = 그 보고서
 function fromHash(){const h=decodeURIComponent(location.hash.slice(1));if(h==='aside'){S.view='rep';S.showText=true;S.modeOpen=true;S.asideTop=true;return;}if(h==='off'||h==='judge')S.view=h;else{S.view='rep';if(h){S.cur=h;S.miss='';}}}
 // 고른 보고서 → 문서 id (옛 주소 #YYYY-MM-DD 도) · 없는 날짜면 안내(miss) 뒤 최신 · 주소는 그대로 둠(올라오면 같은 주소로 보임)
 function resolveCur(){
@@ -206,10 +213,19 @@ function modeBar(){
   const par=M.mode==='parallel';
   return `<details class="mode" id="ad-mode"${S.modeOpen?' open':''}><summary><b>${esc(M.label)}</b> · ${par?`${esc(M.manager)} → ${esc(M.reportTo)}께 매주 보고 · `:''}<span class="mode-l">운영 기준 · Aside 지시문</span></summary><div class="mode-b"><b>${esc(M.label)}</b> ${srcB(A.SRC.D)} · ${par?`외주 ${esc(M.from)}부터 ${esc(M.until)} · 내부 관리 ${esc(M.inhouse)}부터 <b>${esc(M.manager)}</b> → ${esc(M.reportTo)}께 매주 보고 (${esc(M.report)})`:`${esc(M.from)}부터 ${esc(M.until)}`}<br>${esc(M.note)} 보고: <b>${esc(M.daily)} 일일</b> · <b>${esc(M.weekly)} 주간</b> · ${par?`쌓인 데이터로 ${esc(M.manager)}님과 ${esc(M.reportTo)}이 기준을 고도화해요.`:'이후 쌓인 데이터로 자동화 여부를 정해요.'}
     <div class="basis" id="ad-basis"><b>운영 기준</b> ${srcB(A.SRC.K)} <span class="sub">외주 기간 (사장님 2026-10-15)</span>${A.KSH_RULES.map(r=>`<div class="rl"><b>${esc(r.m)}</b>${esc(r.t)}</div>`).join('')}</div>
+    ${autoOffBox()}
     <div class="row"><button type="button" id="copy-launch" aria-label="Aside 광고 예약 글 복사">예약 글 복사</button><button type="button" id="copy-aside" aria-label="Aside 광고 지시문 복사">지시문 전체 복사</button><button type="button" id="show-aside" aria-expanded="${S.showText}">${S.showText?'지시문 접기':'지시문 보기'}</button><span>Aside 08:30 · 금 16:00 예약에 '예약 글'을 한 번만 넣어요 — 이 화면 지시문(판 ${esc(A.ASIDE_ADS_VER)})이 바뀌어도 그대로 따라와요</span></div>
     ${S.showText?`<div class="sub" style="margin-top:8px"><b>Aside 광고 지시문</b> · 판 ${esc(A.ASIDE_ADS_VER)}</div><textarea readonly id="aside-text" aria-label="Aside 광고 지시문">${esc(A.asideAdsText())}</textarea>`:''}</div></details>`;
 }
 const srcB=(src,page)=>`<span class="src s-${A.srcKind(src)}">${esc(A.srcText(src,page))}</span>`;
+// 규칙 안 자동 끄기 (2026-10-19 김송희 확정 "정해진 규칙 안에서는 Aside가 직접 끈다") — 운영 기준 상자 아래 · 끈 것·변경 탭 위
+function autoOffBox(){
+  const R=A.AUTO_OFF; if(!R.on)return '';
+  return `<div class="basis autooff" id="ad-autooff"><b>자동 끄기 규칙</b> <span class="sub">${esc(R.by)} ${esc(R.since)} 확정 · 이 두 가지만 Aside 가 직접 · 끈 것은 그날 일일 보고서 offs → <a href="#off">끈 것·변경</a></span>
+    <div class="rl"><b>쿠팡</b>${esc(R.coupang.t)} · 매일 08:30 ${srcB(R.coupang.src)}</div>
+    <div class="rl"><b>메타</b>${esc(R.meta.t)} ${srcB(R.meta.src,R.meta.page)}</div>
+    <div class="rl"><b>사람</b>${esc(R.human)}</div></div>`;
+}
 const pctL=(v)=>v==null?'—':`${Math.round(v*10)/10}%`;
 function verify(){
   const P=S.prop||A.parseProposal({}), b=P.baseline, rep=S.reps[0]||null, act=A.actualOf(rep,P), hc=A.hypCount(P.hypotheses);
@@ -259,7 +275,8 @@ function vRep(){
     :(r===S.reps[0]&&wd&&late&&(!lastDaily||lastDaily.date<today))?`<div class="note" role="status"><b>오늘(${esc(dayL(today))}) 일일 보고서가 아직 안 올라왔어요.</b> Aside 08:30 예약이 걸려 있는지 확인해 주세요</div>`:'';
   // 숫자 칸 — 보고서에 있는 것만 (metrics 칸 → 없으면 글에서 읽음)
   const act=A.actualOf(r,null), lt=A.longtailCount(r), ch=A.jsonField(r.changes), nCh=ch.has&&!ch.bad&&Array.isArray(ch.val)?ch.val.length:null;
-  const kp=[['메타 ROAS',act.meta_roas,'%'],['자사몰 MER',act.mall_mer,'%'],['합산 MER',act.total_mer,'%'],['새 롱테일',lt,'개'],['외주 변경',nCh,'건']].filter(x=>x[1]!=null);
+  const of=A.offsOf(r), nOff=of.has&&!of.bad&&of.rows.length?of.rows.length:null;   // Aside 가 끈 것 (2026-10-19 규칙 안 끄기 · 있을 때만)
+  const kp=[['메타 ROAS',act.meta_roas,'%'],['자사몰 MER',act.mall_mer,'%'],['합산 MER',act.total_mer,'%'],['새 롱테일',lt,'개'],['외주 변경',nCh,'건'],['Aside 끔',nOff,'건']].filter(x=>x[1]!=null);
   const kpis=kp.length?`<div class="kp">${kp.map(([l,v,u])=>`<div><span>${esc(l)}</span><b>${u==='%'?esc(pctL(v)):esc(v)+'<small>'+u+'</small>'}</b></div>`).join('')}</div>`:'';
   // 본문 맨 위 '# 제목' 줄은 위 제목과 같아 뺌
   const lines=String(r.md||'').replace(/\r/g,'').split('\n'), h1=lines.findIndex(l=>l.trim());
@@ -275,22 +292,32 @@ function vRep(){
       <div class="md">${body.trim()?A.srcTags(C.mdLite(body)):`<p>${esc(r.summary||'내용 없음')}</p>`}</div></article>`;
 }
 function vOff(){
-  const L=A.changeLog(S.reps,todayKST());
-  if(!L.has&&!L.rows.length)return `<div class="card"><div class="empty">변경 기록이 아직 없어요 · 외주업체가 세팅을 바꾸면 다음 날 일일 보고서에 모여요</div></div>`;
-  const cnt=`<div class="cnts"><span>이번 주<b>${L.thisWeek}</b></span><span>이번 달<b>${L.thisMonth}</b></span><span>전체<b>${L.rows.length}</b></span></div>`;
-  const wk=L.weeks.length?`<div class="tbl"><table><thead><tr><th>주</th><th class="n">변경</th></tr></thead><tbody>${L.weeks.slice(0,12).map(x=>`<tr><td>${esc(A.weekL(x.w))}</td><td class="n">${x.n}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">없음</div>';
-  const mo=L.months.length?`<div class="tbl"><table><thead><tr><th>월</th><th class="n">변경</th></tr></thead><tbody>${L.months.slice(0,12).map(x=>`<tr><td>${esc(Number(x.m.slice(5,7)))}월 <span class="sub">${esc(x.m.slice(0,4))}</span></td><td class="n">${x.n}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">없음</div>';
-  const rows=L.rows.length?`<div class="tbl"><table class="offs ct"><thead><tr><th>날짜</th><th>누가</th><th>매체</th><th>캠페인</th><th>대상</th><th>무엇을</th><th>메모·근거</th></tr></thead><tbody>${L.rows.map(x=>`<tr>
+  // 끈 것·변경 (2026-10-19 규칙 안 끄기) — ① Aside 가 끈 것 + 규칙 점검 + 처리 대기 ② 외주 변경 ③ 주간·월간
+  const R=A.AUTO_OFF, L=A.changeLog(S.reps,todayKST(),R.noted), offs=L.offs, ch=L.changes, today=todayKST();
+  const rule=R.on?`<div class="crit"><b>규칙 안에서는 Aside 가 직접 꺼요</b> <span class="sub">${esc(R.by)} ${esc(R.since)} 확정</span><br>쿠팡 ${srcB(R.coupang.src)} ${esc(R.coupang.t)} · 매일<br>메타 ${srcB(R.meta.src,R.meta.page)} ${esc(R.meta.t)}<br><span class="sub">${esc(R.human)} · '점검' = 규칙 밖으로 보이는 줄에 빨간 꼬리표 (막지는 않음 · 사람이 확인)</span></div>`:'';
+  const med=Object.entries(L.offMedia).map(([m,n])=>`<span>${esc(m)}<b>${n}</b></span>`).join('');
+  const cnt=`<div class="cnts"><span>오늘<b>${L.offToday}</b></span><span>이번 주<b>${L.offWeek}</b></span>${med}<span>점검<b style="color:${L.offBad?'var(--red)':'var(--green)'}">${L.offBad?`확인 ${L.offBad}`:'이상 없음'}</b></span></div>`;
+  const pend=(R.pending||[]).length?`<div class="pend" id="off-pend"><b>처리 대기</b>${R.pending.map(x=>`<span>${esc(x.media)} ${esc(x.campaign)} 캠페인 · <b>${esc(x.target)}</b> — ${esc(x.note)} (${esc(dayL(x.date))})</span>`).join('')}</div>`:'';
+  const chk=(x)=>!x.chk?'<span class="sub">규칙 전</span>':x.warn.length?x.warn.map(w=>`<span class="warn">${esc(w)}</span>`).join(' '):'<span class="okc">규칙 안</span>';
+  const offT=offs.length?`<div class="tbl"><table class="offs ct" id="off-table"><thead><tr><th>날짜</th><th>매체</th><th>캠페인</th><th>대상</th><th>조치</th><th>근거</th><th>점검</th></tr></thead><tbody>${offs.map(x=>`<tr${x.warn&&x.warn.length?' class="warnrow"':''}>
+      <td data-l="날짜" style="white-space:nowrap"><span>${esc(x.date?dayL(x.date):'')}${x.noted?' <span class="sub">처리 기록</span>':''}</span></td><td data-l="매체">${x.media?`<span class="med m-${esc(x.media)}">${esc(x.media)}</span>`:''}</td>
+      <td data-l="캠페인">${esc(x.campaign)}</td><td data-l="대상"><b>${esc(x.target)}</b></td><td data-l="조치">${esc(x.what)}</td><td data-l="근거"><span>${A.srcTags(esc(x.note))}</span></td><td data-l="점검"><span>${chk(x)}</span></td></tr>`).join('')}</tbody></table></div>`
+    :`<div class="empty">아직 끈 것이 없어요${R.on?' · 쿠팡은 매일 08:30, 메타는 금요일 08:30 에 규칙에 걸리는 것만 꺼요':''}</div>`;
+  const noted=offs.some(x=>x.noted)?`<p class="crit sub">처리 기록 = 보고서를 올린 뒤 처리했다고 알려 준 것 · Aside 다음 일일 보고서 offs 에 들어오면 그 줄로 바뀌어요</p>`:'';
+  const chT=ch.length?`<div class="tbl"><table class="offs ct"><thead><tr><th>날짜</th><th>누가</th><th>매체</th><th>캠페인</th><th>대상</th><th>무엇을</th><th>메모·근거</th></tr></thead><tbody>${ch.map(x=>`<tr>
       <td data-l="날짜" style="white-space:nowrap">${esc(x.date?dayL(x.date):'')}</td><td data-l="누가">${esc(x.who)}</td><td data-l="매체">${x.media?`<span class="med m-${esc(x.media)}">${esc(x.media)}</span>`:''}</td>
       <td data-l="캠페인">${esc(x.campaign)}</td><td data-l="대상"><b>${esc(x.target)}</b></td><td data-l="무엇을">${esc(x.what)}</td><td data-l="메모·근거">${esc(x.note)}</td></tr>`).join('')}</tbody></table></div>`
-    :'<div class="empty">아직 외주 변경이 없어요</div>';
-  return `<div class="card"><h3>변경 기록 ${L.rows.length} <span class="sub">외주가 바꾼 세팅(일일 보고서 changes) · 최신순 · 10/15 이전 Aside 끈 것 포함</span></h3>${cnt}${rows}</div>
-    <div class="grid2"><div class="card"><h3>주간 <span class="sub">월요일 시작</span></h3>${wk}</div><div class="card"><h3>월간</h3>${mo}</div></div>`;
+    :'<div class="empty">아직 외주 변경이 없어요 · 외주업체가 세팅을 바꾸면 다음 날 일일 보고서에 모여요</div>';
+  const wk=L.weeks.length?`<div class="tbl"><table><thead><tr><th>주</th><th class="n">끈 것·변경</th></tr></thead><tbody>${L.weeks.slice(0,12).map(x=>`<tr><td>${esc(A.weekL(x.w))}</td><td class="n">${x.n}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">없음</div>';
+  const mo=L.months.length?`<div class="tbl"><table><thead><tr><th>월</th><th class="n">끈 것·변경</th></tr></thead><tbody>${L.months.slice(0,12).map(x=>`<tr><td>${esc(Number(x.m.slice(5,7)))}월 <span class="sub">${esc(x.m.slice(0,4))}</span></td><td class="n">${x.n}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">없음</div>';
+  return `<div class="card" id="off-card"><h3>끈 것 ${offs.length} <span class="sub">Aside 일일 보고서 offs${offs.some(x=>x.noted)?' + 처리 기록':''} · 최신순 · ${esc(dayL(today))} 기준</span></h3>${rule}${cnt}${pend}${offT}${noted}</div>
+    <div class="card"><h3>외주 변경 ${ch.length} <span class="sub">외주가 바꾼 세팅(일일 보고서 changes) · 최신순</span></h3>${chT}</div>
+    <div class="grid2"><div class="card"><h3>주간 <span class="sub">월요일 시작 · 끈 것 + 변경</span></h3>${wk}</div><div class="card"><h3>월간</h3>${mo}</div></div>`;
 }
 function nextFri(){const t=todayKST(),d=new Date(t+'T00:00:00Z'),add=(5-d.getUTCDay()+7)%7;return C.addDays(t,add);}
 function vJudge(){
   const J=A.judgeLog(S.reps);
-  const crit=`<div class="crit"><b>외주 기간 기준</b> ${srcB(A.SRC.K)} 테스트 캠페인 ROAS 300% (넘으면 고정 캠페인으로 옮길 후보 · 못 넘으면 다음 소재) · 고정 캠페인(이긴 소재·타겟) 400~500% 유지 — 캠페인 이름에 '테스트'가 있으면 테스트로 봐요<br><span class="sub">참고 ${srcB(A.SRC.P)} 증액 350%+ 2주 → 예산 +20% · 유지 200~350% · 종료 180% 미만 2주 · 구매 10건 전 보류 — 외주 운영 기간 판정 = 외주업체 ${srcB(A.SRC.D)} · 비교 = 겨울(Aside) ${srcB(A.SRC.A)}</span></div>`;
+  const crit=`<div class="crit"><b>외주 기간 기준</b> ${srcB(A.SRC.K)} 테스트 캠페인 ROAS 300% (넘으면 고정 캠페인으로 옮길 후보 · 못 넘으면 다음 소재) · 고정 캠페인(이긴 소재·타겟) 400~500% 유지 — 캠페인 이름에 '테스트'가 있으면 테스트로 봐요<br><span class="sub">참고 ${srcB(A.SRC.P)} 증액 350%+ 2주 → 예산 +20% · 유지 200~350% · 종료 180% 미만 2주 · 구매 10건 전 보류 — 외주 운영 기간 판정 = 외주업체 ${srcB(A.SRC.D)} · 비교 = 가을(Aside) ${srcB(A.SRC.A)}</span>${A.AUTO_OFF.on?`<br><b>자동 끄기</b> ${srcB(A.AUTO_OFF.meta.src,A.AUTO_OFF.meta.page)} ${esc(A.AUTO_OFF.meta.t)} — Aside 가 직접 (${esc(A.AUTO_OFF.by)} ${esc(A.AUTO_OFF.since)}) · <a href="#off">끈 것·변경 ›</a>`:''}</div>`;
   const cnt=`<div class="cnts">${A.JUDGE.map(j=>`<span>${j}<b>${J.count[j]}</b></span>`).join('')}<span>김송희 기준과 다름<b style="color:${J.kshDiff?'var(--red)':'inherit'}">${J.kshDiff}</b></span><span>(참고) 제안서와 다름<b>${J.diff}</b></span></div>`;
   const rows=J.rows.length?`<div class="tbl"><table class="ct"><thead><tr><th>날짜</th><th>캠페인</th><th>대상</th><th class="n">ROAS 14일</th><th class="n">ROAS 7일</th><th class="n">구매</th><th>외주 판정</th><th>근거</th><th>김송희 기준</th><th>비교</th><th>제안서 기준 (참고)</th></tr></thead><tbody>${J.rows.map(x=>`<tr>
       <td data-l="날짜" style="white-space:nowrap">${esc(x.date?dayL(x.date):'')}</td><td data-l="캠페인">${esc(x.campaign)}</td><td data-l="대상"><b>${esc(x.target)}</b></td>
@@ -307,7 +334,7 @@ function render(){
   // 순서 (2026-10-19 보기 개선): 보고서(또는 고른 탭) 먼저 → 제안서 검증(접힘) → 운영 기준·Aside 지시문(접힘) · #aside 면 지시문이 맨 위
   const view=S.view==='off'?vOff():S.view==='judge'?vJudge():vRep();
   const body=S.err?`<div class="msg" role="alert">${esc(S.err)}</div>`:S.asideTop?modeBar()+view+verify():view+verify()+modeBar();
-  $('#app').innerHTML=body+`<p class="foot">Aside 가 매일 08:30 일일 · 금요일 16:00 주간 광고 보고서를 올려요 · 이 화면은 읽기만 해요<br>실행: ${A.AD_MODE.mode==='parallel'?`메타·네이버·쿠팡 = 외주업체 + ${esc(A.AD_MODE.manager)} (바꿀 것 직접 또는 외주에 전함)`:'외주 운영 기간 메타·네이버·쿠팡 = 외주업체'} ${srcB(A.SRC.D)} · 운영 기준 = 김송희 관리방안 ${srcB(A.SRC.K)} · Aside = ${A.AD_MODE.mode==='parallel'?'분석·바꿀 안 (끄거나 바꾸지 않음)':'분석·보고만'} · 예산·목표 = 본부장 ${srcB(A.SRC.P)}</p>`;
+  $('#app').innerHTML=body+`<p class="foot">Aside 가 매일 08:30 일일 · 금요일 16:00 주간 광고 보고서를 올려요 · 이 화면은 읽기만 해요<br>실행: ${A.AD_MODE.mode==='parallel'?`메타·네이버·쿠팡 = 외주업체 + ${esc(A.AD_MODE.manager)} (바꿀 것 직접 또는 외주에 전함)`:'외주 운영 기간 메타·네이버·쿠팡 = 외주업체'} ${srcB(A.SRC.D)} · 운영 기준 = 김송희 관리방안 ${srcB(A.SRC.K)} · Aside = ${A.AD_MODE.mode==='parallel'?'분석·바꿀 안':'분석·보고만'}${A.AUTO_OFF.on?' + 규칙 안 끄기(쿠팡 제외 키워드 · 메타 금요일 OFF)':' (끄거나 바꾸지 않음)'} · 예산·목표 = 본부장 ${srcB(A.SRC.P)}</p>`;
 }
 document.addEventListener('click',(e)=>{
   if(e.target.closest('#show-aside')){S.showText=!S.showText;render();return;}

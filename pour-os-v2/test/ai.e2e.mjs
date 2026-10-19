@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { pinHash } from '../src/sha.js';
 import { askDoc, askFromReq } from '../../marketing-hub/crew.js';
 import { planExec } from '../src/aiask.js';   // ⑮ NPS 실행 업무 (2026-10-18)
+import { ASIDE_ADS_LAUNCH_VER as ADS_V } from '../../marketing-hub/adops.js';   // 광고 예약 글 판 (2026-10-19 규칙 안 끄기로 바뀜)
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const TEAM = path.join(here, 'out/team/index.html'), ADMIN = path.join(here, 'out/admin/admin.html');
@@ -257,7 +258,7 @@ const AA = '새 예약 글 넣기 · 예약 2개';
   await shot(s.pg, 'sh-adsaside-375'); ok('김송희 오늘 넘침 없음 375', !(await over(s.pg)));
   await inbox(s.pg, AA).first().getByRole('button', { name: '넣었어요', exact: true }).click(); await s.pg.waitForTimeout(600);
   const aa = await s.pg.evaluate(() => (window.__V2.v2.settings || {}).adsAside || null);
-  eq('[넣었어요] → 줄 사라짐 · settings/adsAside 판·누가', [await inbox(s.pg, AA).count(), aa && aa.ver, aa && aa.by], [0, '2026-10-16', 'sh']);
+  eq('[넣었어요] → 줄 사라짐 · settings/adsAside 판·누가', [await inbox(s.pg, AA).count(), aa && aa.ver, aa && aa.by], [0, ADS_V, 'sh']);
   await s.close(); }
 ST.v2.settings.adsAside = { ...ST.v2.settings.adsAside, ver: '2026-10-01' };   // 새 판이 나온 것처럼
 { let s = await session('hj', { admin: true, w: 1280, h: 900 });
@@ -284,7 +285,7 @@ ST.v2.settings.adsAside = { ...ST.v2.settings.adsAside, ver: '2026-10-01' };   /
   await expand(s.pg);
   eq('김송희에겐 이제 없음', await inbox(s.pg, AA).count(), 0);
   await s.close(); }
-ST.v2.settings.adsAside = { ...ST.v2.settings.adsAside, ver: '2026-10-16', ownerId: '' };   // 아래 시험은 넣은 것으로
+ST.v2.settings.adsAside = { ...ST.v2.settings.adsAside, ver: ADS_V, ownerId: '' };   // 아래 시험은 넣은 것으로
 
 // ⑥ 이란(관리자) — 담당 미정 봄 원고: 승인 → 이란 담당 칸 · 상급자 김송희에게 / 김송희 돌려보냄 → 이란 '수정 요청'
 { let s = await session('ran');

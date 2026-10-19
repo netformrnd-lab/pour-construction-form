@@ -394,7 +394,16 @@ const ok = (name, cond) => eq(name, !!cond, true);
   const has = (bd, c, re) => re.test(K.actOf(bd, c).s.join(' '));
   eq('우주 H 장부 먼저', [['gh-ref', 'A'], ['gh-ref', 'B'], ['gh-ref', 'C'], ['gh-rep', 'C'], ['gh-rep', 'G'], ['gh-ohou', 'H']].map(([bd, c]) => has(bd, c, /우주 H 장부|H 장부/)), [true, true, true, true, true, true]);
   ok('겨울 I = 택배 동봉 안내', /택배 동봉/.test(K.actOf('gh-conv', 'I').t) && has('gh-conv', 'I', /동봉 안내/));
-  ok('지시문 판 10-19.3 (가을 F 광고 보고 = 김송희 Aside 광고 루틴 하나 · 10-19.2 = ■ 6. 사용금지어)', K.ASIDE_VER === '2026-10-19.3');
+  ok('지시문 판 10-19.4 (겨울 C 사용금지어 찾기 · 10-19.3 = 가을 F 광고 보고 = 김송희 Aside 광고 루틴 하나 · 10-19.2 = ■ 6. 사용금지어)', K.ASIDE_VER === '2026-10-19.4');
+  { // 7A (사장님 2026-10-19 '모두 추천대로') — 겨울 C 상세 진단 = 지금 상세의 사용금지어도 매주 찾아 표 '사용금지어' 칸에 · 그 칸만 검사에서 뺌
+    const c = K.actOf('gh-conv', 'C'), tc = K.asideText(K.boardOf('gh-conv')), tt = K.asideText(K.boardOf('gh-traffic'));
+    eq('겨울 C 표 칸 = 근거 다음 사용금지어 · 카드 줄', [c.cols, c.card.lines.map((x) => x[0])], [['상품', '브랜드', '이미지', '이탈 지점', '근거', '사용금지어', '해결안', '상태값'], ['이탈 지점', '근거', '사용금지어']]);
+    ok('겨울 C 단계 = 상품명·옵션명·본문·이미지 글자에서 찾아 걸린 말 → 바꿔 쓰기 · 없으면 없음 · 근거 번호 같은 문장이면 안 셈', c.s.some((x) => /사용금지어\(■ 6\)를 찾아 '사용금지어' 칸에 '걸린 말 → 바꿔 쓰기'/.test(x) && /없으면 '없음'/.test(x) && /같은 문장에 있으면 안 셈/.test(x)));
+    ok("지시문: 그 칸 설명 + ■ 6 예외는 그 칸 하나 (겨울만 · 다른 보드엔 없음)", tc.includes("'사용금지어' 칸 = 지금 상세에서 찾은 말을 그대로 옮겨 적는 칸") && tc.includes("(찾은 말을 적는 '사용금지어' 칸만 예외)") && !tt.includes("'사용금지어' 칸만 예외") && !tt.includes("'사용금지어' 칸 = 지금 상세"));
+    eq('검사 = 사용금지어 칸은 안 봄 · 다른 칸은 봄', [K.bannedHits(K.bannedCellText({ 상품: '벽돌 코팅', 사용금지어: '친환경 → VOCs 저감을 고려해 설계된 / 무취 → 냄새가 적은', 해결안: '첫 화면 문구를 냄새가 적은 수성으로' })).length, K.bannedHits(K.bannedCellText({ 사용금지어: '없음', 해결안: '친환경 문구 유지' })).map((h) => h.hit)], [0, ['친환경']]);
+    const p = K.parseCrew('[C]\n요약: 히어로 4종 진단 · 사용금지어 3곳\n' + c.cols.join('\t') + '\n벽돌 코팅\t그로홈\t\t2화면\t리뷰 맨 끝\t완벽 방수 → 방수 성능이 우수한\t첫 화면 재배치\t제안', K.boardOf('gh-conv'));
+    eq('붙여 넣은 표 → 칸 그대로 · 승인 검사(askBanned 와 같은 글)엔 안 걸림', [p.acts.C.items[0].c['사용금지어'], K.bannedHits([p.acts.C.sum, ...p.acts.C.items.map((it) => K.bannedCellText(it.c))].join('\n')).length], ['완벽 방수 → 방수 성능이 우수한', 0]);
+  }
   { const tf = K.asideText(K.boardOf('gh-traffic'));
     ok("지시문 F: 김송희 Aside '광고' 루틴 하나(금 08:30 주간 + 메타 판정 · 스킬) · 광고 보고서·예약을 새로 만들지 않음 · 16:00 없음 (김송희 2026-10-19)",
       tf.includes("이 할 일은 김송희 PC Aside 프로젝트 '광고' 루틴 하나(매일 08:30 일일 · 금 08:30 주간 + 메타 판정 · 스킬 netform-ad-ops)가 한다") && tf.includes('광고 보고서를 따로 만들거나 광고 보고 예약을 새로 만들지 않는다 (예약은 그 루틴 하나 · 김송희 2026-10-19).') && !tf.includes('16:00')); }

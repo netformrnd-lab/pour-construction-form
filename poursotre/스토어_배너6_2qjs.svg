@@ -126,7 +126,7 @@
 		<path id="card2-bg" class="st23" d="M293,217.4h237c5.3,0,8,2.2,8,6.7v57.3c0,0-2.7,0-8,0H293V217.4z"/>
 		<rect id="card2-bar" x="293" y="217.4" class="st19" width="3" height="64"/>
 		<text id="card2-org" transform="matrix(1 0 0 1 310 247.585)" class="st20 st6 st24">한국전자통신연구원 (ETRI)</text>
-		<text id="card2-benefit" transform="matrix(1 0 0 1 310 261.5851)" class="st8 st6 st21">국내 최초 AI 도료 품질 자동 측정</text>
+		<text id="card2-benefit" transform="matrix(1 0 0 1 310 261.5851)" class="st8 st6 st21">새롭게 개발한 AI 도료 품질 자동 측정</text>
 		<path id="card3-bg" class="st23" d="M40,288.1h237c5.3,0,8,2.2,8,6.7V353c0,0-2.7,0-8,0H40V288.1z"/>
 		<rect id="card3-bar" x="40" y="288.1" class="st19" width="3" height="64.8"/>
 		<text id="card3-org" transform="matrix(1 0 0 1 57 318.6339)" class="st20 st6 st24">강남제비스코(주)</text>

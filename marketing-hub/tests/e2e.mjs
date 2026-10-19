@@ -318,6 +318,9 @@ for(const cw of [375,768,1280]){
     const bw=await q.textContent('#preview');
     check('크루 미리보기: 사용금지어 경고 (요약·표 칸 · 근거 번호는 안 뜸)',bw.includes('사용금지어 · B')&&bw.includes('친환경 → "VOCs 저감을 고려해 설계된"')&&bw.includes('무취 → ')&&!bw.includes('신기술 →'));
     await q.screenshot({path:`${OUT}/crew-banned-375.png`,fullPage:true});check('크루 미리보기 경고 375 넘침 없음',await overflow(q)<=0);
+    // 겨울 C 상세 진단 '사용금지어' 칸 = 지금 상세에서 찾은 말을 적은 칸 → 경고 안 함 (사장님 2026-10-19 7A)
+    await q.fill('#crew-text','[C]\n요약: 히어로 4종 진단 · 사용금지어 2곳\n상품\t브랜드\t이미지\t이탈 지점\t근거\t사용금지어\t해결안\t상태값\n벽돌 코팅\t그로홈\t\t2화면\t리뷰 맨 끝\t친환경 → VOCs 저감을 고려해 설계된 / 완벽 → 우수한\t첫 화면 재배치\t제안\n');await q.click('#preview-button');
+    check("크루 미리보기: 겨울 C '사용금지어' 칸(찾은 말)은 경고 안 함 · 표에 그 칸 보임",!(await q.textContent('#preview')).includes('사용금지어 · C')&&(await q.$$eval('#preview th',a=>a.map(x=>x.textContent))).includes('사용금지어')&&(await q.textContent('#preview')).includes('완벽 → 우수한'));
     await q.fill('#crew-date',today);await q.fill('#crew-text',CT);await q.click('#preview-button');
     const pv=await q.textContent('#preview'), ths=await q.$$eval('#preview th',a=>a.map(x=>x.textContent));
     check('크루 미리보기: 지표 1 · 승인 1 · 모르는 키(품절 soldout 은 2026-10-17 이음 보드로) · 마진 칸 뺌 · 번호 가림',pv.includes('지표 1개 · 승인 요청 1건')&&pv.includes('soldout · 모르는키')&&!ths.includes('마진')&&pv.includes('뺀 칸 마진')&&!pv.includes('30%')&&pv.includes('010-****-****')&&!pv.includes('1234-5678'));

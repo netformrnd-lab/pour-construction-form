@@ -762,7 +762,7 @@ Cloudflare Worker (workers/claude-proxy.js)
 - 바꿔 쓰기·그대로 쓸 수 있는 경우 전체 표 = 볼트 `00 사용금지어` · 시험성적서는 인증이 아님 · 건설신기술은 '제1026호'처럼 번호와 함께
 - PART 2 의 제품 문구(예: POUR코트재 '친환경 무취')를 POUR스토어·그로홈 글에 옮길 때도 이 규칙 — 근거 번호 없이는 '냄새가 적은' · 'VOCs 저감을 고려해 설계된'으로
 - 목록 원본 = `marketing-hub/banned.js` (고치면 `node marketing-hub/tools/banned-sync.mjs` → team_link.py(볼트 사본도) · 대시보드 AI · 리뉴얼 상세 AI · 옛 챗봇 · CRM 챗봇 사본 · 시험 `node marketing-hub/banned.test.mjs`) · 볼트 `00 사용금지어` 표도 같이
-- 자동 검사(표시만 · 근거 번호가 같은 문장에 있으면 안 뜸): 볼트 루틴 `team_link.py open`(걸리면 안 올림 · `--banned-ok`) · 허브 [📄 보기] 미리보기 · 업무OS AI 승인 한 장([AI에게 고쳐 달라기]) · crew 화면 미리보기·지시문 '■ 6' · CRM 챗봇 답변 지침·상담 AI 초안 · 숏폼 스튜디오 컷 칩 · 팀·마진 대시보드 AI · 리뉴얼 상세 AI
+- 자동 검사(표시만 · 근거 번호가 같은 문장에 있으면 안 뜸): 볼트 루틴 `team_link.py open`(걸리면 안 올림 · `--banned-ok`) · 허브 [📄 보기] 미리보기 · 업무OS AI 승인 한 장([AI에게 고쳐 달라기]) · crew 화면 미리보기·지시문 '■ 6' · CRM 챗봇 답변 지침·상담 AI 초안 · 숏폼 스튜디오 컷 칩 · 팀·마진 대시보드 AI · 리뉴얼 상세 AI · **겨울 C**(Aside 상세 진단 · 매주 월요일) = 지금 상세페이지의 걸린 말을 표 '사용금지어' 칸에(찾은 말을 적는 칸이라 미리보기·승인 검사에서 뺌 · `banned.js` BANNED_COL · 2026-10-19 사장님 7A)
 
 ---
 

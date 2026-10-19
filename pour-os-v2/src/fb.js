@@ -90,6 +90,11 @@ export async function readV1Launch() { const snap = await getDocs(collection(db,
 // v1 문서 하나 실시간 읽기 (관리자 반복 실행: state-actionKPIs · kpi-act-YYYY-Qn) — 읽기만, 쓰지 않음
 // 허브 '오늘 숫자' (pour-os/marketing-hub/mkt-notes/today-numbers · 매일 06:10 GitHub) — 결과 숫자 경고(feeds.js)가 counts 만 봄 · 읽기만 (2026-10-17)
 export async function getHubNumbers() { const s = await getDoc(doc(db, "pour-os", "marketing-hub", "mkt-notes", "today-numbers")); const d = s.exists() ? s.data() : null; console.log(`[허브 오늘 숫자] ${d ? d.date || "있음" : "없음"}`); return d ? { counts: d.counts || {}, at: d.at || "", date: d.date || "" } : { counts: {}, at: "" }; }
+// 허브 업로더 계정 (2026-10-19 사장님 3A · 'Aside 세팅' 계정 ✓ · 올린 계정 이름) — 허브 열린 저장소 pour-os/marketing-hub/mkt-access/roles 읽기만 · 쓰지 않음
+//   이름·역할·사용 여부·메일만 꺼냄 (메일은 화면에 안 보임 · aiboards.by 메일 → 이름 찾기용) · 허브가 잠긴 저장소로 옮기면 못 읽음 → 화면이 '모름'
+export async function getHubRoles() { const s = await getDoc(doc(db, "pour-os", "marketing-hub", "mkt-access", "roles")); const d = s.exists() ? s.data() : null;
+  const people = Object.values((d && d.people) || {}).filter((p) => p && typeof p === "object").map((p) => ({ email: String(p.email || "").toLowerCase(), name: String(p.name || ""), role: String(p.role || ""), active: p.active !== false }));
+  console.log(`[허브 계정] ${d ? `${people.length}명` : "문서 없음"}`); return people; }
 export function listenV1Doc(id, cb, onErr) {
   return onSnapshot(doc(db, "pour-os", String(id)), (s) => { const d = s.exists() ? s.data() : null; console.log(`[v1 ${id} 읽기] ${d ? "있음" : "없음"}`); cb(d); },
     (e) => { console.error(`[v1 ${id}] 읽기 실패:`, e); onErr && onErr(e); });

@@ -8,7 +8,7 @@ import { AddSheet, MineSheet, FocusTriage } from "./today.jsx";
 import { useTask } from "./task.jsx";
 import { LockSheet } from "./secretui.jsx";
 import { TplSaveSheet, TplBoxSheet, TplSheet, TplNewSheet } from "./tplui.jsx";
-import { AiAskSheet, AiMateSheet, AiTeamSheet, AiSetupSheet, AiReqSheet } from "./aiui.jsx";
+import { AiAskSheet, AiMateSheet, AiTeamSheet, AiSetupSheet, AiSetupAllSheet, AiReqSheet } from "./aiui.jsx";
 import { AiReportSheet } from "./aireport.jsx";
 import { ApprSheet, ApprOneSheet } from "./apprui.jsx";
 import { Sheet, Empty } from "./ui.jsx";
@@ -48,7 +48,8 @@ function route(s, p, extra) {
   if (s.type === "aiask") return <AiAskSheet {...p} id={s.id} focus={s.focus} note={s.note} />;
   if (s.type === "aiMate") return <AiMateSheet {...p} id={s.id} />;
   if (s.type === "aiTeam") return <AiTeamSheet {...p} />;
-  if (s.type === "aiSetup") return <AiSetupSheet {...p} owner={s.owner} />;   // 내 PC Aside 세팅 (2026-10-15)
+  if (s.type === "aiSetup") return <AiSetupSheet {...p} owner={s.owner} />;   // 내 PC Aside 세팅 (2026-10-15 · 2026-10-19 3단계 체크)
+  if (s.type === "aiSetupAll") return <AiSetupAllSheet {...p} />;   // Aside 세팅 현황 (2026-10-19 사장님 4A · 관리자)
   if (s.type === "aiReq") return <AiReqSheet {...p} mate={s.mate} preset={s.preset} />;
   if (s.type === "devreq") return <DevReqSheet {...p} app={s.app} tab0={s.tab} />;
   if (s.type === "devplan") return <DevPlanSheet {...p} ym={s.ym} />;   // 이달 개발 목록 (2026-10-17 · 김송희 확인 → 주말 개발)

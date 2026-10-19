@@ -537,7 +537,7 @@
   const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
   /* 크루 보드 Aside 루틴 (2026-10-14 사장님 "모든 크루들의 행위들 모두 가능하게 세팅해줘") — 보드 하나 = Aside 예약 작업 하나 · 평일
      2026-10-15 사장님 "사람 담당자들 모두 어사이드 돌릴 수 있어. 각각 돌려서 빨리" → 담당마다 자기 PC · 담당이 다르면 모두 09:00 동시에(같은 담당 여럿이면 그 PC 에서 한 시간씩 = crew.asidePlan)
-     시각·보드·이름 = crew.js BOARDS run · CREWS (crew.test.mjs 가 같은지 봄 — 바꾸면 둘 다) · 예약 글 = crew.html 세팅 카드 [예약 글 복사] → 화면 지시문을 그대로
+     시각·보드·이름 = crew.js BOARDS run · CREWS (crew.test.mjs 가 같은지 봄 — 바꾸면 둘 다) · 예약 글 = 업무OS AI 팀원 › 내 PC Aside 세팅 [예약 글 복사] → 화면 지시문을 그대로 (2026-10-19 사장님 1A · crew.html 은 Aside 전용)
      예약을 실제로 걸면 status 'on' 으로 */
   const CREW_ASIDE = [
     { mate: 'gaeul', name: '가을', board: 'gh-traffic', title: '광고·검색 유입 보드', t: '09:00', cat: 'ads', what: '자사몰 유입 감시 · 롤러 재노출·네이버 유입 복구 · 쿠팡 광고 키워드 · 네이버 검색광고 · 메타 광고 · 구글 디맨드젠 · 오늘의집 광고 · 광고 보고 한 줄' },
@@ -577,7 +577,7 @@
     // 크루 보드 Aside 루틴 (2026-10-14 6개 · 2026-10-17 14개) — 아래 CREW_ASIDE 한 줄 = 예약 작업 하나
     ...CREW_ASIDE.filter((c) => !c.closed).map((c) => ({ id: 'aside-crew-' + c.board,   // 닫힌 크루(B2B · 2026-10-17 사장님 "닫아놔")는 빼고
       name: `AI 크루 · ${c.name} (${c.title})`, cat: c.cat, where: 'asideOwner', run: { dow: c.dow || WEEKDAYS, t: c.t }, who: c.name, status: 'wait',
-      note: '담당 PC Aside 예약 · 사이트 로그인 · 업무OS 담당 정한 뒤 (crew.html 세팅 카드 · 같은 담당이 여럿이면 한 시간씩)', what: `${c.what} → 업무OS AI 승인(담당 → 리드 → 본부장) · 실행은 사람`, ref: 'crew.html#' + c.board })),
+      note: '담당 PC Aside 예약 · 사이트 로그인 · 업무OS 담당 정한 뒤 (업무OS AI 팀원 › Aside 세팅 · 같은 담당이 여럿이면 한 시간씩)', what: `${c.what} → 업무OS AI 승인(담당 → 리드 → 본부장) · 실행은 사람`, ref: 'crew.html#' + c.board })),
   ];
   const MEMBER_CAT = { haru: 'plan', pori: 'content', luna: 'content', teo: 'content', noa: 'plan', tobi: 'plan', moka: 'data', leo: 'stock', kei: 'ads', daon: 'customer', sora: 'ads', roy: 'plan', ria: 'customer', jay: 'ads', eco: 'content', nari: 'content', onyu: 'customer' };
   function automations() {

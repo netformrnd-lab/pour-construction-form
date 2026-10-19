@@ -85,6 +85,7 @@ function Main({ D, cu, meta, setMeta, logout, view = null, tab0 = "" }) {
       const nt = note ? { focus: "talk", note } : {};
       if (kind === "p") open({ type: "project", id, ...(note ? { first: "news", note } : {}) }); else if (kind === "r") open({ type: "routine", id, ...nt });
       else if (kind === "a") open({ type: "aiask", id, ...nt });   // AI 승인 링크 (#a-승인ID · 허브·문자에서)
+      else if (kind === "s") open({ type: id === "all" ? "aiSetupAll" : "aiSetup" });   // Aside 세팅 (#s-aside · 허브 crew 화면 맨 위 한 줄 · 2026-10-19 사장님 1A) · #s-all = 세팅 현황
       else { const t = Dref.current.tasks.find((x) => x.id === id) || (Dref.current.removedFx || []).find((x) => x.id === id) || (Dref.current.removedTasks || []).find((x) => x.id === id); open({ type: t && t.isFixed ? "fixed" : "task", id, ...nt }); } };
     go(); window.addEventListener("hashchange", go); return () => window.removeEventListener("hashchange", go); }, []);
   // 시트 화면 상태(지난 일 정리 몇 번째 · 내 정리 탭·고른 것 · 프로젝트 탭)를 그 시트 칸에 적어 둠 → 위 시트에서 '뒤로' 오면 이어서

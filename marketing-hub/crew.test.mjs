@@ -391,7 +391,7 @@ const ok = (name, cond) => eq(name, !!cond, true);
   const has = (bd, c, re) => re.test(K.actOf(bd, c).s.join(' '));
   eq('우주 H 장부 먼저', [['gh-ref', 'A'], ['gh-ref', 'B'], ['gh-ref', 'C'], ['gh-rep', 'C'], ['gh-rep', 'G'], ['gh-ohou', 'H']].map(([bd, c]) => has(bd, c, /우주 H 장부|H 장부/)), [true, true, true, true, true, true]);
   ok('겨울 I = 택배 동봉 안내', /택배 동봉/.test(K.actOf('gh-conv', 'I').t) && has('gh-conv', 'I', /동봉 안내/));
-  ok('지시문 판 10-18.2', K.ASIDE_VER === '2026-10-18.2');
+  ok('지시문 판 10-19 (사람 세팅 = 업무OS Aside 세팅)', K.ASIDE_VER === '2026-10-19');
 }
 
 // ── 2026-10-17 사장님 확정 (2팀 운영 · 1A 2A 4-1) ──
@@ -491,7 +491,7 @@ t = T.summary_note(asks, {'A·B 장부': 1, '주간 보고': 1}); print(json.dum
   const po = K.parseCrew(['[I]', '요약: 주소 표', K.actOf('gh-ohou', 'I').cols.join('\t'), ['GH-P001-03031', '롤러일체형 페인트', '그로홈', MALL].join('\t')].join('\n'), K.boardOf('gh-ohou'));
   eq('봄 I(자사몰 주소 표) = 꼬리표 안 붙음 · 담당에서 끝 · 실행 업무 없음', (([a]) => [a.items[0].c['자사몰 주소'], a.exec, a.hq])(K.asksFromParse(po, { board: 'gh-ohou', mate: 'bom', brand: 'grohome', run: '2026-10-20', at: '', owner: 'u1', src: 'crew' })), [MALL, '', '']);
   const ta = K.asideText(K.BOARDS['gh-exp']);
-  ok('지시문: 보내는 할 일마다 링크 안내 · ■5 직접 붙이지 않음 · 판 10-18.2', ta.includes('  링크: 자사몰·스마트스토어 상품 주소는 꼬리표 없이 그대로 쓴다 — 올릴 때 이 화면이 이 할 일의 꼬리표(influencer · influencer ·') && ta.includes('- 링크에 utm·nt 꼬리표를 직접 붙이지도 지우지도 않는다') && ta.includes('판 2026-10-18.2'));
+  ok('지시문: 보내는 할 일마다 링크 안내 · ■5 직접 붙이지 않음 · 판 10-18.2', ta.includes('  링크: 자사몰·스마트스토어 상품 주소는 꼬리표 없이 그대로 쓴다 — 올릴 때 이 화면이 이 할 일의 꼬리표(influencer · influencer ·') && ta.includes('- 링크에 utm·nt 꼬리표를 직접 붙이지도 지우지도 않는다') && ta.includes('판 ' + K.ASIDE_VER));
   eq('허브 core.js 글 채널 열쇠 = 꼬리표 채널 열쇠 (글 꼬리표 source)', Object.keys(K.POST_SOURCE), Object.keys(C.CHANNEL));
 }
 // ── 2026-10-18 사장님 2-1A NPS 점수 · 2-3A 링크 성과 ──
@@ -538,6 +538,15 @@ print(json.dumps({'nps': [T.nps_of(x) for x in a['sc']], 'line': T.nps_line(T.np
   eq('JS 쪽 같은 줄 = 같은 글 키 숫자', K.linkStatRows(IT.map((c, i) => it(`D${i + 1}`, c))).map((x) => [x.key, x.where, x.visits, x.buys, x.sales, x.views]), [['1018-ab12-2', '카페24 그로홈 + 스마트스토어 그로홈', 150, 3, 60000, 800]]);
   eq('team_link.py 할 일 = 별 D(links) · 봄 I(자사몰 주소) · 카드 칸 자사몰주소', [got.la, got.ma, got.card, !!K.actOf('ops-report', 'D').links, K.actOf('gh-ohou', 'I').cols.includes('자사몰 주소')], [[['byeol', 'D']], [['bom', 'I']], '자사몰주소', true, true]);
   eq('team_link.py 자사몰 주소 = 꼬리표 떼고 상품 주소만 (utm.js untagUrl 과 같게 · 첫 화면·스마트스토어 = 빈칸)', got.url, [MALL, '', '', K.untagUrl(URLS[3])]);
+}
+
+// Aside 세팅 쉽게 (2026-10-19 사장님 1A~4A) — 사이트 [열기] 주소 · 시험 한 번 글(예약 아님) · 시험할 크루
+{ const L = K.loginSites([K.boardOf('gh-traffic')]), u = Object.fromEntries(L.map((x) => [x.s, x.u]));
+  eq('로그인해 둘 곳 [열기] = 확실한 주소만 · 모르는 곳은 빈칸', [u['카페24'], u['메타 광고관리자'], u['오늘의집 파트너센터'], L.every((x) => x.u === '' || /^https:\/\//.test(x.u))], ['https://eclogin.cafe24.com/Shop/', 'https://adsmanager.facebook.com/', '', true]);
+  const T = K.asideNowLaunch(K.boardOf('gh-conv'));
+  eq('시험 한 번 글 = 지금 한 번(예약 아님) · 화면 지시문 그대로 · 짧게', [T.split('\n')[0], T.includes('crew.html#gh-conv'), T.includes('예약 작업은 만들지 않는다'), T.length < 700], ['[AI 크루 · 겨울 (전환마케터 · UX/UI·응대) · 그로홈 전환 보드] 지금 한 번 (시험 · 예약 아님)', true, true, true]);
+  const R = (id, t) => ({ board: K.boardOf(id), t });
+  eq('시험할 크루 = 평일 크루 중 처음 · 주 1회만 있으면 그것', [K.testRunOf([R('hq-plan', '09:00'), R('gh-ref', '10:00')]).board.id, K.testRunOf([R('hq-plan', '09:00')]).board.id, K.testRunOf([])], ['gh-ref', 'hq-plan', null]);
 }
 
 console.log(`\n${n - bad}/${n} 통과`); if (bad) process.exit(1);

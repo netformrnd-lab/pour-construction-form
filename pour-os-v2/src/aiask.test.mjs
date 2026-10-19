@@ -112,13 +112,14 @@ eq("새 보드 한 PC = 요일이 다르면 같은 시각도 · 겹치면 뒤로
   ["ops-report 09:00", "hq-plan 09:00", "ops-order 15:00"]);
 const s0 = X.asideInbox(DA(), "yj", W11);
 eq("처음 = 내 PC 세팅 한 줄 (안 돎 알림은 아직)", s0.map((x) => [x.kind, x.title, x.keep]), [["aiSetup", "내 PC Aside 세팅 · 겨울 09:00 · 우주 10:00", true]]);
-eq("한 보드만 올라오면 남은 것만 세팅", X.asideInbox(DA({ "gh-conv": { at: at("2026-10-14T09:05:00") } }), "yj", W11).map((x) => [x.kind, x.id]), [["aiSetup", "as:yj:gh-rep"]]);
+eq("처음 세팅 줄 = 3단계 중 몇 단계 · 다음 할 일 (2026-10-19 사장님 2A)", s0.map((x) => [x.id, x.owner, x.text]), [["asu:yj", "yj", "3단계 중 0단계 끝 · 다음: ① 사이트 로그인 0/7 · 마케팅 허브 crew 화면"]]);
+eq("한 보드만 올라와도 체크 전이면 세팅 줄 그대로 (③ 시험만 ✓)", X.asideInbox(DA({ "gh-conv": { at: at("2026-10-14T09:05:00") } }), "yj", W11).map((x) => [x.kind, x.id, x.text]), [["aiSetup", "asu:yj", "3단계 중 1단계 끝 · 다음: ① 사이트 로그인 0/7 · 마케팅 허브 crew 화면"]]);
 const yb = { "gh-conv": { at: at("2026-10-13T09:04:00") }, "gh-rep": { at: at("2026-10-13T10:06:00") } };
 eq("어제까지 돌았는데 오늘 안 올림 = 예약 + 90분 지난 것만", X.asideInbox(DA(yb), "yj", W11).map((x) => [x.kind, x.board, !!x.red, x.id]), [["aiMiss", "gh-conv", true, "am:gh-conv:2026-10-14"]]);
 eq("오후엔 둘 다", X.asideInbox(DA(yb), "yj", new Date("2026-10-14T15:00:00")).map((x) => x.board), ["gh-conv", "gh-rep"]);
 eq("오늘 올렸으면 없음", X.asideInbox(DA({ ...yb, "gh-conv": { at: at("2026-10-14T09:10:00") } }), "yj", W11), []);
 eq("주말·공휴일은 안 돎 알림 없음", [X.asideInbox(DA(yb), "yj", new Date("2026-10-17T15:00:00")), X.asideInbox(DA(yb), "yj", new Date("2026-10-09T15:00:00"))], [[], []]);
-eq("관리자 = 담당 미정 한 줄", X.asideInbox(DA(yb), "ran", W11).map((x) => [x.kind, x.title, x.text.split(" · 담당")[0]]), [["aiOwnerless", "AI 크루 담당 미정 5명", "가을 · 봄 · 여름 · 바람 · 하늘"]]);
+eq("관리자 = 담당 미정 한 줄", X.asideInbox(DA(yb), "ran", W11).filter((x) => x.kind !== "aiSetupAll").map((x) => [x.kind, x.title, x.text.split(" · 담당")[0]]), [["aiOwnerless", "AI 크루 담당 미정 5명", "가을 · 봄 · 여름 · 바람 · 하늘"]]);
 // 광고 Aside 예약 글 (2026-10-17 사장님 "까먹을것같은데 os 확인할것에 나오게해줘") — 받는 사람 한 줄(keep) · 넣은 판이 지금 판보다 옛것일 때만
 //   받는 사람 (2026-10-17 사장님 "Aside 예약은 김송희에게만 os에 알림뜨게해") = settings/adsAside.ownerId → 김송희 → 없으면 관리자 누구나
 { const k = (st, uid, users) => X.asideInbox({ ...DA(yb, undefined, st), ...(users ? { users } : {}) }, uid, W11).filter((x) => x.kind === "adsAside").map((x) => [x.id, x.title, x.keep]);
@@ -130,8 +131,51 @@ eq("관리자 = 담당 미정 한 줄", X.asideInbox(DA(yb), "ran", W11).map((x)
   eq("받는 사람 계산 · [넣었어요] 할 수 있는 사람(받는 사람 · 관리자)", [X.adsAsideOwner({ users: U, settings: [] }), X.adsAsideOwner({ users: U, settings: [{ id: "adsAside", ownerId: "gm" }] }), X.adsAsideOwner({ users: U.filter((u) => u.id !== "sh"), settings: [] }), X.canAdsAside({ users: U, settings: [] }, me("sh")), X.canAdsAside({ users: U, settings: [] }, me("ran")), X.canAdsAside({ users: U, settings: [] }, me("yj"))], ["sh", "gm", "", true, true, false]);
   eq("광고 예약 글 판 읽기 (settings/adsAside · 없으면 빈 글)", [X.adsAsideVer({ settings: [{ id: "adsAside", ver: "2026-10-16" }] }), X.adsAsideVer({ settings: [] }), X.adsAsideVer({})], ["2026-10-16", "", ""]); }
 eq("담당 아님·준비 전·없는 사람 = 없음", [X.asideInbox(DA(yb), "yr", W11), X.asideInbox({ users: U, ai: { ready: false } }, "yj", W11), X.asideInbox(DA(), "nobody", W11)], [[], [], []]);
-eq("모두 담당 있으면 미정 줄 없음", X.asideInbox(DA(yb, Object.fromEntries(["bom", "yeoreum", "gaeul", "gyeoul", "haneul", "uju", "baram", ...Object.keys(NEWM)].map((m) => [m, { owners: { _: "cw" } }]))), "ran", W11), []);
+eq("모두 담당 있으면 미정 줄 없음 (세팅 현황 줄만)", X.asideInbox(DA(yb, Object.fromEntries(["bom", "yeoreum", "gaeul", "gyeoul", "haneul", "uju", "baram", ...Object.keys(NEWM)].map((m) => [m, { owners: { _: "cw" } }]))), "ran", W11).map((x) => x.kind), ["aiSetupAll"]);
 eq("쉬는 사람이 담당이면 미정으로", X.asidePlanOf(DA({}, { gyeoul: { owners: { _: "old" } } })).map((g) => g.owner), [""]);
+// Aside 세팅 3단계 (2026-10-19 사장님 확정 1A~4A) — asidesetup/{담당} 체크 · 시험 = 보드가 올라오면 저절로 ✓ · 끝 = 셋 다 또는 모든 크루가 한 번 이상 올라옴
+{ const SU = (setups, boards) => ({ ...DA(boards || {}), ai: { ...DA(boards || {}).ai, setups: setups || {} } });
+  const gy = (D) => X.asidePlanOf(D).find((g) => g.owner === "yj"), so = (setups, boards, now = W11) => { const D = SU(setups, boards); return X.setupOf(D, gy(D), now); };
+  const s0 = so();
+  eq("세팅 처음: 사이트 7곳(허브 + 겨울·우주 6곳) · 예약 3(크루 2 + 고칠 것 확인) · 다음 = ① 허브", [s0.s1, s0.s2, s0.s3.done, s0.k, s0.step, s0.done, s0.sites[0].hub, s0.sites.map((x) => x.key).slice(0, 3)],
+    [{ n: 0, of: 7, done: false }, { n: 0, of: 3, moved: 0, done: false }, false, 0, 1, false, true, ["마케팅허브crew화면", "카페24", "스마트스토어센터"]]);
+  eq("[열기] 주소 = 확실한 곳만 (카페24 있음 · 허브 줄은 화면이 넣음)", [s0.sites[0].u, s0.sites.find((x) => x.s === "카페24").u, s0.sites.find((x) => x.s === "쿠팡윙").u], ["", "https://eclogin.cafe24.com/Shop/", "https://wing.coupang.com/"]);
+  const allSites = Object.fromEntries(s0.sites.map((x) => [x.key, { on: true, at: "x" }]));
+  const s1 = so({ yj: { sites: allSites } });
+  eq("① 다 체크 → 다음 = ② 예약 (겨울부터)", [s1.s1.done, s1.k, s1.step, s1.next], [true, 1, 2, "② 예약 넣기 0/3 · 겨울"]);
+  const runs = { "gh-conv": { on: true, t: "09:00", at: at("2026-10-14T08:30:00") }, "gh-rep": { on: true, t: "10:00", at: at("2026-10-14T08:31:00") }, _fix: { on: true, at: at("2026-10-14T08:32:00") } };
+  const s2 = so({ yj: { sites: allSites, runs } });
+  eq("② 다 넣음 → 다음 = ③ 시험", [s2.s2, s2.step, s2.next], [{ n: 3, of: 3, moved: 0, done: true }, 3, "③ [시험 한 번]"]);
+  const s3 = so({ yj: { sites: allSites, runs, test: { at: at("2026-10-14T10:50:00"), board: "gh-conv" } } });
+  eq("③ 시험 누름 · 아직 → 기다리는 중 → 30분 넘으면 확인 안내", [s3.next, s3.test.waitMin, so({ yj: { sites: allSites, runs, test: { at: at("2026-10-14T10:20:00") } } }).next],
+    ["③ 시험 결과 기다리는 중 · 올라오면 저절로 ✓", 10, "③ 시험 결과가 40분째 안 올라왔어요 · Aside 화면에서 멈춘 곳 확인"]);
+  const s4 = so({ yj: { sites: allSites, runs, test: { at: at("2026-10-14T10:50:00") } } }, { "gh-conv": { at: at("2026-10-14T10:58:00") } });
+  eq("시험 결과 올라옴 → ✓ · 셋 다 = 끝 · 세팅 줄 사라짐", [s4.s3.done, s4.test.lastAt, s4.test.lastBoard.id, s4.done, s4.step, s4.next, X.asideInbox(SU({ yj: { sites: allSites, runs } }, { "gh-conv": { at: at("2026-10-14T10:58:00") } }), "yj", W11).filter((x) => x.kind === "aiSetup").length],
+    [true, at("2026-10-14T10:58:00"), "gh-conv", true, 0, "세팅 끝 · 평일마다 이 PC 에서 돌아요", 0]);
+  eq("체크를 안 했어도 모든 크루가 한 번 이상 올라오면 끝 (예전 기준)", [so({}, yb).done, so({}, yb).k], [true, 1]);
+  const mv = so({ yj: { sites: allSites, runs: { ...runs, "gh-rep": { on: true, t: "11:00", at: "x" } } } }, yb);
+  eq("예약 시각이 바뀐 크루 = 끝 아님 · 다시 넣기 안내 (모두 올라왔어도)", [mv.done, mv.s2.moved, mv.step, mv.next], [false, 1, 2, "② 예약 시각이 바뀐 크루 1명 · 우주 11:00 → 10:00 · 예약을 고쳐 주세요"]);
+  eq("체크 풀기(on false) = 안 한 것 · 사이트 열쇠는 이름에서 기호만 뺌", [so({ yj: { sites: { ...allSites, 카페24: { on: false } } } }).s1.n, X.siteKey("네이버 검색광고 (그로홈 광고 계정)"), X.siteKey("POUR스토어 블로그·티스토리·네이버 카페"), X.setupDocId(""), X.setupDocId("yj")],
+    [6, "네이버검색광고그로홈광고계정", "POUR스토어블로그티스토리네이버카페", "_none", "yj"]);
+  // 예약을 넣었는데 한 번도 안 올라옴 (missSince) — 넣은 날 예약 시각 전이면 그날부터 · 쉬는 날엔 0
+  eq("넣은 뒤 안 올라옴 날 수", [X.missSince(at("2026-10-13T08:00:00"), "09:00", W11), X.missSince(at("2026-10-13T10:30:00"), "09:00", W11), X.missSince(at("2026-10-13T10:30:00"), "09:00", new Date("2026-10-14T10:00:00")), X.missSince(at("2026-10-14T08:00:00"), "09:00", new Date("2026-10-14T10:00:00")), X.missSince(at("2026-10-13T08:00:00"), "09:00", new Date("2026-10-17T15:00:00")), X.missSince("", "09:00", W11)],
+    [2, 1, 0, 0, 0, 0]);
+  eq("주 1회 크루(월)는 그 요일만", [X.missSince(at("2026-10-13T08:00:00"), "09:00", new Date("2026-10-19T11:00:00"), [1]), X.missSince(at("2026-10-13T08:00:00"), "09:00", new Date("2026-10-16T15:00:00"), [1])], [1, 0]);
+  const nv = X.asideInbox(SU({ yj: { runs: { "gh-conv": { on: true, t: "09:00", at: at("2026-10-13T08:00:00") } } } }), "yj", W11).filter((x) => x.kind === "aiMiss");
+  eq("예약 넣었는데 한 번도 안 올림 = 담당 '안 돎' 빨강 (평일 n일째)", nv.map((x) => [x.board, x.title, !!x.red]), [["gh-conv", "겨울(AI) 예약을 넣었는데 아직 한 번도 안 올렸어요 · 평일 2일째", true]]);
+  eq("[넣었어요] 전·올린 적 없음 = 안 돎 없음 (세팅 줄 몫)", X.asideInbox(SU({}), "yj", W11).filter((x) => x.kind === "aiMiss").length, 0);
+  // 관리자 세팅 현황 (4A) — 담당 PC 마다 · 담당 미정 크루는 셈에서 뺌 · 읽음 = 오늘 하루
+  const sa = (setups, boards, seen) => X.asideInbox(SU(setups, boards), "ran", W11, seen).filter((x) => x.kind === "aiSetupAll").map((x) => [x.id, x.title, x.text]);
+  eq("관리자 = Aside 세팅 현황 한 줄 (끝 안 난 담당이 있을 때)", sa({ yj: { sites: allSites } }), [["asa:2026-10-14", "Aside 세팅 현황 · 담당 0/2명 끝", "남윤정 1/3 · 김채원 0/3 · 업로더 계정은 허브 '계정'에서 담당마다 하나씩"]]);
+  eq("읽으면 오늘 하루 숨김 · 팀원엔 없음", [sa({}, {}, { "asa:2026-10-14": true }).length, X.asideInbox(SU({}), "yj", W11).filter((x) => x.kind === "aiSetupAll").length], [0, 0]);
+  const allDone = { ...yb, "ops-report": { at: at("2026-10-13T09:00:00") }, "hq-plan": { at: at("2026-10-13T09:00:00") }, "ops-order": { at: at("2026-10-13T15:00:00") } };
+  eq("담당 모두 끝 = 줄 없음 (담당 미정 크루가 남아도)", sa({}, allDone), []);
+  const rows = X.setupRows(SU({}, allDone));
+  eq("현황 줄 = 계획 순서 · 이름 · 담당 미정은 맨 뒤", rows.map((x) => [x.owner, x.name, x.done]), [["yj", "남윤정", true], ["cw", "김채원", true], ["", "담당 미정 · 관리자 PC", false]]);
+  // 업로더 계정 (3A) — 허브 people 중 사용 중인 업로더 · 이름에 담당 이름 · 끝이 같은 이름 하나
+  const P = [{ email: "a@x", name: "Aside", role: "uploader" }, { email: "m@x", name: "김민지 Aside", role: "uploader" }, { email: "s@x", name: "송희", role: "uploader" }, { email: "c@x", name: "남윤정", role: "staff" }, { email: "o@x", name: "변유림", role: "uploader", active: false }];
+  eq("업로더 계정 맞추기", [X.uploaderOf(P, "김민지").email, X.uploaderOf(P, "김송희").email, X.uploaderOf(P, "남윤정"), X.uploaderOf(P, "변유림"), X.uploaderOf(null, "김민지"), X.uploaderOf(P, "김")], ["m@x", "s@x", null, null, undefined, null]);
+  eq("올린 계정 이름 (aiboards.by 메일 → 허브 이름 · 모르면 빈 글)", [X.accountName(P, "M@x"), X.accountName(P, "z@x"), X.accountName(null, "a@x")], ["김민지 Aside", "", ""]); }
 eq("안 돎 판단 = 세팅 시트와 같은 계산", [X.missedOn(yb["gh-conv"], "09:00", W11), X.missedOn(yb["gh-rep"], "10:00", W11), X.missedOn(null, "09:00", W11), X.missedOn(yb["gh-conv"], "09:00", new Date("2026-10-17T15:00:00"))], [true, false, false, false]);
 eq("그날 올렸나", [X.ranOn({ at: at("2026-10-14T00:10:00") }, "2026-10-14"), X.ranOn({ at: at("2026-10-13T23:50:00") }, "2026-10-14"), X.ranOn(null, "2026-10-14")], [true, false, false]);
 

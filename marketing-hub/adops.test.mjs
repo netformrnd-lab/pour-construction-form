@@ -45,7 +45,8 @@ const pdoc = { title: '데일리그로스 메타 운영 제안서(2026.10.15) �
   gaps_20261015: ['메타 캠페인 3단 구조 아님', '구매자 제외 타겟 없음'], source_rule: '[제안서 pXX] / [김송희 관리방안] / [Aside 추가]' }) };
 const P = A.parseProposal(pdoc);
 eq('제안서: 기준선 · 가설 · 차이 · 차이 날짜', [P.baseline.meta_roas_sep, P.hypotheses.map((h) => h.id), P.gaps, P.gapsAt, P.structure.live], [286, ['H1', 'H2', 'H3'], ['메타 캠페인 3단 구조 아님', '구매자 제외 타겟 없음'], '20261015', '2026-11-02']);
-eq('규칙 기본값: 김송희 관리방안 먼저 · 사장님 결정 · 제안서는 참고', [P.roles.length, P.rules.map((r) => r.src), P.rules.filter((r) => r.ref).map((r) => r.k)], [4, ['김송희 관리방안', '김송희 관리방안', '김송희 관리방안', '김송희 관리방안', '김송희 관리방안', '사장님 결정', '제안서', '제안서'], ['structure', 'judge']]);
+eq('규칙 기본값: 김송희 관리방안 먼저 · 자동 끄기 두 줄(쿠팡 = 관리방안 · 메타 = 제안서 p16·p23) · 사장님 결정 · 제안서는 참고', [P.roles.length, P.rules.map((r) => r.src), P.rules.filter((r) => r.ref).map((r) => r.k), P.rules.find((r) => r.k === 'auto_meta').page],
+  [4, ['김송희 관리방안', '김송희 관리방안', '김송희 관리방안', '김송희 관리방안', '김송희 관리방안', '김송희 관리방안', '제안서', '사장님 결정', '제안서', '제안서'], ['structure', 'judge'], '16·23']);
 // 외주 기간 운영 기준 = 김송희 관리방안 (2026-10-15 사장님 "광고는 외주기간에는 김송희의 방안으로 진행해줘")
 eq('외주 기간 기준', [A.AD_MODE.basis, A.AD_MODE.note.includes('김송희 관리방안')], ['김송희 관리방안', true]);
 eq('테스트 캠페인 알아보기', [A.isTestCamp({ campaign: '테스트_A1 소용량' }), A.isTestCamp({ campaign: '메인_상품별', target: 'T03 공감형' }), A.isTestCamp({ campaign: '메인_상품별', target: '목재페인트' })], [true, true, false]);
@@ -77,7 +78,7 @@ eq('판정 로그: 첫 보고서 = 없음', A.judgeLog([{ date: '2026-10-15', md
 // 외주 운영 기간 (2026-10-15 사장님 "약 2개월간 다른 외주업체 이용 … 세팅등록한것을 분석만해서 데이터 쌓고 보고해. 매일, 매주 금요일마다 보고해")
 // 외주 + 내부 관리 (2026-10-16 사장님 "광고 외주이용 종료 시 세팅한거 지금당장해도돼 … 민지님이 분석관리해서 나에게 보고하고 외주가 관리할때도 돌릴예정")
 eq('외주 + 내부 관리 · 출처 배지 사장님 결정', [A.AD_MODE.mode, A.agencyOn(), A.AD_MODE.media, A.AD_MODE.manager, A.AD_MODE.reportTo, A.srcKind('사장님 결정'), A.srcTags('[사장님 결정]')], ['parallel', true, ['메타', '네이버', '쿠팡'], '김민지', '사장님', 'd', '<span class="src s-d">사장님 결정</span>']);
-eq('광고 몫: 가을 = 끄거나 바꾸지 않음(Aside) · 실행 = 외주 + 김민지', ['gaeul'].map((k) => [/끄거나 바꾸지 않음/.test(A.AD_ROLES[k].does), /자동 OFF/.test(A.AD_ROLES[k].does), /외주업체/.test(A.AD_ROLES[k].exec), /김민지 관리/.test(A.AD_ROLES[k].exec)]), [[true, false, true, true]]);
+eq('광고 몫: 가을 = 바꿀 안 + 규칙 안 끄기만 직접(2026-10-19) · 실행 = 외주 + 김민지 · 예산 증액·입찰·소재·새 캠페인 = 사람', ['gaeul'].map((k) => [/끄거나 바꾸지 않음/.test(A.AD_ROLES[k].does), /규칙 안 끄기만 직접/.test(A.AD_ROLES[k].does), /외주업체/.test(A.AD_ROLES[k].exec), /김민지 관리/.test(A.AD_ROLES[k].exec), /규칙 안 끄기 = Aside 직접 · 예산 증액·입찰·소재·새 캠페인 = 사람/.test(A.AD_ROLES[k].exec)]), [[false, true, true, true, true]]);
 eq('공통 규칙 = 외주 + 내부 관리 한 줄 (사장님 결정)', [A.RULES_DEFAULT.find((r) => r.k === 'outsourced').t.startsWith('외주 + 내부 관리'), A.RULES_DEFAULT.find((r) => r.k === 'outsourced').src], [true, '사장님 결정']);
 const wk = [{ id: '2026-10-16', date: '2026-10-16' }, { id: '2026-10-16-weekly', date: '2026-10-16', kind: 'weekly' }, { id: '2026-10-17', date: '2026-10-17' }, { id: 'x주간', date: '2026-10-09' }];
 eq('주간 보고서: 같은 날이면 주간 먼저 · id 에 주간도', [A.sortReports(wk).map((r) => r.id), A.isWeekly(wk[3])], [['2026-10-17', '2026-10-16-weekly', '2026-10-16', 'x주간'], true]);
@@ -86,15 +87,45 @@ const ch = [{ id: '2026-10-16', date: '2026-10-16', changes: JSON.stringify([{ m
 const CL = A.changeLog(ch, '2026-10-16');
 eq('변경 기록: 외주 변경 + 예전 Aside 끈 것 · 주간 보고서는 뺌', CL.rows.map((r) => [r.date, r.who, r.media, r.target, r.what]),
   [['2026-10-16', '외주', '메타', '세트A', '예산 · 일 10만 → 일 12만'], ['2026-10-16', '외주', '', '', '쿠팡 B 캠페인 키워드 30개 추가'], ['2026-10-15', 'Aside', '쿠팡', '방수 페인트', 'OFF']]);
-eq('변경 기록: 이번 주 · 칸 있음', [CL.thisWeek, CL.has, A.changeLog([{ date: '2026-10-15', offs: '[]' }], '2026-10-15').has], [3, true, false]);
+eq('변경 기록: 이번 주 · 칸 있음 (offs 칸만 있어도 = 끈 것 0) · 칸 없으면 없음', [CL.thisWeek, CL.has, A.changeLog([{ date: '2026-10-15', offs: '[]' }], '2026-10-15').has, A.changeLog([{ date: '2026-10-15' }], '2026-10-15').has], [3, true, true, false]);
+eq('변경 기록: 끈 것 · 외주 변경 따로 (kind) · 끈 것 = 10/15 Aside 1', [CL.offs.map((r) => [r.who, r.target, r.kind]), CL.changes.length, CL.offMedia], [[['Aside', '방수 페인트', 'off']], 2, { 쿠팡: 1 }]);
 { const t = A.asideAdsText();
-  eq('Aside 지시문: 운영 기준 = 김송희 관리방안 · 규칙 줄 · 판 10-16', [t.includes('운영 기준: 김송희 관리방안'), t.includes('- [김송희 관리방안] 메타: 테스트 캠페인 ROAS 300%'), t.includes('3 김송희 관리방안과 다른 점'), t.includes('외주 판정 vs 김송희 관리방안'), A.ASIDE_ADS_VER], [true, true, true, true, '2026-10-16']);
-  eq('Aside 지시문(외주 + 내부 관리): 바꿀 안 칸 · 김민지가 정해 직접/외주에 · 전할 말도 김민지 · 주간 = 배운 것·다음 주 바꿀 안 · 그래도 안 바꿈', [t.startsWith('[광고 외주 + 내부 관리 · 분석·바꿀 안]'), t.includes('4 바꿀 안(번호 · 무엇을 · 근거 숫자 · 직접 또는 외주에 — 김민지가 정함) / 5 외주에 전할 말'), t.includes('바꿀 것은 김민지가 정해 직접 바꾸거나 외주에 전한다 (예산은 본부장 승인)'), t.includes('"외주에 전할 말"에 적고 김민지가 보낸다'), t.includes('이번 주 배운 것 · 다음 주 바꿀 안 (김민지가 금 16:30 사장님께 보고할 때 씀)'), t.includes('광고를 끄거나 켜지 않는다')], [true, true, true, true, true, true]);
-  const M0 = { mode: A.AD_MODE.mode, label: A.AD_MODE.label }; Object.assign(A.AD_MODE, { mode: 'outsourced', label: '외주 운영 기간 · 분석·보고만' });
-  try { const t0 = A.asideAdsText(); eq('(되돌리면) 외주 운영 기간 지시문 = 분석·보고만 · 바꿀 안 없음 · 담당이 보냄', [t0.startsWith('[광고 외주 운영 기간 · 분석·보고만]'), t0.includes('바꿀 안'), t0.includes('"외주에 전할 말"에 적고 담당이 보낸다'), A.agencyOn()], [true, false, true, true]); }
-  finally { Object.assign(A.AD_MODE, M0); }
+  eq('Aside 지시문: 운영 기준 = 김송희 관리방안 · 규칙 줄 · 판 10-19', [t.includes('운영 기준: 김송희 관리방안'), t.includes('- [김송희 관리방안] 메타: 테스트 캠페인 ROAS 300%'), t.includes('3 김송희 관리방안과 다른 점'), t.includes('외주 판정 vs 김송희 관리방안'), A.ASIDE_ADS_VER], [true, true, true, true, '2026-10-19']);
+  eq('Aside 지시문(외주 + 내부 관리): 바꿀 안 칸 · 김민지가 정해 직접/외주에 · 전할 말도 김민지 · 주간 = 배운 것·다음 주 바꿀 안 · 규칙 밖에서는 안 바꿈', [t.startsWith('[광고 외주 + 내부 관리 · 분석·바꿀 안 · 규칙 안 끄기]'), t.includes('4 바꿀 안(번호 · 무엇을 · 근거 숫자 · 직접 또는 외주에 — 김민지가 정함) / 5 외주에 전할 말'), t.includes('바꿀 것은 김민지가 정해 직접 바꾸거나 외주에 전한다 (예산은 본부장 승인)'), t.includes('"외주에 전할 말"에 적고 김민지가 보낸다'), t.includes('이번 주 배운 것 · 다음 주 바꿀 안 (김민지가 금 16:30 사장님께 보고할 때 씀)'), t.includes('위 규칙 밖에서는 광고를 끄거나 켜지 않는다')], [true, true, true, true, true, true]);
+  const M0 = { mode: A.AD_MODE.mode, label: A.AD_MODE.label }, on0 = A.AUTO_OFF.on; Object.assign(A.AD_MODE, { mode: 'outsourced', label: '외주 운영 기간 · 분석·보고만' }); A.AUTO_OFF.on = false;
+  try { const t0 = A.asideAdsText(), L0 = A.asideAdsLaunch(); eq('(되돌리면 · 규칙 끄기도 끔) 외주 운영 기간 지시문 = 분석·보고만 · 바꿀 안 없음 · 담당이 보냄 · offs 늘 [] · 예약 글 = 안 바꿈', [t0.startsWith('[광고 외주 운영 기간 · 분석·보고만]'), t0.includes('바꿀 안'), t0.includes('"외주에 전할 말"에 적고 담당이 보낸다'), A.agencyOn(), t0.includes('자동 OFF 멈춤 · offs 는 늘 "[]"'), t0.includes('규칙 안에서는 직접 끈다'), L0.includes('3) 광고를 끄거나 바꾸지 않는다')], [true, false, true, true, true, false, true]); }
+  finally { Object.assign(A.AD_MODE, M0); A.AUTO_OFF.on = on0; }
   const L = A.asideAdsLaunch();
-  eq('예약 글(짧게 · 한 번만): ads.html#aside 화면 지시문을 그대로 · 안 바꿈', [L.length < 600, L.includes(`${A.HUB_ADS}#aside`), L.includes('그대로 따른다'), L.includes('광고를 끄거나 바꾸지 않는다'), L.split('\n')[0]], [true, true, true, true, '[광고 보고서 · Aside] 평일 08:30 일일 · 금 16:00 주간 (금요일 16:00 예약은 주간)']);
-  eq('Aside 지시문: 끄지 않음 · 일일·주간 · 칸 이름 · 제안서 문서 갱신', [t.includes('광고를 끄거나 켜지 않는다'), t.includes('pour-os/v2/adreports/{YYYY-MM-DD}'), t.includes('-weekly · kind: "weekly"'), ['metrics(JSON 글)', 'changes(JSON 글)', 'judges(JSON 글)', 'offs: "[]"'].every((k) => t.includes(k)), t.includes('pour-os/v2/proposal/dailygrowth-202610')], [true, true, true, true, true]); }
+  eq('예약 글(짧게 · 한 번만): ads.html#aside 화면 지시문을 그대로 · 3번 = 규칙 안 두 가지만 · 판 10-19(업무OS 새 예약 글 알림)', [L.length < 600, L.includes(`${A.HUB_ADS}#aside`), L.includes('그대로 따른다'), L.includes("지시문 '규칙 안에서는 직접 끈다'의 두 가지(쿠팡 제외 키워드 · 메타 금요일 OFF)만 하고, 그 밖에는 광고를 끄거나 바꾸지 않는다"), L.split('\n')[0], A.ASIDE_ADS_LAUNCH_VER], [true, true, true, true, '[광고 보고서 · Aside] 평일 08:30 일일 · 금 16:00 주간 (금요일 16:00 예약은 주간)', '2026-10-19']);
+  eq('Aside 지시문: 일일·주간 · 칸 이름 · 제안서 문서 갱신 · 머리 줄 겹침 없음', [t.includes('pour-os/v2/adreports/{YYYY-MM-DD}'), t.includes('-weekly · kind: "weekly"'), ['metrics(JSON 글)', 'changes(JSON 글)', 'judges(JSON 글)', 'offs(JSON 글)'].every((k) => t.includes(k)), t.includes('pour-os/v2/proposal/dailygrowth-202610'), t.includes('■ 매일 08:30 일일 보고서'), t.includes('■ 금 16:00 주간 보고서'), t.includes('매일 매일'), t.includes('금요일 금')], [true, true, true, true, true, true, false, false]);
+  // 규칙 안 자동 끄기 (김송희 2026-10-19 확정 "정해진 규칙 안에서는 Aside가 직접 끈다")
+  eq('지시문: 끄지 않음·offs 늘 [] 문구 없음 · 규칙 두 가지 · 사람 몫', [t.includes('자동 OFF 멈춤'), t.includes('offs 는 늘'), t.includes('■ 규칙 안에서는 직접 끈다 (김송희 2026-10-19 확정 · 아래 두 가지만)'), t.includes('4) 그 밖은 하지 않는다 — 예산 증액 · 입찰 · 소재 · 새 캠페인 · 다시 켜기는 사람(김민지 · 본부장) · 네이버·오늘의집은 끄지 않는다')], [false, false, true, true]);
+  eq('지시문 쿠팡: 30일 광고비 1만 원 이상 + 주문 0 → 그 캠페인 키워드 제외 · 하루 20개 · 브랜드 키워드 빼지 않음 · 한 단어 키워드는 확인 필요', [t.includes("1) [김송희 관리방안] 쿠팡 — 매일: 광고보고서 최근 30일 키워드 중 광고비 1만 원 이상 + 주문 0 → 그 키워드가 나온 캠페인의 '키워드 제외'에 넣는다."), t.includes('하루 최대 20개 (광고비 큰 것부터)'), t.includes('브랜드 키워드(검색어에 그로홈·GROHOME·포어·POUR·포어스토어·넷폼·바라스데이가 들어간 것)는 빼지 않는다'), t.includes("한 단어 키워드(예: '페인트')는 넣지 않고 보고서에 '확인 필요'로")], [true, true, true, true]);
+  eq('지시문 메타: [제안서 p16·p23] 금요일 일일 때만 · 구매 10건+ · 2주 둘 다 180% 미만 · 하루 3개 · 첫 3~4일·구매 10건 미만 보류 · 캠페인 전체는 안 끔', [t.includes('2) [제안서 p16·p23] 메타 — 금요일 08:30 일일 때만: 광고세트·소재 중 구매 10건 이상이고 지난 2주(이번 주 7일 · 그 전 7일) ROAS 가 둘 다 180% 미만 → OFF.'), t.includes("하루 최대 3개 (2주 ROAS 낮은 것부터) · 켠 지 4일이 안 됐거나(첫 3~4일) 구매 10건 미만이면 끄지 않고 '보류'로 적는다 · 캠페인 전체는 끄지 않는다")], [true, true]);
+  eq('지시문 offs: {date, media, campaign, target, reason, action} · 일일에만 · 주간은 "[]" · 올린 뒤 끈 것은 다음 보고서에 그 날짜로', [t.includes('- offs(JSON 글): [{"date":"YYYY-MM-DD","media":"쿠팡","campaign":"B. 올인원 균열보수","target":"키워드","reason":"30일 광고비 12,300원 · 주문 0","action":"키워드 제외"}'), t.includes('"action":"OFF"}] — 오늘 끈 것 · 없으면 "[]"'), t.includes('- metrics 는 이번 주 값으로 · offs: "[]" (끈 것은 일일 보고서에만 · 겹치지 않게)'), t.includes('보고서를 올린 뒤에 끈 것은 다음 일일 보고서 offs 에 그 날짜로 넣는다')], [true, true, true, true]);
+  eq('지시문 이어서 할 것(10/19): B 처리분 2개 → 다음 보고서 offs · A 페인트 = 일치 방식 확인', [t.includes("■ 이어서 할 것\n- 10/19 일일 보고서를 올린 뒤 처리한 쿠팡 'B. 올인원 균열보수' 제외 키워드 '방수 페인트' · '초강력 바닥 방수제' → 다음 일일 보고서 offs 에 date \"2026-10-19\" 로 넣는다"), t.includes("쿠팡 'A' 캠페인 '페인트' → 제외 키워드 일치 방식을 확인해 md 에 적는다")], [true, true]);
+  eq('운영 띠 글: 규칙 안 직접 끔 · 사람 몫 · 자동 끄기 날짜', [/정해진 규칙 안에서는 직접 꺼요/.test(A.AD_MODE.note), /예산 증액·입찰·소재·새 캠페인·다시 켜기는 사람/.test(A.AD_MODE.note), A.AD_MODE.autoOff], [true, true, '2026-10-19']); }
+// 규칙 점검 (offAudit) — 막지 않고 빨간 꼬리표만 · 규칙 날짜(10/19) 전 줄은 점검 안 함
+{ const r = (o) => ({ campaign: 'B', reason: '근거', action: '키워드 제외', ...o });
+  const rows = [r({ date: '2026-10-19', media: '쿠팡', target: '방수 페인트' }), r({ date: '2026-10-19', media: 'coupang', target: '그로홈 페인트' }), r({ date: '2026-10-19', media: '쿠팡', target: 'y', reason: '', action: 'OFF' }),
+    r({ date: '2026-10-19', media: '메타', target: 'T2', action: 'OFF' }), ...[1, 2, 3, 4].map((i) => r({ date: '2026-10-23', media: '메타', target: 'S' + i, action: 'OFF' })), r({ date: '2026-10-19', media: '네이버', target: 'k', action: 'OFF' }),
+    r({ date: '2026-10-16', media: '메타', target: 'old', action: 'OFF', reason: '' })];
+  const X = A.offAudit(rows);
+  eq('규칙 점검: 쿠팡 정상 · 브랜드 키워드 · 키워드 제외 아님+근거 없음 · 메타 월요일 = 금요일 아님 · 금요일 4개 = 3개 넘음 · 네이버 = 규칙 없음 · 10/16 = 점검 안 함', [X.rows.map((x) => x.warn.join('/')), X.bad],
+    [['', '브랜드 키워드', '쿠팡은 키워드 제외만/근거 없음', '금요일 아님', '하루 3개 넘음 (4)', '하루 3개 넘음 (4)', '하루 3개 넘음 (4)', '하루 3개 넘음 (4)', '네이버는 자동 끄기 규칙 없음', ''], 8]);
+  eq('쿠팡 하루 21개 = 20개 넘음', A.offAudit(Array.from({ length: 21 }, (_, i) => r({ date: '2026-10-20', media: '쿠팡', target: 'k' + i }))).rows[0].warn, ['하루 20개 넘음 (21)']);
+  eq('브랜드 키워드', [A.isBrandKw('그로홈 페인트'), A.isBrandKw('GROHOME 롤러'), A.isBrandKw('포어스토어 코트재'), A.isBrandKw('pour 방수'), A.isBrandKw('방수 페인트'), A.isBrandKw('')], [true, true, true, true, false, false]);
+  eq('출처 배지 [제안서 p16·p23] · 쪽 여럿 글', [A.srcTags('[제안서 p16·p23]'), A.srcText(A.SRC.P, '16·23'), A.srcText(A.SRC.P, 12)], ['<span class="src s-p">제안서 p16·p23</span>', '제안서 p16·p23', '제안서 p12']); }
+// 보고서 밖 처리분 (AUTO_OFF.noted · 10/19 쿠팡 B 2개) — 보고서 offs 에 같은 줄이 그 날짜 이후로 오면 그쪽만 (겹침 없음) · 처리 대기(A 페인트)
+{ const N = A.AUTO_OFF.noted, d19 = { id: '2026-10-19', date: '2026-10-19', offs: '[]', changes: '[]' };
+  const C0 = A.changeLog([d19], '2026-10-19', N);
+  eq('보고서 offs 가 비어도 처리분 2개 = 끈 것 · 누가 = 처리 기록 · 규칙 점검 통과 · 오늘 2', [C0.offs.map((x) => [x.date, x.who, x.media, x.campaign, x.target, x.what, x.warn.length]), C0.offToday, C0.offWeek, C0.offBad],
+    [[['2026-10-19', '처리 기록', '쿠팡', 'B. 올인원 균열보수', '방수 페인트', '키워드 제외', 0], ['2026-10-19', '처리 기록', '쿠팡', 'B. 올인원 균열보수', '초강력 바닥 방수제', '키워드 제외', 0]], 2, 2, 0]);
+  const d20 = { id: '2026-10-20', date: '2026-10-20', offs: JSON.stringify([{ date: '2026-10-19', media: 'coupang', campaign: 'B 올인원 균열보수', target: '방수 페인트', reason: '30일 12,300원 · 주문 0', action: '키워드 제외' }]) };
+  const C1 = A.changeLog([d20, d19], '2026-10-20', N);
+  eq('다음 보고서에 같은 줄(점·띄어쓰기 달라도) → 처리 기록 줄 빠짐 · 남은 하나만 처리 기록', C1.offs.map((x) => [x.who, x.target]), [['Aside', '방수 페인트'], ['처리 기록', '초강력 바닥 방수제']]);
+  eq('화면이 noted 를 안 넘기면 보고서 것만 (계산은 순수)', A.changeLog([d19], '2026-10-19').offs.length, 0);
+  eq('offLog 도 noted 받음 · 기본 없음', [A.offLog([d19], '2026-10-19', N).rows.length, A.offLog([d19], '2026-10-19').rows.length], [2, 0]);
+  eq('처리 대기 = A 캠페인 페인트 (일치 방식 확인 뒤)', A.AUTO_OFF.pending.map((x) => [x.media, x.campaign, x.target]), [['쿠팡', 'A', '페인트']]); }
 
 console.log(`\n${n - bad}/${n} 통과`); if (bad) process.exit(1);

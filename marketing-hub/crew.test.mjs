@@ -175,7 +175,7 @@ eq('Aside 가 못 따르는 말 없음 (영상 생성하기 버튼 · 토요일 
   eq('지시문 모양 그대로 → 지표 15(재고 지표는 이음으로 · 유입 단계 숫자 visit7 더함 2026-10-17) · 상태 9(F 포함 · J 실험) · 할 일 표 머리 8(F 는 보고서라 표 없음)', [pp.metrics.length, Object.keys(pp.status).length, Object.keys(pp.acts).length, pp.acts.D.cols, pp.warn, pp.unknown], [15, 9, 8, ['캠페인·키워드', '현재', '제안', '근거', '예상 효과'], [], []]);
   eq('예약 글: 짧게 · 이 화면 지시문을 그대로 · 주소', [L.length < 700, L.includes(`${K.HUB_CREW}#gh-traffic`), L.includes("'오늘 지시문'"), L.startsWith('[AI 크루 · 가을 (유입마케터 · 퍼포먼스·검색) · 그로홈 광고·검색 유입 보드] 평일 09:00')], [true, true, true, true]);
   eq('오늘의집 지시문에 런칭 체크리스트(보기만)', K.asideText(K.boardOf('gh-ohou')).includes('■ 참고: 11/9(월) 신제품 4종 런칭 체크리스트'), true);
-  eq('지시문 F = 08:30 광고 보고서 화면 · 이 루틴은 안 끔 · 표 없음 · 한 줄 = 승인 한 건', [t.includes('F. 광고 외주 운영 분석 (쿠팡·네이버·메타) + 규칙 안 끄기 + 금요일 판정 + 롱테일 기록 — 언제: 매일 08:30 · 금 16:00'), t.includes('marketing-hub/ads.html 에서 오늘 보고서를 보고 [상태] F 에 한 줄만'), t.includes('(규칙 안 끄기 = 쿠팡 제외 키워드 · 메타 금요일 OFF 도 그 루틴) — 이 루틴(09:00)에서는 광고를 끄거나 바꾸지 않는다.'), /\n\[F\]\n/.test(t), t.includes('이 한 줄이 업무OS 승인 한 건(보고만)이 된다'), /\n\[F\]\n/.test(K.asideText(K.boardOf('gh-conv'))), K.asideText(K.boardOf('gh-rep')).includes('08:30 광고')], [true, true, true, false, true, false, false]);
+  eq('지시문 F = 08:30 광고 보고서 화면 · 이 루틴은 안 끔 · 표 없음 · 한 줄 = 승인 한 건', [t.includes("F. 광고 외주 운영 분석 (쿠팡·네이버·메타) + 규칙 안 끄기 + 금요일 판정 + 롱테일 기록 — 언제: 매일 08:30 · 금 08:30 주간 (김송희 Aside '광고' 루틴 하나)"), t.includes('marketing-hub/ads.html 에서 오늘 보고서를 보고 [상태] F 에 한 줄만'), t.includes('(규칙 안 끄기 = 쿠팡 제외 키워드 · 메타 금요일 OFF 도 그 루틴) — 이 루틴(09:00)에서는 광고를 끄거나 바꾸지 않는다.'), /\n\[F\]\n/.test(t), t.includes('이 한 줄이 업무OS 승인 한 건(보고만)이 된다'), /\n\[F\]\n/.test(K.asideText(K.boardOf('gh-conv'))), K.asideText(K.boardOf('gh-rep')).includes('08:30 광고')], [true, true, true, false, true, false, false]);
   { const q = K.parseCrew('[상태]\nF: 메타 ROAS 286% · 쿠팡 ROAS 310% · 바꿀 안 2개\nD: 대기 — 다음 월요일\n[D]\n요약: 키워드\n캠페인·키워드\t현재\n롤러\t1', K.boardOf('gh-traffic')), qa = K.asksFromParse(q, { board: 'gh-traffic', mate: 'gaeul', brand: 'grohome', run: '2026-10-20', at: 'T', owner: (c) => (c === 'F' ? 'mj' : 'sh') });
     eq('광고 보고 [상태] 한 줄 = 승인 한 건(보고만 · 실행 없음 · 광고 보고서 주소) · 할 일 표는 그대로', qa.map((a) => [a.id, a.act, a.owner, a.sum, a.exec, a.url, a.items.length, a.title]), [['ai_gaeul_20261020_ghtrafficF', 'F', 'mj', '메타 ROAS 286% · 쿠팡 ROAS 310% · 바꿀 안 2개', '', K.HUB_ADS || 'https://pour-construction-form.pages.dev/marketing-hub/ads.html', 0, '광고·검색 유입 보드 F · 광고 외주 운영 분석 (쿠팡·네이버·메타) + 규칙 안 끄기 + 금요일 판정 + 롱테일 기록'], ['ai_gaeul_20261020_ghtrafficD', 'D', 'sh', '키워드', qa[1] && qa[1].exec, '', 1, '광고·검색 유입 보드 D · 쿠팡 광고 키워드 최적화 (클릭률 0.32% → 0.45%, ROAS 목표 맞추기)']]);
     { const F = K.actOf('gh-traffic', 'F'), D = K.actOf('gh-traffic', 'D'), G = K.actOf('gh-traffic', 'G');
@@ -394,7 +394,10 @@ const ok = (name, cond) => eq(name, !!cond, true);
   const has = (bd, c, re) => re.test(K.actOf(bd, c).s.join(' '));
   eq('우주 H 장부 먼저', [['gh-ref', 'A'], ['gh-ref', 'B'], ['gh-ref', 'C'], ['gh-rep', 'C'], ['gh-rep', 'G'], ['gh-ohou', 'H']].map(([bd, c]) => has(bd, c, /우주 H 장부|H 장부/)), [true, true, true, true, true, true]);
   ok('겨울 I = 택배 동봉 안내', /택배 동봉/.test(K.actOf('gh-conv', 'I').t) && has('gh-conv', 'I', /동봉 안내/));
-  ok('지시문 판 10-19.2 (■ 6. 사용금지어 · 사장님 2026-10-19 PDF)', K.ASIDE_VER === '2026-10-19.2');
+  ok('지시문 판 10-19.3 (가을 F 광고 보고 = 김송희 Aside 광고 루틴 하나 · 10-19.2 = ■ 6. 사용금지어)', K.ASIDE_VER === '2026-10-19.3');
+  { const tf = K.asideText(K.boardOf('gh-traffic'));
+    ok("지시문 F: 김송희 Aside '광고' 루틴 하나(금 08:30 주간 + 메타 판정 · 스킬) · 광고 보고서·예약을 새로 만들지 않음 · 16:00 없음 (김송희 2026-10-19)",
+      tf.includes("이 할 일은 김송희 PC Aside 프로젝트 '광고' 루틴 하나(매일 08:30 일일 · 금 08:30 주간 + 메타 판정 · 스킬 netform-ad-ops)가 한다") && tf.includes('광고 보고서를 따로 만들거나 광고 보고 예약을 새로 만들지 않는다 (예약은 그 루틴 하나 · 김송희 2026-10-19).') && !tf.includes('16:00')); }
 }
 
 // ── 2026-10-17 사장님 확정 (2팀 운영 · 1A 2A 4-1) ──

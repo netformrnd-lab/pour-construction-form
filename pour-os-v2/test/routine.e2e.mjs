@@ -43,10 +43,11 @@ const ST = { meta: { seededAt: '2026-10-01T00:00:00.000Z', counts: {} }, writes:
     workflows: {}, mainKPIs: {}, subKPIs: {}, settings: {}, kpiact: {}, links: {}, lagvals: {}, kpisales: {}, kpidefs: {}, templates: {}, checks: {}, aiasks: {}, aimates: {}, aiboards: {} } };
 
 const b = await pkg.chromium.launch({ executablePath: '/opt/pw-browsers/chromium', env: { ...process.env, LANG: 'C.UTF-8' } });
-async function session(uid, { admin = false, w = 375, h = 812 } = {}) {
+async function session(uid, { admin = false, w = 375, h = 812, now = NOW } = {}) {
   const ctx = await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 1, locale: 'ko-KR', timezoneId: 'Asia/Seoul' });
-  await ctx.clock.setFixedTime(new Date(NOW));
+  await ctx.clock.setFixedTime(new Date(now));
   await ctx.route(/googleapis|gstatic|firebaseio|firebasestorage/, (r) => r.abort());
+  await ctx.route(/pages\.dev/, (r) => r.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><title>hub</title>허브 화면 (시험)' }));   // 허브 새 창 (광고 운영 · 2026-10-19)
   await ctx.route('http://v2.test/**', (r) => { const u = r.request().url(); if (/\.json(\?|$)/.test(u)) return r.fulfill({ status: 404, body: '' }); return r.fulfill({ path: u.includes('admin') ? ADMIN : TEAM, contentType: 'text/html' }); });
   await ctx.addInitScript(`window.__V1_DATA={}; window.__V1_DOCS=${JSON.stringify(V1)}; window.__V1_LAUNCH=[]; window.__V2=${JSON.stringify(ST)};`);
   const pg = await ctx.newPage();
@@ -181,6 +182,34 @@ for (const w of [375, 768, 1280]) {
   ok(`관리자 ${w} · 화면 오류 없음`, errs.length === before, errs.slice(before));
   await s.close();
 }
+// ── 반복 실행 입력 자료 (2026-10-19 김송희 "김민지님 금 16:30 사장님 보고(반복 실행)는 그대로 두되, 입력 자료는 그날 아침 adreports 주간 보고서를 쓰도록 안내") ──
+//   금요일 오늘 줄 아래 '입력 · 광고 주간 보고서 10/16(금) 08:30 ›' (허브 ads.html#그 금요일-weekly 새 창 · 줄 누르기로 안 번짐) · 시트 '입력 자료' 칸 · 다른 반복 실행엔 없음 · 375·768·1280
+ST.v2.tasks.f_adw = fx({ id: 'f_adw', title: '광고 주간 분석 보고 (사장님께)', recurType: 'weekly', weekDays: ['금'], fixedTime: '16:30', brand: 'common', memo: 'Aside 가 금 16:00 에 올린 주간 광고 보고서를 보고 …' });
+for (const w of [375, 768, 1280]) {
+  const s = await session('yj', { w, h: w > 700 ? 1000 : 1400, now: '2026-10-16T10:30:00+09:00' }), pg = s.pg, before = errs.length;   // 금요일 10:30
+  await tab(pg, '오늘');
+  const card = pg.locator('.v2-ts.rt'), row = card.locator('[role=button]', { hasText: '광고 주간 분석 보고' }).first();
+  const pill = row.locator('a.v2-rtin');
+  ok(`입력 자료 ${w}: 금요일 줄 아래 '입력 · 광고 주간 보고서 10/16(금) 08:30 ›' · 다른 줄엔 없음`, (await pill.count()) === 1 && (await pill.innerText()).replace(/\s+/g, ' ').trim() === '입력 · 광고 주간 보고서 10/16(금) 08:30 ›' && (await card.locator('a.v2-rtin').count()) === 1, await card.innerText());
+  ok(`입력 자료 ${w}: 주소 = 허브 광고 운영 #2026-10-16-weekly · 새 창`, (await pill.getAttribute('href')) === 'https://pour-construction-form.pages.dev/marketing-hub/ads.html#2026-10-16-weekly' && (await pill.getAttribute('target')) === '_blank');
+  const [pop] = await Promise.all([pg.waitForEvent('popup'), pill.click()]); await pg.waitForTimeout(300);
+  ok(`입력 자료 ${w}: 누르면 새 창(그 주간 보고서) · 시트는 안 열림`, pop.url().endsWith('/marketing-hub/ads.html#2026-10-16-weekly') && (await pg.locator('.v2-sheet').count()) === 0, pop.url());
+  await pop.close();
+  if (w === 375) await shot(pg, row, 'rt-input-row-375.png');
+  ok(`입력 자료 ${w}: 넘침 없음`, !(await over(pg)));
+  await row.click(); await pg.waitForTimeout(500);
+  const sh = pg.locator('.v2-sheet').last(), st = await sh.innerText();
+  ok(`입력 자료 ${w}: 시트 '입력 자료' 칸 = 광고 주간 보고서 · 10/16(금) 08:30 · 김송희 Aside 광고 루틴 · 예전 16:00 → 08:30 · [열기 ›]`, st.includes('입력 자료') && st.includes('광고 주간 보고서 · 10/16(금) 08:30') && st.includes("그날 아침 김송희 Aside '광고' 루틴이 올린 것 (예전 금 16:00 → 금 08:30)") && (await sh.getByRole('button', { name: '광고 주간 보고서 10/16(금) 08:30 열기' }).count()) === 1, st.slice(0, 400));
+  const [pop2] = await Promise.all([pg.waitForEvent('popup'), sh.getByRole('button', { name: '광고 주간 보고서 10/16(금) 08:30 열기' }).click()]);
+  ok(`입력 자료 ${w}: 시트 [열기 ›] = 같은 주간 보고서`, pop2.url().endsWith('#2026-10-16-weekly'), pop2.url()); await pop2.close();
+  if (w === 375) { await pg.screenshot({ path: path.join(SHOTS, 'rt-input-sheet-375.png') }); }
+  ok(`입력 자료 ${w}: 시트 넘침 없음 · 화면 오류 없음`, !(await over(pg)) && errs.length === before, errs.slice(before));
+  await s.close();
+}
+{ const s = await session('yj', { now: '2026-10-19T10:30:00+09:00' }), pg = s.pg;   // 월요일: 오늘 줄엔 없음(금요일 일) · 시트를 열면 지난 금요일 보고서
+  await tab(pg, '오늘');
+  ok('입력 자료 월요일: 오늘 목록엔 안 보임 (금요일 반복 실행)', (await pg.locator('a.v2-rtin').count()) === 0);
+  await s.close(); }
 await b.close();
 console.log(`\n${n - bad}/${n} 통과${bad ? ` · ${bad} 실패` : ''}${errs.length ? '\n화면 오류:\n' + errs.join('\n') : ''}`);
 process.exit(bad || errs.length ? 1 : 0);

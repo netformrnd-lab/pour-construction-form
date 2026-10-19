@@ -12,7 +12,7 @@ import { LAUNCH_PHASES, LAUNCH_BRANDS, planNewLaunch, userByName, phaseOf } from
 import { predLine, lastWord, predsOf, upcomingTurns, upLine, turnIndex, turnsOf } from "./turn.js";
 import { C, Big, TBtn, Act, Chip, Seg, Head, Card, Row, Empty, More, Sheet, Ask, Toast, inp, useLocal, useAutoFocus, Linked } from "./ui.jsx";
 import { HoldBtn } from "./hold.jsx";
-import { openTask, moveDue } from "./task.jsx";
+import { openTask, moveDue, RtInputLine } from "./task.jsx";
 import { PickList, BulkBar, dueChips, ro } from "./pick.jsx";
 import { previewLaunchMove } from "./views.js";
 import { useAkActs, AkRow } from "./routineui.jsx";
@@ -24,7 +24,7 @@ import { LS as LSK } from "./core.jsx";
 import { myNotesOf } from "./more.jsx";
 import { qtyCfg, qtySum, qtyText } from "./rec.js";
 import { LINK_APP } from "./links.js";
-import { HUB_ADS } from "../../marketing-hub/adops.js";   // 광고 운영 화면 (Aside 광고 예약 알림)
+import { HUB_ADS } from "../../marketing-hub/adops.js";   // 광고 운영 화면 (광고 예약 알림 → #aside 예약 하나 안내 · 2026-10-19)
 
 const BTN_ON = { background: C.navy, color: "#fff", borderColor: C.navy };
 // 빠른 기한 버튼은 모두 pick.jsx dueChips (쉬는 날 빼고 · 버튼에 날짜까지)
@@ -58,8 +58,8 @@ export function inboxFns(D, A, open, setSeen) {
     if (x.kind === "aiRoutine") return open({ type: "aiMate", id: x.mate });   // 아침 루틴 안 올라옴 (2026-10-17) → 그 AI 한 장 '오늘 아침 루틴' · 사장님께 보낼 글
     if (x.kind === "aiOwnerless") return open({ type: "aiTeam" });   // AI 크루 담당 미정 → AI 팀원(관리자 [담당 한꺼번에 정하기])
     if (x.kind === "aiSetupAll") return open({ type: "aiSetupAll" });   // Aside 세팅 현황 (2026-10-19 사장님 4A · 관리자)
-    if (x.kind === "adsAside") { window.open(HUB_ADS, "_blank", "noopener"); return; }
-    if (x.kind === "feed") return open({ type: "feeds" });   // 결과 숫자 비어 있음 (2026-10-17) → 결과 숫자 시트 (들어온 날 · 어디서 고치나)   // 광고 Aside 예약 글 (2026-10-17) → 광고 운영 화면 맨 위 [예약 글 복사]
+    if (x.kind === "adsAside") { window.open(`${HUB_ADS}#aside`, "_blank", "noopener"); return; }   // 광고 예약 하나 (2026-10-19) → 광고 운영 '예약은 … 1개만 운영' 안내 · 지시문 사본
+    if (x.kind === "feed") return open({ type: "feeds" });   // 결과 숫자 비어 있음 (2026-10-17) → 결과 숫자 시트 (들어온 날 · 어디서 고치나)
     if (x.kind === "aiRep") return open({ type: "aiReport", crew: x.crew, start: x.start, id: `${x.crew}-${x.start}` });   // AI 크루 보고 (2026-10-15): 칸 쓰기 · 보내기 · 읽기
     if (x.kind === "appr") return open({ type: "appr", tab: "asg" });   // 구매 품의 요청 (2026-10-16): 품의 요청 n건 → 내가 맡은 것
     if (x.apprId) return open({ type: "apprOne", id: x.apprId });   // 새 품의 요청 · 품의 완료 → 그 요청 한 건
@@ -88,7 +88,7 @@ export function inboxFns(D, A, open, setSeen) {
     if (x.kind === "appr") return <Act onClick={() => openInbox(x)} style={BTN_ON}>처리하기</Act>;
     if (x.kind === "devPlan") return <Act onClick={() => openInbox(x)} style={BTN_ON}>확인하기</Act>;
     if (x.kind === "money" && t && x.chk) return <Act onClick={() => A.fxToggle(t)} style={BTN_ON}>완료</Act>;   // 돈·결재 (2026-10-17): 그 고정업무 오늘 체크 · 5초 되돌리기 · 줄 누르면 그 시트
-    if (x.kind === "adsAside") return <Act onClick={() => A.adsAsideDone()} style={BTN_ON}>넣었어요</Act>;
+    if (x.kind === "adsAside") return <Act onClick={() => A.adsAsideDone()} style={BTN_ON}>정리했어요</Act>;   // 광고 예약 하나 (2026-10-19 · 예전 [넣었어요])
     if (x.kind === "aiSetup") return <Act onClick={() => openInbox(x)} style={BTN_ON}>세팅</Act>;
     if (x.kind === "aiMiss") return <Act onClick={() => openInbox(x)} style={BTN_ON}>지금 돌리기</Act>;
     if (x.kind === "aiStuck") return <Act onClick={() => openInbox(x)} style={BTN_ON}>{x.text.includes("바로 고치기") ? "바로 고치기" : "알리기"}</Act>;   // AI 고치는 중 반나절 넘음 (2026-10-17)
@@ -182,7 +182,7 @@ export function RoutineCard({ D, cu, A, open, R, keyd }) {
   const shown = fold ? [] : more ? rows : rows.slice(0, Math.max(FX_OPEN_MAX, stuck + 1));   // 묻는 줄은 8개 뒤여도 보임
   const fxRow = (x) => { const t = x.t, dn = !!x.asking;
     return <Row key={"f" + t.id} dim={dn} tag={dn ? null : x.miss ? `밀림 ${md(x.miss)}` : x.late ? "시간 지남" : brTag(t.brand)} tagTone={x.late ? "red" : null} title={<FxTitle t={t} uid={cu.id} keyd={keyd} />} sub={fxLine(D, t, cu.id, keyd, true)}
-      below={<><FxChips t={t} uid={cu.id} keyd={keyd} A={A} open={open} onDone={() => qtyCfg(t) && setAsk(t.id)} /><FxQty t={t} D={D} cu={cu} A={A} ask={ask} setAsk={setAsk} keyd={keyd} /><AiLine ai={aiOf(rtKey("fx", t.id))} open={open} /></>} onClick={() => open({ type: "fixed", id: t.id })}
+      below={<><FxChips t={t} uid={cu.id} keyd={keyd} A={A} open={open} onDone={() => qtyCfg(t) && setAsk(t.id)} /><FxQty t={t} D={D} cu={cu} A={A} ask={ask} setAsk={setAsk} keyd={keyd} /><RtInputLine t={t} keyd={keyd} /><AiLine ai={aiOf(rtKey("fx", t.id))} open={open} /></>} onClick={() => open({ type: "fixed", id: t.id })}
       right={dn ? <Act on onClick={() => { setAsk(null); A.fxToggle(t); }}>✓ 취소</Act> : <Act onClick={() => fxDone(A, t, setAsk)}>완료</Act>} last={false} />; };
   const first = rows[0], nextL = !first ? "" : first.x ? [fxTime(first.x.t, cu.id), fxLabel(first.x.t, cu.id)].filter(Boolean).join(" ") : `${first.r.it.name} · ${first.r.per} ${first.r.tot.n}/${first.r.tot.g}`;
   return <>

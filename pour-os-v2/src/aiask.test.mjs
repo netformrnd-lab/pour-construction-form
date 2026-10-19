@@ -1,6 +1,6 @@
 // node src/aiask.test.mjs — AI 승인 계산 (AI → 담당 → 리드 → 본부장 · 저장 없음)
 import * as X from "./aiask.js";
-import { ASIDE_ADS_LAUNCH_VER as ADS_V } from "../../marketing-hub/adops.js";   // 광고 예약 글 판 (2026-10-19 = 규칙 안 끄기로 3번 줄 바뀜)
+import { ASIDE_ADS_LAUNCH_VER as ADS_V } from "../../marketing-hub/adops.js";   // 광고 예약 알림 판 (2026-10-19.2 = 예약 하나로 정리 · 김송희)
 import { askDoc, askFromReq, reqDoc } from "../../marketing-hub/crew.js";
 let n = 0, bad = 0;
 const eq = (name, got, want) => { n++; const ok = JSON.stringify(got) === JSON.stringify(want); if (!ok) { bad++; console.log("✗", name, "\n  got ", JSON.stringify(got), "\n  want", JSON.stringify(want)); } else console.log("✓", name); };
@@ -124,9 +124,13 @@ eq("관리자 = 담당 미정 한 줄", X.asideInbox(DA(yb), "ran", W11).filter(
 // 광고 Aside 예약 글 (2026-10-17 사장님 "까먹을것같은데 os 확인할것에 나오게해줘") — 받는 사람 한 줄(keep) · 넣은 판이 지금 판보다 옛것일 때만
 //   받는 사람 (2026-10-17 사장님 "Aside 예약은 김송희에게만 os에 알림뜨게해") = settings/adsAside.ownerId → 김송희 → 없으면 관리자 누구나
 { const k = (st, uid, users) => X.asideInbox({ ...DA(yb, undefined, st), ...(users ? { users } : {}) }, uid, W11).filter((x) => x.kind === "adsAside").map((x) => [x.id, x.title, x.keep]);
-  const L = [[`aa:${ADS_V}`, "새 예약 글 넣기 · 예약 2개", true]];   // 판 = adops.ASIDE_ADS_LAUNCH_VER (2026-10-19 3번 줄 바뀜 → 다시 넣기)
+  const L = [[`aa:${ADS_V}`, "광고 예약 하나로 정리 · 김송희 Aside '광고' 루틴만", true]];   // 판 = adops.ASIDE_ADS_LAUNCH_VER (2026-10-19.2 예약 하나 → 다시 한 번 · 예전 '새 예약 글 넣기 · 예약 2개')
   eq("광고 예약 글: 안 넣었으면 김송희(기본)에게만 한 줄 · 다른 관리자·팀원엔 없음", [k([], "sh"), k([], "ran"), k([], "yj")], [L, [], []]);
-  eq("광고 예약 글: 넣었으면(지금 판 · 더 새 판) 없음 · 옛 판이면 다시", [k([{ id: "adsAside", ver: ADS_V }], "sh"), k([{ id: "adsAside", ver: "2099-12-31" }], "sh"), k([{ id: "adsAside", ver: "2026-10-16" }], "sh").length, ADS_V], [[], [], 1, "2026-10-19"]);
+  eq("광고 예약 글: 넣었으면(지금 판 · 더 새 판) 없음 · 옛 판이면 다시 (10-19 [넣었어요] 한 사람도 예약 하나 정리는 다시)", [k([{ id: "adsAside", ver: ADS_V }], "sh"), k([{ id: "adsAside", ver: "2099-12-31" }], "sh"), k([{ id: "adsAside", ver: "2026-10-16" }], "sh").length, k([{ id: "adsAside", ver: "2026-10-19" }], "sh").length, ADS_V], [[], [], 1, 1, "2026-10-19.2"]);
+  { const it = X.asideInbox({ ...DA(yb, undefined, []) }, "sh", W11).find((x) => x.kind === "adsAside");
+    eq("광고 예약 하나 (김송희 2026-10-19): 꼬리표 · 글 = 김송희 Aside 광고 루틴 1개 · 다른 예약 지우기 · 스킬 판 · 새 예약 안 만듦 · at = 날짜 부분(읽히는 시각) · 16:00 없음",
+      [it.tag, it.text, it.at, isNaN(new Date(it.at).getTime()), /16:00|예약 2개/.test(it.title + it.text)],
+      ["광고 예약", "매일 08:30 일일 · 금 08:30 주간 + 메타 판정 = 그 루틴 1개 · 다른 PC·프로젝트의 광고 예약(예전 예약 글로 만든 것)은 지우고, 스킬 netform-ad-ops 판이 2026-10-19(규칙 안 끄기)인지 확인 → [정리했어요] · 새 예약은 만들지 않아요", "2026-10-19T00:00:00", false, false]); }
   eq("받는 사람 바꿈(ownerId 김민지) → 김민지만 · 김송희 없음", [k([{ id: "adsAside", ownerId: "gm" }], "gm"), k([{ id: "adsAside", ownerId: "gm" }], "sh")], [L, []]);
   eq("받는 사람이 쉬면(퇴사) 기본 김송희 · 김송희도 없으면 관리자 누구나", [k([{ id: "adsAside", ownerId: "old" }], "sh"), k([], "ran", U.filter((u) => u.id !== "sh")), k([], "yj", U.filter((u) => u.id !== "sh"))], [L, L, []]);
   eq("받는 사람 계산 · [넣었어요] 할 수 있는 사람(받는 사람 · 관리자)", [X.adsAsideOwner({ users: U, settings: [] }), X.adsAsideOwner({ users: U, settings: [{ id: "adsAside", ownerId: "gm" }] }), X.adsAsideOwner({ users: U.filter((u) => u.id !== "sh"), settings: [] }), X.canAdsAside({ users: U, settings: [] }, me("sh")), X.canAdsAside({ users: U, settings: [] }, me("ran")), X.canAdsAside({ users: U, settings: [] }, me("yj"))], ["sh", "gm", "", true, true, false]);

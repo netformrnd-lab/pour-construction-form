@@ -246,6 +246,8 @@
 - 사본(같은 목록): `tools/team_link.py` BANNED_DATA(볼트 사본도) · functions/api/team-ai.js·dashboard-ai.js · pourstore-renewal/assets/builder.js · pourstore-renewal/chatbot.html BANNED_RULE · pour-crm src/pages/chatbot/banned.js → **banned.js 를 고치면 `node marketing-hub/tools/banned-sync.mjs`** (바뀐 파일만 씀 · 볼트·pour-crm 이 옆에 있으면 그것도) · 시험 `node marketing-hub/banned.test.mjs`(잡을 말 · 안 잡을 말 · 사본 같음 · Python 찾기 = JS 찾기)
 - 글자 표 = 볼트 `00 사용금지어` · 규칙 = 루트 CLAUDE.md PART 7-1 (볼트 `00 브랜드 말투` 사본)
 - 허브 글 구조 검사의 '과장 표현'은 1위·무조건만 (완벽·영구·최고·100%·절대는 사용금지어 칸으로 옮김)
+- 지금 상세페이지 찾기 = 겨울 C(상세 진단 · 매주 월요일 · 사장님 2026-10-19 7A): 표 칸 '사용금지어'에 '걸린 말 → 바꿔 쓰기'(없으면 '없음') · 이 칸만 ■ 6 예외 → crew.html 미리보기·업무OS 승인 검사는 `bannedCellText`(BANNED_COL 빼고)로 봄 · ASIDE_VER 2026-10-19.4
+- 2026-10-19 사장님 '모두 추천대로'(기존 글 정리): 자사몰 템플릿(pour-02-best·pour-04-home 기본 카드 · pour-story 숫자 칸) · 벽돌 코팅 라벨 · 배너6(html·svg) · 리뉴얼 빌더 빠른 제안 슬로건·견본 카드 문구를 바꿔 쓰기로 · '선정'은 리뷰·이벤트·대리점 포상(베스트 리뷰 선정 등)엔 안 걸림
 
 ## ⏰ 자동 작업 목록 (AI 팀 탭 · 2026-10-12)
 - 대시보드 AI 팀 탭 '⏰ 자동 작업' = `core.js AUTOMATIONS`(실제로 걸어 둔 것: Claude 루틴 · GitHub 자동 작업 · 구글 캘린더 · Aside · 크루 보드 Aside 6 = `CREW_ASIDE` · 2026-10-14 준비 중) + `TEAM` 의 아직 안 켠 팀원 일(계획)

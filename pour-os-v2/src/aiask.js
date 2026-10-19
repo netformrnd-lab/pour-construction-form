@@ -14,7 +14,7 @@
 import { isMaster, nameOf, teamOf, isOffDay, ymd, addDays, nextWorkday, wdBetween } from "./model.js";
 import { CREWS, mateOf, crewOf, brandL, asidePlan, loginSites, actOf, launchRows, launchRowOf, GONE, runWord, PATHS, PATH_L, hqDef, pathDef, pathOf } from "../../marketing-hub/crew.js";
 import { ASIDE_ADS_LAUNCH_VER, ASIDE_ADS_VER, AD_ROUTINE, routineWhen } from "../../marketing-hub/adops.js";   // 광고 예약 알림 판 (2026-10-17 · 2026-10-19 예약 하나)
-import { bannedHits, bannedRow, BANNED_SRC } from "../../marketing-hub/banned.js";   // 사용금지어 (사장님 2026-10-19 '금지·주의 단어 작성 가이드')
+import { bannedHits, bannedRow, bannedCellText, BANNED_SRC } from "../../marketing-hub/banned.js";   // 사용금지어 (사장님 2026-10-19 '금지·주의 단어 작성 가이드')
 
 export const ASK_STATE_L = { wait: "승인 대기", back: "AI가 고치는 중", ok: "최종 승인", no: "안 함" };
 export const MAX_UP = 5;   // 길이 이보다 길게 이어지지 않게 (상급자 고리·잘못 넣은 값 막기)
@@ -92,8 +92,8 @@ export function planDrop(a, cu, reason, at) {
 export const itemLine = (it, cols) => { const c = (it && it.c) || {}, ks = (cols && cols.length ? cols : Object.keys(c)).filter((k) => c[k] != null && c[k] !== "");
   return ks.slice(0, 3).map((k) => String(c[k])).join(" · ").slice(0, 90); };
 // 사용금지어 (사장님 2026-10-19 "상페, 포스팅 등등 모든것에 활용해야해") — 승인 한 장에 보여 줌 · 막지 않음(근거가 있으면 쓸 수 있어서)
-//   볼 글 = 제목 · 요약 · 본문 · 번호 칸 (원고 노트 건은 허브 [📄 보기] 미리보기에도 같은 검사)
-export const askBanned = (a) => !a ? [] : bannedHits([a.title, a.sum, a.body, ...(a.items || []).map((it) => Object.values((it && it.c) || {}).join(" · "))].filter(Boolean).join("\n"));
+//   볼 글 = 제목 · 요약 · 본문 · 번호 칸 ('사용금지어' 칸 = 겨울 C 가 지금 상세에서 찾은 말을 적은 칸이라 뺌 · 원고 노트 건은 허브 [📄 보기] 미리보기에도 같은 검사)
+export const askBanned = (a) => !a ? [] : bannedHits([a.title, a.sum, a.body, ...(a.items || []).map((it) => bannedCellText(it && it.c))].filter(Boolean).join("\n"));
 // [AI에게 다시]에 미리 채우는 글 — AI 가 이 줄대로 고쳐 다음 판으로 (team_link feedback · crew.html '고쳐서 다시 올릴 것'에 그대로 보임)
 export const bannedBackText = (hs) => [`사용금지어 고쳐 주세요 (${BANNED_SRC}):`, ...(hs || []).map((h) => "- " + bannedRow(h)),
   "근거(시험성적서·인증 번호)가 있는 말이면 같은 문장에 번호·기관을 같이 써 주세요"].join("\n");

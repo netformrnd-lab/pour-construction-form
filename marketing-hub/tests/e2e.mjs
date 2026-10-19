@@ -159,7 +159,11 @@ await putDoc('pour-os/marketing-hub/mkt-notes/'+LEG,{member:'pori',title:'검토
 const VAULT=mkdtempSync(join(tmpdir(),'vault-'));mkdirSync(join(VAULT,'03 작업'));
 writeFileSync(join(VAULT,'03 작업',`${today} 블로그 원고 3.md`),'---\n유형: 작업\n상태: 검토대기\n---\n# 시험 원고\n> 사진 자리는 유형 번호\n\n## 요청 내용\n- 주제 2\n\n## 결과물\n\n## 1. 겨울 전 옥상 균열 보수 — POUR스토어 · [[PS-S011 크랙 방수 세트]]\n**제목 A안**: 옥상 균열 보수 이유\n**제목 B안**: 균열 보수 순서\n\n[썸네일: 메인 「옥상 균열, 겨울 전에」 / 서브 「셀프 보수 순서」 / 구도: 금 간 옥상 바닥]\n> \"비 오면 천장에 얼룩이 생겨요.\"\n> \"작은 금도 막아야 하나요?\"\n\n[사진: 유형 02 시공전 — 금이 간 옥상]\n[링크: 크랙 방수 세트 구매하기 → https://www.pourstore.net]\n\n### 이렇게 합니다\n| 제품 | 정가 |\n|---|--:|\n| [[PS-S011 크랙 방수 세트|크랙 세트]] | 226,000 |\n\n- 바탕 정리\n- 균열 메우기 <b>굵게아님</b>\n\n**해시태그**: #옥상균열 #POUR스토어\n\n**썸네일 문구 3안**\n1. 겨울 전 필수\n\n## 2. 카페 — [[GH-P004 미끄럼방지 페인트]]\n> **카페 규정 확인 후 게시**\n**제목**: [정보] 현관 미끄럼 체크\n카페 본문\n> ⚠️ 검토 메모: 광고 표기\n\n## 3. 지식인 — 옥상 균열 질문 답변\n**제목**: 옥상 균열 셀프 보수 가능한가요?\n작은 균열은 셀프로 가능합니다.\n\n## 체크\n- [ ] 확인\n');
 const TL=(...a)=>execFileSync('python3',[process.env.TOOLS+'/team_link.py',...a],{env:{...process.env,MKT_VAULT:VAULT}}).toString().trim();
-const tlo=TL('open','여름','블로그 원고 3',`03 작업/${today} 블로그 원고 3.md`);log('  ',tlo);   // 2026-10-14 아침 루틴 = B2C 크루 여름 (하루·포리·에코 쉼)
+const tlo=TL('open','여름','블로그 원고 3',`03 작업/${today} 블로그 원고 3.md`);log('  ',tlo);
+// 사용금지어 (사장님 2026-10-19) — 게시 글(## 결과물 ~ ## 체크)에 걸린 말이 있으면 open 이 안 올림 · 줄 번호 · 바꿔 쓰기 · 요청·체크 칸은 안 봄 · 쓰기 0
+writeFileSync(join(VAULT,'03 작업',`${today} 금지어 원고.md`),'---\n유형: 작업\n---\n# 금지어\n## 요청 내용\n- 친환경 페인트 글 (요청 칸은 안 봄)\n\n## 결과물\n\n## 1. 페인트 — POUR스토어\n**제목 A안**: 완벽 방수 페인트\n본문: 무독성이라 안전합니다\n\n## 체크\n- [ ] 최고\n');
+let bo='';try{TL('open','여름','금지어 원고',`03 작업/${today} 금지어 원고.md`);}catch(e){bo=String(e.stdout||'')+String(e.stderr||'');}
+check('사용금지어: team_link open 이 안 올림 · 줄 번호 · 바꿔 쓰기 · --banned-ok 안내 · 요청·체크 칸은 안 봄',bo.includes('사용금지어 3곳 — 올리지 않았어요')&&bo.includes('완벽 (줄 11) → ')&&bo.includes('무독성 (줄 12)')&&bo.includes('--banned-ok')&&!bo.includes('친환경')&&!bo.includes('최고'));   // 2026-10-14 아침 루틴 = B2C 크루 여름 (하루·포리·에코 쉼)
 const AID=(/(ai_yeoreum_\d{8}_[0-9a-f]{8})/.exec(tlo)||[])[1], nid=AID&&(await getDoc('pour-os/v2/aiasks/'+AID)).noteId.stringValue;
 check('도구: 업무OS 승인 한 건(담당 미정 · 관리자 누구나) · 검토 줄은 안 만듦',!!nid&&(await getDoc('pour-os/v2/aiasks/'+AID)).to.stringValue===''&&!(await getDoc('pour-os/v2/links/'+nid)));
 // 업무OS 에서 담당을 정함(남윤정) → 허브엔 '남윤정 차례' (사람 문서는 그 한 명만 읽음)
@@ -205,6 +209,7 @@ for(const w of [1280,768,375]){
     await p.screenshot({path:OUT+'/note-gate-375.png'});
     const pv1=await p.textContent('#pv-1');
     check('미리보기: 썸네일 시안 · 고객 말 말풍선 2 · 사진 번호 · 구매 링크 카드',(await p.textContent('#pv-1 .pv-thumb-in b'))==='옥상 균열, 겨울 전에'&&(await p.$$('#pv-1 .pv-bub')).length===2&&(await p.textContent('#pv-1 .pv-ph-n')).includes('사진 1')&&!!(await p.$('#pv-1 a.pv-link[href="https://www.pourstore.net"]')));
+    check('사용금지어 칸: 걸린 말 없는 글엔 없음 · 있으면 제목·본문·해시태그 (사진 자리 빼고) n곳 + 바꿔 쓰기',!(await p.$('#sheet .pv-ban'))&&(await p.evaluate(()=>{const h=bannedHtml({title:'완벽 방수',body:'친환경 칠 [사진: 유형 02 — 친환경 장면]',tags:['#무독성'],thumbs:[]});return h.includes('사용금지어 ⚠️ 3곳')&&h.includes('친환경</b> → &quot;VOCs 저감을 고려해 설계된&quot;');})));
     check('글 구조 검사: 블로그만 · 해시태그 부족 = 펼쳐 보임',(await p.$eval('#pv-1 .pv-chk',e=>e.open&&e.textContent.includes('해시태그 2개')))&&!(await p.$('#pv-2 .pv-chk')));
     check('미리보기: 사진 자리 칸 · 표 · 태그 · 태그는 글자 · 제목 줄 안 보임',(await p.$('#pv-1 .pv-ph'))&&pv1.includes('#옥상균열')&&(await p.textContent('#pv-1 td[data-l="제품"]'))==='크랙 세트'&&pv1.includes('<b>굵게아님</b>')&&!pv1.includes('제목 A안'));
     check('카페: 규정 안내 · 내부 메모는 본문 밖',(await p.textContent('#pv-2 .pv-notice')).includes('카페 규정')&&!(await p.textContent('#pv-2 .pv-body')).includes('광고 표기'));
@@ -308,6 +313,11 @@ for(const cw of [375,768,1280]){
     const gd=await q.textContent('#crew-guide');
     check('크루 오늘 지시문: 펼침 · 겨울 · 판 · 먼저 할 것 · 이번 몫 = 담당이 정한 수',await q.$eval('#crew-guide-box',e=>e.open)&&/겨울 · 전환 보드 · 판 2026-10-\d\d/.test(await q.textContent('#crew-guide-head'))&&gd.includes('■ 0. 먼저')&&gd.includes('이번 몫: 옵션안 5개 (담당이 정함 · 기본 3개)')&&gd.includes('이번 몫: 진단할 히어로 상품 4개 —')&&(await q.textContent('#crew-last')).includes('없음'));
     check('크루: 겨울 보드 · 담당 김송희 · 켠 규칙만',(await q.inputValue('#crew-board'))==='gh-conv'&&(await q.textContent('#crew-rules')).includes('쿠폰은 15%')&&!(await q.textContent('#crew-rules')).includes('끈 규칙'));
+    // 사용금지어 (사장님 2026-10-19) — 미리보기에 할 일마다 경고 (막지 않음) · 근거 번호가 같은 칸에 있으면 안 뜸
+    await q.fill('#crew-date',today);await q.fill('#crew-text','[B]\n요약: 친환경 페인트 옵션\n항목\t내용\t근거\t할 일\n무취 옵션\t19,900원\t건설신기술 제1026호\t상세 수정\n');await q.click('#preview-button');
+    const bw=await q.textContent('#preview');
+    check('크루 미리보기: 사용금지어 경고 (요약·표 칸 · 근거 번호는 안 뜸)',bw.includes('사용금지어 · B')&&bw.includes('친환경 → "VOCs 저감을 고려해 설계된"')&&bw.includes('무취 → ')&&!bw.includes('신기술 →'));
+    await q.screenshot({path:`${OUT}/crew-banned-375.png`,fullPage:true});check('크루 미리보기 경고 375 넘침 없음',await overflow(q)<=0);
     await q.fill('#crew-date',today);await q.fill('#crew-text',CT);await q.click('#preview-button');
     const pv=await q.textContent('#preview'), ths=await q.$$eval('#preview th',a=>a.map(x=>x.textContent));
     check('크루 미리보기: 지표 1 · 승인 1 · 모르는 키(품절 soldout 은 2026-10-17 이음 보드로) · 마진 칸 뺌 · 번호 가림',pv.includes('지표 1개 · 승인 요청 1건')&&pv.includes('soldout · 모르는키')&&!ths.includes('마진')&&pv.includes('뺀 칸 마진')&&!pv.includes('30%')&&pv.includes('010-****-****')&&!pv.includes('1234-5678'));

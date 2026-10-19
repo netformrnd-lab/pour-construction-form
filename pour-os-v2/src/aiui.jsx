@@ -18,7 +18,7 @@ import { RtMulti } from "./airtui.jsx";   // AI 크루 ↔ 반복 실행 (2026-1
 import { isFxKey, fxIdOf, NO_ACT, akKeys, pairable } from "./airt.js";
 import { GONE, liveCrews, closedCrews, CLOSED_L, pathGroups, pathGroupsL, crewOf, mateOf, boardOf, brandL, servesL, mateBrands, ownerKeys, fmtMetric, metricPct, metricOk, runWord, asideLaunch, asideRedoLaunch, asideFixLaunch, loginSites, planOf, qtyDefs, qtyNow, canReq, reqMates, REQ_SHAPES, REQ_PRESETS, REQ_STATE_L, reqLine, asideReqLaunch, execOf, formulaHead, formulaSep, movedOut, movedIn, stageOf, designOf, designBad, DESIGN_MAX, BRAND_L, handoffTargets, handoffLabel, handoffNeedsDone, INBOX_DAYS, isNpsAct, npsFromTraces, npsLine, asideNowLaunch, testRunOf } from "../../marketing-hub/crew.js";
 import { cycleOf, periodOf, repCrews, repId, repSlots, secState, periodL, dueL, CYCLE_L } from "./aireport.js";   // AI 크루 보고 (2026-10-15)
-import { ASK_STATE_L, canAct, canBack, canRet, isProxy, pickOk, planPass, chainOf, mateOwner, actOwner, hqOf, canUpHQ, pathOf, pathDef, upLeadTo, PATH_L, mateStats, repeatNotes, itemLine, bossOf, bossRec, bossLoop, asidePlanOf, ranOn, missedOn, goneWaits, GONE_DROP, myTurnN,
+import { ASK_STATE_L, canAct, canBack, canRet, isProxy, pickOk, planPass, chainOf, mateOwner, actOwner, hqOf, canUpHQ, pathOf, pathDef, upLeadTo, PATH_L, mateStats, repeatNotes, itemLine, askBanned, bannedBackText, bossOf, bossRec, bossLoop, asidePlanOf, ranOn, missedOn, goneWaits, GONE_DROP, myTurnN,
   waitWd, workMin, prevWaits, newerOf, routineRanOn, routineMisses, routineAlert, stuckAlert, LATE_WD, BACK_MIN, PREV_DROP, ROUTINE_AT, ROUTINE_CHECK,
   setupOf, setupRows, uploaderOf, accountName, TEST_WAIT } from "./aiask.js";   // 멈춤 감시 (2026-10-17) · Aside 세팅 3단계 (2026-10-19)   // 멈춤 감시 (2026-10-17)
 
@@ -115,6 +115,7 @@ export function AiAskSheet({ D, cu, A, open, onBack, onClose, id, focus, note })
   const nowD = new Date(), allAsks = (D.ai && D.ai.asks) || [], lateWd = a.state === "wait" ? waitWd(a, nowD) : 0;
   const pw = a.state === "no" ? [] : prevWaits(allAsks, a), pwMine = pw.filter((x) => canAct(x, cu)), nw = a.state === "wait" && !(a.step > 0) ? newerOf(allAsks, a) : null;
   const stuckMin = a.state === "back" ? workMin((a.back && a.back.at) || a.updatedAt, nowD) : 0;
+  const bh = a.state === "no" ? [] : askBanned(a), bn = bh.reduce((x, h) => x + h.n, 0);   // 사용금지어 (사장님 2026-10-19)
   const dropPrev = async () => { setPrevAsk(false); await go(() => A.aiDropMany(pwMine, PREV_DROP)); };
   const foot = can ? <><Big disabled={busy || !pickOk(a, pick)} onClick={() => go(() => A.aiPass(a, items.length ? pick : null))}>{passL}</Big>
       {upOk && <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, fontSize: 12.5, color: C.sub, flexWrap: "wrap" }}><span style={{ flex: "1 1 160px" }}>리드에서 끝나는 일이에요 · 본부장 확인이 필요하면</span><TBtn disabled={busy || !pickOk(a, pick)} onClick={() => go(() => A.aiPass(a, items.length ? pick : null, true))}>본부장에게도 올리기</TBtn></div>}
@@ -150,6 +151,10 @@ export function AiAskSheet({ D, cu, A, open, onBack, onClose, id, focus, note })
       {b ? <div style={{ marginTop: 8 }}><div style={{ fontSize: 12.5, color: C.sub, marginBottom: 6 }}>바로 고치게 하려면 담당 PC Aside 에 이 글을 붙여 넣어요 · 고칠 것 확인을 한 시간마다 걸어 뒀으면 그때 고쳐요</div><CopyText text={asideRedoLaunch(a)} label="바로 고치기 — Aside 글 복사" /></div>
         : <div style={{ fontSize: 12.5, color: C.sub, marginTop: 6 }}>{m.name}(AI)가 평일 10~17시엔 한 시간 안에 고쳐 다시 올려요 · 그 밖엔 다음 날 아침 06:50</div>}
       {!b && stuckMin >= BACK_MIN && <div style={{ marginTop: 8 }}><CopyText text={stuckAlert(a, nowD)} label="사장님께 보낼 글 복사" /></div>}</Banner>}
+    {bh.length > 0 && <Banner><b>사용금지어 {bn}곳</b> · 사장님 '금지·주의 단어 작성 가이드' · 근거(시험성적서·인증 번호) 없이 쓰면 안 되는 말
+      <div style={{ marginTop: 4 }}>{bh.map((h) => <div key={h.w} style={{ fontSize: 13, lineHeight: 1.6 }}><b>{h.hit}</b> → {h.alt}{h.ok ? <span style={{ color: C.sub }}> · 근거가 있으면: {h.ok}</span> : null}</div>)}</div>
+      <div style={{ fontSize: 12.5, color: C.sub, marginTop: 4 }}>근거가 있으면 그대로 승인해도 돼요 · 아니면 {a.state === "ok" ? "실행할 때 바꿔 써 주세요" : "고쳐 달라고 보내요"}</div>
+      {can && (canBack(a, cu) || canRet(a, cu)) && <div style={{ marginTop: 8 }}><TBtn onClick={() => { setTxt(bannedBackText(bh)); setMode(canBack(a, cu) ? "back" : "ret"); }}>{canBack(a, cu) ? `${m.name}(AI)에게 고쳐 달라기` : `${nameOf(D.users, a.owner) || "담당"}님께 고쳐 달라기`}</TBtn></div>}</Banner>}
     {a.state === "no" && <Banner><b>안 함</b> · {a.noByName} · {a.noAt ? ago(a.noAt) : ""}{a.noReason ? <div>{a.noReason}</div> : null}</Banner>}
     {a.state === "ok" && <Banner><b>최종 승인</b> · {a.okByName} · {a.okAt ? `${md(ymd(new Date(a.okAt)))} ${hm(a.okAt)}` : ""}{a.exec ? <div>실제 반영은 사람이 해요 · '실행' 업무에서 번호마다 흔적을 남기고 끝내 주세요</div> : null}
       {exIds.length > 1 && <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 }}><span style={{ fontSize: 12.5, color: C.sub }}>반복업무 담당마다 실행 업무 {exIds.length}개 ·</span>

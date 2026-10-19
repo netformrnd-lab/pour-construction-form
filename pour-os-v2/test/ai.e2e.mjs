@@ -987,6 +987,28 @@ ST.v2.aiasks.ai_baram_20261020_refE = ask({ id: 'ai_baram_20261020_refE', at: '2
     ok('보고 바람 칸 넘침 없음 375', !(await over(s.pg)));
     await s.close(); } }
 
+// ⑰ 사용금지어 (사장님 2026-10-19 '금지·주의 단어 작성 가이드') — 승인 한 장 띠 · [AI에게 고쳐 달라기] = 고칠 점 칸에 바꿔 쓰기 글(보내기는 사람) · 근거 번호가 같은 문장에 있는 말은 안 뜸
+ST.v2.aiasks.ai_gyeoul_20261019_ghconvC = ask({ id: 'ai_gyeoul_20261019_ghconvC', at: '2026-10-19T00:30:00.000Z', run: '2026-10-19', mate: 'gyeoul', brand: 'grohome', board: 'gh-conv', act: 'C', owner: 'yj',
+  title: '전환 보드 C · 상세 헤드라인 개선', sum: '친환경 무취 페인트로 헤드라인 교체', cols: ['상품', '제안'], items: [{ n: 'C1', c: { 상품: '목재 페인트', 제안: '완벽 방수 · 100% 보장' } }, { n: 'C2', c: { 상품: '방수 코팅', 제안: '건설신기술 제1026호 적용' } }] });
+{ for (const w of [375, 768, 1280]) {
+    const s = await session('yj', { w, now: '2026-10-19T10:00:00+09:00' });
+    await s.pg.evaluate(() => { location.hash = '#a-ai_gyeoul_20261019_ghconvC'; }); await s.pg.waitForTimeout(900);
+    const t = await s.S().innerText();
+    ok(`사용금지어 띠 ${w}: 4곳 · 걸린 말 → 바꿔 쓰기 · 근거 있는 말(건설신기술 제1026호)은 안 뜸`, t.includes('사용금지어 4곳') && t.includes('친환경 → "VOCs 저감을 고려해 설계된"') && t.includes('100% → "높은 수준의"') && t.includes('무취 → ') && !t.includes('신기술 →'), t.slice(0, 600));
+    ok(`사용금지어 띠 넘침 없음 ${w}`, !(await over(s.pg)));
+    if (w === 375) {
+      await s.S().getByRole('button', { name: '겨울(AI)에게 고쳐 달라기' }).click(); await s.pg.waitForTimeout(300);
+      const v = await s.S().getByLabel('고칠 점').inputValue();
+      ok('고쳐 달라기 = 고칠 점 칸에 바꿔 쓰기 글이 채워짐', v.startsWith('사용금지어 고쳐 주세요') && v.includes('- 친환경 → ') && v.includes('근거(시험성적서·인증 번호)'), v);
+      await s.S().getByText(/^사용금지어 4곳/).first().scrollIntoViewIfNeeded(); await shot(s.pg, 'yj-banned-375');
+      ok('채우기만 · 아직 안 보냄 (state wait)', (await live(s, 'aiasks', 'ai_gyeoul_20261019_ghconvC')).state === 'wait');
+      await s.S().getByRole('button', { name: '보내기', exact: true }).click(); await s.pg.waitForTimeout(600);
+      const d = await live(s, 'aiasks', 'ai_gyeoul_20261019_ghconvC');
+      ok('[보내기] → AI에게 다시 (back.text = 바꿔 쓰기 글)', d.state === 'back' && String((d.back || {}).text || '').startsWith('사용금지어 고쳐 주세요'), d.back);
+    }
+    await s.close();
+  } }
+
 ok('화면 오류 없음', errs.length === 0, errs);
 await b.close();
 console.log(`\n${n - bad}/${n} 통과 · 그림 ${SHOTS}`); if (bad) process.exit(1);

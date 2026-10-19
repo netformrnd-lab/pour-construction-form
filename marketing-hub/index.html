@@ -18,6 +18,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="core.js"></script>
 <script type="module">import * as U from './utm.js'; window.MktUtm=U; console.log('[링크 꼬리표] utm.js 불러옴');</script>
+<script type="module">import * as B from './banned.js'; window.MktBanned=B; console.log('[사용금지어] banned.js 불러옴'); if (window.renderSheet) window.renderSheet();</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>
 :root{--navy:#0D1B2A;--accent:#2563EB;--accent-l:#EFF6FF;--green:#059669;--green-l:#ECFDF5;--red:#DC2626;--red-l:#FEF2F2;
@@ -163,6 +164,7 @@ details.meta summary{cursor:pointer;font-weight:700;color:var(--text-md);font-si
 .pv-chk{margin:10px 12px 0;border:1px solid var(--border);border-radius:8px;background:#FAFAFB;font-size:13px}
 .pv-chk summary{cursor:pointer;padding:8px 10px;font-weight:800}.pv-chk ul{list-style:none;margin:0;padding:0 10px 8px}.pv-chk li{padding:3px 0;line-height:1.5}
 .pv-chk li.bad{color:var(--red)}.pv-chk li.warn{color:var(--gold)}.pv-chk .sub{padding:0 10px 8px}
+.pv-ban{border-color:#F3D19C;background:var(--gold-l)}.pv-ban li.warn{color:var(--text)}
 .sheet .acts{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.sheet .acts .sp{flex:1}
 .md{font-size:15px;line-height:1.7;word-break:break-word}
 .md h2{font-size:18px;margin:18px 0 8px}.md h3{font-size:16px;margin:16px 0 6px}.md h4,.md h5,.md h6{font-size:15px;margin:12px 0 4px}
@@ -690,6 +692,16 @@ function postActs(p,st){
   if(gate)return `<div class="pv-st"><span class="pill ${S.note.askErr?'err':'m'}">최종 승인 뒤 맡기기</span><span class="sub">${esc(gate)}</span></div><div class="pv-btns"><button class="btn sm" disabled>📝 임시저장 맡기기</button>${copy}</div>`;
   return `<div class="pv-btns"><button class="btn sm pri" data-pq="${k}">📝 임시저장 맡기기</button>${copy}</div>`;
 }
+// 사용금지어 (사장님 2026-10-19 '금지·주의 단어 작성 가이드' · banned.js) — 모든 채널 · 제목·본문·해시태그·썸네일 문구 · 표시만 · 막지 않음(근거가 있으면 쓸 수 있어서)
+//   사진 자리 [사진: …]는 사람이 사진으로 바꾸는 메모라 안 봄
+function bannedHtml(p){
+  const Bn=window.MktBanned;if(!Bn)return '';
+  const text=[p.title,p.titleB,p.body,(p.tags||[]).join(' '),(p.thumbs||[]).join('\n')].filter(Boolean).join('\n').replace(/\[사진\s*[:：][^\]]*\]|\(사진\s*-[^)]*\)/g,' ');
+  const hs=Bn.bannedHits(text);if(!hs.length)return '';
+  return `<details class="pv-chk pv-ban" open><summary>사용금지어 ⚠️ ${Bn.bannedCount(hs)}곳 — 근거 없이 쓰면 안 되는 말</summary>
+    <ul>${hs.map(h=>`<li class="warn">⚠️ <b>${esc(h.hit)}</b> → ${esc(h.alt)}${h.ok?`<div class="sub" style="padding:0">근거가 있으면: ${esc(h.ok)}</div>`:''}</li>`).join('')}</ul>
+    <div class="sub">기준: 사장님 '금지·주의 단어 작성 가이드' (볼트 [00 사용금지어]) · 고치려면 업무OS [AI에게 다시] · 근거(시험성적서·인증 번호)가 같은 문장에 있으면 안 떠요</div></details>`;
+}
 // 글 구조 검사 (네이버 블로그) — 표시만 · 막지 않음
 function chkHtml(ck){
   if(!ck)return '';const ic={ok:'✅',warn:'⚠️',bad:'❌'};
@@ -702,6 +714,7 @@ function postCard(p,n){
   return `<article class="pv pv-${p.channel}" id="pv-${p.n}">
     <div class="pv-bar"><span class="pv-logo">${{naver_blog:'blog',tistory:'T',cafe:'cafe',kin:'iN',insta:'IG'}[p.channel]||'✎'}</span><span>${esc(C.CHANNEL[p.channel])} 미리보기</span><span class="sp"></span><span class="sub">${p.n}</span></div>
     ${p.notice?`<div class="pv-notice">⚠️ ${esc(p.notice)}</div>`:''}
+    ${bannedHtml(p)}
     ${chkHtml(C.blogCheck(p))}
     <div class="pv-in">
       ${brand&&(p.channel==='naver_blog'||p.channel==='tistory')?`<div class="pv-cat">${esc(brand)} 공식 ${p.channel==='tistory'?'티스토리':'블로그'}</div>`:''}

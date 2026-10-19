@@ -1,6 +1,11 @@
 (function () {
   'use strict';
 
+  /* BANNED_RULE_START — 사용금지어 (사장님 2026-10-19 · 원본 marketing-hub/banned.js bannedRule · node marketing-hub/tools/banned-sync.mjs 가 다시 씀 · 손으로 고치지 않음) */
+  const BANNED_RULE = "■ 사용금지어 — POUR스토어·그로홈 (사장님 '금지·주의 단어 작성 가이드' 2026-10-19 · 상세페이지·글·광고·메시지·답변·제목·해시태그 모두)\n- 근거(시험성적서·인증서) 없이 아래 말을 쓰지 않는다 → 화살표 뒤 말로 바꿔 쓴다. 근거가 있으면 근거(번호·기관·연도)를 같은 문장에 같이 쓸 때만 쓴다 · 근거를 지어내지 않는다\n- 단정·최상급: 100% → 높은 수준의, 대부분의 / 독보적 → 차별화된, 독자 개발한 / 무결점 → 결함을 줄인, 품질 관리를 거친 / 압도적 → 우수한, 뛰어난 / 영구·반영구 → 오래 유지되도록 설계된, 장기간 성능을 유지하는 / 완벽 → 우수한, 꼼꼼하게 마감되는 / 완전(차단·방수) → 효과적으로 차단하는, 방수 성능이 우수한 / 유일 → 차별화된, 독자적인 / 절대(~하지 않는) → ~을 줄여 주는, ~에 강한 / 최고 → 우수한, 높은 수준의 / 최초 → 새롭게 개발한, 독자 개발한 / 평생 → 오랫동안, 장기간\n- 성분·성능: 무수축 → 수축을 줄인, 수축이 적은 / 무알칼리 → 알칼리 성분을 줄인 / 무용제 → 용제 사용을 줄인\n- 항균·곰팡이: 항균·살균·세균·바이러스·99.9% → 위생적인 관리에 유리한, 청결 유지에 도움을 주는 / 소독 → 청결 유지에 도움을 주는 / 곰팡이 방지·억제·차단·제거 → 곰팡이가 생기기 쉬운 환경을 줄여 주는, 습기 관리에 유리한 / 탈취 → 냄새 관리에 도움을 주는\n- 환경·인체 안전: 유해물질·VOCs ○% 저감 → VOCs 저감을 고려해 설계된 / 저 VOC → VOCs 함량 ○ g/L (기준 ○ g/L 이하) / ZERO·제로·○○-free → 휘발성유기화합물(VOCs) 기준 적합 / ○○ 무함유·없음·미사용 → 기준치 이하 검출 시 카드뮴 기준 적합 / 유해물질 없음·중금속·포름알데히드 → ○○ 기준 적합 / 불검출 → 기준치 이하 검출 시 ○○ 기준 적합 / 무첨가 → ○○(물질명) 무첨가(원료 배합 기준) / VOC → 휘발성유기화합물(VOCs) 기준 적합(시험성적서 ○○호) / 친환경·에코 → VOCs 저감을 고려해 설계된 / 무독성·무해·인체에 안전 → VOCs 저감을 고려해 설계된 / 안전한 → 사용 환경을 고려한 / 무공해·저공해·오염 없는 → ○○(이유)로 수질오염 저감에 기여 / 무취·냄새 없는 → 냄새가 적은, 냄새 부담을 줄인 / 천연 → ○○ 원료 ○% 사용 / 저탄소·탄소중립·넷제로 → 쓰지 않음 / 생분해·자연분해 → 쓰지 않음 / 오존 친화·오존층 → ○○(물질명) 미사용\n- 인증·성능: 공인(시험)기관 인증 → 공인기관 시험분석 결과 ○○ 기준 적합(시험성적서 ○○호) / 환경표지·품질인증·KC·ISO 등 → (인증 취득 시 기재) 또는 빼기 / 신기술 → 새롭게 개발한 공법 / 실용신안·디자인등록·상표등록 → 빼기 / 출원 → 특허 출원 중(출원번호 ○○) / 수상 → ○○상 수상(주최 ○○, 2026) / 선정 → ○○ 우수제품 선정(조달청, 2026) / 불연·준불연 → (시험성적서 보유 시 기재) 또는 빼기 / 내화 → (시험성적서 보유 시 기재) 또는 빼기 / 에너지 절감·냉난방비 절약 → 에너지 효율을 고려한 / 인증 → (인증 취득 시 기재) 또는 빼기\n- 숫자·성능은 확인한 시험성적서 값만 (예: KTR 공인시험 결과) · 시험성적서는 인증이 아니다 · 건설신기술은 \"제1026호\"처럼 번호와 함께";
+  /* BANNED_RULE_END */
+  // AI 결과 글에 걸린 사용금지어 → 상태 줄 끝에 한 줄 (preview.html 이 ../marketing-hub/banned.js 를 window.MktBanned 로 불러옴 · 못 불러오면 빈 글 · 막지 않음)
+  const bannedNote = (texts) => { const B = window.MktBanned; if (!B) return ''; const hs = B.bannedHits((texts || []).filter(Boolean).map(String).join('\n')); return hs.length ? ` · ⚠️ 사용금지어 ${B.bannedCount(hs)}곳 — ${hs.map((h) => h.hit + ' → ' + h.alt.replace(/"/g, '')).join(' / ')} (근거 없으면 바꿔 써 주세요)` : ''; };
   const STORAGE_KEY = 'pourstore-renewal-builder-v2';
   const STORAGE_KEY_V1 = 'pourstore-renewal-builder-v1';
   const ME_STAFF_KEY = 'pourstore-renewal-me-staff-id'; // 기기별 — Firestore 동기화 안 함
@@ -11805,7 +11810,7 @@ show('entry');
       '1. 자료에 명시되지 않은 사실은 절대 만들어내지 마세요. 없으면 그 항목을 응답에서 빼면 됩니다.',
       '2. 수치는 단위까지 정확하게 분리하세요 (예: "5.8 N/mm²" → value="5.8", unit="N/mm²").',
       '3. 동일 정보가 여러 자료에 나오면 가장 권위 있는 출처(공인시험기관 > 카탈로그 > 메모)를 source로 지정.',
-      '4. 광고 톤 표현("최고", "유일")은 그대로 옮기지 말고 측정 가능한 사실로 변환하거나 제외.',
+      '4. 광고 톤 표현("최고", "유일")은 그대로 옮기지 말고 측정 가능한 사실로 변환하거나 제외. 아래 사용금지어도 sellingPoints·summary 에 그대로 옮기지 않는다 (자료에 성적서·인증 번호가 있으면 그 번호와 같이).',
       '5. compatibleSubstrates는 자식 상품 분기의 핵심 — 자료에서 "OO에 사용 가능"으로 명시된 모든 기재(목재·철재·벽돌·콘크리트·벽체 등)를 빠짐없이 추출.',
       '',
       '【출력 JSON 스키마】 — 이 형태로만 응답. JSON 외 어떤 텍스트도 포함 금지. ```json 코드펜스 사용 금지.',
@@ -11823,6 +11828,8 @@ show('entry');
       '',
       'kind: tested(공인시험 결과) | declared(자체 발표 수치) | unknown',
       'confidence: 0~1, 자료에서 명확하면 0.9+, 추론이면 0.5~0.8',
+      '',
+      BANNED_RULE,
     ].join('\n');
   }
   function buildProductFactsUserContent(pdfs, ownText) {
@@ -11896,7 +11903,7 @@ show('entry');
         : '';
       status.className = 'pe-extract-status ok';
       const total = countTotalFacts(ctx.draft.masterFacts);
-      status.textContent = `✅ 추출 완료 — ${total}개 사실${tokenInfo}${json.summary ? ' · ' + json.summary : ''}`;
+      status.textContent = `✅ 추출 완료 — ${total}개 사실${tokenInfo}${json.summary ? ' · ' + json.summary : ''}${bannedNote([json.summary, ...(json.sellingPoints || []).map((x) => x && x.text)])}`;
       renderProductFacts();
       updateProductApproveButton();
     } catch (e) {
@@ -12608,9 +12615,12 @@ show('entry');
         `3. 통디자인 톤: ${vibe.name} (${vibe.target}) — 키워드 ${vibe.visualKeywords.join(', ')}. 카피 톤이 이 분위기와 일관되어야 함.`,
         '4. 슬롯 type에 맞게 작성 (text=한 줄, textarea=2~5문장, link=URL, image=이미지URL).',
         '5. 이미지 슬롯은 자료에서 URL을 추출 못 하면 value=null (직접 채울 수 있도록).',
+        '6. 아래 사용금지어는 어느 슬롯에도 쓰지 않는다 (근거 번호가 마스터 사실에 있을 때만 그 번호와 같이).',
         '',
         '【출력 JSON 스키마】 — JSON 외 텍스트 금지. 코드펜스 금지.',
         '{ "slots": { "<slotKey>": { "value": "<문자열 또는 null>", "kind": "fact|crafted|none", "reasoning": "<짧은 근거>" } }, "summary": "<1~2문장>" }',
+        '',
+        BANNED_RULE,
       ].join('\n');
       const userText = [
         `【모제품】 ${master.name}`,
@@ -12677,7 +12687,7 @@ show('entry');
       const usage = data.usage || {};
       const tokenInfo = usage.input_tokens ? ` · 토큰 ${usage.input_tokens}/${usage.output_tokens}` : '';
       status.style.color = '#059669';
-      status.textContent = `✅ 생성 완료 — ${Object.keys(filledSlots).length}/${(tpl.slots || []).length} 슬롯 채움${tokenInfo}${json.summary ? ' · ' + json.summary : ''}`;
+      status.textContent = `✅ 생성 완료 — ${Object.keys(filledSlots).length}/${(tpl.slots || []).length} 슬롯 채움${tokenInfo}${json.summary ? ' · ' + json.summary : ''}${bannedNote(Object.values(filledSlots).filter((v) => !/^https?:/i.test(String(v))))}`;
       renderListingDetailStatus();
     } catch (e) {
       console.error('[listing] 자동 생성 실패:', e);
@@ -12903,7 +12913,7 @@ show('entry');
       '',
       '【엄격 규칙】',
       '1. 같은 적용기재라도 용도(외장/실내·노출/비노출)가 다르면 자식 상품을 분리하세요.',
-      '   예: "목재" → 외장 데크용(자외선·방부) + 실내 가구용(무독성·발색) → 2개 상품',
+      '   예: "목재" → 외장 데크용(자외선·방부) + 실내 가구용(냄새 부담을 줄인·발색) → 2개 상품',
       '2. 카페24 검색에서 고객이 실제 입력할 만한 용어를 listingName으로.',
       '3. emphasizedFactIds는 입력으로 받은 fact ID(spec-xxx, sp-xxx 등) 중에서만 선택. 임의 ID 만들지 마세요.',
       '4. suggestedVibe는 다음 5종 중 정확히 하나: warm-natural | cool-tech | clean-bright | bold-industrial | earth-rough',
@@ -12913,6 +12923,7 @@ show('entry');
       '   - bold-industrial: 강함·임팩트 (외장·공업·콘크리트·지붕방수)',
       '   - earth-rough: 자연·거침 (벽돌·외벽·자연석·외장 데크)',
       '5. 너무 많이 만들지 마세요 — 의미 있는 분기 3~6개가 적정.',
+      '6. listingName·customSlogan·searchKeywords 에 아래 사용금지어를 쓰지 않는다.',
       '',
       '【출력 JSON 스키마】 — JSON 외 텍스트 금지. 코드펜스 금지.',
       '{',
@@ -12928,6 +12939,8 @@ show('entry');
       '  }],',
       '  "summary": "<1~2문장 분석 요약>"',
       '}',
+      '',
+      BANNED_RULE,
     ].join('\n');
     const userText = [
       `【모제품】 ${master.name} (${master.productCode || ''})`,
@@ -12970,7 +12983,7 @@ show('entry');
       const usage = data.usage || {};
       const tokenInfo = usage.input_tokens ? ` · 토큰 ${usage.input_tokens}/${usage.output_tokens}` : '';
       status.style.background = '#ECFDF5'; status.style.color = '#065F46';
-      status.textContent = `✅ AI 제안 완료 — ${suggests.length}개 상품${tokenInfo}${json.summary ? ' · ' + json.summary : ''}`;
+      status.textContent = `✅ AI 제안 완료 — ${suggests.length}개 상품${tokenInfo}${json.summary ? ' · ' + json.summary : ''}${bannedNote(suggests.map((x) => [x.listingName, x.customSlogan, x.targetUseRefined, x.searchKeywords.join(' ')].join(' · ')))}`;
       renderSuggestResults();
     } catch (e) {
       console.error('[branch-ai] 실패:', e);
@@ -14105,7 +14118,7 @@ show('entry');
       '1. 우리 제품 자료에서 확인되지 않는 사실(제품명·수치·인증·성능·가격·용량 등)은 절대 만들어내지 마세요. 없으면 value=null.',
       '2. 타사 자료의 제품명·회사명·고유 수치·인증명·사진 캡션·고유 카피는 절대 그대로 인용 금지. 영감 받은 부분은 우리 제품에 맞게 자연스러운 한국어로 재작성하세요 (표절 방지).',
       '3. 이미지 슬롯(image type)은 자료에서 직접 URL을 추출하지 못하면 value=null.',
-      '4. 한국어 어법으로 자연스럽게, 광고 톤 과장은 피하고 사실 기반.',
+      '4. 한국어 어법으로 자연스럽게, 광고 톤 과장은 피하고 사실 기반. 아래 사용금지어는 쓰지 않는다 (우리 자료에 성적서·인증 번호가 있으면 그 번호와 같이 · 타사 자료에 있어도 옮기지 않음).',
       '5. 슬롯 type에 맞게 작성: text=한 줄(20자 내외), textarea=2~5문장, link=URL, image=이미지 URL.',
       '',
       '【출력 형식】',
@@ -14124,6 +14137,8 @@ show('entry');
       '}',
       '',
       'kind 의미: own=우리 자료에서 그대로 추출 / rewrite=타사 톤 참고하되 우리 사실로 재작성 / ref=타사 구조에서 영감 / none=값 없음(null)',
+      '',
+      BANNED_RULE,
     ].join('\n');
   }
 
@@ -14290,7 +14305,7 @@ show('entry');
         ? ` · 토큰 ${usage.input_tokens || 0} in / ${usage.output_tokens || 0} out${usage.cache_creation_input_tokens ? ` (캐시 생성 ${usage.cache_creation_input_tokens})` : ''}`
         : '';
       status.className = 'af-status af-status-ok';
-      status.textContent = `✅ 분석 완료${tokenInfo}`;
+      status.textContent = `✅ 분석 완료${tokenInfo}${bannedNote(Object.values(autoFillCtx.suggestions).map((v) => v && v.value).filter((v) => v && !/^https?:/i.test(String(v))))}`;
       if (autoFillCtx.summary) {
         summaryEl.style.display = '';
         summaryEl.innerHTML = '📌 <b>분석 요약:</b> ' + escapeHtml(autoFillCtx.summary);

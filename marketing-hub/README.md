@@ -231,6 +231,15 @@
   - 블로그 표준: 구매 링크 = 카드 `자사몰주소` · 비면 첫 화면 + ⚠️ 검토 메모 · 허브 글 구조 검사 '구매 링크가 자사몰 첫 화면 n개' ⚠️(`core.blogCheck` home)
 - 시험: `node marketing-hub/crew.test.mjs`(utm · NPS · 잴 글 · 링크 합 · team_link 와 같은 계산) · `core.test.mjs`(첫 화면 경고) · 업무OS `aireport.test.mjs`(NPS) · `test/ai.e2e.mjs` ⑮(NPS 칩 375·768·1280) · 허브 index.html·crew.html 화면(가짜 Firebase · 쓰기 없음)
 
+## 사용금지어 (사장님 2026-10-19 '금지·주의 단어 작성 가이드' · "상페, 포스팅 등등 모든것에 활용해야해")
+- 목록·찾기 = `banned.js` (ES 모듈 · 계산만): `BANNED`(묶음 5 · 단어 · 찾는 말 re · 보여 줄 부분 show · 바꿔 쓰기 alt · 그대로 쓸 수 있는 경우 ok · 같은 문장 근거 ctx) · `BANNED_SKIP`(주소 · 가이드의 바꿔 쓰기 문구 · 본인 인증·구매 인증 · 구조 안전성 · 권하는 말) · `bannedHits(글)` · `bannedRule()`(AI 지시문 글 하나)
+  · 근거 번호(제○호 · 인증번호 · 성적서 · 유효기간 · (기관, 연도))가 **같은 문장**에 있으면 안 셈 · 좁은 말 먼저(찾은 자리는 지워서 같은 곳을 두 번 안 셈) · 뒤 보기(lookbehind) 안 씀(옛 아이폰)
+  · 사람 화면은 **표시만** (근거가 있으면 쓸 수 있어서) · AI 도구(볼트 `team_link.py open`)는 걸리면 안 올림(`--banned-ok`)
+- 쓰는 곳: 허브 [📄 보기] 미리보기 '사용금지어 ⚠️ n곳'(모든 채널 · 제목·본문·해시태그·썸네일 문구 · 사진 자리 빼고 · `window.MktBanned`) · crew.html [미리보기] 할 일마다 경고 · crew.js 지시문 '■ 6. 사용금지어'(ASIDE_VER 2026-10-19.2 · 바라스데이 빼고) · 업무OS AI 승인 한 장(aiask.askBanned · [AI에게 고쳐 달라기]) · 숏폼 스튜디오 컷 칩 · 리뉴얼 상세 AI(preview.html · assets/builder.js) · 팀·마진 대시보드 AI(functions/api) · 옛 챗봇 관리센터(pourstore-renewal/chatbot.html) · CRM 챗봇(사본)
+- 사본(같은 목록): `tools/team_link.py` BANNED_DATA(볼트 사본도) · functions/api/team-ai.js·dashboard-ai.js · pourstore-renewal/assets/builder.js · pourstore-renewal/chatbot.html BANNED_RULE · pour-crm src/pages/chatbot/banned.js → **banned.js 를 고치면 `node marketing-hub/tools/banned-sync.mjs`** (바뀐 파일만 씀 · 볼트·pour-crm 이 옆에 있으면 그것도) · 시험 `node marketing-hub/banned.test.mjs`(잡을 말 · 안 잡을 말 · 사본 같음 · Python 찾기 = JS 찾기)
+- 글자 표 = 볼트 `00 사용금지어` · 규칙 = 루트 CLAUDE.md PART 7-1 (볼트 `00 브랜드 말투` 사본)
+- 허브 글 구조 검사의 '과장 표현'은 1위·무조건만 (완벽·영구·최고·100%·절대는 사용금지어 칸으로 옮김)
+
 ## ⏰ 자동 작업 목록 (AI 팀 탭 · 2026-10-12)
 - 대시보드 AI 팀 탭 '⏰ 자동 작업' = `core.js AUTOMATIONS`(실제로 걸어 둔 것: Claude 루틴 · GitHub 자동 작업 · 구글 캘린더 · Aside · 크루 보드 Aside 6 = `CREW_ASIDE` · 2026-10-14 준비 중) + `TEAM` 의 아직 안 켠 팀원 일(계획)
 - 분류 7개(콘텐츠 · 광고·행사 · 재고·발주 · 고객 · 기획·보고 · 숫자·데이터 · 백업·알림) 고르기 · [모두 | 걸어 둔 것 | 계획] · 고른 것은 기기에 기억

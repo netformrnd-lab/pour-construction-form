@@ -223,6 +223,7 @@ pre.code { margin: 6px 0 0; padding: 10px; background: var(--surface2); border-r
   <p class="empty">숏폼 스튜디오를 불러오는 중…</p>
 </div>
 
+<script type="module">import * as B from './marketing-hub/banned.js'; window.MktBanned = B; if (window.render) window.render();   // 사용금지어 (사장님 2026-10-19) — 컷마다 자막 검사</script>
 <script>
 // ── 설정 ────────────────────────────────────────────
 const STUDIO_URL = 'https://pour-construction-form.pages.dev/shorts-studio.html';  // 이 대시보드 주소 (Claude 요청문에 들어감)
@@ -308,8 +309,9 @@ function cutWarn(c) {
   if (!lines(c.subs).length) { w.push(['mute', '자막 비어 있음']); return w; }
   t.split(/[.?!]/).forEach(s => { const n = syl(s); if (n > 25) w.push(['warn', `한 문장 ${n}음절 (25 이하로)`]); });
   const raw = c.subs || '';
-  const bad = raw.match(/보증|영구|평생|무조건|100\s*%|최저가|견적|타사/);
+  const bad = raw.match(/보증|무조건|최저가|견적|타사/);   // 영구·평생·100% 같은 말은 사용금지어(아래 · banned.js)에서
   if (bad) w.push(['bad', `금지 표현 확인: ${bad[0]}`]);
+  if (window.MktBanned) window.MktBanned.bannedHits(raw).forEach(h => w.push(['bad', `사용금지어: ${h.hit} → ${h.alt.replace(/"/g, '')}`]));   // 사장님 2026-10-19 '금지·주의 단어 작성 가이드'
   if (/\d+(\.\d+)?\s*(배|%|N\/mm|MPa|년)/.test(raw)) w.push(['warn', '수치 근거 확인 (공인시험만)']);
   if (c.part === 'diy') {
     if (!/[쓱싹쏙착척쭉툭슥]/.test(raw)) w.push(['warn', '의성어 넣기 (쓱·싹·쏙)']);
@@ -414,7 +416,7 @@ function askText(n) {
   const head = `[숏폼 스튜디오] ${name} — ${n}단계 ${STAGES[n - 1].name} 진행해줘.\n대시보드: ${STUDIO_URL || '(숏폼 스튜디오)'} · 프로젝트 ID ${curId}`;
   const body = {
     1: `상세페이지 분석 → 고객 문제 사슬 정리 → 대본에 쓸 원인·수치 근거 확인해서 "사실 확인"에 채워줘.\n상품 링크: ${P.product.url || '(대시보드 참고)'}`,
-    2: `①~⑥ 구조로 대본 초안을 컷마다 채워줘. 목표 ${P.targetSec || 45}초, 한 문장 25음절 이하, 세부 의구심 최대 2개, 시공은 쓱싹쓱 + 격려.\n서준 목소리로 첫 문장 샘플 1개도 만들어줘.`,
+    2: `①~⑥ 구조로 대본 초안을 컷마다 채워줘. 목표 ${P.targetSec || 45}초, 한 문장 25음절 이하, 세부 의구심 최대 2개, 시공은 쓱싹쓱 + 격려.\n사용금지어(친환경·무독성·완벽·영구·100% 등 — marketing-hub/banned.js · 06 문서 ★ 사용금지어)는 자막·나레이션에 쓰지 않기 (근거 번호가 있을 때만).\n서준 목소리로 첫 문장 샘플 1개도 만들어줘.`,
     3: '승인된 대본으로 AI 원리 컷 장면 이미지를 만들고 이미지 ID를 컷에 넣어줘. 제품은 실물 사진 참조, 모양 변형 금지. 상태는 "생성됨"으로.',
     4: '승인된 이미지로 영상(Kling, 9:16, 소리 끔)을 만들고, 서준 나레이션을 컷별로 생성해서 받아쓰기 검사 후 영상·음성 ID를 채워줘.',
     5: '5단계 JSON을 GitHub prompts/shorts/<상품>/short.json 으로 저장·푸시하고, build_short.py로 편집 빌드해서 완성 mp4·캡컷 zip 링크를 "최종"에 채워줘.',

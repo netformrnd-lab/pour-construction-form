@@ -171,7 +171,7 @@ eq('미리보기: 말풍선·사진·링크 카드', [bh.includes('<div class="p
 eq('미리보기: 태그는 글자로', bh.includes('<img'), false);
 eq('붙여넣기: 사진 자리 글자 · 링크 라벨+주소', [C.pasteHtml(blog).includes('<p>[사진 1: 유형 02 시공전 — 외벽에'), C.pasteHtml(blog).includes('<p><b>카카오톡 상담</b><br><a href="https://pf.kakao.com/x">')], [true, true]);
 eq('편집기 글: 링크 = 라벨 줄 + 주소 줄', C.postPlain('[링크: 구매하기 → https://a.com/x]'), '구매하기\nhttps://a.com/x');
-const ck = C.blogCheck({ channel: 'naver_blog', body: blog, tags: Array.from({ length: 16 }, (_, i) => '#t' + i), title: '완벽한 균열 보수 10배' });
+const ck = C.blogCheck({ channel: 'naver_blog', body: blog, tags: Array.from({ length: 16 }, (_, i) => '#t' + i), title: '무조건 끝나는 균열 보수 10배' });   // 완벽·최고 등은 사용금지어 칸(banned.js)으로 옮김 (2026-10-19)
 eq('구조 검사: 항목별', Object.fromEntries(ck.items.map((x) => [x.k, x.level])), { greet: 'ok', thumb: 'ok', quotes: 'ok', early: 'ok', cta: 'ok', photos: 'warn', steps: 'ok', tags: 'ok', url: 'warn', home: 'warn', risky: 'warn', nums: 'warn' });   // home = 구매 링크가 자사몰 첫 화면 (2026-10-18 2-4A · 견본 글이 아직 첫 화면 주소)
 { // 2026-10-18 2-4A — 구매 링크가 상품 페이지면 경고 없음 · 첫 화면(쿼리·# 포함)만 경고 · 상담 링크는 안 봄
   const ck2 = (u) => (C.blogCheck({ channel: 'naver_blog', heading: '1. 균열', tags: [], body: `[링크: 제품 구매하기 → ${u}]\n[링크: 카카오톡 상담 → https://pf.kakao.com/_x/chat]` }).items.find((x) => x.k === 'home') || {}).level || '';

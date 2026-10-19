@@ -749,7 +749,7 @@ export function useActs(D, cu, setToast, idx = null) {
     mateActSet: async (mateId, field, act, value) => {
       const rtName = (k) => (k && keyName(D, k)) || "없음";
       const doc = D.ai.mates[mateId] || {}, m = mateOf(mateId) || { name: mateId }, mine = Object.values(doc.owners || {}).includes(cu.id);
-      if (!["actOwners", "actPath", "actHq", "actAk"].includes(field) || !act) return false;
+      if (!["actOwners", "actPath", "actHq", "actAk", "actPc"].includes(field) || !act) return false;   // actPc = 할 일마다 Aside 도는 PC (2026-10-19 사장님 1A · 관리자)
       if (field === "actPath" && value != null && value !== "" && !PATHS.includes(value)) return false;
       if (!(isMaster(cu) || (field === "actAk" && mine))) { setToast({ text: field === "actAk" ? "반복 실행 짝은 그 AI 담당·관리자가 정해요" : "할 일 담당·승인 길은 관리자가 정해요" }); return false; }
       const at = nowIso(), v = value === undefined || value === "" ? null : Array.isArray(value) ? pairVal(value) : value; let was = null;   // 반복 실행 짝 = 열쇠 하나 또는 목록 (2026-10-17)
@@ -767,7 +767,7 @@ export function useActs(D, cu, setToast, idx = null) {
       }
       const L = field === "actOwners" ? `${act} 담당 ${who(was)}${was ? "" : "(AI 담당)"} → ${who(v)}${v ? "" : "(AI 담당)"}${moved ? ` · 열린 승인 ${moved}건 넘김` : ""}`
         : field === "actPath" ? `${act} 승인 길 ${v ? PATH_L[v] : "기본(보드대로)"}`
-        : field === "actHq" ? `${act} 본부장 승인 ${v === true ? "켬" : v === false ? "끔" : "보드대로"}` : `${act === NO_ACT ? "아침 루틴" : act} 반복 실행 짝 ${akKeys(v).length ? akKeys(v).map(rtName).join(" · ") : "없음"}`;
+        : field === "actHq" ? `${act} 본부장 승인 ${v === true ? "켬" : v === false ? "끔" : "보드대로"}` : field === "actPc" ? `${act} Aside 도는 PC ${v ? `${nameOf(D.users, v) || v} PC` : "담당 PC 그대로"}` : `${act === NO_ACT ? "아침 루틴" : act} 반복 실행 짝 ${akKeys(v).length ? akKeys(v).map(rtName).join(" · ") : "없음"}`;
       log("aiAct", { col: "aimates", targetId: mateId, label: `${m.name} · ${L}` });
       setToast({ text: `${m.name} · ${L}`, undo: () => A.mateActSet(mateId, field, act, was) });
       return true;

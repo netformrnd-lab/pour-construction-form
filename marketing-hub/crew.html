@@ -155,8 +155,12 @@ let roles=null, mateDoc=null, users={}, UP_OK=true; // users = 필요한 사람�
 const BOARDS=Object.values(K.BOARDS).filter(b=>K.isLiveBoard(b.id));   // 닫힌 크루(B2B·바라스데이 · 2026-10-17)는 고르기에서 빠짐
 $('crew-board').innerHTML=BOARDS.map(b=>{const m=K.mateOf(b.mate);return `<option value="${b.id}">${m.name} · ${m.role} — ${b.title} (${K.brandL(b.brand)})${b.run?' · '+K.runWord(b.run):''}</option>`;}).join('');
 let CLOSED=null;   // 닫힌 보드 주소로 열렸을 때 (예전 Aside 예약) — 멈춤 안내만 · 올리기 막음
-const h=location.hash.slice(1); if(K.isLiveBoard(h))$('crew-board').value=h; else if(K.boardOf(h))CLOSED=K.boardOf(h);
-window.addEventListener('hashchange',()=>{const x=location.hash.slice(1); if(K.isLiveBoard(x)&&(CLOSED||x!==$('crew-board').value)){CLOSED=null;$('crew-board').value=x;$('preview-section').hidden=true;if(auth.currentUser)loadMate();} else if(K.boardOf(x)&&!K.isLiveBoard(x)){CLOSED=K.boardOf(x);if(auth.currentUser)loadMate();}});
+// 나눠 도는 할 일 (2026-10-19 사장님 1A · aimates.actPc) — 주소 #보드~GH = 그 할 일만 하는 예약(ONLY · 지표·[다음주] 없음) · #보드 = 담당 PC 예약(다른 PC 로 간 할 일 SKIP 은 안 함)
+let ONLY=null, SKIP=[];
+const RH=K.parseRunHash(location.hash.slice(1)), h=RH.id; ONLY=RH.only; if(K.isLiveBoard(h))$('crew-board').value=h; else if(K.boardOf(h))CLOSED=K.boardOf(h);
+window.addEventListener('hashchange',()=>{const r=K.parseRunHash(location.hash.slice(1)),x=r.id,ch=String(r.only||'')!==String(ONLY||''); ONLY=r.only;
+  if(K.isLiveBoard(x)&&(CLOSED||ch||x!==$('crew-board').value)){CLOSED=null;$('crew-board').value=x;$('preview-section').hidden=true;if(auth.currentUser)loadMate();} else if(K.boardOf(x)&&!K.isLiveBoard(x)){CLOSED=K.boardOf(x);if(auth.currentUser)loadMate();}});
+$('crew-board').addEventListener('change',()=>{ONLY=null;},true);   // 보드를 고르면 보통 예약
 $('crew-date').value=todayKST();
 const board=()=>K.boardOf($('crew-board').value), mate=()=>K.mateOf(board().mate);
 
@@ -183,8 +187,8 @@ async function loadMate(){
     ['crew-launch','crew-reqs','crew-redo'].forEach(id=>{$(id).innerHTML='';}); REQS=[]; BACKS=[];   // 앞 보드의 칸이 남지 않게
     setMsg('err',`이 보드(${CLOSED.title})는 닫혔어요 · ${K.CLOSED_L} — 아무것도 올리지 않아요`); console.log(`[AI 크루] 닫힌 보드 ${CLOSED.id} — 멈춤 안내`); return; }
   $('save-button').disabled=!UP_OK;   // 닫힌 보드에서 열린 보드로 오면 다시 켬
-  const b=board(), m=mate(); mateDoc=null; $('crew-guide').textContent=K.asideText(b);
-  $('crew-guide-head').textContent=`오늘 지시문 — ${m.name} · ${b.title} · 판 ${K.ASIDE_VER}`; $('crew-last').innerHTML='';
+  const b=board(), m=mate(); mateDoc=null; SKIP=[]; $('crew-guide').textContent=K.asideText(b,{only:ONLY});
+  $('crew-guide-head').textContent=`오늘 지시문 — ${m.name} · ${b.title}${ONLY?` · ${ONLY.join('·')} 할 일만`:''} · 판 ${K.ASIDE_VER}`; $('crew-last').innerHTML='';
   try{
     const cr=K.crewOf(m.id), la=b.actions.find(a=>a.launch);
     LAUNCH=null; $('crew-launch').innerHTML='';
@@ -221,15 +225,17 @@ async function loadMate(){
     console.log(`[aireqs/${m.id}] 맡긴 일 ${REQS.length}건 (전체 ${rq.size})`);
     $('crew-reqs').innerHTML=REQS.length?`<div class="reqbox">맡긴 일 ${REQS.length}건 — [이 일 하기]를 누르고 적힌 대로 해서 결과 칸의 <b>[R]</b> 묶음으로 올려요 (하나씩)${REQS.map((r,i)=>`<div class="rq">· <b>${esc(r.title)}</b>${r.state==='doing'?' <span class="pill">하는 중</span>':''} <span class="s">${esc(K.reqLine(r))}</span>
       ${r.body?`<div class="d">${esc(r.body)}</div>`:''}<button type="button" class="btn sm" id="req-load-${i}" data-r="${i}" aria-label="이 일 하기 ${esc(r.title)}" style="margin-top:6px">${REQ&&REQ.id===r.id?'✓ 고름':'이 일 하기'}</button></div>`).join('')}</div>`:'';
-    mateDoc=md.exists?md.data():null; $('crew-guide').textContent=K.asideText(b,{qty:mateDoc&&mateDoc.qty,plan:PLANNOW,launch:LAUNCH||undefined,inbox:INBOX||undefined,ledger:LEDGER||undefined,design:mateDoc&&mateDoc.design,refs:REFS||undefined,vault:VAULT||undefined,posts:POSTS||undefined,nps:NPS||undefined});   // + 넘겨받은 것 · 공용 장부 · 브랜드별 설계 · 참고 레퍼런스 (2026-10-17) · 볼트 최신 요약 (2026-10-18)   // 이번 몫 = 담당이 정한 횟수 · 사람이 정한 계획 = 업무OS 보고서 · 디맨드젠 남은 신제품
-    const need=[...new Set([K.ownerFor(mateDoc,b.brand),...b.actions.map(a=>K.ownerForAct(mateDoc,b.brand,a.c)),...(LAUNCH||[]).map(r=>r.owner)])].filter(id=>id&&!(id in users));   // 할 일 담당 · 신제품 담당까지 (2026-10-15)
+    mateDoc=md.exists?md.data():null; const GOPT={only:ONLY,qty:mateDoc&&mateDoc.qty,plan:PLANNOW,launch:LAUNCH||undefined,inbox:INBOX||undefined,ledger:LEDGER||undefined,design:mateDoc&&mateDoc.design,refs:REFS||undefined,vault:VAULT||undefined,posts:POSTS||undefined,nps:NPS||undefined}; $('crew-guide').textContent=K.asideText(b,GOPT);   // + 넘겨받은 것 · 공용 장부 · 브랜드별 설계 · 참고 레퍼런스 (2026-10-17) · 볼트 최신 요약 (2026-10-18)   // 이번 몫 = 담당이 정한 횟수 · 사람이 정한 계획 = 업무OS 보고서 · 디맨드젠 남은 신제품
+    const need=[...new Set([K.ownerFor(mateDoc,b.brand),...b.actions.map(a=>K.ownerForAct(mateDoc,b.brand,a.c)),...(LAUNCH||[]).map(r=>r.owner),...Object.values((mateDoc&&mateDoc.actPc)||{})])].filter(id=>id&&!(id in users));   // 할 일 담당 · 신제품 담당 · 할 일 PC 까지 (2026-10-15 · 2026-10-19)
     await Promise.all(need.map(async id=>{const ud=await V2().collection('users').doc(id).get();users[id]=ud.exists?{name:ud.data().name||'',active:ud.data().active}:null;}));
+    if(!ONLY){const pc=K.pcActs(mateDoc,b,ownerId(),id=>!!users[id]&&users[id].active!==false); SKIP=Object.entries(pc).map(([c,id])=>({c,who:nameOf(id)}));
+      if(SKIP.length){$('crew-guide').textContent=K.asideText(b,{...GOPT,skip:SKIP});console.log(`[할 일 PC] 다른 PC 몫 ${SKIP.map(x=>x.c+'='+x.who).join(' · ')}`);}}
     const owner=ownerId(), on=(mateDoc&&mateDoc.rules||[]).filter(r=>!r.off);
     if(la&&LAUNCH)$('crew-launch').innerHTML=`<div class="reqbox">디맨드젠 남은 신제품 ${LAUNCH.length}개 — ${esc(la.c)} 할 일 (업무OS 신제품 '디맨드젠 광고' · 상품마다 승인 한 건 → 그 신제품 담당이 게시)${LAUNCH.length?LAUNCH.map(r=>`<div class="rq">· <b>${esc(r.prod)}</b> ${r.n}/${r.g}개 <span class="s">출시 ${esc(r.launch?r.launch.slice(5).replace('-','/'):'미정')}${r.due?' · 기한 '+esc(r.due.slice(5).replace('-','/')):''} · 담당 ${esc(r.owner?nameOf(r.owner):'미정')}</span></div>`).join(''):'<div class="rq">없음 — 모든 신제품 디맨드젠이 끝났어요</div>'}
       <div class="btns" style="margin-top:6px"><button type="button" class="btn sm" id="copy-act-launch" data-c="${esc(la.c)}" aria-label="${esc(la.c)} 할 일만 지금 — Aside 글 복사">${esc(la.c)} 할 일만 지금 — Aside 글 복사</button></div></div>`;
     const nowActs=b.actions.filter(a=>a.now&&!a.launch);   // 하루에 한 번 더 (2026-10-17 · 이음 A 아침 주문수집 뒤)
     if(nowActs.length)$('crew-launch').innerHTML+=`<div class="reqbox">한 번 더 돌릴 때 — ${nowActs.map(a=>`<div class="rq">· <b>${esc(a.c)}</b> ${esc(a.t)} <span class="s">${esc(a.now)}</span></div>`).join('')}<div class="btns" style="margin-top:6px">${nowActs.map(a=>`<button type="button" class="btn sm" id="copy-now-${esc(a.c)}" data-c="${esc(a.c)}" aria-label="${esc(a.c)} 할 일만 지금 — Aside 글 복사">${esc(a.c)} 할 일만 지금 — Aside 글 복사</button>`).join('')}</div></div>`;
-    const mine=back.docs.map(d=>d.data()).filter(a=>a.board===b.id), backs=mine.filter(a=>a.state==='back'); BACKS=backs;
+    const mine=back.docs.map(d=>d.data()).filter(a=>a.board===b.id), backs=mine.filter(a=>a.state==='back'&&(!ONLY||ONLY.includes(a.act))); BACKS=backs;   // 할 일만 하는 예약 = 그 할 일 것만
     $('crew-last').innerHTML=`<div class="hint" style="margin:0 0 4px">할 일별 최근 올림 (월 1회·1회 같은 할 일은 이걸 보고 이미 했는지 판단)</div><div class="lastrow">${b.actions.filter(a=>!a.admin).map(a=>{const l=mine.filter(x=>x.act===a.c).sort((p,q)=>String(q.createdAt||'').localeCompare(String(p.createdAt||'')))[0];
       return `<span><b>${esc(a.c)}</b> ${l?`${esc(String(l.run||'').slice(5).replace('-','/'))} · ${esc(stateL(l))}`:'없음'}</span>`;}).join('')}</div>`;
     console.log(`[aimates/${m.id}] ${mateDoc?'있음':'없음'} · 규칙 ${on.length} · 돌려받은 것 ${backs.length}`);
@@ -238,7 +244,8 @@ async function loadMate(){
     $('crew-who').innerHTML=`${stg?`<div style="margin-bottom:6px">단계 미션 · <b>${esc(m.slot)}</b> (${esc(stg.goal)}) — ${esc(stg.mission)}</div>`:''}승인 길: <b>${esc(m.name)}(AI)</b> → ${owner?`<b>${esc(nameOf(owner))}</b>(담당)`:'<b>담당 미정</b> — 관리자 누구나'} → 할 일마다 정한 승인 길 (${esc(K.pathGroupsL(K.pathGroups(b,mateDoc)))}) · ${esc(K.brandL(b.brand))}${split?`<br>할 일 담당: ${split}`:''}`;
     $('crew-rules').innerHTML=on.length?`<div class="warn">확정 규칙 ${on.length}개 — 꼭 지켜 주세요<br>${on.map(r=>'· '+esc(r.text)).join('<br>')}</div>`:'';
     $('crew-redo').innerHTML=backs.length?`<div class="warn">고쳐서 다시 올릴 것 ${backs.length}건 — [이전 판 불러오기] → 적힌 말대로 고치거나 줄을 더해 다시 올리면 같은 건의 다음 판이 돼요${backs.map((a,i)=>{const more=a.back&&Number(a.back.more)>0?Number(a.back.more):0;
-      return `<div style="margin-top:6px">· ${esc(a.run)} ${esc(a.act)} · ${esc(a.title)}${more?` · <span class="pill">더 만들기 ${more}개</span>`:''} — <b>${esc(a.back&&a.back.text||'')}</b> (${esc(a.back&&a.back.byName||'')}) <button type="button" class="btn sm" id="redo-load-${i}" data-i="${i}" aria-label="이전 판 불러오기 ${esc(a.run)} ${esc(a.act)}">이전 판 불러오기</button></div>`;}).join('')}</div>`:'';
+      const sk=SKIP.find(x=>x.c===a.act);
+      return `<div style="margin-top:6px">· ${esc(a.run)} ${esc(a.act)} · ${esc(a.title)}${more?` · <span class="pill">더 만들기 ${more}개</span>`:''}${sk?` · <span class="pill">다른 PC 몫 (${esc(sk.who)} PC) — '고칠 것 확인'에서는 건너뜀</span>`:''} — <b>${esc(a.back&&a.back.text||'')}</b> (${esc(a.back&&a.back.byName||'')}) <button type="button" class="btn sm" id="redo-load-${i}" data-i="${i}" aria-label="이전 판 불러오기 ${esc(a.run)} ${esc(a.act)}">이전 판 불러오기</button></div>`;}).join('')}</div>`:'';
   }catch(e){console.error('[AI 크루] 담당·규칙 불러오기 실패',e);$('crew-who').textContent='담당·규칙을 못 불러왔어요 · 인터넷 연결을 확인해 주세요';}
 }
 const nameOf=(id)=>(users[id]||{}).name||id;
@@ -297,7 +304,12 @@ function bannedWarn(p){
   return rows.map(([c,h])=>`<div class="warn"><b>사용금지어 · ${esc(c)}</b> — ${h.map(x=>esc(K.bannedRow(x))).join('<br>')}<br>→ 바꿔 써서 다시 [미리보기] · 근거가 있는 말이면 같은 칸(문장)에 성적서·인증 번호를 같이 쓰면 안 떠요</div>`).join('');
 }
 // 미리 보기
-function parse(){const p=K.parseCrew($('crew-text').value,board());return p;}
+// 나눠 도는 할 일 (2026-10-19): 할 일만 하는 예약 = 그 할 일 [상태]·표만 (지표·[다음주] 빼고) · 담당 PC 예약 = 다른 PC 몫 할 일은 빼고 — 안내만 하고 올리진 않음
+function parse(){const p=K.parseCrew($('crew-text').value,board());
+  const keep=(c)=>c==='R'||(ONLY?ONLY.includes(c):!SKIP.some(x=>x.c===c)), drop=[...new Set([...Object.keys(p.acts),...Object.keys(p.status)].filter(c=>!keep(c)))];
+  if(drop.length){drop.forEach(c=>{delete p.acts[c];delete p.status[c];});p.warn.push(ONLY?`이 예약은 ${ONLY.join('·')} 할 일만 — ${drop.join('·')} 는 안 올려요`:`${drop.join('·')} 는 다른 PC 몫 (${SKIP.filter(x=>drop.includes(x.c)).map(x=>x.c+' '+x.who).join(' · ')} PC) — 안 올려요`);}
+  if(ONLY&&(p.metrics.length||p.next)){p.warn.push(`이 예약은 ${ONLY.join('·')} 할 일만 — 지표·[다음주]는 담당 PC 예약 몫이라 안 올려요`);p.metrics=[];p.next='';} if(ONLY)p.unknown=[];
+  return p;}
 function preview(){
   const b=board(), p=parse(), run=$('crew-date').value, acts=Object.entries(p.acts);
   const n=K.asksFromParse(p,{board:b.id,mate:b.mate,brand:b.brand,run:run||'x',at:'x',owner:''}).length+(p.acts.R?1:0);   // 상품마다 한 건(디맨드젠)까지 센 승인 수

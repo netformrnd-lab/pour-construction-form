@@ -11,7 +11,9 @@
       pour-os/v2/adreports/{YYYY-MM-DD} {date, title, md, summary, offs(JSON 글), longtail(JSON 글 · 없을 수 있음), by:'aside', at}
   · 쓰기 없음 — Aside 만 REST 로 올림 (pour-os-v2/CLAUDE.md 'Aside 전용 쓰기 경로')
   · 위 카드: 최신 보고서 요약 · 이번 주 끈 것 n개(offs) · 새 롱테일 n개(longtail · 칸 없으면 숨김)
-  · [보고서] 왼쪽 날짜(최신순) → 오른쪽 md(표 포함 · core.js mdLite = 모든 글자 escape) · 주소 #YYYY-MM-DD
+  · [보고서] 위 한 줄 ‹ 고르기 › + 전체/일일/주간 → 보고서(제목 · 한 줄 결론 · 숫자 칸 · md(표 포함 · core.js mdLite = 모든 글자 escape)) · 주소 #YYYY-MM-DD
+      2026-10-19 사장님 "보기 매우 불편해" → 보고서를 맨 위로 · 제안서 검증(기본 접힘)·운영 기준(접힌 한 줄)은 아래 · #aside 일 때만 운영 기준·지시문이 맨 위(펼침)
+      없는 날짜 주소 = '아직 없어요' 안내 뒤 최신 (주소 그대로 · 올라오면 같은 주소로 보임) · 평일 09시 지나 오늘 일일이 없으면 안내 · [🔗 링크 복사](본부장님께 전달) · [🖨 인쇄](보고서만)
   · [끈 것 기록] 모든 보고서 offs 합친 표(날짜·매체·캠페인·대상·근거·조치) + 주간·월간 개수 · 주소 #off
   · [메타 판정] 금요일 증액/유지/종료/보류 + 근거 — 보고서 judges(JSON 글) 또는 본문 md 의 '판정' 칸 표 → 제안서 기준(350%+ 2주 · 200~350% · 180% 미만 2주 · 구매 10건)과 일치/다름 · 주소 #judge
   · 맨 위 '제안서 검증'(2026-10-15 "진짜 목적 = 데일리그로스 「넷폼_메타운영_제안서_202610」이 정답인지 실제 운영 데이터로 검증"):
@@ -46,25 +48,41 @@ main{max-width:1100px;margin:0 auto;padding:16px}
 .card h3 .sp{flex:1}
 .sub{font-size:12px;color:var(--text-sm);font-weight:600}
 .ro{display:inline-block;font-size:11px;font-weight:800;border-radius:20px;padding:2px 9px;background:#F3F4F6;color:var(--text-md)}
-.tops{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px}
-.top{flex:1 1 140px;background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:14px;min-width:0}.top.sum{flex:3 1 320px}
-.top .l{font-size:12px;color:var(--text-md);font-weight:700}.top .v{font-size:24px;font-weight:800;margin-top:4px;font-variant-numeric:tabular-nums}
-.top .s{font-size:14px;line-height:1.6;margin-top:6px;word-break:keep-all;overflow-wrap:anywhere}
-.top .v small{font-size:13px;font-weight:700;color:var(--text-md);margin-left:2px}
 .rules{padding:10px 16px;font-size:13px;line-height:1.7;color:var(--text-md)}
 .rules b{color:var(--navy);margin-right:6px}
 details.std>summary{cursor:pointer;padding:12px 16px;font-weight:800;list-style:none}details.std>summary::-webkit-details-marker{display:none}
 details.std>summary::after{content:' ▾';color:var(--text-sm)}details.std[open]>summary::after{content:' ▴'}
-.split{display:grid;grid-template-columns:240px minmax(0,1fr);gap:14px;align-items:start}
-.dates{display:flex;flex-direction:column}
-.dates button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--border);background:#fff;padding:10px 14px;font:inherit;cursor:pointer;color:var(--text)}
-.dates button:last-child{border-bottom:0}
-.dates button b{display:block;font-size:14px}.dates button span{display:block;font-size:12px;color:var(--text-md);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.dates button.on{background:var(--accent-l)}.dates button.on b{color:var(--accent)}
-.rep-h{padding:14px 16px;border-bottom:1px solid var(--border)}
-.rep-h b{display:block;font-size:16px;word-break:keep-all}.rep-h .sub{display:block;margin-top:4px}
-.md{padding:6px 16px 16px;font-size:14.5px;line-height:1.7;word-break:break-word}
-.md h2{font-size:18px;margin:18px 0 8px}.md h3{font-size:16px;margin:16px 0 6px}.md h4,.md h5,.md h6{font-size:15px;margin:12px 0 4px}
+.rnav{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.rnav .nb{flex:none;width:40px;height:40px;border:1px solid var(--border);background:#fff;border-radius:10px;font-size:20px;font-weight:800;color:var(--navy);cursor:pointer}
+.rnav .nb:disabled{color:#D1D5DB;cursor:default}
+.rnav select{flex:1 1 220px;min-width:0;height:40px;border:1px solid var(--border);border-radius:10px;padding:0 10px;font:inherit;font-weight:700;background:#fff;color:var(--text)}
+.rnav .fil{flex:0 1 auto;padding:0;border:0}.rnav .fil button{flex:none;padding:8px 12px}
+.note{background:var(--gold-l);border:1px solid #FDE68A;color:#92400E;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13.5px;line-height:1.6;word-break:keep-all}
+.rep .rep-h{padding:18px 22px 14px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;align-items:start}
+.rep-k{grid-column:1/-1;font-size:12.5px;color:var(--text-md);font-weight:600;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.kind-l{display:inline-block;font-size:11.5px;font-weight:800;border-radius:6px;padding:2px 8px;background:var(--accent-l);color:var(--accent)}.kind-l.w{background:#EEF2FF;color:#4338CA}
+.rep h1{margin:0;font-size:20px;line-height:1.4;word-break:keep-all;overflow-wrap:anywhere}
+.acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.acts button{border:1px solid var(--border);background:#fff;border-radius:8px;padding:7px 11px;font:inherit;font-size:12.5px;font-weight:700;color:var(--text-md);cursor:pointer;white-space:nowrap}
+.acts button#copy-link{background:var(--navy);border-color:var(--navy);color:#fff}
+.tldr{margin:16px 22px 0;padding:14px 16px;background:var(--accent-l);border-radius:10px;font-size:15.5px;line-height:1.65;font-weight:600;color:#1E3A8A;word-break:keep-all;overflow-wrap:anywhere}
+.tldr span{display:block;font-size:12px;font-weight:800;color:var(--accent);margin-bottom:4px}
+.kp{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:12px 22px 0}
+.kp div{border:1px solid var(--border);border-radius:10px;padding:10px 12px;min-width:0}.kp span{display:block;font-size:12px;font-weight:700;color:var(--text-md)}
+.kp b{display:block;font-size:22px;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums}.kp b small{font-size:13px;margin-left:2px;color:var(--text-md)}
+.md{padding:4px 22px 22px;font-size:14.5px;line-height:1.75;word-break:break-word;max-width:100%}
+.md h2{font-size:18px;margin:26px 0 10px;padding-top:18px;border-top:2px solid var(--navy)}
+.card .md h3{display:block;font-size:16px;margin:22px 0 8px;padding:0 0 0 10px;border:0;border-left:4px solid var(--accent);line-height:1.4}
+.md h4,.md h5,.md h6{font-size:15px;margin:14px 0 6px}
+.md>h3:first-child,.md>h2:first-child{margin-top:18px}
+.md .tbl{border:1px solid var(--border);border-radius:10px;margin:10px 0}
+.md table{margin:0}.md table th{background:#F3F4F6;color:var(--navy);font-size:12px}
+.md table td{min-width:110px;line-height:1.55}.md table td:first-child{font-weight:700;color:var(--navy);min-width:90px}
+.md table tbody tr:nth-child(even) td{background:#FAFBFC}.md table tr:last-child td{border-bottom:0}
+details.mode>summary{cursor:pointer;list-style:none;font-weight:600}details.mode>summary::-webkit-details-marker{display:none}
+details.mode>summary .mode-l{text-decoration:underline;text-underline-offset:3px}details.mode>summary::after{content:' ▾'}details.mode[open]>summary::after{content:' ▴'}
+details.mode .mode-b{margin-top:10px;padding-top:10px;border-top:1px solid #FED7AA}
+@media print{header,nav,.rnav,.note,.acts,#verify,.mode,.foot{display:none!important}body,html{background:#fff}main{padding:0;max-width:none}.card{box-shadow:none;border:0}.md .tbl{overflow:visible}}
 .md p{margin:8px 0}.md blockquote{margin:8px 0;padding:8px 12px;background:#F3F4F6;border-left:3px solid var(--border);color:var(--text-md);font-size:13px}
 .md ul,.md ol{margin:6px 0;padding-left:22px}.md li.ck{list-style:none;margin-left:-18px}
 .md pre{background:#F3F4F6;padding:10px;border-radius:var(--r-sm);overflow-x:auto;font-size:12px;white-space:pre-wrap}
@@ -112,9 +130,12 @@ ul.gaps{margin:0;padding-left:20px;font-size:13px;line-height:1.75}
 .ref{display:inline-block;font-size:11px;font-weight:800;border-radius:6px;padding:1px 7px;background:#F1F2F6;color:#5B6475;vertical-align:1px;white-space:nowrap}.rl.isref{color:var(--text-md)}
 .kind{display:inline-block;font-size:10.5px;font-weight:800;border-radius:5px;padding:0 6px;margin-left:4px;background:#EEF2FF;color:#4338CA;vertical-align:1px}
 .fil{display:flex;gap:4px;padding:8px 10px;border-bottom:1px solid var(--border)}.fil button{flex:1;border:1px solid var(--border);background:#fff;border-radius:8px;padding:5px;font:inherit;font-size:12px;font-weight:700;color:var(--text-md);cursor:pointer}.fil button.on{background:var(--navy);border-color:var(--navy);color:#fff}
-@media (max-width:900px){.cmp,.hyps{grid-template-columns:1fr 1fr}.split{grid-template-columns:1fr}.dates{flex-direction:row;overflow-x:auto;-webkit-overflow-scrolling:touch}
-  .dates button{flex:none;width:auto;max-width:200px;border-bottom:0;border-right:1px solid var(--border)}.grid2{grid-template-columns:1fr}}
-@media (max-width:700px){main{padding:12px}.top .v{font-size:20px}.md{padding:4px 12px 14px;font-size:14px}.rep-h{padding:12px}.card h3{padding:11px 12px}
+@media (max-width:900px){.cmp,.hyps{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}}
+@media (max-width:700px){main{padding:12px}.md{padding:4px 14px 16px;font-size:14px}.card h3{padding:11px 12px}
+  .rep .rep-h{padding:14px;grid-template-columns:1fr}.rep h1{font-size:17px}.acts{justify-content:flex-start}
+  .tldr{margin:12px 14px 0;font-size:14.5px;padding:12px 14px}.kp{margin:10px 14px 0;grid-template-columns:1fr 1fr}.kp b{font-size:19px}
+  .rnav select{flex-basis:0}.rnav .fil{flex:1 1 100%;display:flex}.rnav .fil button{flex:1}
+  .md table.rt td:first-child{font-size:14px}.md table.rt tbody tr:nth-child(even) td{background:none}.md .tbl{border:0}
   .md table.rt thead{display:none}.md table.rt,.md table.rt tbody,.md table.rt tr,.md table.rt td{display:block;width:100%}
   .md table.rt tr{border:1px solid var(--border);border-radius:10px;padding:6px 10px;margin-bottom:8px;background:#fff}
   .md table.rt td{border:0;padding:3px 0;min-width:0;display:flex;gap:8px}.md table.rt td::before{content:attr(data-l);flex:none;width:84px;color:var(--text-sm);font-size:12px;font-weight:700}
@@ -149,14 +170,19 @@ const todayKST=()=>C.addDays(C.yesterdayKST(),1);
 const DOW='일월화수목금토';
 const dayL=(d)=>{const x=new Date(d+'T00:00:00Z');return `${Number(d.slice(5,7))}/${Number(d.slice(8,10))}(${DOW[x.getUTCDay()]})`;};
 const atL=(t)=>{const m=t?new Date(t).getTime():0;if(!m)return '';const d=new Date(m+9*3600e3);return d.toISOString().slice(5,16).replace('T',' ').replace('-','/');};
-const S={reps:[],prop:null,propErr:'',cur:'',view:'rep',err:'',loaded:false,kind:'all',showText:false};
+const S={reps:[],prop:null,propErr:'',cur:'',miss:'',view:'rep',err:'',loaded:false,kind:'all',showText:false,modeOpen:false,asideTop:false};
 const LSget=(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:v;}catch(e){return d;}}, LSset=(k,v)=>{try{localStorage.setItem(k,v);}catch(e){}};
-let vOpen=LSget('ads_verify_open','1')==='1';
+let vOpen=LSget('ads_verify_open2','0')==='1';   // 제안서 검증 = 보고서 아래 · 기본 접힘 (2026-10-19 보기 개선 · 예전 키 ads_verify_open 은 안 봄)
 
 // 주소: #off = 끈 것 기록 · #judge = 메타 판정 · #YYYY-MM-DD = 그 보고서
-function fromHash(){const h=decodeURIComponent(location.hash.slice(1));if(h==='aside'){S.view='rep';S.showText=true;return;}if(h==='off'||h==='judge')S.view=h;else{S.view='rep';if(h)S.cur=h;}}   // #aside = Aside 예약 글이 여는 주소(지시문 펼침 · 2026-10-16)
+function fromHash(){const h=decodeURIComponent(location.hash.slice(1));if(h==='aside'){S.view='rep';S.showText=true;S.modeOpen=true;S.asideTop=true;return;}if(h==='off'||h==='judge')S.view=h;else{S.view='rep';if(h){S.cur=h;S.miss='';}}}
+// 고른 보고서 → 문서 id (옛 주소 #YYYY-MM-DD 도) · 없는 날짜면 안내(miss) 뒤 최신 · 주소는 그대로 둠(올라오면 같은 주소로 보임)
+function resolveCur(){
+  if(S.cur&&!S.reps.some(r=>r.id===S.cur)){const byDate=S.reps.find(r=>r.date===S.cur);if(!byDate)S.miss=S.cur;S.cur=byDate?byDate.id:'';}
+  if(!S.cur)S.cur=S.reps[0]?S.reps[0].id:'';
+}   // #aside = Aside 예약 글이 여는 주소(지시문 펼침 · 2026-10-16)
 fromHash();
-window.addEventListener('hashchange',()=>{fromHash();render();});
+window.addEventListener('hashchange',()=>{fromHash();if(S.loaded)resolveCur();render();});
 
 async function loadProposal(){
   try{const d=await db.collection('pour-os').doc('v2').collection('proposal').doc(A.PROPOSAL_ID).get();
@@ -169,28 +195,19 @@ async function load(){
     const snap=await db.collection('pour-os').doc('v2').collection('adreports').get();   // orderBy 안 씀 · 날짜 글로 정렬
     S.reps=A.sortReports(snap.docs.map(d=>({id:d.id,...d.data(),date:d.data().date||d.id})));
     console.log(`[adreports] ${S.reps.length}건 로드`);
-    if(S.cur&&!S.reps.some(r=>r.id===S.cur)){const byDate=S.reps.find(r=>r.date===S.cur);S.cur=byDate?byDate.id:'';}   // 옛 주소 #YYYY-MM-DD 도
-    if(!S.cur)S.cur=S.reps[0]?S.reps[0].id:'';
+    resolveCur();
   }catch(e){console.error('[adreports] 로드 실패:',e);S.err='보고서를 못 불러왔어요 · 인터넷 연결을 확인하고 새로고침해 주세요 ('+(e.code||e.message||e)+')';}
   await pp;S.loaded=true;render();
 }
 
+// 운영 기준 · Aside 지시문 — 보통은 보고서 아래 접힌 한 줄 · #aside(Aside 예약 글이 여는 주소)면 맨 위에 펼침 (2026-10-19 보기 개선)
 function modeBar(){
   const M=A.AD_MODE; if(M.mode!=='outsourced'&&M.mode!=='parallel')return '';
   const par=M.mode==='parallel';
-  return `<div class="mode" id="ad-mode"><b>${esc(M.label)}</b> ${srcB(A.SRC.D)} · ${par?`외주 ${esc(M.from)}부터 ${esc(M.until)} · 내부 관리 ${esc(M.inhouse)}부터 <b>${esc(M.manager)}</b> → ${esc(M.reportTo)}께 매주 보고 (${esc(M.report)})`:`${esc(M.from)}부터 ${esc(M.until)}`}<br>${esc(M.note)} 보고: <b>${esc(M.daily)} 일일</b> · <b>${esc(M.weekly)} 주간</b> · ${par?`쌓인 데이터로 ${esc(M.manager)}님과 ${esc(M.reportTo)}이 기준을 고도화해요.`:'이후 쌓인 데이터로 자동화 여부를 정해요.'}
+  return `<details class="mode" id="ad-mode"${S.modeOpen?' open':''}><summary><b>${esc(M.label)}</b> · ${par?`${esc(M.manager)} → ${esc(M.reportTo)}께 매주 보고 · `:''}<span class="mode-l">운영 기준 · Aside 지시문</span></summary><div class="mode-b"><b>${esc(M.label)}</b> ${srcB(A.SRC.D)} · ${par?`외주 ${esc(M.from)}부터 ${esc(M.until)} · 내부 관리 ${esc(M.inhouse)}부터 <b>${esc(M.manager)}</b> → ${esc(M.reportTo)}께 매주 보고 (${esc(M.report)})`:`${esc(M.from)}부터 ${esc(M.until)}`}<br>${esc(M.note)} 보고: <b>${esc(M.daily)} 일일</b> · <b>${esc(M.weekly)} 주간</b> · ${par?`쌓인 데이터로 ${esc(M.manager)}님과 ${esc(M.reportTo)}이 기준을 고도화해요.`:'이후 쌓인 데이터로 자동화 여부를 정해요.'}
     <div class="basis" id="ad-basis"><b>운영 기준</b> ${srcB(A.SRC.K)} <span class="sub">외주 기간 (사장님 2026-10-15)</span>${A.KSH_RULES.map(r=>`<div class="rl"><b>${esc(r.m)}</b>${esc(r.t)}</div>`).join('')}</div>
     <div class="row"><button type="button" id="copy-launch" aria-label="Aside 광고 예약 글 복사">예약 글 복사</button><button type="button" id="copy-aside" aria-label="Aside 광고 지시문 복사">지시문 전체 복사</button><button type="button" id="show-aside" aria-expanded="${S.showText}">${S.showText?'지시문 접기':'지시문 보기'}</button><span>Aside 08:30 · 금 16:00 예약에 '예약 글'을 한 번만 넣어요 — 이 화면 지시문(판 ${esc(A.ASIDE_ADS_VER)})이 바뀌어도 그대로 따라와요</span></div>
-    ${S.showText?`<div class="sub" style="margin-top:8px"><b>Aside 광고 지시문</b> · 판 ${esc(A.ASIDE_ADS_VER)}</div><textarea readonly id="aside-text" aria-label="Aside 광고 지시문">${esc(A.asideAdsText())}</textarea>`:''}</div>`;
-}
-function tops(){
-  const t=A.topCards(S.reps,todayKST()), last=t.last;
-  return `<div class="tops">
-    <div class="top sum"><div class="l">최신 보고서${last?` · ${esc(dayL(last.date))}${A.isWeekly(last)?'<span class="kind">주간</span>':''}`:''}</div><div class="s">${last?esc(t.summary||last.title||'요약 없음'):'아직 보고서가 없어요'}</div></div>
-    ${(()=>{const L=A.changeLog(S.reps,todayKST());return L.has?`<div class="top"><div class="l">이번 주 외주 변경</div><div class="v">${L.rows.filter(x=>x.who!=='Aside'&&A.weekStart(x.date||'1970-01-01')===A.weekStart(todayKST())).length}<small>건</small></div></div>`
-      :t.offsWeek?`<div class="top"><div class="l">이번 주 끈 것</div><div class="v">${t.offsWeek}<small>개</small></div></div>`:'';})()}
-    ${t.longtail!=null?`<div class="top"><div class="l">새 롱테일</div><div class="v">${t.longtail}<small>개</small></div></div>`:''}
-  </div>`;
+    ${S.showText?`<div class="sub" style="margin-top:8px"><b>Aside 광고 지시문</b> · 판 ${esc(A.ASIDE_ADS_VER)}</div><textarea readonly id="aside-text" aria-label="Aside 광고 지시문">${esc(A.asideAdsText())}</textarea>`:''}</div></details>`;
 }
 const srcB=(src,page)=>`<span class="src s-${A.srcKind(src)}">${esc(A.srcText(src,page))}</span>`;
 const pctL=(v)=>v==null?'—':`${Math.round(v*10)/10}%`;
@@ -225,14 +242,37 @@ function verify(){
 }
 function vRep(){
   if(!S.reps.length)return `<div class="card"><div class="empty">아직 올라온 보고서가 없어요 · Aside 가 매일 08:30 에 올려요</div></div>`;
+  // 2026-10-19 사장님 "보기 매우 불편해" → 보고서가 맨 위 · 날짜는 위 한 줄(‹ 고르기 ›) · 한 줄 결론·숫자 먼저 · 링크 복사(본부장님께 전달) · 인쇄
   const shown=S.reps.filter(x=>S.kind==='all'||(S.kind==='weekly')===A.isWeekly(x)), r=S.reps.find(x=>x.id===S.cur)||shown[0]||S.reps[0], nW=S.reps.filter(A.isWeekly).length;
-  const list=shown.length?shown.map(x=>`<button type="button" data-d="${esc(x.id)}" class="${x.id===r.id?'on':''}" aria-label="${esc(x.date)} ${A.isWeekly(x)?'주간':'일일'} 보고서"><b>${esc(dayL(x.date))}${A.isWeekly(x)?'<span class="kind">주간</span>':''}</b><span>${esc(x.summary||x.title||'')}</span></button>`).join('')
-    :`<div class="empty">${S.kind==='weekly'?`아직 주간 보고서가 없어요 · 첫 주간 ${esc(dayL(nextFri()))} 16:00`:'없음'}</div>`;
-  return `<div class="split">
-    <div class="card"><h3>보고서 ${S.reps.length} <span class="sub">최신순</span></h3><div class="fil" id="kinds">${[['all','전체'],['daily','일일'],['weekly',`주간 ${nW}`]].map(([k,l])=>`<button type="button" data-k="${k}" class="${S.kind===k?'on':''}">${esc(l)}</button>`).join('')}</div><div class="dates" id="dates">${list}</div></div>
-    <article class="card" id="report"><div class="rep-h"><b>${esc(r.title||r.date)}${A.isWeekly(r)?'<span class="kind">주간</span>':''}</b><span class="sub">${esc(r.date)} · ${r.by==='aside'?'Aside':esc(r.by||'')} 올림${r.at?' '+esc(atL(r.at)):''} · <span class="ro">읽기 전용</span></span></div>
-      <div class="md">${A.srcTags(C.mdLite(r.md||r.summary||''))}</div></article>
-  </div>`;
+  const wk=A.isWeekly(r), list=shown.some(x=>x.id===r.id)?shown:[r,...shown], i=list.findIndex(x=>x.id===r.id), older=list[i+1], newer=list[i-1];
+  const opt=(x)=>`<option value="${esc(x.id)}"${x.id===r.id?' selected':''}>${esc(dayL(x.date))} ${A.isWeekly(x)?'주간':'일일'}${x.summary?' · '+esc(String(x.summary).slice(0,40)):''}</option>`;
+  const nav=`<div class="rnav" id="rnav">
+      <button type="button" class="nb" id="rep-older" ${older?`data-d="${esc(older.id)}"`:'disabled'} aria-label="이전 보고서">‹</button>
+      <select id="rep-pick" aria-label="보고서 고르기">${list.map(opt).join('')}</select>
+      <button type="button" class="nb" id="rep-newer" ${newer?`data-d="${esc(newer.id)}"`:'disabled'} aria-label="다음 보고서">›</button>
+      <div class="fil" id="kinds">${[['all','전체'],['daily','일일'],['weekly',`주간 ${nW}`]].map(([k,l])=>`<button type="button" data-k="${k}" class="${S.kind===k?'on':''}">${esc(l)}</button>`).join('')}</div>
+    </div>${S.kind==='weekly'&&!nW?`<div class="note">아직 주간 보고서가 없어요 · 첫 주간 ${esc(dayL(nextFri()))} 16:00</div>`:''}`;
+  // 없는 날짜를 열었을 때 · 오늘 일일이 아직일 때 (평일 09:00 지나서)
+  const now=new Date(Date.now()+9*3600e3), today=todayKST(), wd=now.getUTCDay()>=1&&now.getUTCDay()<=5, late=now.getUTCHours()>=9;
+  const lastDaily=S.reps.find(x=>!A.isWeekly(x));
+  const note=S.miss?`<div class="note" role="status"><b>${esc(/^\d{4}-\d{2}-\d{2}$/.test(S.miss)?dayL(S.miss):S.miss)} 보고서는 아직 없어요.</b> Aside 가 올리면 이 주소에서 바로 보여요 · 지금은 가장 최근 보고서(${esc(dayL(r.date))})를 보여 드려요</div>`
+    :(r===S.reps[0]&&wd&&late&&(!lastDaily||lastDaily.date<today))?`<div class="note" role="status"><b>오늘(${esc(dayL(today))}) 일일 보고서가 아직 안 올라왔어요.</b> Aside 08:30 예약이 걸려 있는지 확인해 주세요</div>`:'';
+  // 숫자 칸 — 보고서에 있는 것만 (metrics 칸 → 없으면 글에서 읽음)
+  const act=A.actualOf(r,null), lt=A.longtailCount(r), ch=A.jsonField(r.changes), nCh=ch.has&&!ch.bad&&Array.isArray(ch.val)?ch.val.length:null;
+  const kp=[['메타 ROAS',act.meta_roas,'%'],['자사몰 MER',act.mall_mer,'%'],['합산 MER',act.total_mer,'%'],['새 롱테일',lt,'개'],['외주 변경',nCh,'건']].filter(x=>x[1]!=null);
+  const kpis=kp.length?`<div class="kp">${kp.map(([l,v,u])=>`<div><span>${esc(l)}</span><b>${u==='%'?esc(pctL(v)):esc(v)+'<small>'+u+'</small>'}</b></div>`).join('')}</div>`:'';
+  // 본문 맨 위 '# 제목' 줄은 위 제목과 같아 뺌
+  const lines=String(r.md||'').replace(/\r/g,'').split('\n'), h1=lines.findIndex(l=>l.trim());
+  const mdTitle=h1>=0&&/^#\s+/.test(lines[h1])?lines[h1].replace(/^#\s+/,'').trim():'';
+  const body=mdTitle?lines.slice(h1+1).join('\n'):String(r.md||'');
+  const title=r.title||mdTitle||r.date;
+  return `${nav}${note}
+    <article class="card rep" id="report">
+      <div class="rep-h"><div class="rep-k"><span class="kind-l${wk?' w':''}">${wk?'주간':'일일'}</span>${esc(dayL(r.date))} · ${r.by==='aside'?'Aside':esc(r.by||'')} 올림${r.at?' '+esc(atL(r.at)):''}</div>
+        <h1>${esc(title)}</h1>
+        <div class="acts"><button type="button" id="copy-link">🔗 링크 복사</button><button type="button" id="print-rep">🖨 인쇄</button></div></div>
+      ${r.summary?`<div class="tldr"><span>한 줄 결론</span>${esc(r.summary)}</div>`:''}${kpis}
+      <div class="md">${body.trim()?A.srcTags(C.mdLite(body)):`<p>${esc(r.summary||'내용 없음')}</p>`}</div></article>`;
 }
 function vOff(){
   const L=A.changeLog(S.reps,todayKST());
@@ -264,7 +304,9 @@ function vJudge(){
 function render(){
   document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===S.view));
   if(!S.loaded)return;
-  const body=S.err?`<div class="msg" role="alert">${esc(S.err)}</div>`:modeBar()+verify()+tops()+(S.view==='off'?vOff():S.view==='judge'?vJudge():vRep());
+  // 순서 (2026-10-19 보기 개선): 보고서(또는 고른 탭) 먼저 → 제안서 검증(접힘) → 운영 기준·Aside 지시문(접힘) · #aside 면 지시문이 맨 위
+  const view=S.view==='off'?vOff():S.view==='judge'?vJudge():vRep();
+  const body=S.err?`<div class="msg" role="alert">${esc(S.err)}</div>`:S.asideTop?modeBar()+view+verify():view+verify()+modeBar();
   $('#app').innerHTML=body+`<p class="foot">Aside 가 매일 08:30 일일 · 금요일 16:00 주간 광고 보고서를 올려요 · 이 화면은 읽기만 해요<br>실행: ${A.AD_MODE.mode==='parallel'?`메타·네이버·쿠팡 = 외주업체 + ${esc(A.AD_MODE.manager)} (바꿀 것 직접 또는 외주에 전함)`:'외주 운영 기간 메타·네이버·쿠팡 = 외주업체'} ${srcB(A.SRC.D)} · 운영 기준 = 김송희 관리방안 ${srcB(A.SRC.K)} · Aside = ${A.AD_MODE.mode==='parallel'?'분석·바꿀 안 (끄거나 바꾸지 않음)':'분석·보고만'} · 예산·목표 = 본부장 ${srcB(A.SRC.P)}</p>`;
 }
 document.addEventListener('click',(e)=>{
@@ -272,12 +314,20 @@ document.addEventListener('click',(e)=>{
   if(e.target.closest('#copy-aside')||e.target.closest('#copy-launch')){const b=e.target.closest('#copy-aside')||e.target.closest('#copy-launch'),txt=b.id==='copy-launch'?A.asideAdsLaunch():A.asideAdsText();
     const done=(ok)=>{b.textContent=ok?'복사했어요':'복사가 막혔어요 · 지시문 보기에서 길게 눌러 복사';if(!ok){S.showText=true;render();}};
     try{navigator.clipboard.writeText(txt).then(()=>done(true),(err)=>{console.error('[복사] 실패:',err);done(false);});}catch(err){console.error('[복사] 실패:',err);done(false);}return;}
-  const k=e.target.closest('#kinds button');if(k){S.kind=k.dataset.k;const first=S.reps.find(x=>S.kind==='all'||(S.kind==='weekly')===A.isWeekly(x));if(first)S.cur=first.id;render();return;}
-  if(e.target.closest('#vtoggle')){vOpen=!vOpen;LSset('ads_verify_open',vOpen?'1':'0');render();return;}
+  const k=e.target.closest('#kinds button');if(k){S.kind=k.dataset.k;const first=S.reps.find(x=>S.kind==='all'||(S.kind==='weekly')===A.isWeekly(x));if(first){S.cur=first.id;S.miss='';history.replaceState(null,'','#'+first.id);}render();return;}
+  if(e.target.closest('#vtoggle')){vOpen=!vOpen;LSset('ads_verify_open2',vOpen?'1':'0');render();return;}
   const t=e.target.closest('#tabs button');if(t){S.view=t.dataset.v;history.replaceState(null,'',S.view!=='rep'?'#'+S.view:(S.cur?'#'+S.cur:location.pathname));render();window.scrollTo(0,0);return;}
-  const d=e.target.closest('#dates button');if(d){S.cur=d.dataset.d;history.replaceState(null,'','#'+S.cur);render();
-    if(window.matchMedia('(max-width:900px)').matches){const a=$('#report');if(a)a.scrollIntoView({block:'start'});}}
+  const d=e.target.closest('#rep-older,#rep-newer');if(d&&d.dataset.d){pickRep(d.dataset.d);return;}
+  const cl=e.target.closest('#copy-link');if(cl){const u=location.origin+location.pathname+'#'+encodeURIComponent(S.cur);
+    const done=(ok)=>{cl.textContent=ok?'✓ 복사했어요':'복사 막힘 · 주소창 주소를 보내 주세요';setTimeout(()=>{cl.textContent='🔗 링크 복사';},2000);};
+    try{navigator.clipboard.writeText(u).then(()=>done(true),(err)=>{console.error('[링크 복사] 실패:',err);done(false);});}catch(err){console.error('[링크 복사] 실패:',err);done(false);}
+    history.replaceState(null,'','#'+S.cur);return;}
+  if(e.target.closest('#print-rep')){window.print();return;}
 });
+// 보고서 고르기 (‹ › · 고르기 칸) — 주소도 그 보고서로
+function pickRep(id){S.cur=id;S.miss='';history.replaceState(null,'','#'+id);render();const a=$('#rnav');if(a&&a.getBoundingClientRect().top<0)a.scrollIntoView({block:'start'});}
+document.addEventListener('change',(e)=>{if(e.target.id==='rep-pick')pickRep(e.target.value);});
+document.addEventListener('toggle',(e)=>{if(e.target.id==='ad-mode')S.modeOpen=e.target.open;},true);   // 다시 그려도 펼침 그대로
 render();load();
 </script>
 </body>

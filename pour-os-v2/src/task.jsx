@@ -35,6 +35,7 @@ import { traceLeft } from "./aiask.js";
 import { RtAiCard } from "./airtui.jsx";   // AI 크루 ↔ 반복 실행 (2026-10-16)
 import { rtKey } from "./airt.js";
 import { RefStrip } from "./refui.jsx";   // 업무에 연결한 레퍼런스 (2026-10-17)
+import { rtInputOf } from "./rtinput.js";   // 반복 실행 입력 자료 (2026-10-19 · 김민지 금 16:30 보고 = 그날 아침 광고 주간 보고서)
 
 const roP = (n) => { const c = String(n || "").slice(-1).charCodeAt(0) - 0xAC00; if (c < 0 || c > 11171) return "(으)로"; const j = c % 28; return j === 0 || j === 8 ? "로" : "으로"; };
 export const openTask = (open, t) => open({ type: t.isFixed ? "fixed" : "task", id: t.id });
@@ -489,6 +490,21 @@ export function Thread({ D, cu, A, notes, itemId, ctx, rec, onRec, cfg, link, hl
   </Card>;
 }
 
+// 반복 실행 입력 자료 (2026-10-19 김송희 · rtinput.js) — 오늘 줄 아래 작은 알약 · 시트 위 한 칸 · 누르면 허브 화면 새 창 (저장 없음)
+const stopKey = (e) => { if (e.key !== "Escape") e.stopPropagation(); };
+export function RtInputLine({ t, keyd }) {
+  const x = rtInputOf(t, keyd); if (!x) return null;
+  return <a className="v2-rtai v2-rtin" href={x.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} onKeyDown={stopKey} aria-label={`입력 자료 ${x.what} ${x.when} 열기`}><b>입력</b> · {x.what} {x.when} ›</a>;
+}
+function RtInputCard({ t, keyd }) {
+  const x = rtInputOf(t, keyd); if (!x) return null;
+  return <><Head>입력 자료</Head>
+    <Card style={{ padding: "12px 14px" }}><div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+      <div style={{ flex: "1 1 220px", minWidth: 0, lineHeight: 1.55 }}><div style={{ fontSize: 14.5, fontWeight: 800, color: C.text }}>{x.what} · {x.when}</div>
+        <div style={{ fontSize: 12.5, color: C.sub, marginTop: 2, wordBreak: "keep-all" }}>{x.why}</div></div>
+      <TBtn onClick={() => window.open(x.url, "_blank", "noopener")} aria-label={`${x.what} ${x.when} 열기`}>열기 ›</TBtn></div></Card></>;
+}
+
 // ───────────────── 고정업무 보기 ─────────────────
 export function FixedSheet({ D, cu, A, open, onBack, onClose, id, focus, note, setToast }) {
   const t = useTask(D, id);
@@ -520,6 +536,7 @@ export function FixedSheet({ D, cu, A, open, onBack, onClose, id, focus, note, s
   return <Sheet title={isRt ? "반복 실행" : "고정업무"} kind={isRt ? "반복 실행" : "고정업무"} head={fxLabel(t, cu.id)} path={pathL} onBack={onBack} onClose={onClose} foot={mine && !gone ? <Big tone={me ? "white" : "navy"} onClick={() => A.fxToggle(t)}>{me ? "✓ 체크 취소" : fxDoneWord(t)}</Big> : null}>
     {gone && <RemovedNote what={wasRt ? "없앤 반복 실행이에요" : "없앤 고정업무예요"} rm={t.removed} can={canRm} onRestore={restore} />}
     <div style={{ fontSize: 13.5, color: C.sub, marginTop: 12 }}>{fxRecurL(t)} · {fxTime(t, cu.id) || "시간 상관없음"} · 담당 {people.length}명{t.paused && !gone ? " · 멈춤" : ""}</div>
+    {!gone && <RtInputCard t={t} keyd={key} />}
     {cyclePending(t) && <div style={{ fontSize: 12.5, color: C.sub, marginTop: 6 }}>주기 확인 필요{cg ? ` · 제안 ${({ daily: "매일", weekly: "매주", monthly: "매월" })[cg.rt]}(${cg.from} '${cg.word}')` : ""} · 관리자가 정해요</div>}
     {mine && !gone && subs.length > 0 && <><Head>체크리스트</Head><div className="v2-chips">{subs.map((x) => { const ok = fxHit(t, ((t.subDone || {})[cu.id] || {})[x.id], key); return <Chip key={x.id} on={ok} onClick={() => A.fxSub(t, x.id)}>{ok ? "✓ " : ""}{x.title}</Chip>; })}</div></>}
     {!gone && <FxMore t={t} D={D} cu={cu} A={A} focus={focus} mine={mine} canRecur={canRecur} canCommon={canCommon} canScope={canScope} master={master} setToast={setToast} canRemove={canRm} onGone={close} />}

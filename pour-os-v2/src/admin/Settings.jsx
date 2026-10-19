@@ -12,6 +12,7 @@ import { LaunchOwnerSync } from "./LaunchLink.jsx";
 import { MoyImport } from "./MoyImport.jsx";
 import { pinHash } from "../sha.js";
 import { adsAsideDoc, adsAsideOwner, ADS_ASIDE_DEFAULT } from "../aiask.js";
+import { AD_ROUTINE_L } from "../../../marketing-hub/adops.js";   // 광고 예약 하나 (2026-10-19 김송희)
 import { DevReviewerPick } from "../devreq.jsx";   // 이달 개발 목록 확인하는 사람 (2026-10-17)
 
 const KIND_L = { launch: "버전1 신제품 보드 다시 가져오기", all: "버전1 전체 다시 가져오기" };
@@ -141,14 +142,14 @@ export function SettingsSheet({ D, cu, A, meta, setMeta, logout, onBack, onClose
   </Sheet>;
 }
 
-// 광고 Aside 예약 글 알림 받는 사람 (2026-10-17 사장님 "Aside 예약은 김송희에게만 os에 알림뜨게해")
+// 광고 예약 알림 받는 사람 (2026-10-17 사장님 "Aside 예약은 김송희에게만 os에 알림뜨게해" · 2026-10-19 예약 하나 = 김송희 Aside '광고' 루틴)
 //   settings/adsAside.ownerId · 비우면 기본(김송희 → 없으면 관리자 누구나) · 바꾸기 = A.adsAsideOwnerSet(조건부 · 기록 · 5초 되돌리기)
 export function AdsAsideOwner({ D, A }) {
   const cur = adsAsideDoc(D).ownerId || "", who = adsAsideOwner(D), us = activeUsers(D.users), nm = (id) => (us.find((u) => u.id === id) || {}).name || "";
-  return <><Head>광고 Aside 예약 알림</Head>
+  return <><Head>광고 예약 알림</Head>
     <Card><div style={{ padding: "12px 14px" }}>
-      <div style={{ fontSize: 13.5, color: C.text, lineHeight: 1.6 }}>새 예약 글이 나오면 '확인할 것'에 뜨는 사람 · 지금 <b>{nm(who) || "관리자 누구나"}</b>{cur ? "" : " (기본)"}</div>
-      <select value={cur} onChange={(e) => A.adsAsideOwnerSet(e.target.value)} style={{ ...inp, fontSize: 16, marginTop: 8, width: "100%", maxWidth: 360 }} aria-label="광고 Aside 예약 알림 받는 사람">
+      <div style={{ fontSize: 13.5, color: C.text, lineHeight: 1.6 }}>광고 보고 예약은 {AD_ROUTINE_L} 루틴 하나예요 · 예약을 정리할 일이 생기면 '확인할 것'에 뜨는 사람 · 지금 <b>{nm(who) || "관리자 누구나"}</b>{cur ? "" : " (기본)"}</div>
+      <select value={cur} onChange={(e) => A.adsAsideOwnerSet(e.target.value)} style={{ ...inp, fontSize: 16, marginTop: 8, width: "100%", maxWidth: 360 }} aria-label="광고 예약 알림 받는 사람">
         <option value="">기본 ({ADS_ASIDE_DEFAULT} · 없으면 관리자 누구나)</option>
         {us.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
       </select></div></Card></>;

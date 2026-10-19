@@ -493,6 +493,7 @@ input[type="date"].v2-sel::-webkit-date-and-time-value { text-align: left; min-h
 .v2-rtacts{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .v2-rtai{display:inline-flex;align-items:center;margin-top:7px;min-height:32px;padding:4px 11px;border-radius:999px;border:1.5px solid #C9D2E8;background:#F3F5FC;color:#24386B;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .v2-rtai b{font-weight:800;margin-right:2px}
+.v2-rtin{margin-right:6px;text-decoration:none}   /* 반복 실행 입력 자료 (2026-10-19 · 광고 주간 보고서) */
 .v2-prog{height:6px;border-radius:4px;background:#EEF1F8;overflow:hidden;margin-top:8px}
 .v2-prog i{display:block;height:100%;background:#24386B;border-radius:4px}
 /* 파일 미리 보기 · 올리기 진행 (files.jsx) */

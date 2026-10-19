@@ -13,7 +13,7 @@
 //   최종 승인 + 실행 한 줄(exec) → 담당에게 '실행' 업무(tasks · aiAsk = 승인 id) — 실제 반영은 늘 사람 (2026-10-11)
 import { isMaster, nameOf, teamOf, isOffDay, ymd, addDays, nextWorkday, wdBetween } from "./model.js";
 import { CREWS, mateOf, crewOf, brandL, asidePlan, loginSites, actOf, launchRows, launchRowOf, GONE, runWord, PATHS, PATH_L, hqDef, pathDef, pathOf } from "../../marketing-hub/crew.js";
-import { ASIDE_ADS_LAUNCH_VER } from "../../marketing-hub/adops.js";   // 광고 Aside 예약 글 판 (2026-10-17)
+import { ASIDE_ADS_LAUNCH_VER, ASIDE_ADS_VER, AD_ROUTINE, routineWhen } from "../../marketing-hub/adops.js";   // 광고 예약 알림 판 (2026-10-17 · 2026-10-19 예약 하나)
 import { bannedHits, bannedRow, BANNED_SRC } from "../../marketing-hub/banned.js";   // 사용금지어 (사장님 2026-10-19 '금지·주의 단어 작성 가이드')
 
 export const ASK_STATE_L = { wait: "승인 대기", back: "AI가 고치는 중", ok: "최종 승인", no: "안 함" };
@@ -266,8 +266,11 @@ export const ranOn = (v, key) => !!(v && v.at) && ymd(new Date(v.at)) === key;  
 const runsOn = (key, dow) => !isOffDay(key) && (!Array.isArray(dow) || !dow.length || dow.includes(new Date(key + "T00:00:00").getDay()));
 export const missedOn = (v, t, now = new Date(), dow) => { const key = ymd(now); return runsOn(key, dow) && !!(v && v.at) && !ranOn(v, key) && hmOf(now) >= addMin(t, MISS_AFTER); };
 export const adsAsideDoc = (D) => ((D && D.settings) || []).find((x) => x && (x.id || x._doc) === "adsAside") || {};
-export const adsAsideVer = (D) => adsAsideDoc(D).ver || "";   // 광고 Aside 예약 글 넣은 판 (settings/adsAside)
-// 광고 Aside 예약 글 알림 받는 사람 (2026-10-17 사장님 "Aside 예약은 김송희에게만 os에 알림뜨게해" · 여름 세션 전달)
+export const adsAsideVer = (D) => adsAsideDoc(D).ver || "";   // 광고 예약 알림을 마지막으로 닫은 판 (settings/adsAside · [정리했어요] · 예전 [넣었어요])
+// 광고 예약 알림 글 (2026-10-19 김송희 "광고 보고 예약 = 김송희 PC Aside 프로젝트 '광고'의 루틴 1개 · 새로 만들지 않게") — 예전 '새 예약 글 넣기 · 예약 2개'(2026-10-17)
+export const ADS_ASIDE_TITLE = `광고 예약 하나로 정리 · ${AD_ROUTINE.owner} Aside '${AD_ROUTINE.project}' 루틴만`;
+export const adsAsideText = () => `${routineWhen()} = 그 루틴 1개 · 다른 PC·프로젝트의 광고 예약(예전 예약 글로 만든 것)은 지우고, 스킬 ${AD_ROUTINE.skill} 판이 ${ASIDE_ADS_VER}(규칙 안 끄기)인지 확인 → [정리했어요] · 새 예약은 만들지 않아요`;
+// 광고 예약 알림 받는 사람 (2026-10-17 사장님 "Aside 예약은 김송희에게만 os에 알림뜨게해" · 여름 세션 전달 · 2026-10-19 = 그 루틴 주인 김송희)
 //   settings/adsAside.ownerId(관리자 설정에서 바꿈 · 사용 중인 사람) → 없으면 이름이 김송희인 사람 1명 → 둘 다 없으면 '' = 관리자 누구나(예전처럼)
 export const ADS_ASIDE_DEFAULT = "김송희";
 export const adsAsideOwner = (D) => { const us = ((D && D.users) || []).filter((u) => u && u.active !== false), id = adsAsideDoc(D).ownerId;
@@ -433,13 +436,13 @@ export function asideInbox(D, uid, now = new Date(), seen = {}) {
   routineMisses(D, now).forEach((x) => { if (x.owner !== uid && !master) return; const id = `amr:${x.mate}:${key}`; if (seen[id]) return;
     out.push({ kind: "aiRoutine", tag: "AI 안 돎", red: true, id, mate: x.mate, whoName: `${x.name} (AI)`, at: `${key}T${ROUTINE_AT}:00`,
       title: `오늘 ${x.name}(AI) 아침 루틴이 아직 안 올라왔어요`, text: `평일 ${ROUTINE_AT} 블로그 원고·재배포 · Claude 예약 작업이 막혔을 수 있어요 · 누르면 사장님께 보낼 글` }); });
-  // 광고 Aside 예약 글 (2026-10-17 사장님 "어사이드에게 예약글 넣어서 진행하는거 까먹을것같은데 os 확인할것에 나오게해줘")
-  //   settings/adsAside.ver 가 지금 예약 글 판(adops.ASIDE_ADS_LAUNCH_VER)보다 옛것이면 한 줄(keep) · 누르면 광고 운영 화면 · [넣었어요] = core.adsAsideDone
-  //   받는 사람 = adsAsideOwner (기본 김송희 · 2026-10-17 · 담당이 정해지면 그 사람만 · 없으면 관리자 누구나)
+  // 광고 보고 예약 하나 (2026-10-19 김송희 "광고 보고 예약이 여러 곳에서 돌아 충돌했어요 · 앞으로 기준은 하나" — 예전 2026-10-17 '새 예약 글 넣기 · 예약 2개'를 바꿈)
+  //   settings/adsAside.ver 가 adops.ASIDE_ADS_LAUNCH_VER(10-19.2)보다 옛것이면 한 줄(keep) · 누르면 광고 운영 #aside(예약 하나 안내 · 지시문 사본) · [정리했어요] = core.adsAsideDone
+  //   받는 사람 = adsAsideOwner (기본 김송희 = 그 루틴 주인 · 관리자 설정에서 바꿈 · 없으면 관리자 누구나) · at = 판의 날짜 부분 (판 글자 '2026-10-19.2')
   const aaOwner = adsAsideOwner(D);
   if ((aaOwner ? uid === aaOwner : isMaster(me)) && String(adsAsideVer(D)) < ASIDE_ADS_LAUNCH_VER)
-    out.push({ kind: "adsAside", tag: "Aside 광고", id: `aa:${ASIDE_ADS_LAUNCH_VER}`, whoName: "광고 운영", at: ASIDE_ADS_LAUNCH_VER + "T00:00:00", keep: true,
-      title: "새 예약 글 넣기 · 예약 2개", text: "누르면 광고 운영 → 맨 위 [예약 글 복사] → Aside '매일 08:30' · '금 16:00' 예약 글을 통째로 바꾸고 [넣었어요] · 한 번만 하면 지시문이 바뀌어도 그대로" });
+    out.push({ kind: "adsAside", tag: "광고 예약", id: `aa:${ASIDE_ADS_LAUNCH_VER}`, whoName: "광고 운영", at: ASIDE_ADS_LAUNCH_VER.slice(0, 10) + "T00:00:00", keep: true,
+      title: ADS_ASIDE_TITLE, text: adsAsideText() });
   return out;
 }
 

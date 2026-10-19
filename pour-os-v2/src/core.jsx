@@ -28,7 +28,7 @@ import { askInbox, asideInbox, planPass, planBack, planRet, planDrop, planExec, 
 import { moneyInbox } from "./money.js";   // 돈·결재 7건 알림 (2026-10-17 · 계산만)
 import { feedInbox, adChecker } from "./feeds.js";   // 결과 숫자 · 비면 n일째 (2026-10-17 · 계산만)
 import { mateOf, boardOf, brandL, qtyDefs, canReq, reqDoc, reqId, designBad, DESIGN_MAX, handoffLabel, handoffTargets, isNpsAct, npsScore } from "../../marketing-hub/crew.js";
-import { ASIDE_ADS_LAUNCH_VER } from "../../marketing-hub/adops.js";   // 광고 Aside 예약 글 판 (2026-10-17)
+import { ASIDE_ADS_LAUNCH_VER, AD_ROUTINE_L } from "../../marketing-hub/adops.js";   // 광고 예약 알림 판 (2026-10-17 · 2026-10-19 예약 하나)
 import { repSlots, repId, canWriteSec, secPeople, snapOf, cycleOf, monOf, CYCLE_L, repInbox, repFxOf, myRepLeft } from "./aireport.js";   // AI 크루 보고서 (2026-10-15) · 리포트 ①~④ (2026-10-17)
 import { NO_ACT, isFxKey, fxIdOf, akKeys, pairVal, countKeys, splitExec, keyName, fxTimeCome } from "./airt.js";   // AI 크루 ↔ 반복 실행 (2026-10-16) · 열쇠 여러 개 (2026-10-17)
 import { lagInbox, applyKpiOv, kpiEditWrite, newKpiId } from "./kpi2.js";
@@ -954,13 +954,14 @@ export function useActs(D, cu, setToast, idx = null) {
       return true;
     },
     // 광고 Aside 예약 글 넣음 (2026-10-17 사장님 "어사이드에게 예약글 넣어서 진행하는거 까먹을것같은데 os 확인할것에 나오게해줘")
-    //   받는 사람(adsAsideOwner · 기본 김송희) '확인할 것' 'Aside 광고 예약' [넣었어요] → settings/adsAside {ver, at, by, byName} → 그 줄이 사라짐 · 5초 되돌리기(예전 판으로)
+    //   받는 사람(adsAsideOwner · 기본 김송희) '확인할 것' '광고 예약 하나로 정리' [정리했어요] → settings/adsAside {ver, at, by, byName} → 그 줄이 사라짐 · 5초 되돌리기(예전 판으로)
+    //   2026-10-19 김송희 예약 하나: 예전 [넣었어요](새 예약 글 넣기 · 예약 2개) → [정리했어요](김송희 Aside '광고' 루틴 1개만 · 스킬 판 확인) · 같은 문서·같은 칸
     adsAsideDone: async () => {
       if (!canAdsAside(D, cu)) { setToast({ text: "광고 Aside 담당이 해요" }); return false; }
       const at = nowIso(), was = adsAsideVer(D) || null;
-      try { await fb.merge("settings", "adsAside", { ver: ASIDE_ADS_LAUNCH_VER, at, by: cu.id, byName: cu.name }); } catch (e) { fail("광고 예약 글")(e); return false; }
-      log("edit", { col: "settings", targetId: "adsAside", label: `광고 Aside 예약 글 넣음 · 판 ${ASIDE_ADS_LAUNCH_VER}`, prev: { ver: was }, next: { ver: ASIDE_ADS_LAUNCH_VER } });
-      setToast({ text: "넣었어요 · 다음 광고 보고서(평일 08:30)부터 새 글로 돌아요", undo: () => fb.merge("settings", "adsAside", { ver: was, at: nowIso(), by: cu.id, byName: cu.name }).catch(fail("되돌리기")) });
+      try { await fb.merge("settings", "adsAside", { ver: ASIDE_ADS_LAUNCH_VER, at, by: cu.id, byName: cu.name }); } catch (e) { fail("광고 예약 정리")(e); return false; }
+      log("edit", { col: "settings", targetId: "adsAside", label: `광고 예약 하나로 정리함 · 판 ${ASIDE_ADS_LAUNCH_VER}`, prev: { ver: was }, next: { ver: ASIDE_ADS_LAUNCH_VER } });
+      setToast({ text: `정리했어요 · 광고 보고 예약은 ${AD_ROUTINE_L} 루틴 하나`, undo: () => fb.merge("settings", "adsAside", { ver: was, at: nowIso(), by: cu.id, byName: cu.name }).catch(fail("되돌리기")) });
       return true;
     },
     // 광고 Aside 예약 글 알림 받는 사람 바꾸기 (2026-10-17 · 관리자 · settings/adsAside.ownerId · 이름을 코드에 박지 않음)
@@ -973,8 +974,8 @@ export function useActs(D, cu, setToast, idx = null) {
         if (!ok) { setToast({ text: "그사이 다른 사람이 바꿨어요 · 다시 봐 주세요" }); return false; } }
       catch (e) { fail("광고 Aside 담당")(e); return false; }
       const nm = (id) => nameOf(D.users, id) || "기본";
-      log("edit", { col: "settings", targetId: "adsAside", label: `광고 Aside 예약 알림 받는 사람 ${nm(was)} → ${nm(nx)}`, prev: { ownerId: was }, next: { ownerId: nx } });
-      setToast({ text: `광고 Aside 예약 알림 = ${nameOf(D.users, nx || adsAsideOwner({ ...D, settings: [] })) || "관리자 누구나"}`, undo: () => fb.txDoc("settings", "adsAside", (cur) => (((cur && cur.ownerId) || "") === nx ? { write: { ownerId: was, ownerAt: nowIso(), ownerBy: cu.id } } : {})).catch(fail("되돌리기")) });
+      log("edit", { col: "settings", targetId: "adsAside", label: `광고 예약 알림 받는 사람 ${nm(was)} → ${nm(nx)}`, prev: { ownerId: was }, next: { ownerId: nx } });
+      setToast({ text: `광고 예약 알림 = ${nameOf(D.users, nx || adsAsideOwner({ ...D, settings: [] })) || "관리자 누구나"}`, undo: () => fb.txDoc("settings", "adsAside", (cur) => (((cur && cur.ownerId) || "") === nx ? { write: { ownerId: was, ownerAt: nowIso(), ownerBy: cu.id } } : {})).catch(fail("되돌리기")) });
       return true;
     },
     // Aside 세팅 3단계 체크 (2026-10-19 사장님 확정 2A "① 사이트 [열기]·로그인 ② 크루마다 예약 글 → [넣었어요] ③ [시험 한 번] → 올라오면 자동 ✓")

@@ -24,7 +24,7 @@ import { flowOwners } from "./flow.js";
 import { sumAk, akWrite, countFields, countOf, baseTitle } from "./routine.js";
 import { linkInbox } from "./links.js";
 import { apprInbox, apprMerge } from "./appr.js";   // 구매 품의 요청 (2026-10-16)
-import { askInbox, asideInbox, planPass, planBack, planRet, planDrop, planExec, canAct, canBack, canRet, pickOk, bossLoop, moreText, MORE_MAX, hqOf, pathOf, PATHS, PATH_L, traceOf, traceLeft, mateOwner, actOwner, isHQ, launchTaskOf, adsAsideVer, adsAsideOwner, canAdsAside } from "./aiask.js";   // AI 승인 (2026-10-12) · Aside 담당 PC (2026-10-15)
+import { askInbox, asideInbox, planPass, planBack, planRet, planDrop, planExec, canAct, canBack, canRet, pickOk, bossLoop, moreText, MORE_MAX, hqOf, pathOf, PATHS, PATH_L, traceOf, traceLeft, mateOwner, actOwner, isHQ, launchTaskOf, adsAsideVer, adsAsideOwner, canAdsAside, setupDocId, setupDocOf } from "./aiask.js";   // AI 승인 (2026-10-12) · Aside 담당 PC (2026-10-15)
 import { moneyInbox } from "./money.js";   // 돈·결재 7건 알림 (2026-10-17 · 계산만)
 import { feedInbox, adChecker } from "./feeds.js";   // 결과 숫자 · 비면 n일째 (2026-10-17 · 계산만)
 import { mateOf, boardOf, brandL, qtyDefs, canReq, reqDoc, reqId, designBad, DESIGN_MAX, handoffLabel, handoffTargets, isNpsAct, npsScore } from "../../marketing-hub/crew.js";
@@ -105,6 +105,8 @@ export function useData(on, full = true) {
       fb.listen("aimates", null, put("aimates"), (e) => { console.warn("[v2] AI 팀원 설정 못 읽음:", e); setS((s) => ({ ...s, aimates: [] })); }),
       // 크루 보드 값(aiboards · 보드 6개 · 허브 crew.html 이 씀) — 마지막 올린 때 → '내 PC Aside 세팅' · '오늘 안 돎' (2026-10-15)
       fb.listen("aiboards", null, put("aiboards"), (e) => console.warn("[v2] AI 크루 보드 값 못 읽음:", e)),
+      // Aside 세팅 3단계 체크(asidesetup · 2026-10-19 사장님 2A · 담당 PC 마다 한 장) — 못 읽어도 앱은 그대로(체크 전으로 보임)
+      fb.listen("asidesetup", null, put("asidesetup"), (e) => console.warn("[v2] Aside 세팅 체크 못 읽음:", e)),
       // 맡긴 일(aireqs · 2026-10-15 "ai팀원에게 업무요청을 별도로해서 진행도 가능") — 열린 것(대기·하는 중) + 최근 7일 바뀐 것 · 못 읽어도 앱은 그대로
       fb.listen("aireqs", ["state", "in", ["open", "doing"]], put("aiReqOpen"), (e) => console.warn("[v2] 맡긴 일 못 읽음:", e)),
       fb.listen("aireqs", ["updatedAt", ">=", since14], put("aiReqRecent"), (e) => console.warn("[v2] 맡긴 일(최근) 못 읽음:", e)),
@@ -157,7 +159,7 @@ export function useData(on, full = true) {
       // AI 승인(2026-10-12): asks = 열린 것 + 최근 7일(같은 id 는 열린 쪽) · mates = AI 팀원 덧칠 {id: 문서} · aiInbox = '확인할 것' 줄(model.todayView 가 부름 · 순환 import 피하려고 D 로)
       ai: (() => { const m = new Map(); (S.aiRecent || []).forEach((x) => m.set(x.id, x)); (S.aiOpen || []).forEach((x) => m.set(x.id, x));
         const rq = new Map(); (S.aiReqRecent || []).forEach((x) => rq.set(x.id || x._doc, x)); (S.aiReqOpen || []).forEach((x) => rq.set(x.id || x._doc, x));
-        return { reqs: [...rq.values()].sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || ""))), asks: [...m.values()], mates: Object.fromEntries((S.aimates || []).map((x) => [x.id || x._doc, x])), boards: Object.fromEntries((S.aiboards || []).map((x) => [x.id || x._doc, x])), reports: Object.fromEntries((S.aireports || []).map((x) => [x.id || x._doc, x])), ready: S.aimates !== undefined }; })(), aiInbox: askInbox, asideInbox, aiRepInbox: repInbox, moneyInbox, feedInbox,
+        return { reqs: [...rq.values()].sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || ""))), asks: [...m.values()], mates: Object.fromEntries((S.aimates || []).map((x) => [x.id || x._doc, x])), boards: Object.fromEntries((S.aiboards || []).map((x) => [x.id || x._doc, x])), setups: Object.fromEntries((S.asidesetup || []).map((x) => [x.id || x._doc, x])), reports: Object.fromEntries((S.aireports || []).map((x) => [x.id || x._doc, x])), ready: S.aimates !== undefined }; })(), aiInbox: askInbox, asideInbox, aiRepInbox: repInbox, moneyInbox, feedInbox,
       // 구매 품의 요청(2026-10-16): list = 품의 전 + 최근 30일(지운 것 빼고 · 최근 것 먼저) · apprInbox = '확인할 것' 줄(model.todayView 가 부름)
       appr: { list: apprMerge(S.apprRecent, S.apprOpen), ready: S.apprOpen !== undefined && S.apprRecent !== undefined }, apprInbox,
       // 레퍼런스(2026-10-17): list = 최근 90일(숨긴 것 포함 · 화면이 거름) · refInbox = '확인할 것' 줄(받을 사람 @)
@@ -973,6 +975,21 @@ export function useActs(D, cu, setToast, idx = null) {
       const nm = (id) => nameOf(D.users, id) || "기본";
       log("edit", { col: "settings", targetId: "adsAside", label: `광고 Aside 예약 알림 받는 사람 ${nm(was)} → ${nm(nx)}`, prev: { ownerId: was }, next: { ownerId: nx } });
       setToast({ text: `광고 Aside 예약 알림 = ${nameOf(D.users, nx || adsAsideOwner({ ...D, settings: [] })) || "관리자 누구나"}`, undo: () => fb.txDoc("settings", "adsAside", (cur) => (((cur && cur.ownerId) || "") === nx ? { write: { ownerId: was, ownerAt: nowIso(), ownerBy: cu.id } } : {})).catch(fail("되돌리기")) });
+      return true;
+    },
+    // Aside 세팅 3단계 체크 (2026-10-19 사장님 확정 2A "① 사이트 [열기]·로그인 ② 크루마다 예약 글 → [넣었어요] ③ [시험 한 번] → 올라오면 자동 ✓")
+    //   그 PC 담당 본인·관리자 · pour-os/v2/asidesetup/{담당 | _none} 의 그 칸 하나만 합치기(다른 칸·다른 기기 체크를 안 덮음) · 풀기 = on:false(지우지 않음) · 5초 되돌리기
+    //   kind sites(열쇠 = siteKey) · runs(보드 id · _fix = 고칠 것 확인 · extra.t = 그때 예약 시각) · test(시험 한 번 누름 · extra.board)
+    asideSetup: async (owner, kind, key, on, extra = {}) => {
+      if (!(isMaster(cu) || (owner && owner === cu.id))) { setToast({ text: "그 PC 담당·관리자가 체크해요" }); return false; }
+      if (!["sites", "runs", "test"].includes(kind) || (kind !== "test" && !key)) return false;
+      const id = setupDocId(owner), at = nowIso(), cur = setupDocOf(D, owner), who = { at, by: cu.id, byName: cu.name };
+      const was = kind === "test" ? cur.test || null : ((cur[kind] || {})[key]) || null;
+      const val = kind === "test" ? { ...who, ...extra } : { on: !!on, ...who, ...extra };
+      const w = (v) => (kind === "test" ? { test: v } : { [kind]: { [key]: v } });
+      try { await fb.merge("asidesetup", id, { id, owner: owner || "", ...w(val), updatedAt: at }); } catch (e) { fail("세팅 체크")(e); return false; }
+      const L = kind === "test" ? "시험 한 번 · 결과가 올라오면 저절로 ✓" : kind === "sites" ? (on ? "로그인함 ✓" : "로그인함을 풀었어요") : (on ? "넣었어요 ✓" : "넣었어요를 풀었어요");
+      setToast({ text: L, undo: () => fb.merge("asidesetup", id, { ...w(was || (kind === "test" ? { at: "" } : { on: false, at: nowIso(), by: cu.id, byName: cu.name })), updatedAt: nowIso() }).catch(fail("되돌리기")) });
       return true;
     },
     // 보고 주기 (관리자 · 2026-10-15 "한동안 주간 · 점차 1개월로") — settings/aicrew.reportCycle = {cycle, from(이번 주 월요일)} · 5초 되돌리기

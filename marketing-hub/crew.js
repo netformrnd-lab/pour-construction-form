@@ -897,7 +897,7 @@ export function asideReqLaunch(req) {
 //   Aside 예약 작업 = 보드 하나에 하나 · 예약 글은 짧게(asideLaunch): crew.html#보드 를 열어 화면 '오늘 지시문'(asideText)을 그대로
 //   → 지시문을 고쳐도(이 파일) Aside 예약은 다시 안 넣어도 됨 · 판 = ASIDE_VER (지시문을 고치면 날짜를 올림)
 //   AI 몫 = 숫자 읽기 · 찾기 · 표 · 초안까지 / 사람 몫 = 승인 뒤 실행(가격·광고·쿠폰·발송·게시·상세·등록) — 할 일 단계 중 '승인…'으로 시작하는 줄은 사람 몫(stepParts)
-export const ASIDE_VER = '2026-10-18.2';   // 10-18.2 = 링크 꼬리표(utm·nt · 보내는 할 일 링크 안내 · 직접 붙이지 않음) · 별 D 링크 꼬리표 성과(■ 잴 글 목록) · 봄 I 자사몰 상품 주소 표 · 바람 nps = 업무OS 계산 값(사장님 2-1A~2-4A) · 10-18 = ■ 볼트 최신 요약(볼트 '04 자료/00 최신 요약' 한 장 · 허브 mkt-notes/vault-latest · 단계 미션 다음 · 사장님 3A) · 10-17.5 = ■ 참고 레퍼런스(사람이 업무OS 레퍼런스에 그 AI 핏을 남긴 것만 · 그 부분만 · 베끼지 않음) · 10-17.4 = 매일 할 일은 할 게 있을 때만(없으면 [상태] '변화 없음') · B2B·바라스데이 크루 닫음(닫힌 보드 = 멈춤 안내) · 10-17.3 = 사장님 확정(논의 뒤) — 단계 숫자 하나 · ■ 넘겨받은 것(사람 최종 승인한 다른 AI 결과) · ■ 공용 이긴 소재 장부 · ■ 브랜드별 설계(우주 G 먼저) · 겨울 I 택배 동봉 안내 · 바람 A·B·C 우주 H 장부 먼저 · 10-17.2 = 사장님 AARRR 정의 → 단계 미션(■ 단계 미션) · 새 할 일(여름 J · 가을 J · 겨울 H·I · 우주 G·H · 하늘 F · 바람 E) · 재고 = 이음 F(비즈로지컴·쿠팡 로켓그로스) · 리뷰 = 바람 D · 10-17 = B2C 크루 AARRR 정리(광고 → 가을 · MD → 봄 · 지인추천 → 바람 · MOVED) · 새 할 일(여름 G·H·I · 겨울 G · 바람 A) · 두 브랜드 할 일 '브랜드' 칸 · 새 보드(이음·별·달 · B2B 5) · 10-16 = 광고 할 일 외주 + 내부 관리(김민지 · 바꿀 안)
+export const ASIDE_VER = '2026-10-19';   // 10-19 = 사람 세팅 = 업무OS 'Aside 세팅'(crew 화면은 Aside 전용 · 사장님 1A~4A) · 10-18.2 = 링크 꼬리표(utm·nt · 보내는 할 일 링크 안내 · 직접 붙이지 않음) · 별 D 링크 꼬리표 성과(■ 잴 글 목록) · 봄 I 자사몰 상품 주소 표 · 바람 nps = 업무OS 계산 값(사장님 2-1A~2-4A) · 10-18 = ■ 볼트 최신 요약(볼트 '04 자료/00 최신 요약' 한 장 · 허브 mkt-notes/vault-latest · 단계 미션 다음 · 사장님 3A) · 10-17.5 = ■ 참고 레퍼런스(사람이 업무OS 레퍼런스에 그 AI 핏을 남긴 것만 · 그 부분만 · 베끼지 않음) · 10-17.4 = 매일 할 일은 할 게 있을 때만(없으면 [상태] '변화 없음') · B2B·바라스데이 크루 닫음(닫힌 보드 = 멈춤 안내) · 10-17.3 = 사장님 확정(논의 뒤) — 단계 숫자 하나 · ■ 넘겨받은 것(사람 최종 승인한 다른 AI 결과) · ■ 공용 이긴 소재 장부 · ■ 브랜드별 설계(우주 G 먼저) · 겨울 I 택배 동봉 안내 · 바람 A·B·C 우주 H 장부 먼저 · 10-17.2 = 사장님 AARRR 정의 → 단계 미션(■ 단계 미션) · 새 할 일(여름 J · 가을 J · 겨울 H·I · 우주 G·H · 하늘 F · 바람 E) · 재고 = 이음 F(비즈로지컴·쿠팡 로켓그로스) · 리뷰 = 바람 D · 10-17 = B2C 크루 AARRR 정리(광고 → 가을 · MD → 봄 · 지인추천 → 바람 · MOVED) · 새 할 일(여름 G·H·I · 겨울 G · 바람 A) · 두 브랜드 할 일 '브랜드' 칸 · 새 보드(이음·별·달 · B2B 5) · 10-16 = 광고 할 일 외주 + 내부 관리(김민지 · 바꿀 안)
 export const HUB_CREW = 'https://pour-construction-form.pages.dev/marketing-hub/crew.html';
 const DOW_L = ['일', '월', '화', '수', '목', '금', '토'];
 export const runDays = (r) => (!r ? '' : r.dow.join() === WD.join() ? '평일' : r.dow.length === 7 ? '매일' : `매주 ${r.dow.map((x) => DOW_L[x]).join('·')}`);   // 매주 요일 (2026-10-17 · 주 1~2회 보드)
@@ -927,9 +927,14 @@ export function asidePlan(ownerOf) {
 // 그 보드의 담당·예약 시각 (asidePlan 결과에서) · n = 그 PC 가 돌리는 보드 수
 export const planOf = (plan, boardId) => { for (const g of plan || []) for (const r of g.runs) if (r.board.id === boardId) return { owner: g.owner, t: r.t, n: g.runs.length }; return null; };
 // 그 PC Aside 브라우저에 로그인해 둘 곳 — 사이트마다 누가 무엇을 보나 (로그인 없는 곳은 뺌) · boards 없으면 모든 보드
+//   u = [열기] 주소 (LOGIN_URLS · 2026-10-19 사장님 2A) — 주소가 확실한 곳만 · 없으면 '' (사람이 찾아 들어감 · 틀린 주소를 열게 하지 않음)
+export const LOGIN_URLS = { '카페24': 'https://eclogin.cafe24.com/Shop/', '스마트스토어센터': 'https://sell.smartstore.naver.com/', '쿠팡윙': 'https://wing.coupang.com/', '쿠팡 광고센터': 'https://advertising.coupang.com/',
+  '메타 광고관리자': 'https://adsmanager.facebook.com/', '네이버 검색광고 (그로홈 광고 계정)': 'https://searchad.naver.com/', '구글 애즈 (그로홈)': 'https://ads.google.com/', 'POUR스토어 CRM': 'https://pourstorecrm.web.app/',
+  '채널톡': 'https://desk.channel.io/', '카카오 비즈니스 채널': 'https://business.kakao.com/', '인스타그램': 'https://www.instagram.com/', '틱톡': 'https://www.tiktok.com/', '유튜브': 'https://www.youtube.com/',
+  '잔디': 'https://www.jandi.com/', '이지어드민': 'https://www.ezadmin.co.kr/', '업무OS': 'https://pour-construction-form.pages.dev/pourstore-renewal/os2.html' };
 export function loginSites(boards) {
   const m = new Map();
-  (boards || asideBoards()).forEach((b) => (b.logins || []).filter((x) => !x.open).forEach((x) => { const y = m.get(x.s) || { s: x.s, uses: [] }; y.uses.push({ mate: (mateOf(b.mate) || {}).name || b.mate, w: x.w }); m.set(x.s, y); }));
+  (boards || asideBoards()).forEach((b) => (b.logins || []).filter((x) => !x.open).forEach((x) => { const y = m.get(x.s) || { s: x.s, u: LOGIN_URLS[x.s] || '', uses: [] }; y.uses.push({ mate: (mateOf(b.mate) || {}).name || b.mate, w: x.w }); m.set(x.s, y); }));
   return [...m.values()];
 }
 // 할 일 한 단계 → AI 몫 · 사람 몫 ('승인…'으로 시작 = 통째로 사람 · 중간 '· 승인되면 …' = 앞은 AI · 뒤는 사람)
@@ -985,6 +990,19 @@ export function asideLaunch(b, t) {
     RULE_SHORT,
   ].join('\n');
 }
+// 지금 한 번 (시험 · 예약 아님) — 업무OS 'Aside 세팅' ③ [시험 한 번] (2026-10-19 사장님 2A) · 올라오면 업무OS 가 aiboards.at 으로 알고 ✓
+export function asideNowLaunch(b) {
+  const { m, head } = who(b);
+  return [`[${head}] 지금 한 번 (시험 · 예약 아님)`,
+    `1. 이 주소를 연다: ${crewUrl(b)} (마케팅 허브 업로더 계정으로 로그인돼 있음)`,
+    `2. 화면의 '오늘 지시문'(${m.name} · ${b.title})을 끝까지 읽고 그대로 한다 — 이 글보다 화면 지시문이 우선이다.`,
+    "3. 결과를 그 화면 '결과 붙여 넣기'에 넣고 [미리보기] → [업무OS에 올리기] → 맨 위 '올렸어요'를 확인하면 끝.",
+    '4. 이번 한 번만 한다 — 예약 작업은 만들지 않는다.',
+    RULE_SHORT,
+  ].join('\n');
+}
+// 시험할 크루 = 그 PC 의 평일 크루 중 가장 이른 것 (주 1~2회 크루만 있으면 그중 처음)
+export const testRunOf = (runs) => (runs || []).find((r) => r.board && r.board.run && r.board.run.dow && r.board.run.dow.length >= 5) || (runs || [])[0] || null;
 // 신제품 칸 남은 것 (디맨드젠 x_dg · 2026-10-15) — crew.html 이 업무OS 업무(launchItem)·프로젝트를 읽어 넘김
 //   끝냄·버림·없앤 것 빼고 · 크루 브랜드만 · 아마존 수출 트랙(lbProject amazon-*) 빼고 · 개수 = count 칸 → 제목 '(n/목표)' · 출시일 가까운 순 (미정은 맨 뒤)
 const lcnt = (t) => { if (t.count != null && !isNaN(+t.count)) return Math.max(0, +t.count); const m = /\((\d+)\s*\/\s*\d+\)\s*$/.exec(t.title || ''); return m ? +m[1] : 0; };
@@ -1032,7 +1050,7 @@ export function asideText(b, opt = {}) {
   const all = JSON.stringify(acts), moka = /모카/.test(all);
   const L = [];
   L.push(`[${head}] 지시문 판 ${ASIDE_VER}`);
-  if (b.run) L.push(`언제: ${runDays(b.run)} 하루 한 번 · 담당 PC 의 Aside 예약 (시각은 허브 세팅 카드 — 담당마다 동시에)`);
+  if (b.run) L.push(`언제: ${runDays(b.run)} 하루 한 번 · 담당 PC 의 Aside 예약 (시각·세팅은 업무OS 'Aside 세팅' — 담당마다 동시에)`);
   L.push(`너는 ${c ? c.name : ''}의 ${m.role} AI '${m.name}'이다. ${b.desc}`, '');
   const stg = stageOf(b.mate);   // 단계 미션 (2026-10-17 사장님 AARRR 정의)
   if (stg) L.push(`■ 단계 미션 — ${m.slot} (사장님 정의): ${stg.mission}`, `  → 이 보드의 할 일은 모두 이 미션을 위해 한다 · 다음 단계로 넘겨줄 것: ${stg.to} · 단계 숫자(하나): ${stg.kpi}`, '');

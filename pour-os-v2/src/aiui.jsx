@@ -4,7 +4,8 @@
 //   AiTeamBody = AI 팀원 목록(크루 = 브랜드+고객별 · 기본 AI 팀원 = 원형) — 팀 앱 더보기 › AI 팀원 · 관리자 탭 'AI 팀원'
 //   AiMateSheet = AI 한 장(담당 · 승인 길 · 성과 · 고칠 점 → 확정 규칙 · 보드 = 지표·행동(가을 F = 광고 일일 보고서)·옮긴 할 일(2026-10-17 AARRR)·최근 결과)
 //   BossCard · BossPanel = 상급자(관리자 › 사람)
-//   AiSetupSheet = 내 PC Aside 세팅(2026-10-15 담당마다 자기 PC · 시각 · 로그인해 둘 곳 · [Aside 글 복사] · 고칠 것 확인) — '확인할 것' 세팅·안 돎 줄에서 열림
+//   AiSetupSheet = 내 PC Aside 세팅(2026-10-19 3단계 체크: ① 사이트 [열기]·[로그인함] ② 예약 글 [넣었어요] ③ [시험 한 번] → 올라오면 ✓) — '확인할 것' 세팅·안 돎 줄에서 열림
+//   AiSetupAllSheet = Aside 세팅 현황(관리자 · 담당 PC 마다 단계 · 업로더 계정 · 마지막 올림)
 // 계산 aiask.js · 정의 marketing-hub/crew.js · 쓰기 core.jsx(useActs aiPass·aiBack·aiRet·aiDrop·mateOwnerSet·mateRule·setBoss·setBosses)
 import { useEffect, useMemo, useState } from "react";
 import * as fb from "./fb.js";
@@ -15,10 +16,11 @@ import { refCount } from "./refui.jsx";   // AI 한 장 · 참고 레퍼런스 �
 import { LS } from "./core.jsx";
 import { RtMulti } from "./airtui.jsx";   // AI 크루 ↔ 반복 실행 (2026-10-16) · 여러 개 (2026-10-17)
 import { isFxKey, fxIdOf, NO_ACT, akKeys, pairable } from "./airt.js";
-import { GONE, liveCrews, closedCrews, CLOSED_L, pathGroups, pathGroupsL, crewOf, mateOf, boardOf, brandL, servesL, mateBrands, ownerKeys, fmtMetric, metricPct, metricOk, runWord, asideLaunch, asideRedoLaunch, asideFixLaunch, loginSites, planOf, qtyDefs, qtyNow, canReq, reqMates, REQ_SHAPES, REQ_PRESETS, REQ_STATE_L, reqLine, asideReqLaunch, execOf, formulaHead, formulaSep, movedOut, movedIn, stageOf, designOf, designBad, DESIGN_MAX, BRAND_L, handoffTargets, handoffLabel, handoffNeedsDone, INBOX_DAYS, isNpsAct, npsFromTraces, npsLine } from "../../marketing-hub/crew.js";
+import { GONE, liveCrews, closedCrews, CLOSED_L, pathGroups, pathGroupsL, crewOf, mateOf, boardOf, brandL, servesL, mateBrands, ownerKeys, fmtMetric, metricPct, metricOk, runWord, asideLaunch, asideRedoLaunch, asideFixLaunch, loginSites, planOf, qtyDefs, qtyNow, canReq, reqMates, REQ_SHAPES, REQ_PRESETS, REQ_STATE_L, reqLine, asideReqLaunch, execOf, formulaHead, formulaSep, movedOut, movedIn, stageOf, designOf, designBad, DESIGN_MAX, BRAND_L, handoffTargets, handoffLabel, handoffNeedsDone, INBOX_DAYS, isNpsAct, npsFromTraces, npsLine, asideNowLaunch, testRunOf } from "../../marketing-hub/crew.js";
 import { cycleOf, periodOf, repCrews, repId, repSlots, secState, periodL, dueL, CYCLE_L } from "./aireport.js";   // AI 크루 보고 (2026-10-15)
 import { ASK_STATE_L, canAct, canBack, canRet, isProxy, pickOk, planPass, chainOf, mateOwner, actOwner, hqOf, canUpHQ, pathOf, pathDef, upLeadTo, PATH_L, mateStats, repeatNotes, itemLine, bossOf, bossRec, bossLoop, asidePlanOf, ranOn, missedOn, goneWaits, GONE_DROP, myTurnN,
-  waitWd, workMin, prevWaits, newerOf, routineRanOn, routineMisses, routineAlert, stuckAlert, LATE_WD, BACK_MIN, PREV_DROP, ROUTINE_AT, ROUTINE_CHECK } from "./aiask.js";   // 멈춤 감시 (2026-10-17)
+  waitWd, workMin, prevWaits, newerOf, routineRanOn, routineMisses, routineAlert, stuckAlert, LATE_WD, BACK_MIN, PREV_DROP, ROUTINE_AT, ROUTINE_CHECK,
+  setupOf, setupRows, uploaderOf, accountName, TEST_WAIT } from "./aiask.js";   // 멈춤 감시 (2026-10-17) · Aside 세팅 3단계 (2026-10-19)   // 멈춤 감시 (2026-10-17)
 
 export const HUB_CREW_URL = "../marketing-hub/crew.html";   // Aside 결과 올리기 (허브)
 export const HUB_MANUAL_URL = "../marketing-hub/ai-manual.html", HUB_ADS_URL = "../marketing-hub/ads.html";   // AI 팀 매뉴얼 · 광고 운영 (2026-10-15 · 읽기 전용 · Aside 가 씀)
@@ -32,9 +34,10 @@ const Line = ({ text, sub, right, tag, last }) => <div style={{ display: "flex",
 const Banner = ({ children, red }) => <div style={{ margin: "10px 0 0", padding: "11px 13px", borderRadius: 12, background: red ? "#F8E9EA" : "#F7F8FB", border: `1px solid ${red ? "#E9C4C7" : C.line}`, fontSize: 13.5, color: C.text, lineHeight: 1.6 }}>{children}</div>;
 
 // 글 복사 버튼 (Aside 에 붙여 넣을 글) — 클립보드가 막히면 바로 아래 글 칸(골라 둠 · 길게 눌러 복사)
-export function CopyText({ text, label, v = "line", solid }) {
+//   onCopy = 복사했을 때(글 칸을 보여 줬을 때도) 한 번 — Aside 세팅 [시험 한 번] 누른 때 남기기 (2026-10-19)
+export function CopyText({ text, label, v = "line", solid, onCopy }) {
   const [st, setSt] = useState("");
-  const go = async () => { try { await navigator.clipboard.writeText(text); setSt("ok"); setTimeout(() => setSt(""), 1500); } catch (e) { console.warn("[v2] 복사 막힘:", e); setSt("box"); } };
+  const go = async () => { try { await navigator.clipboard.writeText(text); setSt("ok"); setTimeout(() => setSt(""), 1500); } catch (e) { console.warn("[v2] 복사 막힘:", e); setSt("box"); } if (onCopy) onCopy(); };
   return <span style={{ display: "inline-flex", flexDirection: "column", gap: 6, maxWidth: "100%" }}>
     <TBtn v={solid ? "solid" : v} onClick={go} aria-label={label}>{st === "ok" ? "✓ 복사했어요" : label}</TBtn>
     {st === "box" && <textarea readOnly value={text} rows={5} aria-label={label + " 글"} onFocus={(e) => e.target.select()} autoFocus style={{ ...inp, fontSize: 12, width: "min(560px, 86vw)" }} />}
@@ -241,8 +244,12 @@ export function AiTeamBody({ D, cu, A, open, admin }) {
       <div style={{ padding: "10px 14px", background: "#fff" }}><TBtn tone="red" onClick={() => setGoneAsk(true)}>모두 '안 함'으로 정리 ({gw.length}건)</TBtn></div>
     </Card>}
     {goneAsk && <Ask title="쉬는 AI 승인 정리" body={`${gw.length}건을 '안 함'으로 정리할까요?\n이유: ${GONE_DROP}\n기록이 남고, 한 건씩 열어 보면 무엇이었는지 그대로 있어요.`} yes="정리" onNo={() => setGoneAsk(false)} onYes={dropGone} />}
-    {(myG || (master && noneG)) && <Card style={{ marginTop: 10 }}>
-      {myG && <Row title={`내 PC Aside · ${myG.runs.map((r) => `${(mateOf(r.board.mate) || {}).name} ${r.t}`).join(" · ")}`} sub="세팅 · 지금 돌리기 · 고칠 것 확인 — 담당마다 자기 PC 에서 동시에 돌아요" onClick={() => open({ type: "aiSetup" })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last={!(master && noneG)} />}
+    {(myG || master) && plan.length > 0 && <Card style={{ marginTop: 10 }}>
+      {myG && (() => { const su = setupOf(D, myG);   // 세팅 3단계 (2026-10-19 사장님 2A) — 끝나기 전엔 다음 할 일 · 끝나면 시각만
+        return <Row title={`내 PC Aside · ${myG.runs.map((r) => `${(mateOf(r.board.mate) || {}).name} ${r.t}`).join(" · ")}`} tag={su.done ? null : `세팅 ${su.k}/3`} tagTone={su.s2.moved ? "red" : undefined}
+          sub={su.done ? "세팅 끝 · 지금 돌리기 · 고칠 것 확인 — 담당마다 자기 PC 에서 동시에 돌아요" : `다음 할 일 · ${su.next}`} onClick={() => open({ type: "aiSetup" })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last={!master} />; })()}
+      {master && (() => { const rows = setupRows(D).filter((x) => x.owner), dn = rows.filter((x) => x.done).length;   // 사장님 세팅 현황 (2026-10-19 사장님 4A)
+        return <Row title={`Aside 세팅 현황 · 담당 ${dn}/${rows.length}명 끝`} sub={rows.length ? rows.map((x) => `${x.name} ${x.done ? "끝" : `${x.k}/3`}`).join(" · ") : "담당이 정해진 크루가 없어요"} onClick={() => open({ type: "aiSetupAll" })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last={!noneG} />; })()}
       {master && noneG && <Row title={`담당 미정 크루 ${noneG.runs.length}명 · 관리자 PC 에서`} sub={`${noneG.runs.map((r) => (mateOf(r.board.mate) || {}).name).join(" · ")} · 담당을 정하면 그 사람 PC 로 옮겨가요`} onClick={() => open({ type: "aiSetup", owner: "" })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last />}
     </Card>}
     {scope === "mine" && !mineIds.length && <Card style={{ marginTop: 10 }}><Empty>아직 맡은 AI 팀원이 없어요 · 관리자가 담당을 정하면 여기에 보여요</Empty></Card>}
@@ -268,7 +275,7 @@ export function AiTeamBody({ D, cu, A, open, admin }) {
       <Head>다른 채널 크루</Head>
       <Card>{closedCrews().map((c, i, arr) => <Row key={c.id} title={c.name} tag={CLOSED_L} sub={(c.closed && c.closed.why) || "그 채널에서 크루를 따로 설정해 업무 정리"} last={i === arr.length - 1} />)}</Card>
     </section>}
-    {admin && <p className="a-hint">담당 = AI 결과를 먼저 보고 승인하는 사람 · 비어 있으면 관리자 누구나 · 상급자는 [사람] 탭에서 · Aside 결과 올리기 = <a href={HUB_CREW_URL} target="_blank" rel="noopener">마케팅 허브 › AI 크루 결과 올리기</a></p>}
+    {admin && <p className="a-hint">담당 = AI 결과를 먼저 보고 승인하는 사람 · 비어 있으면 관리자 누구나 · 상급자는 [사람] 탭에서 · Aside 결과 올리기 = <a href={HUB_CREW_URL} target="_blank" rel="noopener">마케팅 허브 › AI 크루 결과 올리기</a>(Aside 전용 · 사람 세팅은 AI 팀원 › Aside 세팅)</p>}
   </>;
 }
 export function AiTeamSheet({ D, cu, A, open, onBack, onClose }) {
@@ -390,7 +397,7 @@ export function AiMateSheet({ D, cu, A, open, onBack, onClose, id }) {
       {stageOf(id) && <div>단계 미션 · <b style={{ color: C.ink }}>{m.slot}</b> ({stageOf(id).goal}) — {stageOf(id).mission}</div>}
       {npsOn && <div>NPS (최근 30일 · [했어요]에 남긴 점수) · <b style={{ color: C.ink }}>{npsR ? npsLine(npsR) : "아직 남긴 점수 없음"}</b></div>}
       {m.routine && <div>{m.routine}</div>}
-      {b && pl && <div>Aside 루틴 · {runWord({ ...b.run, t: pl.t })} · {PC_L(D, pl.owner, cu)} · 보드 지표·할 일 → 이 승인으로 · <a className="v2-lblink" href={`${HUB_CREW_URL}#${b.id}`} target="_blank" rel="noopener">허브 AI 크루 결과 올리기 ›</a></div>}
+      {b && pl && <div>Aside 루틴 · {runWord({ ...b.run, t: pl.t })} · {PC_L(D, pl.owner, cu)} · 보드 지표·할 일 → 이 승인으로 · <a className="v2-lblink" href={`${HUB_CREW_URL}#${b.id}`} target="_blank" rel="noopener">Aside 가 쓰는 화면(허브) ›</a></div>}
       {GONE[id] && <div style={{ color: C.text }}>2026-10-14부터 쉬어요 · 이 일은 B2C 크루 {(mateOf(GONE[id]) || {}).name} 몫이에요 · 이미 올라온 결과는 그대로 승인·안 함</div>}
       {c && c.closed && <div style={{ color: C.text }}><b>{CLOSED_L}</b> · {c.closed.why} · 지금은 Aside·보드가 안 돌아요 (정의·옛 기록은 그대로)</div>}
       {c && <div>일하는 곳 · {servesL(c)}</div>}
@@ -399,7 +406,7 @@ export function AiMateSheet({ D, cu, A, open, onBack, onClose, id }) {
     </div>
     {m.routine && <RoutineToday D={D} m={m} />}
     {b && pl && canRule && <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
-      <CopyText text={asideLaunch(b, pl.t)} label="지금 돌리기 — Aside 글 복사" solid />
+      <CopyText text={asideNowLaunch(b)} label="지금 돌리기 — Aside 글 복사" solid />
       <TBtn onClick={() => open({ type: "aiSetup", owner: pl.owner })}>{pl.owner === cu.id ? "내 PC 세팅 ›" : "그 PC 세팅 ›"}</TBtn></div>}
     {canReq(id) && <><Head right={<TBtn v="solid" onClick={() => open({ type: "aiReq", mate: id })}>업무 맡기기</TBtn>}>맡긴 일</Head>
       <ReqRows D={D} cu={cu} A={A} open={open} rows={((D.ai && D.ai.reqs) || []).filter((r) => r.mate === id)} empty={`${m.name}(AI)에게 따로 맡긴 일이 없어요 · [업무 맡기기]로 보드 일과 별도로 맡겨요`} /></>}
@@ -440,7 +447,7 @@ export function AiMateSheet({ D, cu, A, open, onBack, onClose, id }) {
       <div style={{ fontSize: 12.5, color: st.more >= 2 ? C.navy : C.sub, fontWeight: st.more >= 2 ? 800 : 400, margin: "8px 2px 0", lineHeight: 1.6 }}>{st.more >= 2 ? `이번 주 [더 만들기] ${st.more}번 — 매번 모자라면 위 횟수를 늘려 주세요 · ` : ""}다음 실행부터 이 수만큼 만들어요 · 이번 결과에서 더 필요하면 승인 한 장에서 [더 만들기]</div></>}
     {b && !(c && c.closed) ? <BoardView D={D} cu={cu} A={A} b={b} open={open} asks={asks} doc={doc} />
       : m.first ? <><Head>첫 할 일 (초안)</Head><Card style={{ padding: "12px 14px", fontSize: 13.5, color: C.text, lineHeight: 1.7 }}>{m.first}<div style={{ fontSize: 12.5, color: C.sub, marginTop: 6 }}>보드(지표·할 일 A~E)는 아직 없어요 · 같이 정하면 넣어요</div></Card></> : null}
-    {b && !(c && c.closed) && <p style={{ fontSize: 12.5, color: C.sub, margin: "10px 2px 0", lineHeight: 1.6 }}>Aside 결과는 <a className="v2-lblink" href={`${HUB_CREW_URL}#${b.id}`} target="_blank" rel="noopener">마케팅 허브 › AI 크루 결과 올리기 ›</a>에 붙여 넣어요</p>}
+    {b && !(c && c.closed) && <p style={{ fontSize: 12.5, color: C.sub, margin: "10px 2px 0", lineHeight: 1.6 }}>Aside 결과는 <a className="v2-lblink" href={`${HUB_CREW_URL}#${b.id}`} target="_blank" rel="noopener">마케팅 허브 › AI 크루 결과 올리기 ›</a>(Aside 전용 화면)에 붙여 넣어요 · 사람이 할 세팅은 'Aside 세팅'에서</p>}
 
     {done.length > 0 && <><Head>최근 끝난 것 (7일)</Head><Card>{done.slice(0, doneN).map((x, i, arr) => askRow(x, i === arr.length - 1 && done.length <= doneN))}{done.length > doneN && <More onClick={() => setDoneN(doneN + 10)}>{done.length - doneN}개 더 ▾</More>}</Card></>}
   </Sheet>;
@@ -513,35 +520,117 @@ export function AiReqSheet({ D, cu, A, open, onBack, onClose, mate, preset }) {
 
 // 내 PC Aside 세팅 (2026-10-15 사장님 "각 담당자들에게 세팅방안 업무 os로 알려줘") — '확인할 것' 세팅·안 돎 · AI 팀원 '내 PC' 카드에서 열림
 //   계획 = aiask.asidePlanOf(허브 세팅 카드와 같음) · 관리자는 다른 PC 묶음도 고름 · 쓰기 없음(글 복사만)
-export function AiSetupSheet({ D, cu, open, onBack, onClose, owner }) {
+// ── Aside 세팅 (2026-10-19 사장님 확정 1A~4A "crew 화면은 Aside 전용 · 사람 세팅은 업무OS 한 곳 · 3단계 체크 · 담당마다 업로더 계정 · 사장님 세팅 현황") ──
+//   ① 사이트 [열기] → [로그인함] ② 크루마다 [예약 글 복사] → Aside 예약 → [넣었어요] ③ [시험 한 번] → 결과가 올라오면(aiboards.at) 저절로 ✓
+//   체크 = core.asideSetup(pour-os/v2/asidesetup/{담당 | _none}) · 담당 본인·관리자만 · 계산 aiask.setupOf · 업로더 계정 = 허브 '계정'(읽기만 · useHubPeople)
+let HUB_PPL = { v: undefined, at: 0 };   // 허브 계정 — 앱을 닫을 때까지 10분 기억 (못 읽으면 '모름')
+export function useHubPeople(on = true) {
+  const [p, setP] = useState(HUB_PPL.v);
+  useEffect(() => { if (!on) return; if (HUB_PPL.at && Date.now() - HUB_PPL.at < 600e3) { setP(HUB_PPL.v); return; } let live = true;
+    fb.getHubRoles().then((v) => { HUB_PPL = { v, at: Date.now() }; if (live) setP(v); }, (e) => { console.warn("[v2] 허브 계정 못 읽음 · 계정 칸 = 모름:", e); HUB_PPL = { v: undefined, at: Date.now() }; if (live) setP(undefined); });
+    return () => { live = false; }; }, [on]);
+  return p;
+}
+export const HUB_ACCT_URL = "../marketing-hub/#acct";   // 허브 '계정' 탭 (관리자)
+const okL = { color: C.green, fontWeight: 800 };
+const StepHead = ({ n, title, done, count }) => <Head right={count ? <span style={{ fontSize: 13, fontWeight: 800, color: done ? C.green : C.sub, fontVariantNumeric: "tabular-nums" }}>{count}</span> : null}>
+  <span style={done ? { color: C.green } : null}>{done ? "✓ " : ""}{n} {title}</span></Head>;
+const Hint = ({ children }) => <div style={{ fontSize: 13, color: C.sub, lineHeight: 1.65, margin: "-2px 2px 8px", wordBreak: "keep-all" }}>{children}</div>;
+// 체크 버튼 (로그인함 · 넣었어요) — 켜지면 초록 '✓ …' · 다시 누르면 풀기 · 담당·관리자만 누름
+const Tick = ({ on, label, onClick, can, aria }) => (can ? <Act on={on} onClick={onClick} aria-label={aria} aria-pressed={!!on}>{on ? `✓ ${label}` : label}</Act>
+  : <span style={{ fontSize: 13, fontWeight: 800, color: on ? C.green : C.mute, whiteSpace: "nowrap" }}>{on ? `✓ ${label}` : "아직"}</span>);
+const lastL = (iso) => (iso ? `${md(ymd(new Date(iso)))} ${hm(iso)}` : "");
+const StPill = ({ on, red, children }) => <span style={{ fontSize: 12.5, fontWeight: 800, padding: "3px 8px", borderRadius: 6, whiteSpace: "nowrap", color: red ? C.red : on ? C.green : C.sub, background: red ? "#F8E9EA" : on ? "#EAF4EE" : "#F1F2F6" }}>{children}</span>;
+export function AiSetupSheet({ D, cu, A, open, onBack, onClose, owner }) {
   const master = isMaster(cu), plan = useMemo(() => asidePlanOf(D), [D.ai, D.users]);
   const def = owner !== undefined ? owner : plan.some((g) => g.owner === cu.id) ? cu.id : master && plan.length ? plan[0].owner : cu.id;
-  const [sel, setSel] = useState(def), g = plan.find((x) => x.owner === sel), bv = (D.ai && D.ai.boards) || {}, key = ymd(new Date());
+  const [sel, setSel] = useState(def), g = plan.find((x) => x.owner === sel);
   const groups = master ? plan : plan.filter((x) => x.owner === cu.id);
-  const bs = g ? g.runs.map((r) => r.board) : [], L = loginSites(bs);
-  const stOf = (b) => { const v = bv[b.id]; return !v || !v.at ? "아직 한 번도 안 올림" : ranOn(v, key) ? `오늘 ${hm(v.at)} 올림` : `마지막 ${md(ymd(new Date(v.at)))} ${hm(v.at)}`; };
+  const su = g ? setupOf(D, g) : null, can = !!g && (master || (!!g.owner && g.owner === cu.id));
+  const people = useHubPeople(!!g && !!g.owner), oname = g && g.owner ? nameOf(D.users, g.owner) : "", acct = g && g.owner ? uploaderOf(people, oname) : undefined;
+  const tr = g ? testRunOf(g.runs) : null, nm = (b) => (mateOf(b.mate) || {}).name || b.mate;
+  const set = (kind, key, on, extra) => A.asideSetup(g.owner, kind, key, on, extra);
   return <Sheet title="Aside 세팅" kind="AI 크루" head={g ? `${PC_L(D, g.owner, cu)} · AI 크루 ${g.runs.length}명` : "Aside 세팅"} onBack={onBack} onClose={onClose}>
     {groups.length > 1 && <div className="v2-filterrow" style={{ marginTop: 12 }} aria-label="PC 고르기">{groups.map((x) => <Chip key={x.owner || "-"} on={x.owner === sel} onClick={() => setSel(x.owner)}>{PC_L(D, x.owner, cu)} {x.runs.length}</Chip>)}</div>}
     {!g ? <Card style={{ marginTop: 12 }}><Empty>맡은 AI 크루가 없어요 · 관리자가 업무OS AI 팀원에서 담당을 정하면 여기에 보여요</Empty></Card> : <>
-      <div style={{ fontSize: 13.5, color: C.sub, lineHeight: 1.7, marginTop: 12 }}>담당마다 자기 PC Aside 에서 자기 크루를 돌려요 · 담당이 다르면 모두 09:00 에 동시에 · 한 PC 에 여럿이면 한 시간씩{!g.owner ? " · 담당 미정 크루는 관리자 PC 한 곳에서 (담당을 정하면 그 사람 PC 로)" : ""}</div>
-      <Head>이 PC 에서 돌릴 크루 {g.runs.length}명 · {g.runs[0].t}{g.runs.length > 1 ? `~${g.runs[g.runs.length - 1].t}` : ""}{g.runs.some((r) => r.board.run && r.board.run.dow && r.board.run.dow.length < 5) ? " · 요일은 크루마다" : ""}</Head>
-      <Card>{g.runs.map((r, i) => { const m = mateOf(r.board.mate) || {};
-        return <div key={r.board.id} style={{ padding: "11px 14px", borderBottom: i === g.runs.length - 1 ? "none" : `1px solid ${C.line}` }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}><b style={{ color: C.navy, fontVariantNumeric: "tabular-nums" }}>{r.board.run && r.board.run.dow && r.board.run.dow.length < 5 ? runWord({ ...r.board.run, t: r.t }) : r.t}</b><b style={{ color: C.text }}>{m.name} · {m.role}</b><span style={{ fontSize: 12.5, color: C.sub }}>{r.board.title} · {stOf(r.board)}</span></div>
-          {missedOn(bv[r.board.id], r.t, new Date(), r.board.run && r.board.run.dow) && <div style={{ marginTop: 6, fontSize: 13, fontWeight: 800, color: C.red, lineHeight: 1.5 }}>오늘 아직 안 올림 — PC·Aside 가 켜져 있는지 확인 · [{m.name} Aside 글 복사] → Aside 에 붙여 넣으면 지금 돌아요</div>}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}><CopyText text={asideLaunch(r.board, r.t)} label={`${m.name} Aside 글 복사`} /><TBtn onClick={() => open({ type: "aiMate", id: r.board.mate })}>{m.name} 한 장 ›</TBtn></div></div>; })}</Card>
-      <Head>세팅 순서 (처음 한 번)</Head>
-      <Card style={{ padding: "12px 14px" }}><ol style={{ margin: 0, paddingLeft: 18, fontSize: 13.5, color: C.text, lineHeight: 1.75 }}>
-        <li>이 PC Aside 브라우저에서 <a className="v2-lblink" href={HUB_CREW_URL} target="_blank" rel="noopener">마케팅 허브 › AI 크루 결과 올리기</a>를 열고 로그인 (업로더 계정 · 없으면 관리자에게)</li>
-        <li>아래 '로그인해 둘 곳'에 한 번씩 로그인 (로그인 유지 · 비밀번호는 Aside 에게 알려 주지 않아요)</li>
-        <li>크루마다 [Aside 글 복사] → Aside 새 예약 작업에 붙여 넣기 · 반복 평일(월~금) — 요일이 적힌 크루(매주 월 등)는 그 요일만 · 시각은 위에 적힌 대로 — 지금 바로 돌리려면 Aside 에 그냥 붙여 넣기</li>
-        <li>(권장) [고칠 것 확인 글 복사] → Aside 예약 '평일 한 시간마다' — [AI에게 다시]·[더 만들기]가 한 시간 안에 반영돼요</li>
-        <li>결과는 '확인할 것'으로 와요 → 번호 골라 승인 · [AI에게 다시] · [더 만들기] · 매번 수를 바꾸려면 AI 한 장 '횟수'</li></ol></Card>
-      <Head>로그인해 둘 곳 {L.length + 1}곳</Head>
-      <Card>{[{ s: "마케팅 허브 (이 PC)", uses: [{ mate: "모두", w: "업로더 계정 · 결과 올리기" }] }, ...L].map((x, i, arr) => <Row key={x.s} title={x.s} sub={[...new Set(x.uses.map((u) => `${u.mate} — ${u.w}`))].join(" · ")} last={i === arr.length - 1} />)}</Card>
-      <Head>고칠 것 확인 (수정 요청 바로 반영)</Head>
-      <div style={{ fontSize: 13, color: C.sub, lineHeight: 1.6, margin: "-2px 2px 8px" }}>이 PC 크루의 '고쳐서 다시 올릴 것'(더 만들기 포함)만 처리하고, 없으면 바로 끝나요</div>
-      <CopyText text={asideFixLaunch(bs)} label="고칠 것 확인 글 복사" /></>}
+      {/* 진행 · 다음 할 일 한 줄 */}
+      <Card style={{ marginTop: 12, padding: "12px 14px" }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}><b style={{ fontSize: 15, color: su.done ? C.green : C.ink }}>{su.done ? "세팅 끝 ✓" : `3단계 중 ${su.k}단계 끝`}</b>
+          <span style={{ fontSize: 12.5, color: C.sub, fontVariantNumeric: "tabular-nums" }}>① 사이트 {su.s1.n}/{su.s1.of} · ② 예약 {su.s2.n}/{su.s2.of} · ③ 시험 {su.s3.done ? "✓" : su.test.at ? "기다림" : "—"}</span></div>
+        <div style={{ marginTop: 6, fontSize: 13.5, fontWeight: 800, color: su.done ? C.green : su.s2.moved ? C.red : C.navy, lineHeight: 1.6, wordBreak: "keep-all" }}>{su.done ? "평일마다 이 PC 에서 돌아요 · 결과는 '확인할 것'으로 와요" : `다음 할 일 · ${su.next}`}</div>
+        {!g.owner && <div style={{ marginTop: 6, fontSize: 12.5, color: C.sub, lineHeight: 1.6 }}>담당 미정 크루는 관리자 PC 한 곳에서 · 업무OS AI 팀원에서 담당을 정하면 그 사람 PC 로 옮겨가요</div>}
+        {!can && <div style={{ marginTop: 6, fontSize: 12.5, color: C.sub }}>체크는 이 PC 담당과 관리자가 해요 · 보기만</div>}
+      </Card>
+      {/* ① 사이트 */}
+      <StepHead n="①" title="사이트 로그인" done={su.s1.done} count={`${su.s1.n}/${su.s1.of}`} />
+      <Hint>이 PC 의 Aside 브라우저에서 [열기] → 로그인(로그인 유지에 체크) → [로그인함] · 비밀번호는 Aside 에게 알려 주지 않아요</Hint>
+      <Card>{su.sites.map((x, i) => <div key={x.key} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderBottom: i === su.sites.length - 1 ? "none" : `1px solid ${C.line}` }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 800, color: C.text, wordBreak: "keep-all" }}>{x.s}</div>
+          <div style={{ fontSize: 12.5, color: C.sub, lineHeight: 1.5, marginTop: 2, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{[...new Set(x.uses.map((u) => `${u.mate} — ${u.w}`))].join(" · ")}</div>
+          {x.hub && g.owner && acct !== undefined && <div style={{ fontSize: 12.5, marginTop: 3, lineHeight: 1.5, ...(acct ? okL : { color: C.red, fontWeight: 800 }) }}>{acct ? `업로더 계정 있음 ✓ · ${acct.name}` : `업로더 계정이 아직 없어요 — 관리자에게 받아 주세요 (허브 '계정' · 이름 ${oname})`}</div>}
+        </div>
+        {(x.hub || x.u) && <a className="v2-lblink" href={x.hub ? HUB_CREW_URL : x.u} target="_blank" rel="noopener" aria-label={`${x.s} 열기`} style={{ fontSize: 13, fontWeight: 800, whiteSpace: "nowrap", padding: "6px 4px" }}>열기 ›</a>}
+        <Tick on={x.on} label="로그인함" can={can} aria={`${x.s} 로그인함`} onClick={() => set("sites", x.key, !x.on)} /></div>)}</Card>
+      {/* ② 예약 */}
+      <StepHead n="②" title="예약 넣기" done={su.s2.done} count={`${su.s2.n}/${su.s2.of}`} />
+      <Hint>크루마다 [예약 글 복사] → Aside 새 예약 작업에 붙여 넣기 → 반복은 줄에 적힌 대로(평일 · 매주 금 …) → [넣었어요] · 지시문이 바뀌어도 예약은 그대로 두면 돼요</Hint>
+      <Card>{su.runs.map((r) => { const m = mateOf(r.board.mate) || {}, wk = r.board.run && r.board.run.dow && r.board.run.dow.length < 5;
+        return <div key={r.key} style={{ padding: "11px 14px", borderBottom: `1px solid ${C.line}` }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}><b style={{ color: C.navy, fontVariantNumeric: "tabular-nums" }}>{wk ? runWord({ ...r.board.run, t: r.t }) : `평일 ${r.t}`}</b><b style={{ color: C.text }}>{m.name} · {m.role}</b>
+            <span style={{ fontSize: 12.5, color: C.sub }}>{r.board.title} · {r.ranAt ? `마지막 올림 ${lastL(r.ranAt)}` : "아직 안 올림"}</span></div>
+          {r.moved && <div style={{ marginTop: 6, fontSize: 13, fontWeight: 800, color: C.red, lineHeight: 1.5 }}>예약 시각이 바뀌었어요 {r.savedT} → {r.t} · Aside 예약 시각을 고친 뒤 다시 [넣었어요]</div>}
+          {r.miss > 0 && <div style={{ marginTop: 6 }}><div style={{ fontSize: 13, fontWeight: 800, color: C.red, lineHeight: 1.5 }}>{!r.ranAt ? "예약 뒤 아직 한 번도 안 올림" : r.today ? "오늘 아직 안 올림" : `${wk ? `${r.miss}번째` : `평일 ${r.miss}일째`} 안 올림`} — PC·Aside 가 켜져 있는지 확인 · [지금 돌리기]를 Aside 에 붙여 넣으면 바로 돌아요</div>
+            <div style={{ marginTop: 6 }}><CopyText text={asideNowLaunch(r.board)} label={`지금 돌리기 — ${m.name} 글 복사`} solid /></div></div>}
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 8 }}>
+            <CopyText text={asideLaunch(r.board, r.t)} label={`${m.name} 예약 글 복사`} />
+            <Tick on={r.on && !r.moved} label="넣었어요" can={can} aria={`${m.name} 예약 넣었어요`} onClick={() => set("runs", r.key, r.moved || !r.on, { t: r.t })} />
+            <TBtn v="plain" onClick={() => open({ type: "aiMate", id: r.board.mate })}>{m.name} 한 장 ›</TBtn></div></div>; })}
+        <div style={{ padding: "11px 14px" }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}><b style={{ color: C.navy }}>평일 한 시간마다</b><b style={{ color: C.text }}>고칠 것 확인</b></div>
+          <div style={{ fontSize: 12.5, color: C.sub, lineHeight: 1.6, marginTop: 2 }}>이 PC 크루의 [AI에게 다시]·[더 만들기]·맡긴 일을 한 시간 안에 처리 · 없으면 바로 끝나요</div>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 8 }}>
+            <CopyText text={asideFixLaunch(g.runs.map((r) => r.board))} label="고칠 것 확인 글 복사" />
+            <Tick on={su.fix.on} label="넣었어요" can={can} aria="고칠 것 확인 예약 넣었어요" onClick={() => set("runs", su.fix.key, !su.fix.on)} /></div></div></Card>
+      {/* ③ 시험 */}
+      <StepHead n="③" title="시험 한 번" done={su.s3.done} />
+      <Hint>[시험 한 번] 글을 Aside 에 그냥 붙여 넣기(예약 아님) → 몇 분 뒤 결과가 업무OS 에 올라오면 저절로 ✓</Hint>
+      <Card style={{ padding: "12px 14px" }}>
+        <div style={{ fontSize: 13.5, lineHeight: 1.6, ...(su.s3.done ? okL : { color: su.test.waitMin >= TEST_WAIT ? C.red : C.text, fontWeight: 700 }) }}>
+          {su.s3.done ? `✓ ${lastL(su.test.lastAt)} · ${nm(su.test.lastBoard)} 결과가 올라왔어요` : su.test.at ? (su.test.waitMin >= TEST_WAIT ? `${hm(su.test.at)}에 시험 · ${su.test.waitMin}분째 안 올라왔어요 — Aside 화면에서 멈춘 곳 · 허브 crew 화면 로그인 · 사이트 로그인을 확인해 주세요` : `${hm(su.test.at)}에 시험 · 결과 기다리는 중 · 올라오면 저절로 ✓`) : "아직 안 했어요"}</div>
+        {tr && <div style={{ marginTop: 10 }}><CopyText text={asideNowLaunch(tr.board)} label={`시험 한 번 — ${nm(tr.board)} 글 복사`} solid={!su.s3.done} onCopy={can ? () => set("test", null, true, { board: tr.board.id }) : undefined} /></div>}
+      </Card>
+      <div style={{ fontSize: 12.5, color: C.sub, lineHeight: 1.6, margin: "12px 2px 4px" }}>실행(가격·광고·쿠폰·발송·게시·상세·등록)은 Aside 가 하지 않아요 — 승인 뒤 담당이 해요 · 결과는 '확인할 것'으로 와요 → 번호 골라 승인 · [AI에게 다시] · [더 만들기]</div></>}
+  </Sheet>;
+}
+
+// 사장님 세팅 현황 (4A) — 담당 PC 마다 ① 사이트 · ② 예약 · ③ 시험 · 업로더 계정 · 마지막 올림(올린 계정) · 누르면 그 PC 세팅
+export function AiSetupAllSheet({ D, cu, open, onBack, onClose }) {
+  const rows = useMemo(() => setupRows(D), [D.ai, D.users]), people = useHubPeople(true), bv = (D.ai && D.ai.boards) || {};
+  const own = rows.filter((x) => x.owner), none = rows.find((x) => !x.owner), doneN = own.filter((x) => x.done).length;
+  return <Sheet title="Aside 세팅 현황" kind="AI 크루" head={`담당 ${own.length}명 · 끝 ${doneN}명`} onBack={onBack} onClose={onClose}>
+    <div style={{ fontSize: 13.5, color: C.sub, lineHeight: 1.7, marginTop: 12 }}>담당마다 자기 PC Aside 에서 자기 크루를 돌려요 · 누르면 그 PC 세팅 화면</div>
+    <Card style={{ marginTop: 10 }}>{own.length ? own.map((x, i) => { const lb = x.test.lastBoard, by = lb ? accountName(people, (bv[lb.id] || {}).by) : "", a = uploaderOf(people, x.name);
+      const go = () => open({ type: "aiSetup", owner: x.owner });
+      return <div key={x.owner} role="button" tabIndex={0} onClick={go} onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); go(); } }}
+        style={{ padding: "12px 14px", borderBottom: i === own.length - 1 && !none ? "none" : `1px solid ${C.line}`, cursor: "pointer", background: "#fff" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}><b style={{ flex: 1, minWidth: 0, fontSize: 14.5, color: C.text }}>{x.name} PC · 크루 {x.runs.length}명</b>
+          {x.done ? <span style={okL}>끝 ✓</span> : <span style={{ fontSize: 13, fontWeight: 800, color: x.s2.moved ? C.red : C.navy }}>{x.k}/3 ›</span>}</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 7 }}>
+          <StPill on={x.s1.done}>사이트 {x.s1.n}/{x.s1.of}</StPill><StPill on={x.s2.done} red={x.s2.moved > 0}>예약 {x.s2.n}/{x.s2.of}{x.s2.moved ? ` · 시각 바뀜 ${x.s2.moved}` : ""}</StPill>
+          <StPill on={x.s3.done}>시험 {x.s3.done ? "✓" : x.test.at ? "기다림" : "—"}</StPill><StPill on={!!a} red={a === null}>계정 {a === undefined ? "모름" : a ? "✓" : "없음"}</StPill></div>
+        <div style={{ fontSize: 12.5, color: C.sub, marginTop: 6, lineHeight: 1.5 }}>{x.test.lastAt ? `마지막 올림 ${lastL(x.test.lastAt)} · ${(mateOf(lb.mate) || {}).name || lb.mate}${by ? ` · 올린 계정 ${by}` : ""}` : "아직 한 번도 안 올림"}</div></div>; })
+      : <Empty>담당이 정해진 크루가 없어요 · AI 팀원에서 담당을 정해 주세요</Empty>}
+      {none && <Row title={`담당 미정 크루 ${none.runs.length}명 · 관리자 PC`} sub={`${none.runs.map((r) => (mateOf(r.board.mate) || {}).name).join(" · ")} · 담당을 정하면 그 사람 PC 로 옮겨가요`} onClick={() => open({ type: "aiSetup", owner: "" })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last />}</Card>
+    <Head>업로더 계정 (담당마다 하나)</Head>
+    <Card style={{ padding: "12px 14px" }}>
+      <div style={{ fontSize: 13.5, color: C.text, lineHeight: 1.7, wordBreak: "keep-all" }}>마케팅 허브 › 계정에서 담당마다 하나씩 만들어요 — 이메일 = 담당 전용 · 이름 = 업무OS 이름 그대로(예: {own[0] ? own[0].name : "김민지"}) · 역할 = 업로더 → 임시 비밀번호를 담당에게 전하면, 담당은 자기 PC Aside 브라우저에서 crew 화면에 로그인해요 · 누가 올렸는지 남고, 퇴사하면 그 계정만 [사용 중지]</div>
+      <div style={{ display: "grid", gap: 4, marginTop: 10 }}>{own.map((x) => { const a = uploaderOf(people, x.name);
+        return <div key={x.owner} style={{ display: "flex", gap: 8, fontSize: 13.5 }}><span style={{ flex: "0 0 74px", fontWeight: 800, color: C.text }}>{x.name}</span>
+          <span style={a ? okL : { color: a === null ? C.red : C.sub, fontWeight: 700 }}>{a === undefined ? "모름 (허브 계정을 못 읽음)" : a ? `✓ ${a.name}` : "아직 없음"}</span></div>; })}</div>
+      <div style={{ marginTop: 10 }}><a className="v2-lblink" href={HUB_ACCT_URL} target="_blank" rel="noopener" style={{ fontSize: 13.5, fontWeight: 800 }}>허브 계정 화면 열기 ›</a></div>
+      <div style={{ fontSize: 12.5, color: C.sub, lineHeight: 1.6, marginTop: 8 }}>같이 쓰던 공용 계정은 담당 계정으로 다 옮긴 뒤 허브 계정에서 [사용 중지]</div>
+    </Card>
   </Sheet>;
 }
 

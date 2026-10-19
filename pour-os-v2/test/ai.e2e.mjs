@@ -39,6 +39,8 @@ const seed = () => ({ meta: { seededAt: '2026-10-01T00:00:00.000Z', counts: {} }
     notes: {}, log: {}, events: {}, brands: { grohome: { id: 'grohome', name: '그로홈', active: true, order: '2' }, pourstore: { id: 'pourstore', name: 'POUR스토어', active: true, order: '1' } },
     workflows: {}, mainKPIs: {}, subKPIs: {}, settings: {}, kpiact: {}, links: {}, lagvals: {}, kpisales: {}, kpidefs: {}, templates: {}, checks: {}, aiasks, aimates: NEWM, aiboards: { 'gh-conv': { id: 'gh-conv', board: 'gh-conv', metrics: { cv_mall: { v: 7.4, date: '2026-10-12' }, cv_cp: { v: 2.4, date: '2026-10-12' }, soldout: { v: 0, date: '2026-10-12' } } } } } });
 let ST = seed();
+// 허브 업로더 계정(window.__HUB_ROLES · 2026-10-19 사장님 3A) — 남윤정 = 전용 업로더 · 공용 'Aside' · 김채원 = 직원(업로더 아님)
+const HUB_ROLES = [{ email: 'yj-aside@x.test', name: '남윤정 Aside', role: 'uploader', active: true }, { email: 'aside@x.test', name: 'Aside', role: 'uploader', active: true }, { email: 'cw@x.test', name: '김채원', role: 'staff', active: true }];
 const V1D = {};   // 버전1 문서(window.__V1_DOCS) — ⑨ 반복 실행 정의
 
 const b = await pkg.chromium.launch({ executablePath: '/opt/pw-browsers/chromium', env: { ...process.env, LANG: 'C.UTF-8' } });
@@ -47,7 +49,7 @@ async function session(uid, { admin = false, w = 375, h = 812, now = NOW, init =
   await ctx.clock.setFixedTime(new Date(now));
   await ctx.route(/googleapis|gstatic|firebaseio|firebasestorage/, (r) => r.abort());
   await ctx.route('http://v2.test/**', (r) => { const u = r.request().url(); if (/\.json(\?|$)/.test(u)) return r.fulfill({ status: 404, body: '' }); return r.fulfill({ path: u.includes('admin') ? ADMIN : TEAM, contentType: 'text/html' }); });
-  await ctx.addInitScript(`try{ if(sessionStorage.__V2) window.__V2=JSON.parse(sessionStorage.__V2); }catch(e){} window.__V1_DATA={}; window.__V1_DOCS=${JSON.stringify(V1D)}; window.__V1_LAUNCH=[]; if(!window.__V2) window.__V2=${JSON.stringify(ST)};${init}`);
+  await ctx.addInitScript(`try{ if(sessionStorage.__V2) window.__V2=JSON.parse(sessionStorage.__V2); }catch(e){} window.__V1_DATA={}; window.__V1_DOCS=${JSON.stringify(V1D)}; window.__V1_LAUNCH=[]; window.__HUB_ROLES=${JSON.stringify(HUB_ROLES)}; if(!window.__V2) window.__V2=${JSON.stringify(ST)};${init}`);
   const pg = await ctx.newPage();
   pg.on('pageerror', (e) => errs.push(`${uid}: ${e.message.slice(0, 300)}`));
   pg.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource|ERR_FAILED|holidays/.test(m.text())) errs.push(`${uid} console: ${m.text().slice(0, 300)}`); });
@@ -96,17 +98,42 @@ const boxOf = (S, label) => S().getByLabel(label + ' 글').inputValue().catch(()
   eq('오늘: AI 승인 요청 3줄', await inbox(s.pg, 'AI 승인 요청').count(), 3);
   await shot(s.pg, 'yj-today-375'); ok('오늘 넘침 없음 375', !(await over(s.pg)));
   await expand(s.pg);   // 승인 요청 3줄 아래 4번째
-  eq('오늘: 내 PC Aside 세팅 한 줄 (겨울 09:00 · 처음 한 번)', await inbox(s.pg, '내 PC Aside 세팅 · 겨울 09:00').count(), 1);
-  await inbox(s.pg, '내 PC Aside 세팅').first().getByRole('button', { name: '세팅', exact: true }).click(); await s.pg.waitForTimeout(500);
+  eq('오늘: 내 PC Aside 세팅 한 줄 (겨울 09:00)', await inbox(s.pg, '내 PC Aside 세팅 · 겨울 09:00').count(), 1);
+  ok('세팅 줄 = 3단계 중 몇 단계 · 다음 할 일 (2026-10-19 사장님 2A)', (await inbox(s.pg, '내 PC Aside 세팅').first().innerText()).includes('3단계 중 0단계 끝 · 다음: ① 사이트 로그인 0/7 · 마케팅 허브 crew 화면'));
+  await inbox(s.pg, '내 PC Aside 세팅').first().getByRole('button', { name: '세팅', exact: true }).click(); await s.pg.waitForTimeout(600);
   const sx = await s.S().innerText();
-  ok('세팅 시트: 내 PC · 겨울 09:00 · 아직 안 올림 · 세팅 순서 · 로그인해 둘 곳 · 고칠 것 확인', sx.includes('내 PC · AI 크루 1명') && sx.includes('겨울 · 전환마케터') && sx.includes('아직 한 번도 안 올림') && sx.includes('세팅 순서') && /로그인해 둘 곳 \d+곳/.test(sx) && sx.includes('고칠 것 확인') && !sx.includes('PC 고르기'));
-  await s.S().getByRole('button', { name: '겨울 Aside 글 복사' }).click(); await s.pg.waitForTimeout(300);
-  const lt = await boxOf(s.S, '겨울 Aside 글 복사');
-  ok('[겨울 Aside 글 복사] → 예약 글 (내 PC 09:00 · 허브 겨울 보드 주소)', lt.startsWith('[AI 크루 · 겨울 (전환마케터 · UX/UI·응대)') && lt.split('\n')[0].endsWith('평일 09:00') && lt.includes('crew.html#gh-conv'));
+  ok('세팅 시트: 3단계 · 다음 할 일 · ① 사이트 ② 예약 ③ 시험 · 업로더 계정 ✓(허브 이름에 남윤정) · PC 고르기 없음', sx.includes('내 PC · AI 크루 1명') && sx.includes('3단계 중 0단계 끝') && sx.includes('다음 할 일 · ① 사이트 로그인 0/7 · 마케팅 허브 crew 화면') && sx.includes('① 사이트 로그인') && sx.includes('② 예약 넣기') && sx.includes('③ 시험 한 번') && sx.includes('업로더 계정 있음 ✓ · 남윤정 Aside') && sx.includes('겨울 · 전환마케터') && sx.includes('아직 안 올림') && !sx.includes('PC 고르기'), sx.slice(0, 600));
+  ok('[열기] = 확실한 곳만 (허브 crew 화면 · 카페24 로그인 주소)', (await s.S().locator('a[aria-label="카페24 열기"]').getAttribute('href')) === 'https://eclogin.cafe24.com/Shop/' && (await s.S().locator('a[aria-label="마케팅 허브 crew 화면 열기"]').getAttribute('href')).endsWith('marketing-hub/crew.html'));
+  // ① 사이트 7곳 [로그인함] → asidesetup/yj · 하나 풀었다 다시
+  for (const btn of await s.S().getByRole('button', { name: /로그인함$/ }).all()) { await btn.click(); await s.pg.waitForTimeout(60); }
+  await s.pg.waitForTimeout(300);
+  const su1 = await live(s, 'asidesetup', 'yj');
+  ok('① 다 체크 → asidesetup/yj 사이트 7곳 on · 누가 · 다음 = ② 예약', !!su1 && su1.owner === 'yj' && Object.values(su1.sites).length === 7 && Object.values(su1.sites).every((x) => x.on && x.by === 'yj' && x.byName === '남윤정') && (await s.S().innerText()).includes('다음 할 일 · ② 예약 넣기 0/2 · 겨울'), su1);
+  await s.S().getByRole('button', { name: '카페24 로그인함' }).click(); await s.pg.waitForTimeout(300);
+  ok('[✓ 로그인함] 다시 누르면 풀림(지우지 않고 on false) → ① 6/7', (await live(s, 'asidesetup', 'yj')).sites['카페24'].on === false && (await s.S().innerText()).includes('① 사이트 6/7'));
+  await s.S().getByRole('button', { name: '카페24 로그인함' }).click(); await s.pg.waitForTimeout(300);
+  // ② 예약 글 복사 → [넣었어요] (그때 예약 시각) · 고칠 것 확인
+  await s.S().getByRole('button', { name: '겨울 예약 글 복사' }).click(); await s.pg.waitForTimeout(300);
+  const lt = await boxOf(s.S, '겨울 예약 글 복사');
+  ok('[겨울 예약 글 복사] → 예약 글 (내 PC 09:00 · 허브 겨울 보드 주소)', lt.startsWith('[AI 크루 · 겨울 (전환마케터 · UX/UI·응대)') && lt.split('\n')[0].endsWith('평일 09:00') && lt.includes('crew.html#gh-conv'));
+  await s.S().getByRole('button', { name: '겨울 예약 넣었어요' }).click(); await s.pg.waitForTimeout(300);
   await s.S().getByRole('button', { name: '고칠 것 확인 글 복사' }).click(); await s.pg.waitForTimeout(300);
   ok('[고칠 것 확인 글 복사] → 내 PC 보드만', (await boxOf(s.S, '고칠 것 확인 글 복사')).startsWith('[AI 크루 · 고칠 것만 확인 — 겨울]'));
+  await s.S().getByRole('button', { name: '고칠 것 확인 예약 넣었어요' }).click(); await s.pg.waitForTimeout(400);
+  const su2 = await live(s, 'asidesetup', 'yj');
+  ok('② [넣었어요] → runs 겨울 {on · t 09:00} · 고칠 것 확인 on · 다음 = ③ 시험', su2.runs['gh-conv'].on && su2.runs['gh-conv'].t === '09:00' && su2.runs._fix.on && (await s.S().innerText()).includes('다음 할 일 · ③ [시험 한 번]'), su2.runs);
+  // ③ 시험 한 번 → 글(예약 아님) · 누른 때 남김 → 결과가 올라오면(Aside → 허브 = 다른 기기) 저절로 ✓ · 세팅 끝
+  await s.S().getByRole('button', { name: '시험 한 번 — 겨울 글 복사' }).click(); await s.pg.waitForTimeout(400);
+  const tt = await boxOf(s.S, '시험 한 번 — 겨울 글 복사');
+  ok('[시험 한 번] → 지금 한 번 글(예약 아님) · test.at · 기다리는 중', tt.split('\n')[0].endsWith('지금 한 번 (시험 · 예약 아님)') && tt.includes('예약 작업은 만들지 않는다') && !!(await live(s, 'asidesetup', 'yj')).test.at && (await s.S().innerText()).includes('결과 기다리는 중'));
   await shot(s.pg, 'yj-setup-375'); ok('세팅 시트 넘침 없음 375', !(await over(s.pg)));
+  await s.pg.evaluate(() => window.__OTHER('aiboards', 'gh-conv', { at: '2026-10-12T01:04:00.000Z' })); await s.pg.waitForTimeout(500);
+  const sd = await s.S().innerText();
+  ok('결과 올라옴 → ③ ✓ · 세팅 끝 ✓ · 마지막 올림', sd.includes('세팅 끝 ✓') && sd.includes('✓ 10/12 10:04 · 겨울 결과가 올라왔어요') && sd.includes('마지막 올림 10/12 10:04'), sd.slice(0, 500));
+  await shot(s.pg, 'yj-setup-done-375');
   await s.pg.keyboard.press('Escape'); await s.pg.waitForTimeout(300);
+  eq('세팅 끝 → 확인할 것 세팅 줄 사라짐', await inbox(s.pg, '내 PC Aside 세팅').count(), 0);
+  await s.pg.evaluate(() => window.__OTHER('aiboards', 'gh-conv', { at: null })); await s.pg.waitForTimeout(400);   // 뒤 시험(⑦ 등)은 아직 안 올린 보드로
   await inbox(s.pg, '쿠팡 유리블러').first().click(); await s.pg.waitForTimeout(500);
   ok('승인 한 장: 길 = 겨울(AI) → 남윤정 ● → 김소연 → 허지은', (await s.S().innerText()).includes('겨울 (AI)') && (await s.S().innerText()).includes('김소연') && (await s.S().innerText()).includes('허지은'));
   ok('번호 안 고르면 버튼 잠김', await s.S().getByRole('button', { name: /고른 0개 승인 → 김소연님께/ }).isDisabled());
@@ -302,12 +329,56 @@ ST.v2.aiboards['gh-conv'].at = '2026-10-12T00:10:00.000Z';
   await expand(s.pg);
   eq('오늘 안 돎 = 겨울 한 줄 · 세팅 안내는 사라짐', [await inbox(s.pg, '오늘 겨울(AI)가 아직 안 올렸어요').count(), await inbox(s.pg, '내 PC Aside 세팅').count()], [1, 0]);
   await inbox(s.pg, '오늘 겨울(AI)가 아직 안 올렸어요').first().getByRole('button', { name: '지금 돌리기', exact: true }).click(); await s.pg.waitForTimeout(500);
-  ok('[지금 돌리기] → 세팅 시트 · 마지막 올림 10/12 · 오늘 아직 안 올림(빨강)', (await s.S().innerText()).includes('마지막 10/12 09:10') && (await s.S().innerText()).includes('오늘 아직 안 올림'));
+  ok('[지금 돌리기] → 세팅 시트 · 마지막 올림 10/12 · 오늘 아직 안 올림(빨강) · 지금 돌리기 글(예약 아님)', (await s.S().innerText()).includes('마지막 올림 10/12 09:10') && (await s.S().innerText()).includes('오늘 아직 안 올림') && (await s.S().getByRole('button', { name: '지금 돌리기 — 겨울 글 복사' }).count()) === 1);
   await shot(s.pg, 'yj-miss-375'); ok('안 돎 시트 넘침 없음 375', !(await over(s.pg)));
   await s.close();
   s = await session('cw', { now: '2026-10-13T11:00:00+09:00' });
   await expand(s.pg);
   eq('김채원 = 여름 세팅 안내 (담당마다 09:00 동시에)', await inbox(s.pg, '내 PC Aside 세팅 · 여름 09:00').count(), 1);
+  await s.close(); }
+
+// ⑦-1 사장님 Aside 세팅 현황 (2026-10-19 사장님 4A) — 관리자 '확인할 것' 한 줄 → 현황 시트(담당 PC 마다 단계 · 업로더 계정 · 마지막 올림·올린 계정) → 그 PC 세팅(관리자도 체크)
+ST.v2.aiboards['gh-conv'].by = 'yj-aside@x.test';   // 허브 crew.html 이 올린 계정 메일
+{ let s = await session('hj', { now: '2026-10-13T11:00:00+09:00' });
+  await expand(s.pg);
+  const ln = inbox(s.pg, 'Aside 세팅 현황');
+  eq('관리자 확인할 것 = Aside 세팅 현황 한 줄', await ln.count(), 1);
+  ok('세팅 현황 줄 = 담당 1/3명 끝 · 사람마다 단계 (담당 미정 크루는 셈에서 뺌)', (await ln.first().innerText()).includes('Aside 세팅 현황 · 담당 1/3명 끝') && (await ln.first().innerText()).includes('남윤정 끝 · 김채원 0/3 · 변유림 0/3'), await ln.first().innerText());
+  await ln.first().click(); await s.pg.waitForTimeout(600);
+  const tx = await s.S().innerText();
+  ok('현황 시트: 담당 PC 마다 · 끝 ✓ · 단계 · 계정 · 마지막 올림·올린 계정 · 담당 미정 줄', tx.includes('담당 3명 · 끝 1명') && tx.includes('남윤정 PC · 크루 1명') && tx.includes('끝 ✓') && tx.includes('마지막 올림 10/12 09:10 · 겨울 · 올린 계정 남윤정 Aside') && tx.includes('김채원 PC · 크루 1명') && /사이트 0\/5\s+예약 0\/2\s+시험 —\s+계정 없음/.test(tx) && /사이트 7\/7\s+예약 2\/2\s+시험 ✓\s+계정 ✓/.test(tx) && tx.includes('담당 미정 크루 4명 · 관리자 PC'), tx.slice(0, 900));
+  ok('업로더 계정 칸: 남윤정 ✓ · 김채원 아직 없음(직원 계정은 업로더 아님) · 허브 계정 화면 링크', tx.includes('✓ 남윤정 Aside') && tx.includes('아직 없음') && (await s.S().getByRole('link', { name: '허브 계정 화면 열기 ›' }).getAttribute('href')).endsWith('marketing-hub/#acct'));
+  await shot(s.pg, 'hj-setup-all-375'); ok('현황 시트 넘침 없음 375', !(await over(s.pg)));
+  await s.S().getByText('김채원 PC · 크루 1명').click(); await s.pg.waitForTimeout(600);
+  ok('줄 누르면 그 PC 세팅 (관리자 = 체크 가능 · PC 고르기)', (await s.S().innerText()).includes('김채원 PC · AI 크루 1명') && (await s.S().innerText()).includes('여름 · 유입마케터') && (await s.S().getByRole('button', { name: '인스타그램 로그인함' }).count()) === 1);
+  await s.S().getByRole('button', { name: '인스타그램 로그인함' }).click(); await s.pg.waitForTimeout(400);
+  const cs = await live(s, 'asidesetup', 'cw');
+  ok('관리자가 대신 체크 → asidesetup/cw (owner cw · 누가 = 허지은)', !!cs && cs.owner === 'cw' && cs.sites['인스타그램'].on === true && cs.sites['인스타그램'].by === 'hj');
+  await s.close(); }
+{ let s = await session('yr', { now: '2026-10-13T11:00:00+09:00' });
+  await expand(s.pg);
+  eq('팀원(변유림) = 세팅 현황 줄 없음 · 내 PC 세팅 줄', [await inbox(s.pg, 'Aside 세팅 현황').count(), await inbox(s.pg, '내 PC Aside 세팅').count()], [0, 1]);
+  await inbox(s.pg, '내 PC Aside 세팅').first().getByRole('button', { name: '세팅', exact: true }).click(); await s.pg.waitForTimeout(600);
+  ok('변유림 세팅 시트 = 내 PC 크루 4명 · 업로더 계정 없음 안내 · 시험할 크루 = 평일 크루(바람)', (await s.S().innerText()).includes('내 PC · AI 크루 4명') && (await s.S().innerText()).includes('업로더 계정이 아직 없어요') && (await s.S().getByRole('button', { name: '시험 한 번 — 바람 글 복사' }).count()) === 1);
+  eq('팀원 세팅 시트엔 PC 고르기 없음', await s.S().getByLabel('PC 고르기').count(), 0);
+  await shot(s.pg, 'yr-setup-375'); ok('변유림 세팅 시트 넘침 없음 375', !(await over(s.pg)));
+  await s.pg.keyboard.press('Escape'); await s.pg.waitForTimeout(300);
+  await s.pg.evaluate(() => { location.hash = '#s-aside'; }); await s.pg.waitForTimeout(600);   // 허브 crew 화면 맨 위 한 줄 → os2.html#s-aside (2026-10-19 사장님 1A)
+  ok('링크 #s-aside → 내 PC Aside 세팅 바로 · 주소의 # 는 지움', (await s.S().innerText()).includes('내 PC · AI 크루 4명') && (await s.pg.evaluate(() => location.hash)) === '');
+  await s.close(); }
+{ let s = await session('hj', { admin: true, w: 1280, h: 900, now: '2026-10-13T11:00:00+09:00' });
+  await s.pg.locator('.v2-nav').getByRole('button', { name: 'AI 팀원', exact: true }).click(); await s.pg.waitForTimeout(500);
+  ok('관리자 AI 팀원 탭 맨 위 = Aside 세팅 현황 · 담당 1/3명 끝', (await s.pg.getByText('Aside 세팅 현황 · 담당 1/3명 끝').count()) === 1);
+  await s.pg.getByText('Aside 세팅 현황 · 담당 1/3명 끝').click(); await s.pg.waitForTimeout(600);
+  ok('관리자 화면에서도 현황 시트', (await s.S().innerText()).includes('남윤정 PC · 크루 1명'));
+  await shot(s.pg, 'hj-setup-all-1280'); ok('현황 시트 넘침 없음 1280', !(await over(s.pg)));
+  await s.close(); }
+{ let s = await session('yj', { w: 768, h: 1000, now: '2026-10-13T11:00:00+09:00' });
+  await s.pg.locator('.v2-nav').getByRole('button', { name: '더보기' }).click(); await s.pg.waitForTimeout(300);
+  await s.pg.getByText(/^AI 팀원 · 내가 맡은 AI/).click(); await s.pg.waitForTimeout(500);
+  ok('AI 팀원 맨 위 = 내 PC Aside (세팅 끝이면 단계 꼬리표 없음)', (await s.S().getByText(/^내 PC Aside · 겨울 09:00/).count()) === 1 && (await s.S().innerText()).includes('세팅 끝 · 지금 돌리기'));
+  await s.S().getByText(/^내 PC Aside · 겨울 09:00/).click(); await s.pg.waitForTimeout(500);
+  await shot(s.pg, 'yj-setup-768'); ok('세팅 시트 넘침 없음 768', !(await over(s.pg)));
   await s.close(); }
 
 // ⑧ AI에게 업무 맡기기 (2026-10-15 사장님 "ai팀원에게 업무요청을 별도로해서 진행도 가능했으면") — 김채원(폰) → 겨울에게 → 취소 · 다시 맡김 → Aside 결과 → 맡긴 사람 '맡긴 일 결과' · 담당(남윤정) 승인 줄

@@ -391,7 +391,7 @@ const ok = (name, cond) => eq(name, !!cond, true);
   const has = (bd, c, re) => re.test(K.actOf(bd, c).s.join(' '));
   eq('우주 H 장부 먼저', [['gh-ref', 'A'], ['gh-ref', 'B'], ['gh-ref', 'C'], ['gh-rep', 'C'], ['gh-rep', 'G'], ['gh-ohou', 'H']].map(([bd, c]) => has(bd, c, /우주 H 장부|H 장부/)), [true, true, true, true, true, true]);
   ok('겨울 I = 택배 동봉 안내', /택배 동봉/.test(K.actOf('gh-conv', 'I').t) && has('gh-conv', 'I', /동봉 안내/));
-  ok('지시문 판 10-19 (사람 세팅 = 업무OS Aside 세팅)', K.ASIDE_VER === '2026-10-19');
+  ok('지시문 판 10-19.2 (■ 6. 사용금지어 · 사장님 2026-10-19 PDF)', K.ASIDE_VER === '2026-10-19.2');
 }
 
 // ── 2026-10-17 사장님 확정 (2팀 운영 · 1A 2A 4-1) ──

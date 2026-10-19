@@ -153,6 +153,30 @@ eq('허브 자동 작업 10개 = Aside (담당 PC) · 준비 중 · 보드 요�
     [['mini', ['매주 금 09:00 ops-report', '평일 15:00 ops-order']], ['hj', ['매주 월 09:00 hq-plan']]]);   // 이란 PC(B2B 5) = 2026-10-17 닫음 → 없음
   eq('그 PC 로그인해 둘 곳 = 그 보드들 것만', K.loginSites([K.boardOf('gh-conv'), K.boardOf('gh-rep')]).map((x) => x.s), ['카페24', '스마트스토어센터', '쿠팡윙', 'POUR스토어 CRM', '채널톡', '카카오 비즈니스 채널']);   // 겨울 I 응대 스토리 = 채널톡·카카오 구매 전 문의 (2026-10-17)
 }
+// 할 일마다 Aside 도는 PC (2026-10-19 사장님 1A · aimates.actPc — 가을 G 메타 · H 디맨드젠 = 김송희 PC)
+{
+  const own = { 'gh-traffic': 'minji', 'gh-conv': 'minji', 'gh-aov': 'songhee' }, docs = { gaeul: { actPc: { G: 'songhee', H: 'songhee', A: 'minji', Z: 'songhee' } } };
+  const pcOf = (b, o) => K.pcActs(docs[b.mate], b, o, (u) => u !== 'gone');
+  eq('pcActs = 담당과 다른 사람에게 간 할 일만 (담당 본인·없는 글자 빼고) · 쉬는 사람 빼고', [K.pcActs(docs.gaeul, K.boardOf('gh-traffic'), 'minji'), K.pcActs({ actPc: { G: 'gone' } }, K.boardOf('gh-traffic'), 'minji', (u) => u !== 'gone')], [{ G: 'songhee', H: 'songhee' }, {}]);
+  const plan = K.asidePlan((b) => own[b.id] || '', pcOf), pick = (o) => (plan.find((g) => g.owner === o) || { runs: [] }).runs.filter((r) => /^gh-(traffic|conv|aov)/.test(r.board.id)).map((r) => [r.t, r.key, r.only || null, r.skip || null]);
+  eq('김민지 PC = 가을(G·H 빼고) 09:00 · 겨울 10:00', pick('minji'), [['09:00', 'gh-traffic', null, ['G', 'H']], ['10:00', 'gh-conv', null, null]]);
+  eq('김송희 PC = 하늘 09:00 + 가을 G·H 만 10:00 (같은 PC 에서 한 시간 뒤)', pick('songhee'), [['09:00', 'gh-aov', null, null], ['10:00', 'gh-traffic~GH', ['G', 'H'], null]]);
+  eq('planOf = 담당 PC 예약 · splitOf = 나눠 간 예약', [K.planOf(plan, 'gh-traffic'), K.splitOf(plan, 'gh-traffic')], [{ owner: 'minji', t: '09:00', n: 2 }, [{ owner: 'songhee', t: '10:00', only: ['G', 'H'] }]]);
+  eq('나눔 없으면 예전과 같음 (pcOf 없음)', K.asidePlan((b) => own[b.id] || '').find((g) => g.owner === 'minji').runs.map((r) => [r.key, !!r.skip]), [['gh-traffic', false], ['gh-conv', false]]);
+  eq('주소 #보드~GH → 그 할 일만 (모르는 글자·관리자 자리 빼고) · 보통 주소', [K.parseRunHash('gh-traffic~hgz'), K.parseRunHash('gh-traffic'), K.parseRunHash('gh-traffic~'), K.parseRunHash('x~G')], [{ id: 'gh-traffic', only: ['G', 'H'] }, { id: 'gh-traffic', only: null }, { id: 'gh-traffic', only: null }, { id: 'x', only: null }]);
+  const sp = plan.find((g) => g.owner === 'songhee').runs.find((r) => r.only), mn = plan.find((g) => g.owner === 'minji').runs.find((r) => r.skip);
+  eq('로그인해 둘 곳: G·H 예약 = 메타·구글 애즈만 · 김민지 가을 = 메타·구글 애즈 빼고', [K.loginSites([sp]).map((x) => x.s), K.loginSites([mn]).map((x) => x.s)],
+    [['메타 광고관리자', '구글 애즈 (그로홈)'], ['카페24', '스마트스토어센터', '쿠팡 광고센터', '네이버 검색광고 (그로홈 광고 계정)', '오늘의집 파트너센터']]);
+  const L = K.asideLaunch(sp.board, sp.t, sp), N = K.asideNowLaunch(sp.board, sp), F = K.asideFixLaunch([mn, sp]);
+  eq('예약 글 = 그 할 일 주소(#gh-traffic~GH) · 머리에 G·H 할 일만 · 지금 한 번도', L.includes('crew.html#gh-traffic~GH') && L.split('\n')[0].includes('G·H 할 일만') && L.includes('평일 10:00') && N.includes('#gh-traffic~GH'), true);
+  eq('고칠 것 확인 = 두 주소 · 다른 PC 몫 줄은 건너뜀', F.includes('crew.html#gh-traffic\n') && F.includes('crew.html#gh-traffic~GH') && F.includes("'다른 PC 몫'"), true);
+  const T1 = K.asideText(sp.board, { only: ['G', 'H'] }), T2 = K.asideText(mn.board, { skip: [{ c: 'G', who: '김송희' }, { c: 'H', who: '김송희' }] });
+  eq('지시문(G·H 만) = 그 할 일만 · 지표·[다음주] 없음 · 상태 G·H', /■ 1\. 지표 — 이 예약은 올리지 않는다/.test(T1) && !/\n\[지표\]/.test(T1) && !/\n\[다음주\]/.test(T1) && /\nG: \(한 줄\)\nH: \(한 줄\)\n/.test(T1) && !/\nA\. /.test(T1) && T1.includes('#gh-traffic~GH'), true);
+  eq('지시문(담당 PC) = 다른 PC 몫 G·H 안내 · G·H 할 일·상태 없음 · 지표 있음', T2.includes('다른 PC 몫: G(김송희 PC) · H(김송희 PC)') && !/\nG\. /.test(T2) && !/\nH\. /.test(T2) && !/\nG: \(한 줄\)/.test(T2) && /\n\[지표\]/.test(T2), true);
+  const v = { at: '2026-10-20T01:00:00Z', stHist: { '2026-10-19': { A: '변화 없음', G: '대기' }, '2026-10-20': { G: '올림', H: '대기' } }, hist: { visit7: { '2026-10-19': 3 } } };
+  eq('마지막 올림 = 그 예약 몫 할 일 날짜 (G·H = 10/20 · 담당 PC = 10/19 · 나눔 없음 = at)', [K.runAtOf(v, sp), K.runAtOf(v, mn), K.runAtOf(v, { board: sp.board })], ['2026-10-20T01:00:00Z', '2026-10-19T12:00:00+09:00', '2026-10-20T01:00:00Z']);
+  eq('바로 고치기·할 일만 지금 = 그 할 일 주소', [/#gh-traffic~G\b/.test(K.asideRedoLaunch({ board: 'gh-traffic', act: 'G', run: '2026-10-20', title: 'x', back: { text: 'y' } })), K.asideRedoLaunch({ board: 'gh-traffic', act: 'R', run: '2026-10-20', title: 'x', back: { text: 'y' } }).includes('#gh-traffic\n'), K.asideActLaunch(sp.board, 'H').includes('#gh-traffic~H')], [true, true, true]);
+}
 eq('보드마다 여는 곳 있음 · 비밀번호 같은 말 없음', AB.map((b) => b.logins.length > 0 && !/비밀번호|password|pw/i.test(JSON.stringify(b.logins))), AB.map(() => true));
 eq('로그인해 둘 곳 (로그인 없는 곳 뺌 · 같은 사이트는 한 줄)', K.loginSites().map((x) => x.s), ['카페24', '스마트스토어센터', '쿠팡 광고센터', '메타 광고관리자', '네이버 검색광고 (그로홈 광고 계정)', '오늘의집 파트너센터', '구글 애즈 (그로홈)', '쿠팡윙', 'POUR스토어 CRM', '채널톡', '카카오 비즈니스 채널', '인스타그램', '틱톡', 'POUR스토어 블로그·티스토리·네이버 카페', '셀러오션', '이지어드민', '잔디', '업무OS', '유튜브']);   // B2B(하이웍스·도매꾹) = 2026-10-17 닫음   // 2026-10-17 재고 화면(쿠팡윙 로켓그로스·이지어드민)은 가을에서 이음으로
 eq('카페24 = 여덟 명 (그로홈 여섯 + 이음·별 · 여름은 광고를 가을에 넘겨 안 씀)', K.loginSites().find((x) => x.s === '카페24').uses.map((u) => u.mate), ['가을', '겨울', '봄', '우주', '바람', '하늘', '이음', '별']);
@@ -394,7 +418,7 @@ const ok = (name, cond) => eq(name, !!cond, true);
   const has = (bd, c, re) => re.test(K.actOf(bd, c).s.join(' '));
   eq('우주 H 장부 먼저', [['gh-ref', 'A'], ['gh-ref', 'B'], ['gh-ref', 'C'], ['gh-rep', 'C'], ['gh-rep', 'G'], ['gh-ohou', 'H']].map(([bd, c]) => has(bd, c, /우주 H 장부|H 장부/)), [true, true, true, true, true, true]);
   ok('겨울 I = 택배 동봉 안내', /택배 동봉/.test(K.actOf('gh-conv', 'I').t) && has('gh-conv', 'I', /동봉 안내/));
-  ok('지시문 판 10-19.4 (겨울 C 사용금지어 찾기 · 10-19.3 = 가을 F 광고 보고 = 김송희 Aside 광고 루틴 하나 · 10-19.2 = ■ 6. 사용금지어)', K.ASIDE_VER === '2026-10-19.4');
+  ok('지시문 판 10-19.5 (할 일마다 Aside 도는 PC · 10-19.4 = 겨울 C 사용금지어 찾기 · 10-19.3 = 가을 F 광고 보고 = 김송희 Aside 광고 루틴 하나 · 10-19.2 = ■ 6. 사용금지어)', K.ASIDE_VER === '2026-10-19.5');
   { // 7A (사장님 2026-10-19 '모두 추천대로') — 겨울 C 상세 진단 = 지금 상세의 사용금지어도 매주 찾아 표 '사용금지어' 칸에 · 그 칸만 검사에서 뺌
     const c = K.actOf('gh-conv', 'C'), tc = K.asideText(K.boardOf('gh-conv')), tt = K.asideText(K.boardOf('gh-traffic'));
     eq('겨울 C 표 칸 = 근거 다음 사용금지어 · 카드 줄', [c.cols, c.card.lines.map((x) => x[0])], [['상품', '브랜드', '이미지', '이탈 지점', '근거', '사용금지어', '해결안', '상태값'], ['이탈 지점', '근거', '사용금지어']]);

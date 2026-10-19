@@ -360,4 +360,21 @@ eq("그날 올렸나", [X.ranOn({ at: at("2026-10-14T00:10:00") }, "2026-10-14")
   eq("AI에게 다시 글", X.bannedBackText(X.askBanned({ sum: "친환경" })), "사용금지어 고쳐 주세요 (사장님 '금지·주의 단어 작성 가이드' 2026-10-19):\n- 친환경 → \"VOCs 저감을 고려해 설계된\" (근거가 있으면: 환경표지 인증: \"환경표지 인증 제품(인증번호 ○○, 유효기간 ○○)\")\n근거(시험성적서·인증 번호)가 있는 말이면 같은 문장에 번호·기관을 같이 써 주세요");
 }
 
+// 할 일마다 Aside 도는 PC (2026-10-19 사장님 1A · aimates.actPc — 가을 G·H = 다른 사람 PC)
+{ const SP = (boards, setups) => { const D = DA(boards || {}, { gaeul: { owners: { _: "yj" }, actPc: { G: "cw", H: "cw" } }, ...NEWM }); return { ...D, ai: { ...D.ai, setups: setups || {} } }; };
+  const pl = X.asidePlanOf(SP()), gy = pl.find((g) => g.owner === "yj"), cw = pl.find((g) => g.owner === "cw");
+  eq("담당 PC = 가을(G·H 빼고) · 그 사람 PC = 가을 G·H 만 (그 PC 담당 보드 뒤 · 같은 요일 겹치면 한 시간 뒤)", [gy.runs.map((r) => [r.key, r.t, r.skip || null]), cw.runs.map((r) => [r.key, r.t, r.only || null])],
+    [[["gh-traffic", "09:00", ["G", "H"]]], [["ops-report", "09:00", null], ["hq-plan", "09:00", null], ["gh-traffic~GH", "10:00", ["G", "H"]], ["ops-order", "15:00", null]]]);
+  eq("쉬는 사람에게 간 할 일 = 담당 PC 그대로", X.asidePlanOf({ ...SP(), ai: { ...SP().ai, mates: { gaeul: { owners: { _: "yj" }, actPc: { G: "old" } }, ...NEWM } } }).find((g) => g.owner === "yj").runs.map((r) => [r.key, r.skip || null]), [["gh-traffic", null]]);
+  const su = X.setupOf(SP(), cw, W11);
+  eq("세팅: 그 사람 PC 사이트 = 허브 + 이음·별·달 곳 + 메타·구글 애즈 · 예약 열쇠 gh-traffic~GH", [su.sites.some((x) => x.s === "메타 광고관리자"), su.sites.some((x) => x.s === "구글 애즈 (그로홈)"), su.runs.map((r) => r.key)], [true, true, ["ops-report", "hq-plan", "gh-traffic~GH", "ops-order"]]);
+  eq("담당 PC 사이트엔 메타·구글 애즈 없음", ((s) => [s.sites.some((x) => x.s === "메타 광고관리자"), s.sites.some((x) => x.s === "구글 애즈 (그로홈)"), s.sites.some((x) => x.s === "쿠팡 광고센터")])(X.setupOf(SP(), gy, W11)), [false, false, true]);
+  const N12 = new Date("2026-10-14T12:00:00"), put = { cw: { runs: { "gh-traffic~GH": { on: true, t: "10:00", at: at("2026-10-13T08:00:00") } } } };
+  const miss = (boards) => X.asideInbox(SP(boards, put), "cw", N12).filter((x) => x.kind === "aiMiss").map((x) => [x.id, x.title]);
+  eq("G·H 예약을 넣었는데 그 할 일이 한 번도 안 올라옴 = '가을 G·H' 안 돎 (담당 PC 가 올린 것은 안 셈)", miss({ "gh-traffic": { at: at("2026-10-14T09:10:00"), stHist: { "2026-10-14": { A: "변화 없음" } } } }),
+    [["am:gh-traffic~GH:2026-10-14", "가을 G·H(AI) 예약을 넣었는데 아직 한 번도 안 올렸어요 · 평일 2일째"]]);
+  eq("G 상태가 오늘 올라오면 없음", miss({ "gh-traffic": { at: at("2026-10-14T10:20:00"), stHist: { "2026-10-14": { G: "올림" } } } }), []);
+  eq("세팅 줄 제목 = '가을 G·H 10:00'", X.asideInbox(SP(), "cw", W11).find((x) => x.kind === "aiSetup").title.includes("가을 G·H 10:00"), true);
+}
+
 console.log(`\n${n - bad}/${n} 통과`); if (bad) process.exit(1);

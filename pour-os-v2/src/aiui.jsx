@@ -16,11 +16,11 @@ import { refCount } from "./refui.jsx";   // AI 한 장 · 참고 레퍼런스 �
 import { LS } from "./core.jsx";
 import { RtMulti } from "./airtui.jsx";   // AI 크루 ↔ 반복 실행 (2026-10-16) · 여러 개 (2026-10-17)
 import { isFxKey, fxIdOf, NO_ACT, akKeys, pairable } from "./airt.js";
-import { GONE, liveCrews, closedCrews, CLOSED_L, pathGroups, pathGroupsL, crewOf, mateOf, boardOf, brandL, servesL, mateBrands, ownerKeys, fmtMetric, metricPct, metricOk, runWord, asideLaunch, asideRedoLaunch, asideFixLaunch, loginSites, planOf, qtyDefs, qtyNow, canReq, reqMates, REQ_SHAPES, REQ_PRESETS, REQ_STATE_L, reqLine, asideReqLaunch, execOf, formulaHead, formulaSep, movedOut, movedIn, stageOf, designOf, designBad, DESIGN_MAX, BRAND_L, handoffTargets, handoffLabel, handoffNeedsDone, INBOX_DAYS, isNpsAct, npsFromTraces, npsLine, asideNowLaunch, testRunOf } from "../../marketing-hub/crew.js";
+import { GONE, liveCrews, closedCrews, CLOSED_L, pathGroups, pathGroupsL, crewOf, mateOf, boardOf, brandL, servesL, mateBrands, ownerKeys, fmtMetric, metricPct, metricOk, runWord, asideLaunch, asideRedoLaunch, asideFixLaunch, loginSites, planOf, splitOf, runOnlyL, qtyDefs, qtyNow, canReq, reqMates, REQ_SHAPES, REQ_PRESETS, REQ_STATE_L, reqLine, asideReqLaunch, execOf, formulaHead, formulaSep, movedOut, movedIn, stageOf, designOf, designBad, DESIGN_MAX, BRAND_L, handoffTargets, handoffLabel, handoffNeedsDone, INBOX_DAYS, isNpsAct, npsFromTraces, npsLine, asideNowLaunch, testRunOf } from "../../marketing-hub/crew.js";
 import { cycleOf, periodOf, repCrews, repId, repSlots, secState, periodL, dueL, CYCLE_L } from "./aireport.js";   // AI 크루 보고 (2026-10-15)
 import { ASK_STATE_L, canAct, canBack, canRet, isProxy, pickOk, planPass, chainOf, mateOwner, actOwner, hqOf, canUpHQ, pathOf, pathDef, upLeadTo, PATH_L, mateStats, repeatNotes, itemLine, askBanned, bannedBackText, bossOf, bossRec, bossLoop, asidePlanOf, ranOn, missedOn, goneWaits, GONE_DROP, myTurnN,
   waitWd, workMin, prevWaits, newerOf, routineRanOn, routineMisses, routineAlert, stuckAlert, LATE_WD, BACK_MIN, PREV_DROP, ROUTINE_AT, ROUTINE_CHECK,
-  setupOf, setupRows, uploaderOf, accountName, TEST_WAIT } from "./aiask.js";   // 멈춤 감시 (2026-10-17) · Aside 세팅 3단계 (2026-10-19)   // 멈춤 감시 (2026-10-17)
+  setupOf, setupRows, uploaderOf, accountName, TEST_WAIT, runName } from "./aiask.js";   // 멈춤 감시 (2026-10-17) · Aside 세팅 3단계 (2026-10-19)   // 멈춤 감시 (2026-10-17)
 
 export const HUB_CREW_URL = "../marketing-hub/crew.html";   // Aside 결과 올리기 (허브)
 export const HUB_MANUAL_URL = "../marketing-hub/ai-manual.html", HUB_ADS_URL = "../marketing-hub/ads.html";   // AI 팀 매뉴얼 · 광고 운영 (2026-10-15 · 읽기 전용 · Aside 가 씀)
@@ -251,7 +251,7 @@ export function AiTeamBody({ D, cu, A, open, admin }) {
     {goneAsk && <Ask title="쉬는 AI 승인 정리" body={`${gw.length}건을 '안 함'으로 정리할까요?\n이유: ${GONE_DROP}\n기록이 남고, 한 건씩 열어 보면 무엇이었는지 그대로 있어요.`} yes="정리" onNo={() => setGoneAsk(false)} onYes={dropGone} />}
     {(myG || master) && plan.length > 0 && <Card style={{ marginTop: 10 }}>
       {myG && (() => { const su = setupOf(D, myG);   // 세팅 3단계 (2026-10-19 사장님 2A) — 끝나기 전엔 다음 할 일 · 끝나면 시각만
-        return <Row title={`내 PC Aside · ${myG.runs.map((r) => `${(mateOf(r.board.mate) || {}).name} ${r.t}`).join(" · ")}`} tag={su.done ? null : `세팅 ${su.k}/3`} tagTone={su.s2.moved ? "red" : undefined}
+        return <Row title={`내 PC Aside · ${myG.runs.map((r) => `${runName(r)} ${r.t}`).join(" · ")}`} tag={su.done ? null : `세팅 ${su.k}/3`} tagTone={su.s2.moved ? "red" : undefined}
           sub={su.done ? "세팅 끝 · 지금 돌리기 · 고칠 것 확인 — 담당마다 자기 PC 에서 동시에 돌아요" : `다음 할 일 · ${su.next}`} onClick={() => open({ type: "aiSetup" })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last={!master} />; })()}
       {master && (() => { const rows = setupRows(D).filter((x) => x.owner), dn = rows.filter((x) => x.done).length;   // 사장님 세팅 현황 (2026-10-19 사장님 4A)
         return <Row title={`Aside 세팅 현황 · 담당 ${dn}/${rows.length}명 끝`} sub={rows.length ? rows.map((x) => `${x.name} ${x.done ? "끝" : `${x.k}/3`}`).join(" · ") : "담당이 정해진 크루가 없어요"} onClick={() => open({ type: "aiSetupAll" })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last={!noneG} />; })()}
@@ -359,9 +359,12 @@ function BoardView({ D, cu, A, b, open, asks, doc }) {
               {master && <label style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}><b style={{ color: C.ink, minWidth: 74 }}>승인 길</b>
                 <select value={pthVal(a)} onChange={(e) => A.mateActSet(b.mate, "actPath", a.c, e.target.value || null)} aria-label={`${a.c} 승인 길`} style={{ ...inp, width: "auto", maxWidth: 240, padding: "6px 8px", fontSize: 13 }}>
                   <option value="">기본 ({PATH_L[pthDef(a)]}{pthDef(a) === "hq" && a.hq ? ` · ${a.hq}` : ""})</option><option value="owner">담당에서 끝</option><option value="lead">리드까지</option>{execOf(a) && <option value="hq">본부장까지</option>}</select></label>}
+              {master && b.run && !a.report && <label style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}><b style={{ color: C.ink, minWidth: 74 }}>Aside 도는 PC</b>
+                <select value={((doc && doc.actPc) || {})[a.c] || ""} onChange={(e) => A.mateActSet(b.mate, "actPc", a.c, e.target.value)} aria-label={`${a.c} Aside 도는 PC`} style={{ ...inp, width: "auto", maxWidth: 200, padding: "6px 8px", fontSize: 13 }}>
+                  <option value="">담당 PC 그대로 ({nameOf(D.users, mateOwner(doc, b.brand, D.users)) || "미정"})</option>{users.map((u) => <option key={u.id} value={u.id}>{u.name} PC</option>)}</select></label>}
               {pairable(a) && <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}><b style={{ color: C.ink, minWidth: 74 }}>반복 실행 짝{a.report ? " (승인 = 그날 체크)" : ""}</b>
                 <RtMulti D={D} value={((doc && doc.actAk) || {})[a.c]} onChange={(ks) => A.mateActSet(b.mate, "actAk", a.c, ks)} label={`${a.c} 반복 실행 짝`} /></div>}
-              <div style={{ fontSize: 12, color: C.mute, lineHeight: 1.5 }}>담당 = 승인 첫 단계·실행 업무 받는 사람 · 승인 길 = 안에서 보는 점검·분석·목록·장부는 담당에서 끝 · 밖으로 나가는 것은 리드까지 · 광고비·원가·판매가는 본부장까지 · 반복 실행 짝 = 실행 업무 번호마다 [했어요]가 그 반복에 +1 (KPI)</div></div>}
+              <div style={{ fontSize: 12, color: C.mute, lineHeight: 1.5 }}>담당 = 승인 첫 단계·실행 업무 받는 사람 · 승인 길 = 안에서 보는 점검·분석·목록·장부는 담당에서 끝 · 밖으로 나가는 것은 리드까지 · 광고비·원가·판매가는 본부장까지 · 반복 실행 짝 = 실행 업무 번호마다 [했어요]가 그 반복에 +1 (KPI){master && b.run ? " · Aside 도는 PC = 이 할 일만 그 사람 PC Aside 에서 돎(그 PC 세팅에 '할 일만' 예약이 생겨요 · 담당 PC 는 이 할 일을 안 함)" : ""}</div></div>}
             <DesignBox D={D} cu={cu} A={A} b={b} a={a} doc={doc} />
             <div><b style={{ color: C.ink }}>상황</b> · {a.w}</div>
             <ol style={{ margin: "6px 0 0", paddingLeft: 18 }}>{a.s.map((s, k) => <li key={k} style={{ marginTop: 2 }}>{s}</li>)}</ol>
@@ -403,6 +406,7 @@ export function AiMateSheet({ D, cu, A, open, onBack, onClose, id }) {
       {npsOn && <div>NPS (최근 30일 · [했어요]에 남긴 점수) · <b style={{ color: C.ink }}>{npsR ? npsLine(npsR) : "아직 남긴 점수 없음"}</b></div>}
       {m.routine && <div>{m.routine}</div>}
       {b && pl && <div>Aside 루틴 · {runWord({ ...b.run, t: pl.t })} · {PC_L(D, pl.owner, cu)} · 보드 지표·할 일 → 이 승인으로 · <a className="v2-lblink" href={`${HUB_CREW_URL}#${b.id}`} target="_blank" rel="noopener">Aside 가 쓰는 화면(허브) ›</a></div>}
+      {b && splitOf(plan, b.id).map((x) => <div key={x.only.join("")}>{x.only.join("·")} 할 일 · {runWord({ ...b.run, t: x.t })} · {PC_L(D, x.owner, cu)} (할 일 PC · 담당 PC 는 이 할 일을 안 해요)</div>)}
       {GONE[id] && <div style={{ color: C.text }}>2026-10-14부터 쉬어요 · 이 일은 B2C 크루 {(mateOf(GONE[id]) || {}).name} 몫이에요 · 이미 올라온 결과는 그대로 승인·안 함</div>}
       {c && c.closed && <div style={{ color: C.text }}><b>{CLOSED_L}</b> · {c.closed.why} · 지금은 Aside·보드가 안 돌아요 (정의·옛 기록은 그대로)</div>}
       {c && <div>일하는 곳 · {servesL(c)}</div>}
@@ -580,22 +584,23 @@ export function AiSetupSheet({ D, cu, A, open, onBack, onClose, owner }) {
       {/* ② 예약 */}
       <StepHead n="②" title="예약 넣기" done={su.s2.done} count={`${su.s2.n}/${su.s2.of}`} />
       <Hint>크루마다 [예약 글 복사] → Aside 새 예약 작업에 붙여 넣기 → 반복은 줄에 적힌 대로(평일 · 매주 금 …) → [넣었어요] · 지시문이 바뀌어도 예약은 그대로 두면 돼요</Hint>
-      <Card>{su.runs.map((r) => { const m = mateOf(r.board.mate) || {}, wk = r.board.run && r.board.run.dow && r.board.run.dow.length < 5;
+      <Card>{su.runs.map((r) => { const m = mateOf(r.board.mate) || {}, wk = r.board.run && r.board.run.dow && r.board.run.dow.length < 5, ol = runOnlyL(r.run), nmR = runName(r.run);
         return <div key={r.key} style={{ padding: "11px 14px", borderBottom: `1px solid ${C.line}` }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}><b style={{ color: C.navy, fontVariantNumeric: "tabular-nums" }}>{wk ? runWord({ ...r.board.run, t: r.t }) : `평일 ${r.t}`}</b><b style={{ color: C.text }}>{m.name} · {m.role}</b>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}><b style={{ color: C.navy, fontVariantNumeric: "tabular-nums" }}>{wk ? runWord({ ...r.board.run, t: r.t }) : `평일 ${r.t}`}</b><b style={{ color: C.text }}>{m.name} · {m.role}</b>{ol && <span className="v2-tag" style={{ fontSize: 12, fontWeight: 800, color: C.navy }}>{ol}</span>}
             <span style={{ fontSize: 12.5, color: C.sub }}>{r.board.title} · {r.ranAt ? `마지막 올림 ${lastL(r.ranAt)}` : "아직 안 올림"}</span></div>
+          {r.skip && <div style={{ marginTop: 4, fontSize: 12.5, color: C.sub, lineHeight: 1.5 }}>{r.skip.join("·")} 할 일은 다른 PC 몫 — 이 PC 예약은 그 할 일을 안 해요</div>}
           {r.moved && <div style={{ marginTop: 6, fontSize: 13, fontWeight: 800, color: C.red, lineHeight: 1.5 }}>예약 시각이 바뀌었어요 {r.savedT} → {r.t} · Aside 예약 시각을 고친 뒤 다시 [넣었어요]</div>}
           {r.miss > 0 && <div style={{ marginTop: 6 }}><div style={{ fontSize: 13, fontWeight: 800, color: C.red, lineHeight: 1.5 }}>{!r.ranAt ? "예약 뒤 아직 한 번도 안 올림" : r.today ? "오늘 아직 안 올림" : `${wk ? `${r.miss}번째` : `평일 ${r.miss}일째`} 안 올림`} — PC·Aside 가 켜져 있는지 확인 · [지금 돌리기]를 Aside 에 붙여 넣으면 바로 돌아요</div>
-            <div style={{ marginTop: 6 }}><CopyText text={asideNowLaunch(r.board)} label={`지금 돌리기 — ${m.name} 글 복사`} solid /></div></div>}
+            <div style={{ marginTop: 6 }}><CopyText text={asideNowLaunch(r.board, r.run)} label={`지금 돌리기 — ${nmR} 글 복사`} solid /></div></div>}
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 8 }}>
-            <CopyText text={asideLaunch(r.board, r.t)} label={`${m.name} 예약 글 복사`} />
-            <Tick on={r.on && !r.moved} label="넣었어요" can={can} aria={`${m.name} 예약 넣었어요`} onClick={() => set("runs", r.key, r.moved || !r.on, { t: r.t })} />
+            <CopyText text={asideLaunch(r.board, r.t, r.run)} label={`${nmR} 예약 글 복사`} />
+            <Tick on={r.on && !r.moved} label="넣었어요" can={can} aria={`${nmR} 예약 넣었어요`} onClick={() => set("runs", r.key, r.moved || !r.on, { t: r.t })} />
             <TBtn v="plain" onClick={() => open({ type: "aiMate", id: r.board.mate })}>{m.name} 한 장 ›</TBtn></div></div>; })}
         <div style={{ padding: "11px 14px" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}><b style={{ color: C.navy }}>평일 한 시간마다</b><b style={{ color: C.text }}>고칠 것 확인</b></div>
           <div style={{ fontSize: 12.5, color: C.sub, lineHeight: 1.6, marginTop: 2 }}>이 PC 크루의 [AI에게 다시]·[더 만들기]·맡긴 일을 한 시간 안에 처리 · 없으면 바로 끝나요</div>
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 8 }}>
-            <CopyText text={asideFixLaunch(g.runs.map((r) => r.board))} label="고칠 것 확인 글 복사" />
+            <CopyText text={asideFixLaunch(g.runs)} label="고칠 것 확인 글 복사" />
             <Tick on={su.fix.on} label="넣었어요" can={can} aria="고칠 것 확인 예약 넣었어요" onClick={() => set("runs", su.fix.key, !su.fix.on)} /></div></div></Card>
       {/* ③ 시험 */}
       <StepHead n="③" title="시험 한 번" done={su.s3.done} />
@@ -603,7 +608,7 @@ export function AiSetupSheet({ D, cu, A, open, onBack, onClose, owner }) {
       <Card style={{ padding: "12px 14px" }}>
         <div style={{ fontSize: 13.5, lineHeight: 1.6, ...(su.s3.done ? okL : { color: su.test.waitMin >= TEST_WAIT ? C.red : C.text, fontWeight: 700 }) }}>
           {su.s3.done ? `✓ ${lastL(su.test.lastAt)} · ${nm(su.test.lastBoard)} 결과가 올라왔어요` : su.test.at ? (su.test.waitMin >= TEST_WAIT ? `${hm(su.test.at)}에 시험 · ${su.test.waitMin}분째 안 올라왔어요 — Aside 화면에서 멈춘 곳 · 허브 crew 화면 로그인 · 사이트 로그인을 확인해 주세요` : `${hm(su.test.at)}에 시험 · 결과 기다리는 중 · 올라오면 저절로 ✓`) : "아직 안 했어요"}</div>
-        {tr && <div style={{ marginTop: 10 }}><CopyText text={asideNowLaunch(tr.board)} label={`시험 한 번 — ${nm(tr.board)} 글 복사`} solid={!su.s3.done} onCopy={can ? () => set("test", null, true, { board: tr.board.id }) : undefined} /></div>}
+        {tr && <div style={{ marginTop: 10 }}><CopyText text={asideNowLaunch(tr.board, tr)} label={`시험 한 번 — ${runName(tr)} 글 복사`} solid={!su.s3.done} onCopy={can ? () => set("test", null, true, { board: tr.board.id }) : undefined} /></div>}
       </Card>
       <div style={{ fontSize: 12.5, color: C.sub, lineHeight: 1.6, margin: "12px 2px 4px" }}>실행(가격·광고·쿠폰·발송·게시·상세·등록)은 Aside 가 하지 않아요 — 승인 뒤 담당이 해요 · 결과는 '확인할 것'으로 와요 → 번호 골라 승인 · [AI에게 다시] · [더 만들기]</div></>}
   </Sheet>;

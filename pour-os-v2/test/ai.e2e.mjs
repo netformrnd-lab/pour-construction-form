@@ -1011,6 +1011,35 @@ ST.v2.aiasks.ai_gyeoul_20261019_ghconvC = ask({ id: 'ai_gyeoul_20261019_ghconvC'
     await s.close();
   } }
 
+// ⑱ 할 일마다 Aside 도는 PC (사장님 2026-10-19 1A "메타, 디멘드젠은 송희에게") — 관리자 AI 한 장 'Aside 도는 PC' → 그 사람 PC 세팅에 '가을 G 할 일만' 예약 · 담당 PC 는 'G 할 일은 다른 PC 몫'
+ST.v2.aimates.gaeul = { ...(ST.v2.aimates.gaeul || {}), owners: { grohome: 'yj', pourstore: 'yj' } };
+{ const s = await session('hj', { admin: true, w: 1280, h: 900, now: '2026-10-19T10:00:00+09:00' });
+  await s.pg.locator('.v2-nav').getByRole('button', { name: 'AI 팀원', exact: true }).click(); await s.pg.waitForTimeout(500);
+  await s.pg.locator('[role=button]').filter({ hasText: '가을 · 유입마케터' }).first().click(); await s.pg.waitForTimeout(500);
+  await s.S().getByText(/^G · 메타 광고/).first().click(); await s.pg.waitForTimeout(300);
+  const sel = s.S().getByLabel('G Aside 도는 PC');
+  ok('AI 한 장 할 일 G = Aside 도는 PC 고르기 (관리자)', await sel.count() === 1);
+  await sel.selectOption('cw'); await s.pg.waitForTimeout(500);
+  const m = await live(s, 'aimates', 'gaeul');
+  ok('저장 = aimates.gaeul.actPc.G = cw · hist', !!m && m.actPc && m.actPc.G === 'cw' && (m.hist || []).some((h) => h.ch && h.ch['actPc.G']), m && m.actPc);
+  ok('AI 한 장 = G 할 일 · 김채원 PC 줄', (await s.S().innerText()).includes('G 할 일 · 평일'), (await s.S().innerText()).match(/G 할 일 ·[^\n]*/));
+  await shot(s.pg, 'admin-actpc-1280'); ok('넘침 없음 1280', !(await over(s.pg)));
+  await s.close(); }
+{ const s = await session('cw', { now: '2026-10-19T10:00:00+09:00' });
+  await s.pg.evaluate(() => { location.hash = '#s-aside'; }); await s.pg.waitForTimeout(700);
+  const t = await s.S().innerText();
+  ok('김채원 세팅 = 가을 G 할 일만 예약 · 메타 광고관리자 로그인 · 쿠팡 광고센터 없음', t.includes('G 할 일만') && t.includes('메타 광고관리자') && !t.includes('쿠팡 광고센터'), t.slice(0, 600));
+  await s.S().getByRole('button', { name: '가을 G 예약 글 복사' }).click(); await s.pg.waitForTimeout(300);
+  const L = await boxOf(s.S, '가을 G 예약 글 복사');
+  ok('예약 글 = crew.html#gh-traffic~G · G 할 일만', L.includes('crew.html#gh-traffic~G') && L.split('\n')[0].includes('G 할 일만'), L.slice(0, 300));
+  await shot(s.pg, 'cw-actpc-375'); ok('김채원 세팅 넘침 없음 375', !(await over(s.pg)));
+  await s.close(); }
+{ const s = await session('yj', { now: '2026-10-19T10:00:00+09:00' });
+  await s.pg.evaluate(() => { location.hash = '#s-aside'; }); await s.pg.waitForTimeout(700);
+  ok('남윤정(담당 PC) 세팅 = 가을 줄에 G 할 일은 다른 PC 몫', (await s.S().innerText()).includes('G 할 일은 다른 PC 몫'));
+  ok('넘침 없음 375', !(await over(s.pg)));
+  await s.close(); }
+
 ok('화면 오류 없음', errs.length === 0, errs);
 await b.close();
 console.log(`\n${n - bad}/${n} 통과 · 그림 ${SHOTS}`); if (bad) process.exit(1);

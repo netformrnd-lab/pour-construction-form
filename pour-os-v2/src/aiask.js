@@ -12,7 +12,7 @@
 //   users.bossId  상급자 (관리자 › 사람)
 //   최종 승인 + 실행 한 줄(exec) → 담당에게 '실행' 업무(tasks · aiAsk = 승인 id) — 실제 반영은 늘 사람 (2026-10-11)
 import { isMaster, nameOf, teamOf, isOffDay, ymd, addDays, nextWorkday, wdBetween } from "./model.js";
-import { CREWS, mateOf, crewOf, brandL, asidePlan, loginSites, actOf, launchRows, launchRowOf, GONE, runWord, PATHS, PATH_L, hqDef, pathDef, pathOf } from "../../marketing-hub/crew.js";
+import { CREWS, mateOf, crewOf, brandL, asidePlan, pcActs, runAtOf, loginSites, actOf, launchRows, launchRowOf, GONE, runWord, PATHS, PATH_L, hqDef, pathDef, pathOf } from "../../marketing-hub/crew.js";
 import { ASIDE_ADS_LAUNCH_VER, ASIDE_ADS_VER, AD_ROUTINE, routineWhen } from "../../marketing-hub/adops.js";   // 광고 예약 알림 판 (2026-10-17 · 2026-10-19 예약 하나)
 import { bannedHits, bannedRow, bannedCellText, BANNED_SRC } from "../../marketing-hub/banned.js";   // 사용금지어 (사장님 2026-10-19 '금지·주의 단어 작성 가이드')
 
@@ -256,7 +256,13 @@ export function bossLoop(users, uid, bossId) { if (!bossId) return false; if (bo
 //   계획 = crew.asidePlan(보드 → 담당) — 업무OS 'Aside 세팅'(아래 3단계 · 2026-10-19 · 허브 crew.html 은 Aside 전용)이 같은 계산(담당이 다르면 동시에 09:00 · 같은 PC 여럿이면 한 시간씩 · 담당 미정 = 관리자 PC 한 곳)
 //   '확인할 것'(keep = 처리되면 사라짐): 담당 = '내 PC Aside 세팅'(내 보드가 한 번도 안 올라옴) · 'Aside 안 돎'(평일 · 예약 + 90분 · 예전엔 올렸는데 오늘 안 올라옴)
 //   관리자 = 'AI 크루 담당 미정 n명' · 보드 값 D.ai.boards = aiboards {보드 id: {at …}} (허브 crew.html 이 올릴 때 씀)
-export const asidePlanOf = (D) => asidePlan((b) => mateOwner(((D.ai && D.ai.mates) || {})[b.mate], b.brand, D.users));
+//   할 일마다 Aside 도는 PC (2026-10-19 사장님 1A · aimates.actPc) — 담당과 다른 사람에게 간 할 일은 그 사람 PC 에 '할 일만' 예약(run.only · 열쇠 보드~GH) · 담당 PC 는 skip
+export const asidePlanOf = (D) => { const ms = (D.ai && D.ai.mates) || {};
+  return asidePlan((b) => mateOwner(ms[b.mate], b.brand, D.users), (b, o) => pcActs(ms[b.mate], b, o, (u) => !!actU(D.users, u))); };
+// 예약 이름 '가을' · 나눠 간 할 일 예약 '가을 G·H'
+export const runName = (r) => `${(mateOf(r.board.mate) || {}).name || r.board.mate}${r.only ? ` ${r.only.join("·")}` : ""}`;
+// 그 예약의 aiboards 값 — 나눠 도는 보드는 그 예약 몫 할 일로 본 마지막 올림(crew.runAtOf) · 아니면 그대로
+const runV = (bv, r) => { const v = bv[r.board.id]; if (!v || (!r.only && !r.skip)) return v; const at = runAtOf(v, r); return at ? { ...v, at } : null; };
 export const MISS_AFTER = 90;
 const addMin = (t, n) => { const x = Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5)) + n; return `${String(Math.floor(x / 60)).padStart(2, "0")}:${String(x % 60).padStart(2, "0")}`; };
 const hmOf = (d) => `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
@@ -357,11 +363,11 @@ export const setupDocOf = (D, owner) => (((D && D.ai && D.ai.setups) || {})[setu
 const onOf = (x) => !!(x && x.on);
 export function setupOf(D, g, now = new Date()) {
   const doc = setupDocOf(D, g.owner), sv = doc.sites || {}, rv = doc.runs || {}, bv = (D.ai && D.ai.boards) || {};
-  const sites = [{ s: HUB_SITE, u: "", hub: true, uses: [{ mate: "모두", w: "업로더 계정으로 로그인 · Aside 가 결과를 올리는 곳" }] }, ...loginSites(g.runs.map((r) => r.board))]
+  const sites = [{ s: HUB_SITE, u: "", hub: true, uses: [{ mate: "모두", w: "업로더 계정으로 로그인 · Aside 가 결과를 올리는 곳" }] }, ...loginSites(g.runs)]
     .map((x) => { const key = siteKey(x.s); return { ...x, key, on: onOf(sv[key]), at: (sv[key] || {}).at || "" }; });
   //   miss = 안 돎 날 수(올린 적 있으면 missDays · 없으면 [넣었어요] 뒤) · today = 오늘 예약 + 90분 지났는데 아직 → 시트 '지금 돌리기'
-  const runs = g.runs.map((r) => { const x = rv[r.board.id] || {}, v = bv[r.board.id] || {}, dw = dowOf(r);
-    return { key: r.board.id, board: r.board, t: r.t, on: onOf(x), savedT: x.t || "", moved: onOf(x) && !!x.t && x.t !== r.t, at: x.at || "", ranAt: v.at || "", miss: runMiss(v, x, r.t, now, dw), today: missedOn(v, r.t, now, dw) }; });
+  const runs = g.runs.map((r) => { const k = r.key || r.board.id, x = rv[k] || {}, v = runV(bv, r) || {}, dw = dowOf(r);
+    return { key: k, board: r.board, only: r.only || null, skip: r.skip || null, run: r, t: r.t, on: onOf(x), savedT: x.t || "", moved: onOf(x) && !!x.t && x.t !== r.t, at: x.at || "", ranAt: v.at || "", miss: runMiss(v, x, r.t, now, dw), today: missedOn(v, r.t, now, dw) }; });
   const fix = { key: FIX_RUN, on: onOf(rv[FIX_RUN]), at: (rv[FIX_RUN] || {}).at || "" };
   const ran = runs.filter((r) => r.ranAt).sort((a, b) => String(b.ranAt).localeCompare(String(a.ranAt)));
   const td = doc.test || {}, test = { at: td.at || "", board: td.board || "", ok: ran.length > 0, lastAt: ran.length ? ran[0].ranAt : "", lastBoard: ran.length ? ran[0].board : null };
@@ -370,10 +376,10 @@ export function setupOf(D, g, now = new Date()) {
   const s2 = { n: runs.filter((r) => r.on && !r.moved).length + (fix.on ? 1 : 0), of: runs.length + 1, moved: runs.filter((r) => r.moved).length }; s2.done = s2.n === s2.of;
   const s3 = { done: test.ok }, allRan = runs.length > 0 && runs.every((r) => r.ranAt);
   const done = runs.length > 0 && !s2.moved && ((s1.done && s2.done && s3.done) || allRan), k = [s1.done, s2.done, s3.done].filter(Boolean).length;
-  const step = done ? 0 : !s1.done ? 1 : !s2.done ? 2 : 3, nm = (b) => (mateOf(b.mate) || {}).name || b.mate;
+  const step = done ? 0 : !s1.done ? 1 : !s2.done ? 2 : 3, nm = (b) => (mateOf(b.mate) || {}).name || b.mate, rn = (r) => runName(r.run || r);
   const next = done ? "세팅 끝 · 평일마다 이 PC 에서 돌아요"
     : step === 1 ? `① 사이트 로그인 ${s1.n}/${s1.of} · ${sites.find((x) => !x.on).s}`
-    : step === 2 ? (s2.moved ? `② 예약 시각이 바뀐 크루 ${s2.moved}명 · ${runs.filter((r) => r.moved).map((r) => `${nm(r.board)} ${r.savedT} → ${r.t}`).join(" · ")} · 예약을 고쳐 주세요` : `② 예약 넣기 ${s2.n}/${s2.of} · ${(runs.find((r) => !r.on) && nm(runs.find((r) => !r.on).board)) || "고칠 것 확인"}`)
+    : step === 2 ? (s2.moved ? `② 예약 시각이 바뀐 크루 ${s2.moved}명 · ${runs.filter((r) => r.moved).map((r) => `${rn(r)} ${r.savedT} → ${r.t}`).join(" · ")} · 예약을 고쳐 주세요` : `② 예약 넣기 ${s2.n}/${s2.of} · ${(runs.find((r) => !r.on) && rn(runs.find((r) => !r.on))) || "고칠 것 확인"}`)
     : test.at ? (test.waitMin >= TEST_WAIT ? `③ 시험 결과가 ${test.waitMin}분째 안 올라왔어요 · Aside 화면에서 멈춘 곳 확인` : "③ 시험 결과 기다리는 중 · 올라오면 저절로 ✓") : "③ [시험 한 번]";
   return { owner: g.owner, docId: setupDocId(g.owner), doc, sites, runs, fix, test, s1, s2, s3, k, done, step, allRan, next };
 }
@@ -403,30 +409,30 @@ export function asideInbox(D, uid, now = new Date(), seen = {}) {
   const plan = asidePlanOf(D), bv = D.ai.boards || {}, key = ymd(now), out = [], master = isMaster(me);
   const nm = (b) => (mateOf(b.mate) || {}).name || b.mate;
   const g = plan.find((x) => x.owner === uid);
-  const svOf = (owner, r) => ((setupDocOf(D, owner).runs || {})[r.board.id]) || null;   // [넣었어요] (2026-10-19)
+  const svOf = (owner, r) => ((setupDocOf(D, owner).runs || {})[r.key || r.board.id]) || null;   // [넣었어요] (2026-10-19) · 나눠 간 할 일 예약 = 열쇠 보드~GH
   if (g) {
     // 세팅 3단계 (2026-10-19 사장님 2A) — 끝날 때까지 한 줄 · 다음 할 일 · 예전 기준(모든 크루가 한 번 이상 올라옴)이어도 끝
     const su = setupOf(D, g, now);
     if (!su.done) out.push({ kind: "aiSetup", tag: "AI 크루 세팅", id: `asu:${uid}`, owner: uid, whoName: "AI 크루", at: key + "T00:00:00", keep: true,
-      title: `내 PC Aside 세팅 · ${g.runs.map((r) => `${nm(r.board)} ${r.t}`).join(" · ")}`, text: `3단계 중 ${su.k}단계 끝 · 다음: ${su.next}` });
+      title: `내 PC Aside 세팅 · ${g.runs.map((r) => `${runName(r)} ${r.t}`).join(" · ")}`, text: `3단계 중 ${su.k}단계 끝 · 다음: ${su.next}` });
     // 안 돎: 오늘(예약 + 90분) 또는 지난 평일에 못 올림 (2026-10-17 · 예전엔 그날만 → 다음 날 아침엔 안 보였음) · 예약을 넣었는데 한 번도 안 올린 크루도 (2026-10-19)
-    g.runs.forEach((r) => { const dw = dowOf(r), v = bv[r.board.id], n = runMiss(v, svOf(uid, r), r.t, now, dw); if (!n) return;
-      out.push({ kind: "aiMiss", tag: "Aside 안 돎", red: true, id: `am:${r.board.id}:${key}`, board: r.board.id, owner: uid, whoName: `${nm(r.board)} (AI)`, at: missAt(v, r.t, n, now, dw), keep: true,
-        title: v && v.at ? missTitle(nm(r.board), n, missedOn(v, r.t, now, dw), key, weeklyOf(r)) : neverTitle(nm(r.board), n, weeklyOf(r)), text: `${runWord({ ...r.board.run, t: r.t })} 예약 · PC·Aside 가 켜져 있는지 확인 · [지금 돌리기]로 바로` }); });
+    g.runs.forEach((r) => { const dw = dowOf(r), v = runV(bv, r), n = runMiss(v, svOf(uid, r), r.t, now, dw); if (!n) return;
+      out.push({ kind: "aiMiss", tag: "Aside 안 돎", red: true, id: `am:${r.key || r.board.id}:${key}`, board: r.board.id, owner: uid, whoName: `${nm(r.board)} (AI)`, at: missAt(v, r.t, n, now, dw), keep: true,
+        title: v && v.at ? missTitle(runName(r), n, missedOn(v, r.t, now, dw), key, weeklyOf(r)) : neverTitle(runName(r), n, weeklyOf(r)), text: `${runWord({ ...r.board.run, t: r.t })} 예약 · PC·Aside 가 켜져 있는지 확인 · [지금 돌리기]로 바로` }); });
   }
   if (master) { const un = plan.find((x) => !x.owner);
     if (un) out.push({ kind: "aiOwnerless", tag: "AI 크루 담당", id: `ao:${un.runs.map((r) => r.board.id).join(",")}`, whoName: "AI 크루", at: key + "T00:00:00", keep: true,
       title: `AI 크루 담당 미정 ${un.runs.length}명`, text: `${un.runs.map((r) => nm(r.board)).join(" · ")} · 담당을 정하면 그 사람 PC 에서 돌고 세팅 안내가 가요` });
     // 담당 미정 크루(관리자 PC 에서 돌던 것)도 안 돎 → 관리자 누구나 한 줄 (멈춤 감시 ④ · 예전엔 아무에게도 안 감)
-    const um = un ? un.runs.map((r) => ({ r, n: runMiss(bv[r.board.id], svOf("", r), r.t, now, dowOf(r)) })).filter((x) => x.n > 0) : [];
-    if (um.length) out.push({ kind: "aiMiss", tag: "Aside 안 돎", red: true, id: `amu:${um.map((x) => x.r.board.id).join(",")}:${key}`, board: um[0].r.board.id, owner: "", whoName: "AI 크루 (담당 미정)", at: missAt(bv[um[0].r.board.id], um[0].r.t, um[0].n, now, dowOf(um[0].r)), keep: true,
-      title: um.length > 1 ? `담당 미정 크루 ${um.length}명이 안 올렸어요` : (bv[um[0].r.board.id] || {}).at ? missTitle(nm(um[0].r.board), um[0].n, missedOn(bv[um[0].r.board.id], um[0].r.t, now, dowOf(um[0].r)), key, weeklyOf(um[0].r)) : neverTitle(nm(um[0].r.board), um[0].n, weeklyOf(um[0].r)),
-      text: `${um.map((x) => `${nm(x.r.board)}${x.n > 1 ? ` ${x.n}일째` : ""}`).join(" · ")} · 관리자 PC Aside 확인 · 담당을 정하면 그 사람에게 알려요` });
+    const um = un ? un.runs.map((r) => ({ r, v: runV(bv, r), n: runMiss(runV(bv, r), svOf("", r), r.t, now, dowOf(r)) })).filter((x) => x.n > 0) : [];
+    if (um.length) out.push({ kind: "aiMiss", tag: "Aside 안 돎", red: true, id: `amu:${um.map((x) => x.r.key || x.r.board.id).join(",")}:${key}`, board: um[0].r.board.id, owner: "", whoName: "AI 크루 (담당 미정)", at: missAt(um[0].v, um[0].r.t, um[0].n, now, dowOf(um[0].r)), keep: true,
+      title: um.length > 1 ? `담당 미정 크루 ${um.length}명이 안 올렸어요` : (um[0].v || {}).at ? missTitle(runName(um[0].r), um[0].n, missedOn(um[0].v, um[0].r.t, now, dowOf(um[0].r)), key, weeklyOf(um[0].r)) : neverTitle(runName(um[0].r), um[0].n, weeklyOf(um[0].r)),
+      text: `${um.map((x) => `${runName(x.r)}${x.n > 1 ? ` ${x.n}일째` : ""}`).join(" · ")} · 관리자 PC Aside 확인 · 담당을 정하면 그 사람에게 알려요` });
     // 평일 MISS_ESC(2)일 넘게 안 올린 보드(담당 있음 · 내 것 빼고) → 관리자 누구나 한 줄 · 읽음 = 오늘 하루
-    const lg = plan.filter((x) => x.owner && x.owner !== uid).flatMap((x) => x.runs.map((r) => ({ owner: x.owner, r, n: runMiss(bv[r.board.id], svOf(x.owner, r), r.t, now, dowOf(r)) }))).filter((x) => x.n >= MISS_ESC);
-    const lid = `aml:${lg.map((x) => x.r.board.id).join(",")}:${key}`;
+    const lg = plan.filter((x) => x.owner && x.owner !== uid).flatMap((x) => x.runs.map((r) => ({ owner: x.owner, r, n: runMiss(runV(bv, r), svOf(x.owner, r), r.t, now, dowOf(r)) }))).filter((x) => x.n >= MISS_ESC);
+    const lid = `aml:${lg.map((x) => x.r.key || x.r.board.id).join(",")}:${key}`;
     if (lg.length && !seen[lid]) out.push({ kind: "aiMissLong", tag: "Aside 안 돎", red: true, id: lid, board: lg[0].r.board.id, owner: lg[0].owner, whoName: "AI 크루", at: (bv[lg[0].r.board.id] || {}).at,
-      title: `Aside 평일 ${MISS_ESC}일 넘게 안 돎 · ${lg.length}명`, text: `${lg.map((x) => `${nm(x.r.board)}(${nameOf(D.users, x.owner) || "?"} PC) ${x.n}일째`).join(" · ")} · 그 PC·Aside 를 확인해 주세요` });
+      title: `Aside 평일 ${MISS_ESC}일 넘게 안 돎 · ${lg.length}명`, text: `${lg.map((x) => `${runName(x.r)}(${nameOf(D.users, x.owner) || "?"} PC) ${x.n}일째`).join(" · ")} · 그 PC·Aside 를 확인해 주세요` });
     // Aside 세팅 현황 (2026-10-19 사장님 4A) — 담당 PC 마다 몇 단계 · 끝나지 않은 PC 가 있으면 관리자 한 줄 · 읽음 = 오늘 하루 · 누르면 현황 시트
     //   담당 미정 크루(관리자 PC)는 셈에서 뺌 — 그건 'AI 크루 담당 미정' 줄([정하기])이 맡음
     const rows = setupRows(D, now).filter((x) => x.owner && x.runs.length), left = rows.filter((x) => !x.done), sid = `asa:${key}`;

@@ -9,7 +9,7 @@
 //   리드(그 칸 담당의 상급자 중 리드) 한마디 → [본부장에게 보내기] = 그때 숫자를 얼림(snap) · 본부장 [읽었어요]
 //   저장: pour-os/v2/aireports/{크루}-{기간 시작} = {crew, cycle, start, end, due, secs:{AI id:{note, plan, done, sent, snap}}, leads:{리드 id:{note, at}}, read, log[]}
 import { addDays, ymd, md, nameOf, isMaster, isDone, isRemoved, fxIds } from "./model.js";
-import { CREWS, GONE, mateOf, boardOf, fmtMetric, metricOk, stageNum, handoffsIn, quietOf, quietLine, isNpsAct, npsOf, npsLine } from "../../marketing-hub/crew.js";
+import { PAUSE, CREWS, GONE, mateOf, boardOf, fmtMetric, metricOk, stageNum, handoffsIn, quietOf, quietLine, isNpsAct, npsOf, npsLine } from "../../marketing-hub/crew.js";
 import { mateOwner, bossOf, isLeadU, isHQ, MAX_UP } from "./aiask.js";
 import { doneDay, dayOfIso } from "./report.js";
 import { isFxKey, fxIdOf, akKeys, taskAks, liveAk, liveActOwners } from "./airt.js";
@@ -141,6 +141,7 @@ export const secFiles = (s, sent) => ((sent ? (s && s.snap && s.snap.files) || (
 // '확인할 것' 줄 (마감 날부터 · 보낼 때까지 · 지난 기간도 안 보냈으면 빨강) — model.todayView 가 D.aiRepInbox 로 부름(순환 import 피하려고)
 //   담당·같이 쓰는 사람: 그 칸 [다 썼어요] 전 · 리드: 내 칸 중 안 보낸 것 · 본부장: 보낸 칸이 있고 아직 안 읽음
 export function repInbox(D, uid, now = new Date()) {
+  if (PAUSE.on) return [];   // ⏸ 자동화 멈춤 (2026-10-21) — AI 크루 보고 칸 쓰기·보내기·도착 줄 안 띄움 (보고서 화면은 그대로)
   const users = D.users || [], me = actU(users, uid); if (!me || !D.ai) return [];
   const cfg = cycleOf(D), today = ymd(now), docs = D.ai.reports || {}, rows = [], hq = isHQ(users, uid);
   repCrews().forEach((c) => {

@@ -7,7 +7,7 @@ import { useMemo, useState } from "react";
 import { C, TBtn, Act, Head, Card, Row, inp, useLocal } from "./ui.jsx";
 import { LS } from "./core.jsx";
 import { md, isMaster, nameOf, scopeOf, fxPeople } from "./model.js";
-import { canReq } from "../../marketing-hub/crew.js";
+import { canReq, PAUSE } from "../../marketing-hub/crew.js";
 import { rtPairs, rtAiNow, rtSuggest, pairLabel, fxIdOf, rtKey, isFxKey, akKeys } from "./airt.js";
 import { brId } from "./routine.js";
 import { akWho } from "../../pour-os/src/actionKpi.js";
@@ -16,6 +16,7 @@ const stopKey = (e) => { if (e.key !== "Escape") e.stopPropagation(); };
 const canPair = (cu, mates, mid) => isMaster(cu) || Object.values(((mates || {})[mid] || {}).owners || {}).includes(cu.id);
 
 export function AiLine({ ai, open }) {
+  if (PAUSE.on) return null;   // ⏸ 자동화 멈춤 (2026-10-21) — 반복 실행 줄 아래 AI 줄 숨김
   if (!ai || (!ai.wait.length && !ai.exec.length)) return null;
   const w = ai.wait.length, x = ai.exec.length, names = [...new Set(ai.pairs.map((p) => p.mateName))].join("·");
   const go = (e) => { e.stopPropagation(); if (w) open({ type: "aiask", id: ai.wait[0].id }); else open({ type: "task", id: ai.exec[0].id }); };

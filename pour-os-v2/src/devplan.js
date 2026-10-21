@@ -9,6 +9,7 @@
 //     devStartedAt?, devLater? {포스트잇 id: 까닭}, devDone? {at, summary, done[], later[{id, why}]}} · '안 함' = 그 포스트잇 state 'no' + noReason·noAt·noBy (지우지 않음)
 //   날짜는 기기 날짜(한국) — devreqs.py 는 한국 시각으로 같은 계산
 import { ymd, addDays, md, isMaster } from "./model.js";
+import { PAUSE } from "../../marketing-hub/crew.js";   // ⏸ 자동화 멈춤 (2026-10-21) — 월 1회 주말 자동 개발도 멈춤 → 이달 개발 목록 확인 줄·목요일 문자 안 함
 
 export const DEV_REVIEWER_DEFAULT = "김송희";
 export const DEV_PICKS = [["now", "이번에"], ["later", "다음 달"], ["no", "안 함"]];
@@ -91,7 +92,7 @@ export function devInbox(D, uid, now = new Date(), seen = {}) {
   const out = [], dv = D && D.dev; if (!dv) return out;
   const me = ((D && D.users) || []).find((u) => u && u.id === uid), rv = isDevReviewer(D, me), key = ymd(now), since = new Date(now.getTime() - 7 * DAY).toISOString();
   const w = planNow(now), plan = (dv.plans || {})[w.ym], st = planStage(w, plan, now), items = planItems(dv.reqs);
-  if (rv && w.open && (st === "review" || st === "late") && items.length) {
+  if (!PAUSE.on && rv && w.open && (st === "review" || st === "late") && items.length) {
     const late = st === "late";
     out.push({ kind: "devPlan", tag: "이달 개발", id: "dp:" + w.ym, ym: w.ym, title: `${ymLabel(w.ym)} 개발 목록 ${items.length}개`, at: new Date(w.monday + "T09:00:00").toISOString(),
       text: `${late ? (key === w.due ? "오늘" : "내일") : md(w.due) + "(금)"}까지 [이번에·다음 달·안 함] 골라 확인 · 없으면 이번 달 개발은 쉬어요`, keep: true, ...(late ? { red: true, ord: 1.95 } : {}) });

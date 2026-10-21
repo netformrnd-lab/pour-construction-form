@@ -533,7 +533,9 @@
      run: TEAM 과 같은 모양(dow·dom·every + t) · ts = 하루 여러 번 · run 없으면 word 만 */
   const AUTO_CATS = [['content', '콘텐츠'], ['ads', '광고·행사'], ['stock', '재고·발주'], ['customer', '고객'], ['plan', '기획·보고'], ['data', '숫자·데이터'], ['ops', '백업·알림']];
   const AUTO_WHERE = { routine: 'Claude 루틴', actions: 'GitHub 자동 작업', calendar: '구글 캘린더', aside: 'Aside (회사 PC)', asideOwner: 'Aside (담당 PC)' };
-  const AUTO_STATUS = { on: '동작 중', wait: '준비 중', plan: '계획' };
+  const AUTO_STATUS = { on: '동작 중', wait: '준비 중', plan: '계획', stop: '멈춤' };
+  // ⏸ 자동화 멈춤 (사장님 2026-10-21 '자동 모두 멈춰') — 백업 빼고 모두 '멈춤' (Claude 예약 작업 끔 · GitHub 예약 실행 주석 · crew.js PAUSE) · 다시 켜려면 ''
+  const AUTO_PAUSED = '2026-10-21';
   const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
   /* 크루 보드 Aside 루틴 (2026-10-14 사장님 "모든 크루들의 행위들 모두 가능하게 세팅해줘") — 보드 하나 = Aside 예약 작업 하나 · 평일
      2026-10-15 사장님 "사람 담당자들 모두 어사이드 돌릴 수 있어. 각각 돌려서 빨리" → 담당마다 자기 PC · 담당이 다르면 모두 09:00 동시에(같은 담당 여럿이면 그 PC 에서 한 시간씩 = crew.asidePlan)
@@ -581,7 +583,7 @@
   ];
   const MEMBER_CAT = { haru: 'plan', pori: 'content', luna: 'content', teo: 'content', noa: 'plan', tobi: 'plan', moka: 'data', leo: 'stock', kei: 'ads', daon: 'customer', sora: 'ads', roy: 'plan', ria: 'customer', jay: 'ads', eco: 'content', nari: 'content', onyu: 'customer' };
   function automations() {
-    const out = AUTOMATIONS.map((a) => ({ ...a }));
+    const out = AUTOMATIONS.map((a) => (AUTO_PAUSED && a.id !== 'backup' ? { ...a, status: 'stop', note: `${AUTO_PAUSED} 사장님 '자동 모두 멈춤'` } : { ...a }));
     for (const m of TEAM) m.runs.forEach((r, i) => {
       if (m.gone || (m.live && !r.off)) return; // 켜진 일은 위 루틴이 함 · 쉬는 팀원(gone)은 크루가 이어받음
       out.push({ id: `plan-${m.id}-${i}`, name: `${m.name} · ${r.what}`, cat: MEMBER_CAT[m.id] || 'plan', where: 'routine', run: r, members: [m.id], status: 'plan',
@@ -604,7 +606,7 @@
   }
   function autoSummary(list) {
     const by = (k, v) => list.filter((a) => a[k] === v).length;
-    return { total: list.length, on: by('status', 'on'), wait: by('status', 'wait'), plan: by('status', 'plan'),
+    return { total: list.length, on: by('status', 'on'), wait: by('status', 'wait'), plan: by('status', 'plan'), stop: by('status', 'stop'),
       cats: AUTO_CATS.map(([id, label]) => ({ id, label, n: by('cat', id), set: list.filter((a) => a.cat === id && a.status !== 'plan').length })) };
   }
   function nowKST(now = new Date()) {
@@ -940,7 +942,7 @@
   const isStaffEmail = (email, roles) => !!email && ((roles && roles.staffs) || []).includes(email); // 직원: 고객의 소리 입력만
 
   const api = { STORE_MODE, OPEN_ROOT, OWNER_EMAILS, storeMode, col, isAdminEmail, isUploaderEmail, isStaffEmail,
-    mdLite, noteParts, parsePosts, postPlain, postBlocks, postHtml, pasteHtml, blogCheck, photoParts, CHANNEL, POST_STATUS, postId, DRAFT_CH, canDraft, TEAM, CREW_LIVE, CREW_ASIDE, teamShown, teamMember, runsOn, teamDay, nextRun, RUN_WORD, nowKST, AUTO_CATS, AUTO_WHERE, AUTO_STATUS, AUTOMATIONS, automations, autoWord, autoNext, autoSummary, VOC_TYPES, VOC_SOURCES, VOC_URGENT_TYPE, VOC_REPEAT, maskPII, vocDoc, vocSummary, vocLinks, HUB_URL, obsidianOpenUri, CHANNELS, obsidianNote, obsidianUri, OBSIDIAN_NOTE, DEFAULT_SETTINGS, stockRows, salesRows, dailyRevenue, numbersNote, AUTO_SALES, BRAND_L, STALE_SALES, STALE_STOCK, daysSince, autoSalesRows, mergeSales, brandSales, OBSIDIAN_HUB, OBSIDIAN_HUB_SECTION, FIELDS, channelOf, parseTable, toNumber, analyze, reducedCsv, buildDocs, hash, stockPlan, keywordAdvice, addDays, yesterdayKST, utf8Bytes, MAX_CSV_BYTES };
+    mdLite, noteParts, parsePosts, postPlain, postBlocks, postHtml, pasteHtml, blogCheck, photoParts, CHANNEL, POST_STATUS, postId, DRAFT_CH, canDraft, TEAM, CREW_LIVE, CREW_ASIDE, teamShown, teamMember, runsOn, teamDay, nextRun, RUN_WORD, nowKST, AUTO_CATS, AUTO_WHERE, AUTO_STATUS, AUTO_PAUSED, AUTOMATIONS, automations, autoWord, autoNext, autoSummary, VOC_TYPES, VOC_SOURCES, VOC_URGENT_TYPE, VOC_REPEAT, maskPII, vocDoc, vocSummary, vocLinks, HUB_URL, obsidianOpenUri, CHANNELS, obsidianNote, obsidianUri, OBSIDIAN_NOTE, DEFAULT_SETTINGS, stockRows, salesRows, dailyRevenue, numbersNote, AUTO_SALES, BRAND_L, STALE_SALES, STALE_STOCK, daysSince, autoSalesRows, mergeSales, brandSales, OBSIDIAN_HUB, OBSIDIAN_HUB_SECTION, FIELDS, channelOf, parseTable, toNumber, analyze, reducedCsv, buildDocs, hash, stockPlan, keywordAdvice, addDays, yesterdayKST, utf8Bytes, MAX_CSV_BYTES };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.MktCore = api;
 })(typeof window !== 'undefined' ? window : globalThis);

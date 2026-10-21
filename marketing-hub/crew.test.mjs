@@ -3,6 +3,10 @@ import { createRequire } from 'node:module';
 import * as K from './crew.js';
 import { AD_MODE, AUTO_OFF } from './adops.js';   // 외주 + 내부 관리 ↔ 예전 외주 기간 되돌려 보기 (2026-10-16) · 규칙 안 끄기 (2026-10-19)
 const C = createRequire(import.meta.url)('./core.js');
+// ⏸ 자동화 멈춤 (2026-10-21) — 멈춘 동안의 지시문 = 멈춤 한 장 · 아래 시험은 예전(켜진) 동작을 봄
+{ const b0 = K.BOARDS['gh-conv'], t0 = K.asideText(b0);
+  if (!(K.PAUSE.on && /\[멈춤\]/.test(t0) && /아무것도 만들거나 올리지 말고/.test(t0) && !/지시문 판/.test(t0))) { console.error('✗ 멈춤 지시문', t0.slice(0, 120)); process.exitCode = 1; } else console.log('✓ 멈춤: 지시문 = 멈춤 한 장 (아무것도 안 함)');
+  K.PAUSE.on = ''; }
 let n = 0, bad = 0;
 const eq = (name, got, want) => { n++; const ok = JSON.stringify(got) === JSON.stringify(want); if (!ok) { bad++; console.log('✗', name, '\n  got ', JSON.stringify(got), '\n  want', JSON.stringify(want)); } else console.log('✓', name); };
 
@@ -138,7 +142,7 @@ const AB = K.asideBoards();
 eq('Aside 루틴 10개 · 같은 PC 안 순서(가을 → 겨울 → 봄 → 여름 → 우주 → 바람 → 하늘 → 운영·전략) · 바라는 시각·요일 · B2B 는 닫음(2026-10-17)', AB.map((b) => [K.mateOf(b.mate).name, K.runWord(b.run)]), [['가을', '평일 09:00'], ['겨울', '평일 09:00'], ['봄', '평일 09:00'], ['여름', '평일 09:00'], ['우주', '평일 09:00'], ['바람', '평일 09:00'], ['하늘', '평일 09:00'],
   ['이음', '평일 15:00'], ['별', '매주 금 09:00'], ['달', '매주 월 09:00']]);
 eq('허브 자동 작업(core.js CREW_ASIDE · 닫힌 크루 빼고) = crew.js 보드 시각·요일·이름', C.CREW_ASIDE.filter((c) => !c.closed).map((c) => [c.board, c.mate, c.name, c.t, (c.dow || [1, 2, 3, 4, 5]).join()]).sort(), AB.map((b) => [b.id, b.mate, K.mateOf(b.mate).name, b.run.t, b.run.dow.join()]).sort());
-eq('허브 자동 작업 10개 = Aside (담당 PC) · 준비 중 · 보드 요일·시각', C.automations().filter((a) => /^aside-crew-/.test(a.id)).map((a) => [C.AUTO_WHERE[a.where], C.autoWord(a), a.status]), AB.map((b) => ['Aside (담당 PC)', C.autoWord({ run: b.run }), 'wait']));
+eq('허브 자동 작업 10개 = Aside (담당 PC) · 멈춤(2026-10-21 · 예전 준비 중) · 보드 요일·시각', C.automations().filter((a) => /^aside-crew-/.test(a.id)).map((a) => [C.AUTO_WHERE[a.where], C.autoWord(a), a.status]), AB.map((b) => ['Aside (담당 PC)', C.autoWord({ run: b.run }), C.AUTO_PAUSED ? 'stop' : 'wait']));
 {
   const own = { 'gh-conv': 'sy', 'gh-rep': 'sy', 'gh-ohou': 'yj' }, plan = K.asidePlan((b) => own[b.id] || '');
   const gh = (g) => g.runs.filter((r) => /^gh-/.test(r.board.id)).map((r) => r.t + ' ' + r.board.id);

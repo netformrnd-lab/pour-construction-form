@@ -24,7 +24,7 @@ import { flowOwners } from "./flow.js";
 import { sumAk, akWrite, countFields, countOf, baseTitle } from "./routine.js";
 import { linkInbox } from "./links.js";
 import { apprInbox, apprMerge } from "./appr.js";   // 구매 품의 요청 (2026-10-16)
-import { askInbox, asideInbox, planPass, planBack, planRet, planDrop, planExec, canAct, canBack, canRet, pickOk, bossLoop, moreText, MORE_MAX, hqOf, pathOf, PATHS, PATH_L, traceOf, traceLeft, mateOwner, actOwner, isHQ, launchTaskOf, adsAsideVer, adsAsideOwner, canAdsAside, setupDocId, setupDocOf } from "./aiask.js";   // AI 승인 (2026-10-12) · Aside 담당 PC (2026-10-15)
+import { askInbox, asideInbox, planPass, planBack, planRet, planDrop, planExec, canAct, canBack, canRet, pickOk, bossLoop, moreText, MORE_MAX, hqOf, pathOf, PATHS, PATH_L, traceOf, traceLeft, mateOwner, actOwner, isHQ, launchTaskOf, adsAsideVer, adsAsideOwner, canAdsAside, setupDocId, setupDocOf, PAUSE } from "./aiask.js";   // AI 승인 (2026-10-12) · Aside 담당 PC (2026-10-15)
 import { moneyInbox } from "./money.js";   // 돈·결재 7건 알림 (2026-10-17 · 계산만)
 import { feedInbox, adChecker } from "./feeds.js";   // 결과 숫자 · 비면 n일째 (2026-10-17 · 계산만)
 import { mateOf, boardOf, brandL, qtyDefs, canReq, reqDoc, reqId, designBad, DESIGN_MAX, handoffLabel, handoffTargets, isNpsAct, npsScore } from "../../marketing-hub/crew.js";
@@ -329,7 +329,7 @@ function useDevRemind(D, cu, on) {
   useEffect(() => { if (on && ready && ref.current.tick) ref.current.tick(); }, [on, ready]);   // 목록·계획을 받은 바로 그때 한 번 (1분 기다리지 않게)
   useEffect(() => { if (!on) return undefined;
     const tick = ref.current.tick = async () => { const { D: d, cu: me } = ref.current, now = new Date(), w = planNow(now), key = ymd(now);
-      if (!d || !me || !d.dev || !d.dev.ready || key !== w.thu || (d.dev.plans[w.ym] && d.dev.plans[w.ym].state === "ok")) return;
+      if (PAUSE.on || !d || !me || !d.dev || !d.dev.ready || key !== w.thu || (d.dev.plans[w.ym] && d.dev.plans[w.ym].state === "ok")) return;
       const n = planItems(d.dev.reqs).length, uid = devReviewer(d), u = (d.users || []).find((x) => x.id === uid);
       if (!n || !uid || !smsTarget(u, me.id) || !smsOpen(u, now)) return;
       const st = ((d.settings || []).find((x) => x && (x.id || x._doc) === "devplan") || {}); if (st.remind && st.remind[w.ym]) return;

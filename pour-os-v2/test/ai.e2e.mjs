@@ -50,7 +50,7 @@ async function session(uid, { admin = false, w = 375, h = 812, now = NOW, init =
   await ctx.clock.setFixedTime(new Date(now));
   await ctx.route(/googleapis|gstatic|firebaseio|firebasestorage/, (r) => r.abort());
   await ctx.route('http://v2.test/**', (r) => { const u = r.request().url(); if (/\.json(\?|$)/.test(u)) return r.fulfill({ status: 404, body: '' }); return r.fulfill({ path: u.includes('admin') ? ADMIN : TEAM, contentType: 'text/html' }); });
-  await ctx.addInitScript(`try{ if(sessionStorage.__V2) window.__V2=JSON.parse(sessionStorage.__V2); }catch(e){} window.__V1_DATA={}; window.__V1_DOCS=${JSON.stringify(V1D)}; window.__V1_LAUNCH=[]; window.__HUB_ROLES=${JSON.stringify(HUB_ROLES)}; if(!window.__V2) window.__V2=${JSON.stringify(ST)};${init}`);
+  await ctx.addInitScript(`window.__NO_PAUSE=1; try{ if(sessionStorage.__V2) window.__V2=JSON.parse(sessionStorage.__V2); }catch(e){} window.__V1_DATA={}; window.__V1_DOCS=${JSON.stringify(V1D)}; window.__V1_LAUNCH=[]; window.__HUB_ROLES=${JSON.stringify(HUB_ROLES)}; if(!window.__V2) window.__V2=${JSON.stringify(ST)};${init}`);
   const pg = await ctx.newPage();
   pg.on('pageerror', (e) => errs.push(`${uid}: ${e.message.slice(0, 300)}`));
   pg.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource|ERR_FAILED|holidays/.test(m.text())) errs.push(`${uid} console: ${m.text().slice(0, 300)}`); });

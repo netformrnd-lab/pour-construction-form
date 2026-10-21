@@ -1,5 +1,6 @@
 // node src/feeds.test.mjs — 결과 숫자 들어온 날 · 비면 n일째 (③ · 2026-10-17 · 계산만)
 import { feedRows, feedInbox, lagText, adChecker, LAG } from "./feeds.js";
+import { PAUSE as PAUSE_SW } from "../../marketing-hub/crew.js"; PAUSE_SW.on = "";   // ⏸ 자동화 멈춤(2026-10-21) — 이 시험은 켜진 동작을 봄 (멈춤은 aiask.test 맨 아래)
 let ok = 0, bad = 0;
 const ck = (name, cond, info) => { if (cond) ok++; else { bad++; console.log("✕", name, info === undefined ? "" : JSON.stringify(info)); } };
 const users = [{ id: "sh", name: "김송희", role: "lead", master: true }, { id: "mj", name: "김민지" }, { id: "yj", name: "남윤정" }, { id: "cr", name: "양채림" }];

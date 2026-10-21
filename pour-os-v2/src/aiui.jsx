@@ -20,7 +20,7 @@ import { GONE, liveCrews, closedCrews, CLOSED_L, pathGroups, pathGroupsL, crewOf
 import { cycleOf, periodOf, repCrews, repId, repSlots, secState, periodL, dueL, CYCLE_L } from "./aireport.js";   // AI 크루 보고 (2026-10-15)
 import { ASK_STATE_L, canAct, canBack, canRet, isProxy, pickOk, planPass, chainOf, mateOwner, actOwner, hqOf, canUpHQ, pathOf, pathDef, upLeadTo, PATH_L, mateStats, repeatNotes, itemLine, askBanned, bannedBackText, bossOf, bossRec, bossLoop, asidePlanOf, ranOn, missedOn, goneWaits, GONE_DROP, myTurnN,
   waitWd, workMin, prevWaits, newerOf, routineRanOn, routineMisses, routineAlert, stuckAlert, LATE_WD, BACK_MIN, PREV_DROP, ROUTINE_AT, ROUTINE_CHECK,
-  setupOf, setupRows, uploaderOf, accountName, TEST_WAIT, runName } from "./aiask.js";   // 멈춤 감시 (2026-10-17) · Aside 세팅 3단계 (2026-10-19)   // 멈춤 감시 (2026-10-17)
+  setupOf, setupRows, uploaderOf, accountName, TEST_WAIT, runName, PAUSE } from "./aiask.js";   // 멈춤 감시 (2026-10-17) · Aside 세팅 3단계 (2026-10-19)   // 멈춤 감시 (2026-10-17)
 
 export const HUB_CREW_URL = "../marketing-hub/crew.html";   // Aside 결과 올리기 (허브)
 export const HUB_MANUAL_URL = "../marketing-hub/ai-manual.html", HUB_ADS_URL = "../marketing-hub/ads.html";   // AI 팀 매뉴얼 · 광고 운영 (2026-10-15 · 읽기 전용 · Aside 가 씀)
@@ -87,6 +87,7 @@ const REASONS = ["이번엔 안 함", "중복", "근거 부족", "브랜드와 �
 
 // 오늘 아침 루틴 (2026-10-17 멈춤 감시) — 올라온 노트 승인 · 09:30 까지 안 올라오면 빨강 + 사장님께 보낼 글 (아침 루틴은 사장님 Claude 예약 작업 · 팀원은 알리기만)
 function RoutineToday({ D, m }) {
+  if (PAUSE.on) return <Banner><b>아침 루틴 멈춤</b> · {PAUSE.on}부터 (사장님 '자동 모두 멈춰') · 다시 켤 때까지 안 돌아요</Banner>;   // ⏸ 자동화 멈춤
   const now = new Date(), key = ymd(now), miss = routineMisses(D, now).some((x) => x.mate === m.id);
   const got = ((D.ai && D.ai.asks) || []).filter((a) => routineRanOn(a, m.id, key)).sort((p, q) => String(p.createdAt).localeCompare(String(q.createdAt)));
   return <Banner red={miss}><b>오늘 아침 루틴</b> · {isOffDay(key) ? "쉬는 날이라 안 돌아요" : got.length ? `${hm(got[0].createdAt)} 올라옴 · 승인 ${got.length}건` : miss ? <b style={{ color: C.red }}>{ROUTINE_CHECK}까지 안 올라왔어요</b> : `평일 ${ROUTINE_AT} 예약 · 아직 (${ROUTINE_CHECK}까지 기다려요)`}
@@ -235,6 +236,7 @@ export function AiTeamBody({ D, cu, A, open, admin }) {
       <div style={{ flex: "1 1 220px", maxWidth: 320 }}><Seg items={[["mine", `내가 맡은 AI ${mineIds.length}`], ["all", "모두"]]} value={scope} onChange={setScope} /></div>
       {master && <TBtn onClick={() => setBulk(!bulk)} aria-pressed={bulk}>{bulk ? "담당 정하기 끝" : "담당 한꺼번에 정하기"}</TBtn>}
     </div>
+    {PAUSE.on && <Banner red><b>AI 크루 자동 실행 멈춤</b> · {md(PAUSE.on)}부터 (사장님 '자동 모두 멈춰')<div style={{ fontSize: 12.5, color: C.sub, marginTop: 4 }}>Aside 세팅·안 돎·승인·보고 알림은 '확인할 것'에 안 떠요 · 올라와 있던 결과는 아래에서 그대로 열어 볼 수 있어요</div></Banner>}   {/* ⏸ 자동화 멈춤 (2026-10-21) */}
     {/* 맡긴 일(2026-10-15 "ai팀원에게 업무요청을 별도로해서 진행도 가능") — 누구나 · 보드가 있는 크루 팀원에게 */}
     {(() => { const mine = ((D.ai && D.ai.reqs) || []).filter((r) => r.by === cu.id && (r.state === "open" || r.state === "doing")).length;
       // AI 크루 보고(2026-10-15 "리드에게 매주 금요일 보고 · 크루 칸별") — 이번 기간 · 담당 확인 · 보냄
@@ -249,7 +251,7 @@ export function AiTeamBody({ D, cu, A, open, admin }) {
       <div style={{ padding: "10px 14px", background: "#fff" }}><TBtn tone="red" onClick={() => setGoneAsk(true)}>모두 '안 함'으로 정리 ({gw.length}건)</TBtn></div>
     </Card>}
     {goneAsk && <Ask title="쉬는 AI 승인 정리" body={`${gw.length}건을 '안 함'으로 정리할까요?\n이유: ${GONE_DROP}\n기록이 남고, 한 건씩 열어 보면 무엇이었는지 그대로 있어요.`} yes="정리" onNo={() => setGoneAsk(false)} onYes={dropGone} />}
-    {(myG || master) && plan.length > 0 && <Card style={{ marginTop: 10 }}>
+    {!PAUSE.on && (myG || master) && plan.length > 0 && <Card style={{ marginTop: 10 }}>
       {myG && (() => { const su = setupOf(D, myG);   // 세팅 3단계 (2026-10-19 사장님 2A) — 끝나기 전엔 다음 할 일 · 끝나면 시각만
         return <Row title={`내 PC Aside · ${myG.runs.map((r) => `${runName(r)} ${r.t}`).join(" · ")}`} tag={su.done ? null : `세팅 ${su.k}/3`} tagTone={su.s2.moved ? "red" : undefined}
           sub={su.done ? "세팅 끝 · 지금 돌리기 · 고칠 것 확인 — 담당마다 자기 PC 에서 동시에 돌아요" : `다음 할 일 · ${su.next}`} onClick={() => open({ type: "aiSetup" })} right={<span style={{ color: C.navy, fontWeight: 800 }}>›</span>} last={!master} />; })()}

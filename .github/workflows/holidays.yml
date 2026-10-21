@@ -4,8 +4,9 @@ name: 업무OS 공휴일 자동 갱신
 # pourstore-renewal/holidays.json 을 고치고 main 에 올림 → 업무OS v2 가 열 때 읽음.
 # 바뀐 날이 있으면 Claude 가 한 줄로 확인(선택). 시크릿: DATA_GO_KR_KEY(꼭) · ANTHROPIC_API_KEY(선택)
 on:
-  schedule:
-    - cron: '17 0 1 * *'
+  # ⏸ 2026-10-21 사장님 '자동 모두 멈춰' — 예약 실행 멈춤 (다시 켜려면 아래 두 줄 앞 # 지우기 · 손으로 실행은 그대로)
+  # schedule:
+  #   - cron: '17 0 1 * *'
   workflow_dispatch:
 
 permissions:

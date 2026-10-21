@@ -6,6 +6,7 @@ import {
 } from "./refs.js";
 import { todayView, groupNotes } from "./model.js";
 import { refRows, refLine, asideText, boardOf, REF_AI_MAX } from "../../marketing-hub/crew.js";
+import { PAUSE as PAUSE_SW } from "../../marketing-hub/crew.js"; PAUSE_SW.on = "";   // ⏸ 자동화 멈춤(2026-10-21) — 이 시험은 켜진 동작을 봄 (멈춤은 aiask.test 맨 아래)
 let n = 0; const ok = (name, fn) => { fn(); n++; console.log("✓", name); };
 const users = [{ id: "sh", name: "김송희", master: false }, { id: "mj", name: "김민지" }, { id: "boss", name: "대표", master: true }, { id: "yj", name: "남윤정" }];
 const cu = (id) => users.find((u) => u.id === id);

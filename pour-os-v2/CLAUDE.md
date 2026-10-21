@@ -10,6 +10,14 @@
   (node_modules 는 `../pour-os/node_modules` 심볼릭 링크 — 같은 패키지)
 - 테스트: `node src/model.test.mjs` · `launch.test.mjs` · `turn.test.mjs` · `views.test.mjs` · `flow.test.mjs` · `routine.test.mjs` · `aiask.test.mjs` · `aireport.test.mjs` · `seensync.test.mjs` · `appr.test.mjs` 등 src/*.test.mjs (계산). 화면 시험은 가짜 저장 장치로만 — 실제 Firestore 에 쓰지 않음 (test/ · 아래 'AI 팀원 · AI 승인' 마지막 줄).
 
+## ⏸ 자동화 멈춤 (사장님 2026-10-21 '자동 모두 멈춰' · '업무 OS에도 알림 멈추고 숨겨')
+- 스위치 하나 = `../marketing-hub/crew.js` `PAUSE.on`(멈춘 날 '2026-10-21' · 다시 켜려면 `''` → 빌드 · 허브는 바로) — aiask 가 다시 내보냄
+- 업무OS '확인할 것'에서 빠짐: AI 승인(askInbox) · Aside 세팅·안 돎·아침 루틴·광고 예약(asideInbox) · 결과 숫자 비어 있음(feedInbox) · AI 크루 보고(repInbox) · 이달 개발 목록(devInbox devPlan · 목요일 문자 useDevRemind) · 더보기 AI 팀원 내 차례 수(myTurnN 0) · 반복 실행 줄 'AI 겨울 · 확인할 결과'(AiLine) · AI 팀원 화면 맨 위 빨간 띠 '자동 실행 멈춤' + Aside 세팅 카드 숨김 · 여름 아침 루틴 띠 = '멈춤'
+- 그대로: 올라와 있던 승인·보고서·결과 숫자 시트는 화면에서 열림 · 데이터 지우지 않음 · 반영함/안 함 포스트잇 알림 · @ 문자 · CRM·신제품 다리
+- 허브: crew.html 지시문 = 멈춤 한 장(Aside 예약이 남아 있어도 아무것도 안 함) · 맡긴 일·고쳐서 다시 안 보임 · 올리기 막힘 · 대시보드 자동 작업 = 백업 빼고 '멈춤'(core.js AUTO_PAUSED)
+- 같이 멈춘 것: Claude 예약 작업 3개(끔 · 지우지 않음) · GitHub 예약 실행 mkt-numbers · firebase-usage · holidays(cron 주석 · 손으로 실행은 됨) · 백업은 그대로
+- 시험: 단위 시험은 `PAUSE.on = ''`(켜진 동작) + aiask.test 맨 아래 멈춤 · test/ai.e2e = `window.__NO_PAUSE` · test/smoke.e2e = 멈춤 화면 · 허브 tests/crew-split.e2e 멈춤 화면
+
 ## v1 보호 (가장 중요)
 - 쓰기는 오직 `pour-os/v2/**` 와 Storage `task-attachments/v2/**`. v1 문서(`pour-os/state-*`, `pour-os/ak-notes/c`)는 **읽기만**.
 - 기기 저장 이름도 `pour-os2-…` 로 따로 (v1 `pour-os-…` 와 안 겹침).

@@ -86,6 +86,9 @@
    - 쿠팡 Wing: 하위 사용자 (조회)
    - 네이버 광고: 뷰어
 
+## ⏸ 자동화 멈춤 (2026-10-21)
+- 사장님 '자동 모두 멈춰' → `crew.js` `PAUSE.on` = crew.html 지시문이 멈춤 한 장 · 올리기 막힘 · 대시보드 자동 작업 백업 빼고 '멈춤'(`core.js` `AUTO_PAUSED`) · 다시 켜려면 둘 다 `''` · 자세히 pour-os-v2/CLAUDE.md '자동화 멈춤'
+
 ## Aside 루틴 (초안 · 실제 메뉴 경로는 샘플 받은 뒤 확정)
 페이지의 고정 요소:
 - `#channel` (채널) · `#report-date` (리포트 날짜) · `#csv-file` (CSV 파일) · `#csv-text` (붙여넣기)

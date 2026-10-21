@@ -83,7 +83,7 @@ eq('팀: 가동 = 여름 아침 루틴만 (하루·포리·에코 쉼)', [C.TEAM
   [[], ['하루→yeoreum', '포리→yeoreum', '에코→yeoreum'], ['여름 06:50']]);
 // 자동 작업 (트리거) 목록 — 2026-10-12
 const AU = C.automations(), AS = C.autoSummary(AU), au0 = (id) => AU.find((a) => a.id === id) || {};
-eq('자동 작업: 걸어 둔 것 = 동작 중 4 · 준비 중 14(크루 Aside 10 포함 · 2026-10-17 B2B 크루 닫음) · 나머지는 팀원 계획', [AS.on, AS.wait, AS.plan === AU.length - 18], [4, 14, true]);
+eq('자동 작업: 멈춤 (2026-10-21 사장님 자동 모두 멈춰) = 백업 빼고 17개 멈춤 · 준비 중 1(백업) · 나머지는 팀원 계획', [C.AUTO_PAUSED, AS.on, AS.stop, AS.wait, AS.plan === AU.length - 18, au0('backup').status], ['2026-10-21', 0, 17, 1, true, 'wait']);
 eq('자동 작업: 크루 Aside 10 = 담당 PC · 평일 09:00 동시에 · 다음 실행 · 이름 (2026-10-15 · 2026-10-17 B2B 5개 닫고 10개)', [AU.filter((a) => /^aside-crew-/.test(a.id)).length, C.autoNext(au0('aside-crew-gh-traffic'), { date: '2026-10-16', time: '08:30' }), C.autoNext(au0('aside-crew-gh-aov'), { date: '2026-10-16', time: '09:30' }), au0('aside-crew-gh-conv').name, au0('aside-crew-gh-conv').who, C.AUTO_WHERE[au0('aside-crew-gh-rep').where]],
   [10, { date: '2026-10-16', t: '09:00' }, { date: '2026-10-19', t: '09:00' }, 'AI 크루 · 겨울 (전환 보드)', '겨울', 'Aside (담당 PC)']);
 eq('자동 작업: 주 1~2회 크루 = 그 요일 (달 월 · 별 금) · 닫힌 B2B 크루(단단 등)는 목록에 없음', [C.autoNext(au0('aside-crew-hq-plan'), { date: '2026-10-16', time: '08:30' }), C.autoNext(au0('aside-crew-ops-report'), { date: '2026-10-16', time: '08:30' }), AU.some((a) => /^aside-crew-b2b-/.test(a.id)), C.CREW_ASIDE.filter((c) => c.closed).map((c) => c.board)],

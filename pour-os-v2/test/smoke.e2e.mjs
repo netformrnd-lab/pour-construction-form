@@ -73,10 +73,10 @@ for (const w of [375, 1280]) {
     const before = errs.length;
     for (const t of ['오늘', '달력', '프로젝트', '더보기']) { await tab(pg, t); ok(`팀 ${w} · ${t} 넘침 없음`, !(await over(pg))); if (w === 375) await pg.screenshot({ path: path.join(SHOTS, `smoke-team-${t}-${w}.png`) }); }
     await tab(pg, '오늘');
-    ok(`팀 ${w} · 오늘: 확인할 것에 AI 승인 요청 · 할 일 · 고정업무`, (await pg.getByText('AI 승인 요청').count()) > 0 && (await pg.getByText('배너 소재 3종').count()) > 0 && (await pg.getByText('CS 문의 확인').count()) > 0);
+    ok(`팀 ${w} · 오늘: 할 일 · 고정업무 · AI 승인 요청 줄은 멈춤이라 안 뜸 (2026-10-21)`, (await pg.getByText('AI 승인 요청').count()) === 0 && (await pg.getByText('배너 소재 3종').count()) > 0 && (await pg.getByText('CS 문의 확인').count()) > 0);
     // '확인할 것' 댓글 줄로 열기 (= 읽음) — 줄이 3개 넘으면 [n개 모두 보기]로 펼침 (2026-10-15 Aside 세팅 안내 줄이 댓글보다 위)
     { const more = pg.locator('.v2-ts.in').getByText(/개 모두 보기/); if (await more.count()) { await more.first().click(); await pg.waitForTimeout(300); } }
-    ok(`팀 ${w} · 확인할 것: Aside 세팅 안내 (겨울·여름 담당 = 내 PC)`, (await pg.locator('.v2-ts.in').getByText('내 PC Aside 세팅', { exact: false }).count()) === 1);
+    ok(`팀 ${w} · 확인할 것: Aside 세팅 안내 없음 (자동화 멈춤 2026-10-21)`, (await pg.getByText('내 PC Aside 세팅', { exact: false }).count()) === 0);
     await pg.locator('.v2-ts.in').getByText('배너 소재 3종').first().click(); await pg.waitForTimeout(500);
     ok(`팀 ${w} · 업무 시트 열림 · 대화`, (await pg.locator('.v2-sheet').count()) > 0 && (await pg.getByText('소재 확인 부탁드려요').count()) > 0);
     ok(`팀 ${w} · 업무 시트 넘침 없음`, !(await over(pg)));
@@ -89,6 +89,7 @@ for (const w of [375, 1280]) {
     await tab(pg, '더보기'); await pg.getByText(/^AI 팀원 · 내가 맡은 AI 2/).first().click(); await pg.waitForTimeout(500);
     ok(`팀 ${w} · 더보기 › AI 팀원 시트 (내가 맡은 AI = 여름 · 겨울 · 포리 담당이어도 원형 칸 없음 · 여름 아침 루틴)`, (await pg.getByText('기본 AI 팀원 (원형)').count()) === 0 && (await pg.locator('.v2-sheet').last().getByText('겨울', { exact: false }).count()) > 0
       && (await pg.locator('.v2-sheet').last().getByText('평일 06:50 블로그·재배포', { exact: false }).count()) > 0 && (await pg.locator('.v2-sheet').last().getByText('포리 · 콘텐츠 마케터', { exact: false }).count()) === 0 && !(await over(pg)));
+    ok(`팀 ${w} · AI 팀원 시트 맨 위 '자동 실행 멈춤' · Aside 세팅 카드 없음 (2026-10-21)`, (await pg.locator('.v2-sheet').last().getByText('AI 크루 자동 실행 멈춤', { exact: true }).count()) === 1 && (await pg.locator('.v2-sheet').last().getByText('내 PC Aside ·', { exact: false }).count()) === 0);
     if (w === 375) await pg.screenshot({ path: path.join(SHOTS, `smoke-team-aiteam-${w}.png`) });
     // 읽은 알림 (2026-10-13 "OS에서 읽음한거 다시보고싶어"): 위에서 '확인할 것' 댓글 줄을 눌러 열었으니(= 읽음) → 더보기 › 읽은 알림에 있음
     //   → [안 읽음으로] → 다시 '확인할 것' → [읽음 표시] → 알림 + 되돌리기 → 다시 [읽음 표시] → 사라짐
@@ -131,7 +132,7 @@ for (const w of [375, 1280]) {
     const before = errs.length;
     await tab(pg, '오늘');
     const inCard = async () => { const more = pg.locator('.v2-ts.in').getByText(/개 모두 보기/); if (await more.count()) { await more.first().click(); await pg.waitForTimeout(200); } return pg.locator('.v2-ts.in').getByText('확인했어요 · 내일 올릴게요', { exact: false }).count(); };   // 3줄 넘으면 펼쳐서 셈
-    ok('PC 1280 · 폰에서 읽은 댓글은 확인할 것에 없음', (await inCard()) === 0 && (await pg.getByText('AI 승인 요청').count()) > 0);
+    ok('PC 1280 · 폰에서 읽은 댓글은 확인할 것에 없음', (await inCard()) === 0);   // AI 승인 요청 줄은 멈춤이라 안 봄 (2026-10-21)
     await tab(pg, '더보기'); await pg.getByText('읽은 알림', { exact: true }).first().click(); await pg.waitForTimeout(400);
     const sh = pg.locator('.v2-sheet').last();
     ok('PC 1280 · 더보기 › 읽은 알림에 폰에서 읽은 댓글 · 안내 "폰·PC"', (await sh.getByText('확인했어요 · 내일 올릴게요', { exact: false }).count()) > 0 && /폰·PC 어디서 읽어도/.test(await sh.innerText()));

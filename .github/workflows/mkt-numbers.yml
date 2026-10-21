@@ -4,8 +4,9 @@ name: 마케팅 허브 오늘 숫자 (AI 팀용)
 # → AI 팀 아침 루틴(06:50)이 볼트 tools/team_link.py numbers 로 받아 GitHub 볼트에 '05 오늘 숫자.md' 로 저장 (옵시디언 없이도 쌓임 · 2026-10-12)
 # 시크릿 없이 동작 (core.js STORE_MODE 'open' = 공개 규칙 자리). 'secure' 로 바꾸면 env MKT_MODE: secure + 서비스 계정 시크릿
 on:
-  schedule:
-    - cron: '10 21 * * *'
+  # ⏸ 2026-10-21 사장님 '자동 모두 멈춰' — 예약 실행 멈춤 (다시 켜려면 아래 두 줄 앞 # 지우기 · 손으로 실행은 그대로)
+  # schedule:
+  #   - cron: '10 21 * * *'
   workflow_dispatch:
 
 permissions:

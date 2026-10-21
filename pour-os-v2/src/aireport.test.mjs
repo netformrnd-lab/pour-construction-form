@@ -1,5 +1,6 @@
 // node src/aireport.test.mjs — AI 크루 보고서 계산 (주기 · 기간 · 칸 · 사람 · 숫자 · '확인할 것' · 글) · 저장 없음
 import * as R from "./aireport.js";
+import { PAUSE as PAUSE_SW } from "../../marketing-hub/crew.js"; PAUSE_SW.on = "";   // ⏸ 자동화 멈춤(2026-10-21) — 이 시험은 켜진 동작을 봄 (멈춤은 aiask.test 맨 아래)
 let n = 0, bad = 0;
 const eq = (name, got, want) => { n++; const ok = JSON.stringify(got) === JSON.stringify(want); if (!ok) { bad++; console.log("✗", name, "\n  got ", JSON.stringify(got), "\n  want", JSON.stringify(want)); } else console.log("✓", name); };
 

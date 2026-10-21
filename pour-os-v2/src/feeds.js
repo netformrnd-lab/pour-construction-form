@@ -8,7 +8,7 @@
 //     보드 지표 = aiboards.hist 마지막 날 — 보드는 도는데([상태]만) 지표가 비면 그 AI 담당에게
 //   '확인할 것' = 관리자 한 줄 '결과 숫자 n곳 비어 있음'(오늘 하루 읽음으로 숨김) · '광고 확인' 담당 한 줄 · 보드 담당 한 줄 → 누르면 결과 숫자 시트(feedui.FeedSheet)
 import { ymd, md, addDays, isOffDay, wdBetween, isMaster, fxIds, isRemoved } from "./model.js";
-import { BOARDS, mateOf, isLiveBoard } from "../../marketing-hub/crew.js";
+import { BOARDS, mateOf, isLiveBoard, PAUSE } from "../../marketing-hub/crew.js";
 import { mateOwner } from "./aiask.js";
 
 export const HUB = "../marketing-hub/";
@@ -58,6 +58,7 @@ export function feedRows(D, now = new Date(), F = D.feeds || {}) {
 
 // '확인할 것' 줄 — model.todayView 가 D.feedInbox 로 부름 (순환 import 피하려고)
 export function feedInbox(D, uid, now = new Date(), seen = {}) {
+  if (PAUSE.on) return [];   // ⏸ 자동화 멈춤 (2026-10-21) — 자동으로 채우던 숫자가 멈춰서 '비어 있음' 줄 안 띄움 (결과 숫자 시트는 그대로)
   const me = (D.users || []).find((u) => u && u.id === uid); if (!me || !D.loaded) return [];
   const today = ymd(now), rows = feedRows(D, now), out = [], master = isMaster(me);
   if (isOffDay(today)) return [];   // 쉬는 날엔 안 알림

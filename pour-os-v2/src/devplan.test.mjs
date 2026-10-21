@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import { lastMonday, planWindow, planNow, planStage, canPick, devReviewer, isDevReviewer, canConfirm, planItems, devMerge, carried, pickLeft, planDocOf, planCount, planLine, devInbox, prevYm, nextYm, ymLabel } from "./devplan.js";
 import { todayView } from "./model.js";
+import { PAUSE as PAUSE_SW } from "../../marketing-hub/crew.js"; PAUSE_SW.on = "";   // ⏸ 자동화 멈춤(2026-10-21) — 이 시험은 켜진 동작을 봄 (멈춤은 aiask.test 맨 아래)
 let n = 0; const ok = (name, fn) => { fn(); n++; console.log("✓", name); };
 const L = (s) => new Date(s);   // 'YYYY-MM-DDTHH:MM:SS' (시간대 없음 = 기기 시각)
 const users = [{ id: "sh", name: "김송희" }, { id: "boss", name: "대표", master: true }, { id: "mj", name: "김민지" }, { id: "off", name: "쉬는", active: false }];

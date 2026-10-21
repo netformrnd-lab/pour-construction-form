@@ -186,6 +186,9 @@ async function loadMate(){
   if(CLOSED){ $('crew-guide').textContent=K.closedStop(CLOSED); $('crew-guide-head').textContent=`닫힌 보드 — ${K.CLOSED_L}`; $('crew-who').textContent=''; $('crew-rules').innerHTML=''; $('crew-last').innerHTML=''; $('save-button').disabled=true;
     ['crew-launch','crew-reqs','crew-redo'].forEach(id=>{$(id).innerHTML='';}); REQS=[]; BACKS=[];   // 앞 보드의 칸이 남지 않게
     setMsg('err',`이 보드(${CLOSED.title})는 닫혔어요 · ${K.CLOSED_L} — 아무것도 올리지 않아요`); console.log(`[AI 크루] 닫힌 보드 ${CLOSED.id} — 멈춤 안내`); return; }
+  if(K.PAUSE.on){ $('crew-guide').textContent=K.pauseText(); $('crew-guide-head').textContent=`자동 실행 멈춤 — ${K.PAUSE.on}부터`; $('crew-who').textContent=''; $('crew-rules').innerHTML=''; $('crew-last').innerHTML=''; $('save-button').disabled=true;   // ⏸ 자동화 멈춤 (사장님 2026-10-21 '자동 모두 멈춰') — 맡긴 일·고칠 것도 안 보임 · 올리기 막음
+    ['crew-launch','crew-reqs','crew-redo'].forEach(id=>{$(id).innerHTML='';}); REQS=[]; BACKS=[];
+    setMsg('err',`AI 크루 자동 실행을 멈췄어요 (${K.PAUSE.on}) — 아무것도 올리지 않아요`); console.log('[AI 크루] 자동화 멈춤 — 멈춤 안내'); return; }
   $('save-button').disabled=!UP_OK;   // 닫힌 보드에서 열린 보드로 오면 다시 켬
   const b=board(), m=mate(); mateDoc=null; SKIP=[]; $('crew-guide').textContent=K.asideText(b,{only:ONLY});
   $('crew-guide-head').textContent=`오늘 지시문 — ${m.name} · ${b.title}${ONLY?` · ${ONLY.join('·')} 할 일만`:''} · 판 ${K.ASIDE_VER}`; $('crew-last').innerHTML='';
@@ -328,10 +331,11 @@ function preview(){
       ${x.items.length?`<div class="tbl"><table><tr><th>번호</th>${x.cols.map(h=>`<th>${esc(h)}</th>`).join('')}</tr>${x.items.slice(0,30).map(it=>`<tr><td>${esc(it.n)}</td>${x.cols.map(h=>`<td title="${esc(it.c[h]||'')}">${esc(it.c[h]||'')}</td>`).join('')}</tr>`).join('')}</table></div>`:''}</div>`;}).join('')}`;
   $('preview-section').hidden=false; return {p,n};
 }
-$('preview-button').onclick=()=>{if(CLOSED){setMsg('err',`닫힌 보드예요 · ${K.CLOSED_L} — 아무것도 올리지 않아요`);return;}preview();};
+$('preview-button').onclick=()=>{if(K.PAUSE.on){setMsg('err','AI 크루 자동 실행을 멈췄어요 — 아무것도 올리지 않아요');return;}if(CLOSED){setMsg('err',`닫힌 보드예요 · ${K.CLOSED_L} — 아무것도 올리지 않아요`);return;}preview();};
 
 // 올리기: 보드 지표 + 행동마다 승인 한 건 (없으면 만들고 · 담당 차례이거나 돌려받은 것만 2번째 판으로)
 $('save-button').onclick=async()=>{
+  if(K.PAUSE.on){setMsg('err','AI 크루 자동 실행을 멈췄어요 — 아무것도 올리지 않아요');return;}   // ⏸ 2026-10-21
   if(CLOSED){setMsg('err',`닫힌 보드예요 · ${K.CLOSED_L} — 아무것도 올리지 않아요`);return;}
   const b=board(), m=mate(), run=$('crew-date').value, u=auth.currentUser;
   if(!/^\d{4}-\d{2}-\d{2}$/.test(run)){setMsg('err','날짜를 골라 주세요');return;}

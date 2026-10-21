@@ -17,10 +17,21 @@ const DB={
 };
 const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium'}).catch(()=>chromium.launch());
 async function page(hash,w){const ctx=await b.newContext({viewport:{width:w,height:900}});const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('console',m=>{if(m.type()==='error')errs.push(m.text());});
-  await p.addInitScript(`window.__DB=${JSON.stringify(DB)};window.__USER={email:'up@x.com'};`);
+  await p.addInitScript(`${process.env.PAUSED?'':'window.__NO_PAUSE=1;'}window.__DB=${JSON.stringify(DB)};window.__USER={email:'up@x.com'};`);   // ⏸ 자동화 멈춤(2026-10-21) — 기본은 켜진 동작 · PAUSED=1 이면 멈춤 화면
   await p.route(/gstatic\.com\/firebasejs\//,r=>r.fulfill({contentType:'text/javascript',body:/app-compat/.test(r.request().url())?FAKE:''}));
   await p.route(/googleapis|jsdelivr|fonts\./,r=>r.fulfill({contentType:'text/css',body:''}));
   await p.goto(BASE+'/marketing-hub/crew.html#'+hash);await p.waitForTimeout(900);return {p,errs,ctx};}
+// ⏸ 멈춤 화면 (2026-10-21 사장님 '자동 모두 멈춰') — window.__NO_PAUSE 없이 열면 지시문 = 멈춤 한 장 · 고쳐서 다시·맡긴 일 안 보임 · 올리기 막힘 · 아무것도 안 씀
+{ const ctx=await b.newContext({viewport:{width:375,height:900}}), p=await ctx.newPage(), errs=[]; p.on('pageerror',e=>errs.push(e.message));
+  await p.addInitScript(`window.__DB=${JSON.stringify(DB)};window.__USER={email:'up@x.com'};`);
+  await p.route(/gstatic\.com\/firebasejs\//,r=>r.fulfill({contentType:'text/javascript',body:/app-compat/.test(r.request().url())?FAKE:''}));
+  await p.route(/googleapis|jsdelivr|fonts\./,r=>r.fulfill({contentType:'text/css',body:''}));
+  await p.goto(BASE+'/marketing-hub/crew.html#gh-traffic');await p.waitForTimeout(900);
+  const g=await p.textContent('#crew-guide'), redo=await p.textContent('#crew-redo'), dis=await p.evaluate(()=>document.getElementById('save-button').disabled);
+  await p.fill('#crew-text','[지표]\nvisit7\t1\n[상태]\nA: 변화 없음'); await p.click('#preview-button'); await p.waitForTimeout(300);
+  const W=await p.evaluate(()=>window.__WRITES||[]);
+  ok('멈춤: 지시문 = 멈춤 한 장 · 고쳐서 다시 없음 · 올리기 막힘 · 쓰기 0 · 375 넘침 없음',/\[멈춤\]/.test(g)&&!redo.includes('메타 광고 재가동')&&dis&&!W.length&&(await p.evaluate(()=>document.documentElement.scrollWidth))<=375&&!errs.length,{g:g.slice(0,80),dis,W:W.length,errs});
+  if(OUT)await p.screenshot({path:path.join(OUT,'crew-paused-375.png'),fullPage:true}); await ctx.close(); }
 // ① G·H 만
 { const {p,errs}=await page('gh-traffic~GH',375);
   const g=await p.textContent('#crew-guide'), head=await p.textContent('#crew-guide-head'), redo=await p.textContent('#crew-redo');

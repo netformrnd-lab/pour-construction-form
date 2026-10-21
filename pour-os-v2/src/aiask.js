@@ -12,10 +12,11 @@
 //   users.bossId  상급자 (관리자 › 사람)
 //   최종 승인 + 실행 한 줄(exec) → 담당에게 '실행' 업무(tasks · aiAsk = 승인 id) — 실제 반영은 늘 사람 (2026-10-11)
 import { isMaster, nameOf, teamOf, isOffDay, ymd, addDays, nextWorkday, wdBetween } from "./model.js";
-import { CREWS, mateOf, crewOf, brandL, asidePlan, pcActs, runAtOf, loginSites, actOf, launchRows, launchRowOf, GONE, runWord, PATHS, PATH_L, hqDef, pathDef, pathOf } from "../../marketing-hub/crew.js";
+import { PAUSE, CREWS, mateOf, crewOf, brandL, asidePlan, pcActs, runAtOf, loginSites, actOf, launchRows, launchRowOf, GONE, runWord, PATHS, PATH_L, hqDef, pathDef, pathOf } from "../../marketing-hub/crew.js";
 import { ASIDE_ADS_LAUNCH_VER, ASIDE_ADS_VER, AD_ROUTINE, routineWhen } from "../../marketing-hub/adops.js";   // 광고 예약 알림 판 (2026-10-17 · 2026-10-19 예약 하나)
 import { bannedHits, bannedRow, bannedCellText, BANNED_SRC } from "../../marketing-hub/banned.js";   // 사용금지어 (사장님 2026-10-19 '금지·주의 단어 작성 가이드')
 
+export { PAUSE };   // ⏸ 자동화 멈춤 스위치 = ../../marketing-hub/crew.js PAUSE (허브와 같이 · 다시 켜려면 on: '')
 export const ASK_STATE_L = { wait: "승인 대기", back: "AI가 고치는 중", ok: "최종 승인", no: "안 함" };
 export const MAX_UP = 5;   // 길이 이보다 길게 이어지지 않게 (상급자 고리·잘못 넣은 값 막기)
 
@@ -156,6 +157,7 @@ export function chainOf(a, users, hq, pth) {
 //     · 평일 2일 넘게 한 사람에게 멈춘 승인 = 그 사람 상급자(사람마다)·관리자(한 줄로)에게 '승인 밀림' · AI 가 반나절 넘게 못 고친 것 = 담당에게 'AI 고치는 중'
 export const AI_GROUP_MIN = 4;
 export function askInbox(asks, users, uid, seen = {}, now = new Date()) {
+  if (PAUSE.on) return [];   // ⏸ 자동화 멈춤 (사장님 2026-10-21 '업무 OS에도 알림 멈추고 숨겨') — AI 승인 줄 안 띄움 (AI 팀원 화면에선 그대로 열림)
   const me = actU(users, uid); if (!me) return [];
   const master = isMaster(me), since = new Date(now - 7 * 864e5).toISOString(), key = ymd(now), mine = [], rows = [];
   const myTurn = (a) => a.state === "wait" && !(!a.to && GONE[a.mate]) && (a.to === uid || (!a.to && master));
@@ -405,6 +407,7 @@ const neverTitle = (name, n, weekly) => `${name}(AI) 예약을 넣었는데 아�
 
 // seen = 읽음 (오늘 하루만 띄우는 줄: 관리자 '평일 2일 넘게 안 돎' · '아침 루틴 안 올라옴' · 'Aside 세팅 현황')
 export function asideInbox(D, uid, now = new Date(), seen = {}) {
+  if (PAUSE.on) return [];   // ⏸ 자동화 멈춤 (2026-10-21) — Aside 세팅·안 돎·아침 루틴·광고 예약 줄 안 띄움
   const me = actU(D.users, uid); if (!me || !D.ai || !D.ai.ready) return [];
   const plan = asidePlanOf(D), bv = D.ai.boards || {}, key = ymd(now), out = [], master = isMaster(me);
   const nm = (b) => (mateOf(b.mate) || {}).name || b.mate;
@@ -457,6 +460,6 @@ export const goneWaits = (asks) => (asks || []).filter((a) => a && a.state === "
 export const GONE_DROP = "쉬는 AI · 같은 일은 B2C 크루 여름이 매일 새로 올려요";
 // 지금 내 차례 승인 수 (더보기 'AI 팀원' 꼬리표 · AI 팀원 화면) — 쉬는 AI 담당 미정은 뺌 (askInbox 와 같게)
 //   같은 할 일의 지난 결과는 가장 새 결과 하나로 셈 ('확인할 것'과 같게 · 2026-10-17 멈춤 감시)
-export const myTurnN = (asks, cu) => waitHeads((asks || []).filter((x) => x && x.id && x.state === "wait" && !(!x.to && GONE[x.mate]) && (x.to === cu.id || (!x.to && isMaster(cu))))).heads.size;
+export const myTurnN = (asks, cu) => PAUSE.on ? 0 : waitHeads((asks || []).filter((x) => x && x.id && x.state === "wait" && !(!x.to && GONE[x.mate]) && (x.to === cu.id || (!x.to && isMaster(cu))))).heads.size;
 // AI 팀원 한 명이 지금 어디서 일하나 (화면 머리)
 export const mateWhere = (mateId) => { const c = crewOf(mateId); return c ? c.name : "기본 AI 팀원 (원형)"; };

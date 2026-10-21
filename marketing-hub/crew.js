@@ -902,6 +902,11 @@ export function asideReqLaunch(req) {
 //   Aside 예약 작업 = 보드 하나에 하나 · 예약 글은 짧게(asideLaunch): crew.html#보드 를 열어 화면 '오늘 지시문'(asideText)을 그대로
 //   → 지시문을 고쳐도(이 파일) Aside 예약은 다시 안 넣어도 됨 · 판 = ASIDE_VER (지시문을 고치면 날짜를 올림)
 //   AI 몫 = 숫자 읽기 · 찾기 · 표 · 초안까지 / 사람 몫 = 승인 뒤 실행(가격·광고·쿠폰·발송·게시·상세·등록) — 할 일 단계 중 '승인…'으로 시작하는 줄은 사람 몫(stepParts)
+// ⏸ 자동화 멈춤 (사장님 2026-10-21 '자동 모두 멈춰' · '업무 OS에도 알림 멈추고 숨겨') — on = 멈춘 날 · 다시 켜려면 on: '' (업무OS·허브가 같이 봄)
+//   crew.html 지시문 = '멈춤 · 아무것도 하지 말고 끝' 한 장(Aside 예약이 남아 있어도 아무것도 안 함) · 업무OS = AI·Aside·결과 숫자·크루 보고·월 개발 알림을 '확인할 것'에서 뺌
+//   시험은 PAUSE.on = '' 로 바꿔 예전 동작을 봄 (객체라 바꿀 수 있음)
+export const PAUSE = { on: typeof window !== 'undefined' && window.__NO_PAUSE ? '' : '2026-10-21' };   // window.__NO_PAUSE = 화면 시험만 (켜진 동작 보기)
+export const pauseText = () => [`[멈춤] AI 크루 자동 실행 멈춤 · ${PAUSE.on}부터 (사장님 '자동 모두 멈춰')`, '', '지금은 아무 사이트도 열지 말고, 아무것도 만들거나 올리지 말고, 여기서 끝내세요.', '이 예약은 Aside 예약 목록에서 꺼 두세요. 다시 켤 때는 업무OS 에서 알려 드려요.'].join('\n');
 export const ASIDE_VER = '2026-10-19.5';   // 10-19.5 = 할 일마다 Aside 도는 PC(aimates.actPc · 사장님 1A '메타·디맨드젠은 송희 PC') — 할 일만 하는 예약(#보드~GH · 지표 없음) · 담당 PC 는 '다른 PC 몫' 안 함 · 10-19.4 = 겨울 C 상세 진단에 사용금지어 찾기('사용금지어' 칸 · 찾은 말은 이 칸에만 · 미리보기·승인 검사는 이 칸을 안 봄 · 사장님 7A) · 10-19.3 = 가을 F 광고 보고 = 김송희 Aside '광고' 루틴 하나(금 08:30 주간 · 새 예약 안 만듦 · 김송희 2026-10-19) · 10-19.2 = ■ 6. 사용금지어(사장님 '금지·주의 단어 작성 가이드' · banned.js · 올리기 전 crew.html 미리보기가 걸린 말을 보여 줌) · 10-19 = 사람 세팅 = 업무OS 'Aside 세팅'(crew 화면은 Aside 전용 · 사장님 1A~4A) · 10-18.2 = 링크 꼬리표(utm·nt · 보내는 할 일 링크 안내 · 직접 붙이지 않음) · 별 D 링크 꼬리표 성과(■ 잴 글 목록) · 봄 I 자사몰 상품 주소 표 · 바람 nps = 업무OS 계산 값(사장님 2-1A~2-4A) · 10-18 = ■ 볼트 최신 요약(볼트 '04 자료/00 최신 요약' 한 장 · 허브 mkt-notes/vault-latest · 단계 미션 다음 · 사장님 3A) · 10-17.5 = ■ 참고 레퍼런스(사람이 업무OS 레퍼런스에 그 AI 핏을 남긴 것만 · 그 부분만 · 베끼지 않음) · 10-17.4 = 매일 할 일은 할 게 있을 때만(없으면 [상태] '변화 없음') · B2B·바라스데이 크루 닫음(닫힌 보드 = 멈춤 안내) · 10-17.3 = 사장님 확정(논의 뒤) — 단계 숫자 하나 · ■ 넘겨받은 것(사람 최종 승인한 다른 AI 결과) · ■ 공용 이긴 소재 장부 · ■ 브랜드별 설계(우주 G 먼저) · 겨울 I 택배 동봉 안내 · 바람 A·B·C 우주 H 장부 먼저 · 10-17.2 = 사장님 AARRR 정의 → 단계 미션(■ 단계 미션) · 새 할 일(여름 J · 가을 J · 겨울 H·I · 우주 G·H · 하늘 F · 바람 E) · 재고 = 이음 F(비즈로지컴·쿠팡 로켓그로스) · 리뷰 = 바람 D · 10-17 = B2C 크루 AARRR 정리(광고 → 가을 · MD → 봄 · 지인추천 → 바람 · MOVED) · 새 할 일(여름 G·H·I · 겨울 G · 바람 A) · 두 브랜드 할 일 '브랜드' 칸 · 새 보드(이음·별·달 · B2B 5) · 10-16 = 광고 할 일 외주 + 내부 관리(김민지 · 바꿀 안)
 export const HUB_CREW = 'https://pour-construction-form.pages.dev/marketing-hub/crew.html';
 const DOW_L = ['일', '월', '화', '수', '목', '금', '토'];
@@ -1095,6 +1100,7 @@ export function planFromReports(docs, mateId) {
 }
 //   opt.only = ['G','H'] (나눠 도는 할 일만 하는 예약 · 주소 #보드~GH · 지표·[다음주] 없음) · opt.skip = [{c, who}] (담당 PC 예약 · 다른 PC 로 간 할 일 — 하지 않음) (2026-10-19)
 export function asideText(b, opt = {}) {
+  if (PAUSE.on) return pauseText();   // ⏸ 자동화 멈춤 (2026-10-21)
   const { m, c, head } = who(b), only = opt.only && opt.only.length ? opt.only : null, skip = !only && opt.skip && opt.skip.length ? opt.skip : null;
   const acts = b.actions.filter((a) => !a.admin && (only ? only.includes(a.c) : !(skip || []).some((x) => x.c === a.c)));
   const all = JSON.stringify(acts), moka = /모카/.test(all);

@@ -2,6 +2,7 @@
 import * as X from "./aiask.js";
 import { ASIDE_ADS_LAUNCH_VER as ADS_V } from "../../marketing-hub/adops.js";   // 광고 예약 알림 판 (2026-10-19.2 = 예약 하나로 정리 · 김송희)
 import { askDoc, askFromReq, reqDoc } from "../../marketing-hub/crew.js";
+import { PAUSE as PAUSE_SW } from "../../marketing-hub/crew.js"; PAUSE_SW.on = "";   // ⏸ 자동화 멈춤(2026-10-21) — 이 시험은 켜진 동작을 봄 (멈춤은 aiask.test 맨 아래)
 let n = 0, bad = 0;
 const eq = (name, got, want) => { n++; const ok = JSON.stringify(got) === JSON.stringify(want); if (!ok) { bad++; console.log("✗", name, "\n  got ", JSON.stringify(got), "\n  want", JSON.stringify(want)); } else console.log("✓", name); };
 
@@ -375,6 +376,16 @@ eq("그날 올렸나", [X.ranOn({ at: at("2026-10-14T00:10:00") }, "2026-10-14")
     [["am:gh-traffic~GH:2026-10-14", "가을 G·H(AI) 예약을 넣었는데 아직 한 번도 안 올렸어요 · 평일 2일째"]]);
   eq("G 상태가 오늘 올라오면 없음", miss({ "gh-traffic": { at: at("2026-10-14T10:20:00"), stHist: { "2026-10-14": { G: "올림" } } } }), []);
   eq("세팅 줄 제목 = '가을 G·H 10:00'", X.asideInbox(SP(), "cw", W11).find((x) => x.kind === "aiSetup").title.includes("가을 G·H 10:00"), true);
+}
+
+// ⏸ 자동화 멈춤 (사장님 2026-10-21 '자동 모두 멈춰' · '업무 OS에도 알림 멈추고 숨겨') — AI 승인·Aside 줄 0 · 내 차례 수 0 · 다시 켜면 그대로
+{
+  const on = [X.askInbox(asks, U, "sy", {}, now).length, X.myTurnN(asks, me("sy"))];
+  PAUSE_SW.on = "2026-10-21";
+  const D0 = { users: U, ai: { ready: true, asks: {}, mates: {}, boards: {}, setups: {} }, settings: [] };
+  eq("멈춤: AI 승인 줄 0 · 내 차례 0 · Aside 줄 0 (켜져 있을 땐 2 · 2)", [on, X.askInbox(asks, U, "sy", {}, now).length, X.myTurnN(asks, me("sy")), X.asideInbox(D0, "sy", W11).length, X.PAUSE.on], [[2, 2], 0, 0, 0, "2026-10-21"]);
+  PAUSE_SW.on = "";
+  eq("멈춤 풀면 다시 그대로", X.askInbox(asks, U, "sy", {}, now).length, 2);
 }
 
 console.log(`\n${n - bad}/${n} 통과`); if (bad) process.exit(1);

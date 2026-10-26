@@ -609,7 +609,7 @@
 
       <!-- 시공분야 -->
       <div class="form-group">
-        <p class="form-group-title">시공 분야 <span style="font-size:13px;font-weight:400;color:var(--gray)">(복수 선택)</span></p>
+        <p class="form-group-title">시공 분야<span class="req">*</span> <span style="font-size:13px;font-weight:400;color:var(--gray)">(복수 선택)</span></p>
         <div class="check-grid">
           <span class="check-pill"><input type="checkbox" id="f1" name="field[]" value="방수"><label for="f1">방수</label></span>
           <span class="check-pill"><input type="checkbox" id="f2" name="field[]" value="도장"><label for="f2">도장</label></span>
@@ -629,12 +629,12 @@
         <p class="form-group-title">시공 실적</p>
         <div class="field-row">
           <div class="field">
-            <label>시공 경력 (년)</label>
-            <input type="number" name="years" min="0">
+            <label>시공 경력 (년)<span class="req">*</span></label>
+            <input type="number" name="years" min="0" required>
           </div>
           <div class="field">
-            <label>연 시공 건수</label>
-            <input type="number" name="count" min="0">
+            <label>연 시공 건수<span class="req">*</span></label>
+            <input type="number" name="count" min="0" required>
           </div>
         </div>
         <div class="field">
@@ -656,8 +656,8 @@
       <!-- 유입경로 -->
       <div class="form-group">
         <div class="field">
-          <label>유입 경로</label>
-          <select name="inflow">
+          <label>유입 경로<span class="req">*</span></label>
+          <select name="inflow" required>
             <option value="">선택해 주세요</option>
             <option value="검색">검색 (네이버/구글 등)</option>
             <option value="지인소개">지인 소개</option>
@@ -866,6 +866,12 @@
     // 시공분야(복수 선택) 수집
     var fields = [];
     f.querySelectorAll('input[name="field[]"]:checked').forEach(function(el){ fields.push(el.value); });
+
+    // 시공 분야 필수: 체크박스 또는 기타 중 최소 하나
+    if(fields.length === 0 && !f.field_etc.value.trim()){
+      alert('시공 분야를 한 가지 이상 선택해 주세요. (해당 항목이 없으면 기타에 입력)');
+      return;
+    }
 
     btn.disabled = true;
     btn.textContent = '신청 접수 중...';

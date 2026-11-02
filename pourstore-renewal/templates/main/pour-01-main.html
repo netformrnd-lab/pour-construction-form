@@ -164,6 +164,11 @@
 @keyframes psm1-mega-wiggle { 0%,86%,100% { transform:rotate(0); } 90% { transform:rotate(-12deg); } 94% { transform:rotate(9deg); } }
 .psm1-tab:hover { color:#2F3438; }
 .psm1-tab .psm1-tab-new { display:inline-block; font-size:10px; font-weight:800; color:#E8780F; vertical-align:top; margin-left:2px; letter-spacing:0; }
+/* 파트너 전용몰 탭 — 탭 줄 오른쪽 끝에 강조 버튼(알약) */
+.psm1-tab.psm1-tab-partner { margin-left:auto; flex-shrink:0; display:inline-flex; align-items:center; gap:5px; padding:8px 16px; margin-bottom:0; background:#E8780F; color:#fff; font-weight:800; border-radius:999px; border-bottom:0; letter-spacing:-0.02em; }
+.psm1-tab.psm1-tab-partner:hover { background:#CF6A0C; color:#fff; }
+.psm1-tab.psm1-tab-partner svg { width:15px; height:15px; flex-shrink:0; }
+@media (max-width:700px){ .psm1-tab.psm1-tab-partner { margin-left:8px; padding:7px 13px; } }
 /* 3) 히어로 */
 .psm1-hero { background:#fff; padding:20px 24px 0; }
 .psm1-hero-inner { max-width:1256px; margin:0 auto; display:grid; grid-template-columns:1fr 320px; gap:20px; }
@@ -489,6 +494,7 @@
     <a href="/pourstore_renewal/construction/pour-construction-request.html" class="psm1-tab">시공문의</a>
     <a href="/pourstore_renewal/story/case.html" class="psm1-tab">시공사례</a>
     <a href="/pourstore_renewal/story/event.html" class="psm1-tab">이벤트</a>
+    <a href="/product/list.html?cate_no=120" class="psm1-tab psm1-tab-partner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.4-3 7.5-7 8.5-4-1-7-4.1-7-8.5V6z"/><path d="M9 12l2 2 4-4"/></svg>파트너 전용몰</a>
   </div>
     <div class="pcatnav-panel" data-pcatnav-panel hidden><div class="pcatnav-panel-inner"><a href="/product/list.html?cate_no=73">전체 제품</a><a href="/product/list.html?cate_no=71">패키지</a><a href="/product/list.html?cate_no=86">방수</a><a href="/product/list.html?cate_no=88">균열보수</a><a href="/product/list.html?cate_no=74">도장·도색</a><a href="/product/list.html?cate_no=117">지붕보강자재</a><a href="/product/list.html?cate_no=119">지하주차장 보강자재</a><a href="/product/list.html?cate_no=118">외벽 보강자재</a><a href="/product/list.html?cate_no=116">도로보강자재</a><a href="/product/list.html?cate_no=84">부자재</a><a href="/product/list.html?cate_no=63">안전용품</a><a href="/product/list.html?cate_no=43">홈리페어·홈데코</a></div></div>
 </nav>
@@ -677,6 +683,7 @@
       <a href="/myshop/index.html" module="Layout_stateLogon">마이페이지</a>
       <a href="{$action_logout}" module="Layout_stateLogon">로그아웃</a>
     </div>
+    <a href="/product/list.html?cate_no=120" style="display:flex;align-items:center;gap:8px;margin:10px 16px 2px;padding:12px 14px;background:#E8780F;color:#fff;font-weight:800;border-radius:10px;font-size:14.5px;letter-spacing:-.02em;text-decoration:none;"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.4-3 7.5-7 8.5-4-1-7-4.1-7-8.5V6z"/><path d="M9 12l2 2 4-4"/></svg>파트너 전용몰</a>
     <div class="psm1-drawer-sec" data-mb-cats>
       <div class="psm1-drawer-sec-t">카테고리</div>
     </div>

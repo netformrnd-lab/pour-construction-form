@@ -4,15 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>POUR스토어 파트너 전용몰 — 상단 구분 띠</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <!--
-  ▣ POUR스토어 파트너 전용몰 상단 구분 띠 (카페24 상품분류 '분류 상세 설명(상단)'에 붙여넣기용)
-  ─ 얇고 심플한 한 줄 띠. 일반몰과 구분되는 표시만. (패널/자료 없음)
+  ▣ POUR스토어 파트너 전용몰 상단 구분 띠
+  ─ 넣는 곳: 카페24 관리자 → 상품분류 관리 → "파트너 전용몰"(120) → '분류 상세 설명' HTML칸
+  ─ 아래 ▼▼▼ ~ ▲▲▲ 사이(= <style> + <div>)만 복사해서 붙여넣으면 됨. (헤더/푸터는 그대로 유지, 상품목록 위에만 띠가 얹힘)
   ─ 카페24 스킨 CSS 충돌 방지: 전 클래스 ppm- 접두사.
 -->
+</head>
+<body>
+<!-- ▼▼▼ 여기부터 복사해서 카페24 '분류 상세 설명'에 붙여넣기 ▼▼▼ -->
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
   .ppm, .ppm *{box-sizing:border-box;margin:0;padding:0}
   .ppm{
     font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
@@ -38,9 +40,6 @@
     .ppm-bar .ppm-sub{ margin-left:0; flex-basis:100%; white-space:normal; }
   }
 </style>
-</head>
-<body>
-<!-- ▼▼▼ 여기부터 카페24에 붙여넣기 ▼▼▼ -->
 <div class="ppm">
   <div class="ppm-bar">
     <span class="ppm-bar-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/><circle cx="12" cy="15.4" r="1.3"/></svg></span>
@@ -49,6 +48,6 @@
     <span class="ppm-sub">로그인하신 <b>파트너 등급 전용 공급가</b>로 표시됩니다</span>
   </div>
 </div>
-<!-- ▲▲▲ 여기까지 붙여넣기 ▲▲▲ -->
+<!-- ▲▲▲ 여기까지 복사 ▲▲▲ -->
 </body>
 </html>

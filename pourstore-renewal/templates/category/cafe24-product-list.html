@@ -28,6 +28,8 @@
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css');
 .ptv{ max-width:1256px; margin:0 auto; padding:30px 20px 6px; text-align:center; font-family:'Pretendard Variable',Pretendard,-apple-system,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
 .ptv[hidden]{ display:none !important; }
+/* 파트너 전용몰 분류: 헤더의 하위 카테고리 줄(빨간 줄)은 숨기고 이 '제품 보기' 자리의 전용 탭만 사용 */
+html.ptv-mall .pour-gh-sub{ display:none !important; }
 .ptv *{ box-sizing:border-box; }
 .ptv-title{ font-size:34px; font-weight:900; letter-spacing:-0.04em; color:#111; margin-bottom:22px; }
 .ptv-tabs{ display:inline-flex; flex-wrap:wrap; justify-content:center; gap:12px 14px; }
@@ -67,6 +69,15 @@ html.ptv-best ul.prdList.grid4 > li::before{ content:counter(pvrank); position:a
   var subBox = document.querySelector('[data-ptv-subtabs]');
   var isBest = BEST_CATE && String(cate)===String(BEST_CATE);
   if(isBest){ document.documentElement.classList.add('ptv-best'); if(titleEl) titleEl.textContent='베스트'; if(box) box.style.display='none'; if(subBox) subBox.style.display='none'; return; }
+  // ★ 파트너 전용몰 분류: 이 '제품 보기' 자리에 전용 카테고리 노출(일반 탭 대체) + 헤더 하위카테고리 줄(pour-gh-sub) 숨김
+  var MALL_TABS = [['전체','120'],['방수액','125'],['방수시트','126'],['보강자재','128'],['파우더','127'],['아스콘','129']];
+  if(MALL_TABS.some(function(t){ return String(t[1])===String(cate); })){
+    document.documentElement.classList.add('ptv-mall');
+    if(titleEl) titleEl.textContent='파트너 전용몰';
+    if(box){ box.style.display=''; box.innerHTML = MALL_TABS.map(function(t){ var href='/product/list.html?cate_no='+t[1]; var on=String(cate)===String(t[1]); return '<a class="ptv-tab'+(on?' on':'')+'" href="'+href+'">'+t[0]+'</a>'; }).join(''); }
+    if(subBox) subBox.style.display='none';
+    return;
+  }
   if(titleEl) titleEl.textContent='제품 보기';
   // 현재 cate가 속한 하위그룹 찾기
   var sg = null;

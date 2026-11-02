@@ -35,6 +35,9 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
 .pour-gh-sub-link:hover { color:#E8780F; }
 .pour-gh-sub-link.on { color:#E8780F; font-weight:800; }
 @media (max-width:700px){ .pour-gh-sub-inner { padding:0 14px; } .pour-gh-sub-link { font-size:12.5px; padding:10px 9px; } .pour-gh-sub { max-height:52px; } }
+/* 파트너 전용몰 리드 배지 (전용 카테고리 줄 맨 앞 — 전용몰 분류에서만 노출) */
+.pour-gh-sub .ppm-lead{ flex:0 0 auto; display:inline-flex; align-items:center; gap:5px; margin-right:8px; padding:4px 11px; background:#E8780F; color:#fff; font-size:12.5px; font-weight:800; border-radius:999px; letter-spacing:-.02em; white-space:nowrap; }
+.pour-gh-sub .ppm-lead svg{ width:13px; height:13px; flex-shrink:0; }
 </style>
 <style>
 .psm1 *, .psm1 *::before, .psm1 *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,Roboto,'Helvetica Neue','Segoe UI','Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
@@ -559,6 +562,20 @@ body:has(.psm1) [data-pour-gh] { display:none !important; }            /* 메인
     <a href="/product/list.html?cate_no=XX" class="pour-gh-sub-link">철재</a> -->
   </div>
 </nav>
+<script>
+/* 파트너 전용몰 전용 카테고리 줄: 전용몰 분류(120/125~129)에서만 자동 노출 + 구분 배지 */
+(function(){
+  var MALL={'120':'전체','125':'방수액','126':'방수시트','128':'보강자재','127':'파우더','129':'아스콘'};
+  var ORDER=['120','125','126','128','127','129'];
+  var cate=null; try{ cate=new URLSearchParams(location.search).get('cate_no'); }catch(e){}
+  if(!cate||!MALL[cate]) return; // 전용몰 분류가 아니면 아무것도 안 함(일반몰 영향 없음)
+  var sub=document.querySelector('[data-gh-sub]'), inner=document.querySelector('[data-gh-sub-inner]');
+  if(!sub||!inner) return;
+  var h='<span class="ppm-lead"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>파트너 전용몰</span>';
+  ORDER.forEach(function(no){ h+='<a href="/product/list.html?cate_no='+no+'" class="pour-gh-sub-link'+(no===cate?' on':'')+'">'+MALL[no]+'</a>'; });
+  inner.innerHTML=h; sub.hidden=false;
+})();
+</script>
 </div><!-- //psm1-sticky -->
 <!-- 3) 히어로 -->
 <div class="psm1-hero">

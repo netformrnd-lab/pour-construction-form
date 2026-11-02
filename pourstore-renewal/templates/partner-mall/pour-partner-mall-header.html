@@ -8,15 +8,16 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <!--
-  ▣ POUR스토어 파트너 전용몰 상단 안내 (카페24 상품분류 상단 붙여넣기용) — 실용형
-  ─ 필독사항 + 자료 다운로드만. 마케팅 문구 없음.
+  ▣ POUR스토어 파트너 전용몰 상단 안내 (카페24 상품분류 '분류 상세 설명(상단)'에 붙여넣기용)
+  ─ 맨 위: 일반몰과 확실히 구분되는 "파트너 전용몰" 네이비 구분 띠 (핵심)
+  ─ 그 아래: 구매 전 필독 + 자료 다운로드 (실용)
   ─ 카페24 스킨 CSS 충돌 방지: 전 클래스 ppm- 접두사.
   ─ [★수정] 표시된 링크/문구만 실제 값으로 교체.
 -->
 <style>
   .ppm, .ppm *{box-sizing:border-box;margin:0;padding:0}
   .ppm{
-    --or:#E1782D; --or2:#c95214; --navy:#0F1F5C;
+    --or:#E1782D; --or2:#c95214; --navy:#0F1F5C; --navy2:#1b2d6b;
     --ink:#1b2233; --muted:#6B7280; --line:#E5E1DA; --card:#fff; --bg:#F7F5F1;
     font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
     color:var(--ink); line-height:1.6; max-width:1180px; margin:0 auto; padding:0 16px;
@@ -25,9 +26,29 @@
   .ppm a{text-decoration:none;color:inherit}
   .ppm svg{display:block}
 
+  /* ===== ① 전용몰 구분 띠 (일반몰과 확실히 다르게) ===== */
+  .ppm-flag{
+    background:linear-gradient(100deg,var(--navy) 0%,var(--navy2) 70%);
+    border-radius:16px; padding:18px 22px; margin:4px 0 16px;
+    display:flex; align-items:center; gap:16px; position:relative; overflow:hidden;
+    box-shadow:0 10px 26px rgba(15,31,92,.16);
+  }
+  .ppm-flag::after{ content:""; position:absolute; right:-40px; top:-40px; width:160px; height:160px;
+    background:radial-gradient(circle,rgba(225,120,45,.28),transparent 70%); pointer-events:none; }
+  .ppm-flag-ico{ flex:0 0 auto; width:46px; height:46px; border-radius:12px; background:rgba(255,255,255,.12);
+    display:grid; place-items:center; color:#fff; position:relative; z-index:1; }
+  .ppm-flag-ico svg{ width:24px; height:24px; }
+  .ppm-flag-txt{ min-width:0; position:relative; z-index:1; flex:1 1 auto; }
+  .ppm-flag-title{ display:flex; align-items:center; gap:9px; flex-wrap:wrap; }
+  .ppm-flag-title b{ font-size:21px; font-weight:900; color:#fff; letter-spacing:-.02em; }
+  .ppm-flag-title .ppm-flag-tag{ font-size:11px; font-weight:800; color:var(--navy);
+    background:var(--or); border-radius:5px; padding:3px 9px; letter-spacing:.01em; }
+  .ppm-flag-sub{ margin-top:5px; font-size:13px; font-weight:500; color:#cdd6f2; letter-spacing:-.01em; }
+  .ppm-flag-sub b{ color:#fff; font-weight:700; }
+
   /* 제목 줄 */
   .ppm-top{display:flex;align-items:center;gap:10px;padding:2px 2px 14px}
-  .ppm-top h2{font-size:20px;font-weight:900;letter-spacing:-.02em;color:var(--navy)}
+  .ppm-top h2{font-size:17px;font-weight:900;letter-spacing:-.02em;color:var(--navy)}
   .ppm-top .ppm-line{flex:1;height:1px;background:var(--line)}
 
   /* 2열 패널: 필독 | 자료 */
@@ -55,8 +76,12 @@
   .ppm-dl a:hover .ppm-arr{color:var(--or)}
 
   @media (max-width:760px){
+    .ppm-flag{padding:15px 16px;gap:12px;border-radius:14px}
+    .ppm-flag-ico{width:40px;height:40px}
+    .ppm-flag-title b{font-size:18px}
+    .ppm-flag-sub{font-size:12px}
     .ppm-top{padding-bottom:12px}
-    .ppm-top h2{font-size:18px}
+    .ppm-top h2{font-size:16px}
     .ppm-notice,.ppm-files{flex-basis:100%}
     .ppm-box{padding:18px}
   }
@@ -66,8 +91,19 @@
 <!-- ▼▼▼ 여기부터 카페24에 붙여넣기 ▼▼▼ -->
 <div class="ppm">
 
+  <!-- ① 전용몰 구분 띠 -->
+  <div class="ppm-flag">
+    <span class="ppm-flag-ico">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/><circle cx="12" cy="15.5" r="1.4"/></svg>
+    </span>
+    <div class="ppm-flag-txt">
+      <div class="ppm-flag-title"><b>파트너 전용몰</b><span class="ppm-flag-tag">등급 전용가</span></div>
+      <div class="ppm-flag-sub">지금 보시는 가격은 <b>로그인하신 파트너 등급 전용 공급가</b>입니다 · 일반몰과 가격이 다르며, 등급별 가격은 외부에 노출되지 않습니다.</div>
+    </div>
+  </div>
+
   <div class="ppm-top">
-    <h2>파트너 전용몰</h2>
+    <h2>구매 안내</h2>
     <span class="ppm-line"></span>
   </div>
 

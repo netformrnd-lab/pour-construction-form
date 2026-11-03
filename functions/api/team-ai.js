@@ -98,7 +98,7 @@ function safeStatus(st) {
     products: arr(st.products, 600).map(p => ({
       key: S(p && p.key, 200), name: S(p && p.name, 80), spec: S(p && p.spec, 40),
       brand: arr(p && p.brand, 3).map(b => S(b, 20)), group: S(p && p.group, 10), code: S(p && p.code, 20),
-      retail: Nn(p && p.retail), makerAlias: S(p && p.makerAlias, 12), stock: Nn(p && p.stock), next: S(p && p.next, 60),
+      retail: Nn(p && p.retail), stock: Nn(p && p.stock), next: S(p && p.next, 60),
     })),
     sales: null,
     promos: arr(st.promos, 100).map(p => ({
@@ -194,7 +194,7 @@ const SYSTEM = `당신은 넷폼의 커머스 브랜드 POUR스토어(건축 유
 [답하는 법]
 - "현황(JSON)"만 근거로 답합니다. 없는 정보는 "대시보드에 아직 없어요". 숫자를 지어내지 않습니다.
 - 금액은 1,234,000원처럼 쉼표. 목록은 줄바꿈과 "· ". 중요한 이름은 **굵게**. 10줄 이내.
-- 제조사는 가칭(makerAlias, 예: A사)으로만 말합니다.
+- 제조사·원가는 팀원 화면에 없는 정보입니다. 물으면 "팀원 화면엔 없어요"라고 답합니다.
 - 이전 대화(history)가 있으면 이어서 답합니다.
 
 [링크 초안 links]

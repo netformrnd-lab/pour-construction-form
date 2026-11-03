@@ -3601,9 +3601,11 @@ async function saveCustomChannels(uids){
       const d=await tx.get(ref), x=d.exists?(d.data()||{}):{};
       const list=Array.isArray(x.list)?x.list.slice():[], patch=(x.patch&&typeof x.patch==='object')?{...x.patch}:{};
       want.forEach(u=>{
-        const cu=CHCUSTOM.find(c=>c&&c.uid===u);
-        if(cu && !isDef(u)){ const i=list.findIndex(c=>c&&c.uid===u); if(i>=0) list[i]={...list[i],...cu}; else list.push({...cu}); }
-        else if(CHPATCH[u]) patch[u]={...(patch[u]||{}),...CHPATCH[u]};
+        const cu=CHCUSTOM.find(c=>c&&c.uid===u), i=list.findIndex(c=>c&&c.uid===u);
+        /* list: 이미 있는 항목은 빼지 않고 제자리에서 갱신(시딩 uid 라도 — 예전에 올라간 c1 등은 그대로 둠) · 새로 넣는 건 앱에서 만든 채널만 */
+        if(cu && (i>=0 || !isDef(u))){ if(i>=0) list[i]={...list[i],...cu}; else list.push({...cu}); }
+        /* patch: 시딩 채널(화면은 CH_DEF + patch 로 그림)과 그로홈 기본 채널의 수정분 · 서버의 다른 uid 수정분은 그대로 */
+        if(CHPATCH[u] && (isDef(u) || !cu)) patch[u]={...(patch[u]||{}),...CHPATCH[u]};
       });
       tx.set(ref,{list, patch, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''});
       CHCUSTOM=list; CHPATCH=patch;   // 화면도 서버와 같은 내용으로
@@ -3642,9 +3644,10 @@ function migrateLocalChannels(localCH){
 function chBrands(c){ const b=Array.isArray(c&&c.brands)?c.brands.filter(x=>BRAND_LIST.includes(x)):[]; return b.length?b:[BRAND_DEFAULT]; }
 function chHasBrand(c,b){ return !b || chBrands(c).includes(b); }
 function noteChannelEdit(c){
-  const cu=CHCUSTOM.find(x=>x.uid===c.uid);
+  const cu=CHCUSTOM.find(x=>x.uid===c.uid), isDef=CH_DEF.some(d=>d.uid===c.uid);
   if(cu){ Object.assign(cu,{g:c.g,code:c.code,name:c.name,short:c.short,st:c.st,tgt:c.tgt,desc:c.desc,col:c.col,role:c.role,ord:c.ord,brands:c.brands||null}); }
-  else { CHPATCH[c.uid]={code:c.code,name:c.name,short:c.short,st:c.st,tgt:c.tgt,desc:c.desc,col:c.col,role:c.role,brands:c.brands||null}; }
+  /* 시딩 채널은 화면이 CH_DEF + patch 로 그리므로 늘 patch 에도 기록 — 예전엔 list 에 같은 uid 가 있으면 list 만 고쳐 화면에 반영이 안 됐다 (2026-11-03) */
+  if(!cu || isDef){ CHPATCH[c.uid]={code:c.code,name:c.name,short:c.short,st:c.st,tgt:c.tgt,desc:c.desc,col:c.col,role:c.role,brands:c.brands||null}; }
   saveCustomChannels([c.uid]);
 }
 /* 채널 열 사용자 지정 순서(가로 드래그). 없으면 chRank(단가순) 유지. 새 채널은 rank 위치에 삽입 */

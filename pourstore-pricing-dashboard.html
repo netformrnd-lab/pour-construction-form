@@ -1122,6 +1122,11 @@ body.team-mode #ribbon .kpis{display:none!important}
 .tp-tbl td.tp-nm{white-space:normal;overflow-wrap:anywhere;padding-top:6px;padding-bottom:6px;height:auto}   /* 이름이 길면 줄바꿈 — 예전엔 '단종예정' 표시가 옆 가격 칸 숫자를 덮었다 */
 .tp-tbl td.tp-nm>span.dim{white-space:nowrap}   /* 규격(20kg/통)은 한 덩어리로 */
 .tp-tbl td.num{white-space:nowrap}
+.tp-tbl tr.tp-grp th{font-size:11px;font-weight:800;text-align:center;border-bottom:1px solid #E5E7EB}
+.tp-tbl th.tp-g-ps{background:#ECFDF3!important;color:#0B5C30!important}
+.tp-tbl th.tp-g-gh{background:#FFF1E6!important;color:#C2410C!important}
+.tp-tbl th.tp-g-rt{background:#F8FAFC!important;color:var(--ink-soft)!important}
+.tp-tbl td.tp-na{color:#CBD5E1}
 .tp-tbl .mono{font-family:var(--mono)}
 .dai-adm{font-size:10.5px;font-weight:800;background:#DC2626;color:#fff;border-radius:6px;padding:1px 6px;margin-left:4px;vertical-align:1px}
 body.dai-open #daiFab,body.dai-open #calcFab{display:none!important}
@@ -6270,11 +6275,34 @@ function tabHidden(b){
 /* 옵시디언 제품 카드용 제품 목록 (마진 v2 더보기와 같은 6가지 칸 · 2026-10-09/10 사장님: 팀원은 원가·제조사를 알면 안 됨)
    분류 · 상품명 · 옵션 · 자체상품코드 · 브랜드 · 채널별 판매가 만 — 원가·택배비·이익·마진·제조사 가칭(alias)은 절대 넣지 않음
    출처 = 팀용 단가표 모양(teamCatalogPayload / team-catalog) — 원가가 없는 자리 */
+/* 팀용 단가표 열 고르기 (2026-11-03 대표님 · 값은 그대로, 보이는 칸만)
+   · 브랜드를 고르면 그 브랜드 채널 + 정가만 (마스터 가격정책표 chHasBrand 와 같은 규칙)
+   · 전체 = 정가 | 스토어 채널 | 그로홈 채널 로 묶고, 제품은 자기 브랜드 채널 칸에만 값 · 다른 브랜드 칸은 '—'
+   · 값이 하나도 없는 열은 뺌 · 그래도 같은 이름이 남으면 원래 채널명(→ 코드)으로 구분 */
+const TP_GRP=[['정가','정가'],['POUR스토어','스토어 채널'],['GROHOME','그로홈 채널']];
+function tpChBrands(c){ const b=Array.isArray(c&&c.brands)?c.brands.filter(Boolean):[]; if(b.length) return b;
+  return /^gh[pc]-/.test(String((c&&c.uid)||''))?['GROHOME']:[BRAND_DEFAULT]; }   // 예전 단가표(brands 없음): 그로홈 채널 uid 로 판단 · 관리자 화면이 열리면 정확한 값으로 다시 저장됨
+function tpProdBrands(p){ const b=Array.isArray(p&&p.brand)?p.brand:(p&&p.brand?[p.brand]:[]); return b.length?b:[BRAND_DEFAULT]; }
+function tpShowVal(p,c){ return c.role==='retail' || tpChBrands(c).some(b=>tpProdBrands(p).includes(b)); }
+function tpCols(cat, brand, prods){
+  const all=((cat&&cat.channels)||[]).filter(c=>c&&c.uid&&c.role!=='export').slice().sort((a,b)=>(a.ord??0)-(b.ord??0));
+  const grpOf=c=>c.role==='retail'?'정가':(tpChBrands(c).includes('POUR스토어')?'POUR스토어':(tpChBrands(c).includes('GROHOME')?'GROHOME':tpChBrands(c)[0]));
+  let cols=all.filter(c=>c.role==='retail' || !brand || tpChBrands(c).includes(brand))
+    .filter(c=>prods.some(p=>tpShowVal(p,c) && (p.prices||{})[c.uid]!=null));
+  const gi=g=>{ const i=TP_GRP.findIndex(x=>x[0]===g); return i<0?9:i; };
+  cols=cols.map((c,i)=>({c,i,g:grpOf(c)})).sort((a,b)=>(gi(a.g)-gi(b.g))||(a.i-b.i)).map(x=>({...x.c,_g:x.g}));
+  const lb=c=>c.short||c.name||c.code||c.uid, cnt=k=>cols.filter(x=>lb(x)===k).length;
+  cols.forEach(c=>{ c._lb=lb(c); }); cols.forEach(c=>{ if(cnt(c._lb)>1) c._lb=c.name||c._lb; });
+  cols.forEach(c=>{ if(cols.filter(x=>x._lb===c._lb).length>1) c._lb=`${c._lb} (${c.code||c.uid})`; });
+  const groups=[]; cols.forEach(c=>{ const g=groups[groups.length-1]; if(g&&g.k===c._g) g.n++; else groups.push({k:c._g,n:1,lb:(TP_GRP.find(x=>x[0]===c._g)||[0,c._g])[1]}); });
+  return {cols, groups};
+}
 function catalogTSV(cat){
-  const chs=((cat&&cat.channels)||[]).filter(c=>c&&c.uid&&c.role!=='export').slice().sort((a,b)=>(a.ord??0)-(b.ord??0)), prods=(cat&&cat.products)||[];
+  const prods=(cat&&cat.products)||[], {cols}=tpCols(cat,'',prods);
   const cell=v=>String(v==null?'':v).replace(/[\t\n]/g,' ');
-  const head=['분류','상품명','옵션','자체상품코드','브랜드',...chs.map(c=>c.short||c.name||c.code)];
-  const lines=prods.map(p=>[p.cat,p.name,p.spec,p.code,Array.isArray(p.brand)?p.brand.join('/'):p.brand,...chs.map(c=>(p.prices||{})[c.uid]??'')].map(cell).join('\t'));
+  const grpTag=c=>c._g==='정가'?'':(c._g==='GROHOME'?'[그로홈] ':'[스토어] ');
+  const head=['분류','상품명','옵션','자체상품코드','브랜드',...cols.map(c=>grpTag(c)+c._lb)];
+  const lines=prods.map(p=>[p.cat,p.name,p.spec,p.code,Array.isArray(p.brand)?p.brand.join('/'):p.brand,...cols.map(c=>tpShowVal(p,c)?((p.prices||{})[c.uid]??''):'')].map(cell).join('\t'));
   return {n:prods.length,text:[head.join('\t'),...lines].join('\n')};
 }
 async function copyCatalogTSV(){
@@ -6957,10 +6985,10 @@ const TP_ST={'준비중':g=>g==='출시준비','판매중':g=>g==='출시'||g===
 function renderTeamPrice(){
   const body=$('#tpBody'); if(!body) return;
   if(!TEAMCAT||!(TEAMCAT.products||[]).length){ body.innerHTML=`<div class="panel"><div class="bd">${TEAMCAT&&TEAMCAT.err?'단가표를 불러오지 못했어요 ('+esc(TEAMCAT.err)+') · 관리자에게 팀원 등록을 확인해 달라고 해 주세요.':'아직 단가표가 없어요. 관리자가 마진 대시보드를 한 번 열면 자동으로 준비돼요.'}</div></div>`; return; }
-  const chs=(TEAMCAT.channels||[]).slice().sort((a,b)=>(a.ord??0)-(b.ord??0));
   const brands=[...new Set((TEAMCAT.products||[]).flatMap(p=>p.brand||[]))];
   $('#tpBrand').innerHTML=[['','전체'],...brands.map(b=>[b,b==='GROHOME'?'그로홈':b==='POUR스토어'?'스토어':b])].map(([v,l])=>`<button data-tpb="${esc(v)}" class="${TP.brand===v?'on':''}">${esc(l)}</button>`).join('');
   const base=(TEAMCAT.products||[]).filter(p=>!TP.brand||(p.brand||[]).includes(TP.brand));
+  const {cols:chs, groups}=tpCols(TEAMCAT, TP.brand, base);   // 브랜드에 맞는 채널만 · 값 없는 열 빼기 · 이름 겹치면 원래 채널명
   $('#tpSt').innerHTML=Object.keys(TP_ST).map(k=>`<button type="button" data-tps="${k}" class="${TP.st===k?'on':''}">${k} ${base.filter(p=>TP_ST[k](p.group||'출시')).length}</button>`).join('');
   const q=TP.q.trim().toLowerCase().replace(/\s+/g,'');
   const list=base.filter(p=>TP_ST[TP.st](p.group||'출시') && (!q||(p.name+(p.spec||'')+(p.code||'')+(PBARCODE[tpKey(p)]||'')).toLowerCase().replace(/\s+/g,'').includes(q)));
@@ -6971,8 +6999,8 @@ function renderTeamPrice(){
   const badge=g=>{ const nm=PS_NAME[g]; if(!nm||nm==='판매중') return ''; const [fg,bg]=PS_COLOR[nm]; return `<span class="st" style="color:${fg};background:${bg}">${nm}</span>`; };   // 준비중(보라)·단종예정(노랑)·단종(회색)
   const MAX=300;
   body.innerHTML=!list.length?'<div class="panel"><div class="bd footnote" style="margin:0">찾는 제품이 없어요.</div></div>':
-    `<div class="tp-wrap"><table class="grid tp-tbl"><thead><tr><th class="tp-nm">제품</th>${chs.map(c=>`<th class="num">${esc(c.short||c.name||c.code)}</th>`).join('')}</tr></thead><tbody>`+
-    list.slice(0,MAX).map(p=>`<tr><td class="tp-nm"><b>${esc(p.name)}</b>${p.spec&&p.spec!=='-'?` <span class="dim">${esc(p.spec)}</span>`:''} ${badge(p.group)}<div class="dim tp-sub">${esc((p.brand||[]).join(' · '))}${p.code?` · <span class="mono">${esc(p.code)}</span>`:''}${PBARCODE[tpKey(p)]?` · ▮ <span class="mono">${esc(PBARCODE[tpKey(p)])}</span>`:''}${p.type==='세트'?' · 세트':''}</div>${tpRowExtra(p,canBc,canCostP)}</td>${chs.map(c=>`<td class="num">${w((p.prices||{})[c.uid])}</td>`).join('')}</tr>`).join('')+
+    `<div class="tp-wrap"><table class="grid tp-tbl"><thead>${!TP.brand&&groups.length>1?`<tr class="tp-grp"><th class="tp-nm" rowspan="2">제품</th>${groups.map(g=>`<th colspan="${g.n}" class="tp-g tp-g-${g.k==='GROHOME'?'gh':g.k==='정가'?'rt':'ps'}">${esc(g.lb)}</th>`).join('')}</tr><tr>`:'<tr><th class="tp-nm">제품</th>'}${chs.map(c=>`<th class="num${c._g==='GROHOME'?' tp-c-gh':''}" title="${esc([c.code,c.name].filter(Boolean).join(' · '))}">${esc(c._lb)}</th>`).join('')}</tr></thead><tbody>`+
+    list.slice(0,MAX).map(p=>`<tr><td class="tp-nm"><b>${esc(p.name)}</b>${p.spec&&p.spec!=='-'?` <span class="dim">${esc(p.spec)}</span>`:''} ${badge(p.group)}<div class="dim tp-sub">${esc((p.brand||[]).join(' · '))}${p.code?` · <span class="mono">${esc(p.code)}</span>`:''}${PBARCODE[tpKey(p)]?` · ▮ <span class="mono">${esc(PBARCODE[tpKey(p)])}</span>`:''}${p.type==='세트'?' · 세트':''}</div>${tpRowExtra(p,canBc,canCostP)}</td>${chs.map(c=>tpShowVal(p,c)?`<td class="num" data-uid="${esc(c.uid)}">${w((p.prices||{})[c.uid])}</td>`:`<td class="num dim tp-na" data-uid="${esc(c.uid)}" title="이 제품 브랜드의 채널이 아니에요">—</td>`).join('')}</tr>`).join('')+
     `</tbody></table></div>`+(list.length>MAX?`<div class="footnote">${list.length-MAX}개 더 있어요 · 찾기로 좁혀 보세요</div>`:'');
 }
 document.addEventListener('click',e=>{
@@ -13996,7 +14024,7 @@ async function bootTeam(){
 /* 관리자 화면 → 팀용 단가표 자동 저장 (원가·업체단가·제조사 실제 이름 없음 · 바뀐 게 있을 때만) */
 let _tcTimer=null, _tcHash='';
 function teamCatalogPayload(){
-  const chs=COLS().filter(c=>c.role!=='export').map(c=>({uid:c.uid,code:c.code||'',name:c.name||'',short:c.short||'',role:c.role||'',ord:c.ord??0,col:true}));
+  const chs=COLS().filter(c=>c.role!=='export').map(c=>({uid:c.uid,code:c.code||'',name:c.name||'',short:c.short||'',role:c.role||'',ord:c.ord??0,col:true,brands:chBrands(c)}));   // brands: 팀원 단가표 열 거르기(마스터 chHasBrand 와 같은 규칙 · 2026-11-03)
   const uids=chs.map(c=>c.uid);
   const products=P.filter(p=>!isDeletedProd(p)).map(p=>{ const k=pKey(p), prices={};
     uids.forEach(u=>{ const v=effPrice(p,u); if(v!=null) prices[u]=v; });

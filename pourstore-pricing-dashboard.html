@@ -170,7 +170,7 @@ tr.dragover td{box-shadow:inset 0 2px 0 0 var(--xl-green)}
 .setrow .setdel:hover{border-color:var(--red);color:var(--red)}
 /* 행 도구는 제품명 '앞'에 폭을 고정해 두어, 아이콘이 있든 없든 이름이 같은 자리에서 시작한다.
    모드(⚙️/📌)만 상시 표시하고 나머지는 행에 마우스를 올릴 때만 나타난다. */
-.rowtools{display:inline-flex;align-items:center;gap:0;width:62px;margin-right:5px;vertical-align:middle}
+.rowtools{display:inline-flex;align-items:center;gap:0;width:auto;flex:none;white-space:nowrap;margin-right:5px;vertical-align:middle}   /* 폭 = 내용대로(📌·🧹·상태▾·✏️·📋·🗑) — 고정 62px 이면 [상태▾]가 제품명 위로 넘쳤다 (2026-11-03) · 숨은 📋🗑 도 자리는 차지해 이름 위치가 줄마다 같다 */
 .prodedit,.prodcopy,.proddel,.prodovr{border:0;background:none;cursor:pointer;font-size:11px;opacity:0;padding:0 2px}
 .prodovr{opacity:.6!important}   /* 조정된 칸이 있는 제품에만 나오므로 평소에도 보이게 */
 tr:hover .prodedit,tr:hover .prodcopy,tr:hover .proddel{opacity:.55}
@@ -552,7 +552,7 @@ th.chdragover{box-shadow:inset 3px 0 0 0 var(--xl-green)}
   .tr-tools .tr-menu{left:0;right:auto;width:250px;max-height:60vh}
   #priceGrid td,#priceGrid th{padding-left:6px;padding-right:6px}
   #priceGrid .prodcopy,#priceGrid .proddel{display:none}   /* 좁은 화면에선 모드(⚙️)·수정(✏️)만 남김 */
-  #priceGrid .rowtools{width:34px;margin-right:4px}
+  #priceGrid .rowtools{width:auto;margin-right:4px}
 }
 @media(max-width:400px){
   .cards{grid-template-columns:1fr}
@@ -3588,16 +3588,35 @@ function chRank(c){
    (예전에는 localStorage 에만 남아 만든 브라우저에서만 보였다) */
 let CHCUSTOM=[];   // 앱에서 추가한 채널 [{uid,g,code,name,short,st,tgt,desc,col,role,ord}]
 let CHPATCH={};    // 시딩 채널 수정분 uid → {name,short,tgt,st,col,role,desc,code}
-async function saveCustomChannels(){
-  try{ await db.collection('product-meta').doc('custom-channels').set({
-    list:CHCUSTOM, patch:CHPATCH, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||'' }); }
-  catch(e){ console.error('[custom-channels] 저장 실패 — 이 채널은 다른 계정에 보이지 않습니다:', e.code||e); alert('채널 저장 실패: '+(e.code||e.message||e)+'\n다른 계정에서는 이 채널이 보이지 않습니다.'); }
+let CHCUSTOM_LOADED=false;   // 서버 custom-channels 를 읽었는지 — 못 읽었으면 저장·승격 안 함
+/* 저장 = 통째 덮어쓰기 금지 (2026-11-03 사고: 팀 화면에서 빈 수정분으로 서버를 덮어 숨긴 채널이 다시 보였음)
+   서버 문서를 먼저 읽고(transaction) 이번에 바뀐 uid 만 넣는다 · 서버의 다른 채널·수정분(patch)은 그대로 · 시딩 채널(CH_DEF)은 list 로 올리지 않음
+   팀 화면이거나 서버 목록을 아직 못 읽었으면 저장하지 않는다 */
+async function saveCustomChannels(uids){
+  if(TEAM_MODE || !CHCUSTOM_LOADED){ console.warn('[custom-channels] 저장 안 함 — '+(TEAM_MODE?'팀 화면':'서버 채널 설정을 아직 못 읽음')); return false; }
+  const want=new Set((uids||[]).filter(Boolean)); if(!want.size){ console.warn('[custom-channels] 바뀐 채널이 없어 저장 안 함'); return false; }
+  const ref=db.collection('product-meta').doc('custom-channels'), isDef=u=>CH_DEF.some(d=>d.uid===u);
+  try{
+    await db.runTransaction(async tx=>{
+      const d=await tx.get(ref), x=d.exists?(d.data()||{}):{};
+      const list=Array.isArray(x.list)?x.list.slice():[], patch=(x.patch&&typeof x.patch==='object')?{...x.patch}:{};
+      want.forEach(u=>{
+        const cu=CHCUSTOM.find(c=>c&&c.uid===u);
+        if(cu && !isDef(u)){ const i=list.findIndex(c=>c&&c.uid===u); if(i>=0) list[i]={...list[i],...cu}; else list.push({...cu}); }
+        else if(CHPATCH[u]) patch[u]={...(patch[u]||{}),...CHPATCH[u]};
+      });
+      tx.set(ref,{list, patch, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''});
+      CHCUSTOM=list; CHPATCH=patch;   // 화면도 서버와 같은 내용으로
+    });
+    console.log(`[custom-channels] 저장 ${[...want].join(', ')} (서버 내용과 합침)`); return true;
+  }catch(e){ console.error('[custom-channels] 저장 실패 — 이 채널은 다른 계정에 보이지 않습니다:', e.code||e); alert('채널 저장 실패: '+(e.code||e.message||e)+'\n다른 계정에서는 이 채널이 보이지 않습니다.'); return false; }
 }
 /* 예전 버전이 이 브라우저에만 저장해 둔 채널을 찾아 공유 저장소로 올린다.
    서버·공유목록 어디에도 없는 uid 만 대상 — 다른 사람이 지운 채널을 되살리지 않도록
    휴지통(CHDEL)에 있는 것은 제외한다. */
 let _chMigrated=false;
 function migrateLocalChannels(localCH){
+  if(TEAM_MODE || !CHCUSTOM_LOADED){ console.warn('[custom-channels] 이 기기 채널 승격 건너뜀 — '+(TEAM_MODE?'팀 화면':'서버 채널 설정을 아직 못 읽음')); return; }
   if(_chMigrated) return; _chMigrated=true;
   const add=localCH.filter(c=>c&&c.uid
     && !CH_DEF.some(d=>d.uid===c.uid)
@@ -3613,7 +3632,7 @@ function migrateLocalChannels(localCH){
     if(!CHANNELS.some(x=>x.uid===rec.uid)) CHANNELS.push({...rec});   // buildState 이후 호출 → 화면에 즉시 반영
   });
   console.log('[custom-channels] 이 기기에만 있던 채널 '+add.length+'개 승격:', add.map(c=>c.code+'·'+c.name).join(', '));
-  saveCustomChannels().then(()=>{
+  saveCustomChannels(add.map(c=>c.uid)).then(ok=>{ if(!ok) return;
     try{ gridToast(`이 기기에만 있던 채널 ${add.length}개(${add.map(c=>c.name).join(', ')})를 서버에 올렸습니다 — 이제 모든 계정에서 보입니다.`); }catch(e){}
   });
 }
@@ -3626,7 +3645,7 @@ function noteChannelEdit(c){
   const cu=CHCUSTOM.find(x=>x.uid===c.uid);
   if(cu){ Object.assign(cu,{g:c.g,code:c.code,name:c.name,short:c.short,st:c.st,tgt:c.tgt,desc:c.desc,col:c.col,role:c.role,ord:c.ord,brands:c.brands||null}); }
   else { CHPATCH[c.uid]={code:c.code,name:c.name,short:c.short,st:c.st,tgt:c.tgt,desc:c.desc,col:c.col,role:c.role,brands:c.brands||null}; }
-  saveCustomChannels();
+  saveCustomChannels([c.uid]);
 }
 /* 채널 열 사용자 지정 순서(가로 드래그). 없으면 chRank(단가순) 유지. 새 채널은 rank 위치에 삽입 */
 let CHORD=[];   // 표시 순서 uid 배열 ← product-meta/chan-order
@@ -4404,7 +4423,7 @@ $('#btnChAdd').addEventListener('click',()=>{
   CHANNELS.push({uid:'c'+(++uidSeq),g,code,name,short:$('#ncShort').value.trim()||name.slice(0,3),
     st:'준비',tgt:$('#ncTgt').value===''?null:+$('#ncTgt').value,desc:$('#ncDesc').value.trim(),
     col:$('#ncCol').value==='1',role:'',brands:(()=>{ const l=$$('#ncBrands input:checked').map(i=>i.value); return l.length?l:[BRAND_FILTER||BRAND_DEFAULT]; })()});
-  { const nc=CHANNELS[CHANNELS.length-1]; if(!CHCUSTOM.some(x=>x.uid===nc.uid)){ CHCUSTOM.push({...nc}); saveCustomChannels(); } }
+  { const nc=CHANNELS[CHANNELS.length-1]; if(!CHCUSTOM.some(x=>x.uid===nc.uid)){ CHCUSTOM.push({...nc}); saveCustomChannels([nc.uid]); } }
   uiToast(`채널 추가됨: ${name}`,'ok');
   $('#ncCode').value='';$('#ncName').value='';$('#ncShort').value='';$('#ncTgt').value='';$('#ncDesc').value='';
   plState=null; refreshAll();
@@ -4721,7 +4740,7 @@ function renderGrid(){   // 채널 열은 고른 브랜드의 채널만(계산�
       <td class="frz frz-no dim">${costAllowed?`<span class="grip" draggable="true" title="드래그로 순서 변경">⠿</span><span class="nono" data-key="${esc(pKey(p))}" data-no="${no}" title="번호를 눌러 원하는 자리로 보냅니다 (기존 제품은 아래로 밀립니다)">${no}</span>`:no}</td>
       ${showCode?(()=>{ const pc=pcodeOf(p), gc=!pc?(p.ghCode||''):''; const v=pc||gc, t=p3plOf(p);
         return `<td class="frz frz-code${gc?' gh':''}${v?'':' dim'}" title="${v?(gc?'그로홈 자체상품코드':'자체상품코드')+' — 눌러서 복사':'자체상품코드 없음'}${t?' · 3PL '+esc(t):''}">${v?`<span class="pcode-cell">${esc(v)}</span>`:'—'}${t?`<span class="c3pl" title="3PL(물류센터) 코드">3PL ${esc(t)}</span>`:''}</td>`; })():''}
-      <td class="frz frz-name name">${costAllowed?`<span class="rowtools"><button class="prodfix${isFixed(p)?' on':''}" data-id="${p.id}" title="${isFixed(p)?'📌 파일값 고정 — 업로드한 단가를 그대로 씁니다. 누르면 자동계산으로 바꿉니다':'⚙️ 자동계산 — 업체단가~정가 사다리로 계산합니다. 누르면 파일값 고정으로 바꿉니다'}">${isFixed(p)?'📌':'⚙️'}</button>${(()=>{ const n=ovrCellsOf(p).length; return n?`<button class="prodovr" data-id="${p.id}" title="🧹 이 제품의 직접 조정된 ${n}칸을 풀어 자동계산으로 되돌립니다">🧹</button>`:''; })()}<button class="prodst" data-id="${p.id}" title="상태 바꾸기 — 단종예정으로 · 지금 단종">상태▾</button><button class="prodedit" data-id="${p.id}" title="제품 수정(분류·원가·유형·구성)">✏️</button><button class="prodcopy" data-id="${p.id}" title="이 제품을 복사해 새로 등록">📋</button><button class="proddel" data-id="${p.id}" title="휴지통으로 보내기(영구삭제 아님)">🗑</button></span>`:''}${statusChip(p)+eolChip(p)+brandChips(p)}${p.needCost?'<span class="bchip" style="background:#FEF3C7;color:#92400E" title="원가·제조사를 아는 사람에게 넘긴 제품 — 채워져야 출시돼요">원가 대기</span>':''}<span class="pname" title="${esc(p.name)}">${esc(p.name)}</span></td>
+      <td class="frz frz-name name">${costAllowed?`<span class="rowtools"><button class="prodfix${isFixed(p)?' on':''}" data-id="${p.id}" title="${isFixed(p)?'📌 파일값 고정 — 업로드한 단가를 그대로 씁니다. 누르면 자동계산으로 바꿉니다':'⚙️ 자동계산 — 업체단가~정가 사다리로 계산합니다. 누르면 파일값 고정으로 바꿉니다'}">${isFixed(p)?'📌':'⚙️'}</button>${(()=>{ const n=ovrCellsOf(p).length; return n?`<button class="prodovr" data-id="${p.id}" title="🧹 이 제품의 직접 조정된 ${n}칸을 풀어 자동계산으로 되돌립니다">🧹</button>`:'<span class="prodovr" style="visibility:hidden" aria-hidden="true">🧹</span>'; })()}<button class="prodst" data-id="${p.id}" title="상태 바꾸기 — 단종예정으로 · 지금 단종">상태▾</button><button class="prodedit" data-id="${p.id}" title="제품 수정(분류·원가·유형·구성)">✏️</button><button class="prodcopy" data-id="${p.id}" title="이 제품을 복사해 새로 등록">📋</button><button class="proddel" data-id="${p.id}" title="휴지통으로 보내기(영구삭제 아님)">🗑</button></span>`:''}${statusChip(p)+eolChip(p)+brandChips(p)}${p.needCost?'<span class="bchip" style="background:#FEF3C7;color:#92400E" title="원가·제조사를 아는 사람에게 넘긴 제품 — 채워져야 출시돼요">원가 대기</span>':''}<span class="pname" title="${esc(p.name)}">${esc(p.name)}</span></td>
       <td class="frz frz-spec dim${lastFrz==='spec'?' frz-edge':''}">${esc(p.spec)}${pkg?(()=>{
         /* 세트는 값이 전부 비어 있으면 이유를 행에서 바로 알 수 있게 표시한다
            (예전에는 더블클릭해야 안내가 떠서 '고장난 줄' 알기 쉬웠다) */
@@ -10822,7 +10841,7 @@ function submitChannel(){
   const ch={uid,g:$('#ncG2').value||'KR2',code,name,short:$('#ncShort2').value.trim()||name.slice(0,3),
     st:'운영',tgt:$('#ncTgt2').value===''?null:+$('#ncTgt2').value,desc:'',col:$('#ncCol2').checked,role:'',ord:uidSeq};
   CHANNELS.push(ch);
-  CHCUSTOM.push({...ch}); saveCustomChannels();   // 공유 저장소 → 모든 계정·기기에서 보임
+  CHCUSTOM.push({...ch}); saveCustomChannels([ch.uid]);   // 공유 저장소 → 모든 계정·기기에서 보임
   // 판매가 규칙 즉시 적용(신규 채널 → 승인 불필요)
   VCOEFF[code] = a==='manual' ? {a:'manual',f:0} : {a,f};
   saveChannelMarkup(); recalcVendor(); plState=null; persist(); refreshAll();
@@ -11070,6 +11089,7 @@ async function loadVendorConfig(){
   try{ const d=await pmGet('chan-order'); if(d.exists&&Array.isArray(d.data().list)) CHORD=d.data().list; }catch(e){ console.warn('[chan-order] 로드 실패', e.code||e); }
   try{ const d=await pmGet('custom-channels');
     if(d.exists){ const x=d.data()||{}; if(Array.isArray(x.list))CHCUSTOM=x.list; if(x.patch&&typeof x.patch==='object')CHPATCH=x.patch; }
+    CHCUSTOM_LOADED=true;
     console.log(`[custom-channels] 추가채널 ${CHCUSTOM.length}개 · 수정분 ${Object.keys(CHPATCH).length}개`);
   }catch(e){ console.warn('[custom-channels] 로드 실패', e.code||e); }
   try{ const d=await pmGet('prod-cat'); if(d.exists&&d.data().map&&typeof d.data().map==='object') PCAT=d.data().map; }catch(e){ console.warn('[prod-cat] 로드 실패', e.code||e); }
@@ -11748,12 +11768,16 @@ function laGroupOf(p){ const s=pstatus(p); return s==='출시' && eolPending(p) 
 /* 검토 진행: 원가 · 판매가 · 마진(목표 이상) · 시장조사 → 다음 할 일 한 줄 */
 function laProgress(p){
   const k=pKey(p), pl=LPLAN[k];
-  const cost=pl?laNum(pl.cost)>0:(p.cost>0), price=pl?laNum(pl.price)>0:false;
-  const cal=pl&&price?laCalc(pl):null, rateOk=!!(cal&&cal.avgRate!=null&&cal.avgRate>=(cal.tgt||0)&&cal.avgProfit>0);
+  /* 검토값(LPLAN)이 비어 있으면 가격정책표 값(원가·자사몰 정가)으로 본다 — 목록에 보이는 값과 체크가 엇갈리지 않게 (2026-11-03) */
+  const cp={...(pl||laNewPlan(p))};
+  if(!(laNum(cp.cost)>0) && effCost(p)>0) cp.cost=effCost(p);
+  if(!(laNum(cp.price)>0) && retailOf(p)>0) cp.price=retailOf(p);
+  const cost=laNum(cp.cost)>0, price=laNum(cp.price)>0;
+  const cal=cost&&price?laCalc(cp):null, rateOk=!!(cal&&cal.avgRate!=null&&cal.avgRate>=(cal.tgt||0)&&cal.avgProfit>0);
   const mkt=!!(pl&&laMarket(pl).n>0);
   const steps=[['원가',cost],['판매가',price],['마진',cal?rateOk:false],['시장조사',mkt]];
-  const next=!pl?'검토 시작하기 — 원가·판매가 넣기':!cost?'원가 넣기':!price?'판매가 넣기':!rateOk?'목표 마진 미달 — 판매가·원가 조정':!mkt?'시장가 조사 넣기':'검토 끝 — 🚀 출시할 수 있어요';
-  return {steps, next, done:cost&&price&&rateOk, score:steps.filter(x=>x[1]).length, cal};
+  const next=(!cost&&!price)?'검토 시작하기 — 원가·판매가 넣기':!cost?'원가 넣기':!price?'판매가 넣기':!rateOk?'목표 마진 미달 — 판매가·원가 조정':!mkt?'시장가 조사 넣기':'검토 끝 — 🚀 출시할 수 있어요';
+  return {steps, next, done:cost&&price&&rateOk, score:steps.filter(x=>x[1]).length, cal, cost:laNum(cp.cost), price:laNum(cp.price)};
 }
 function laStockLine(p){
   const st=EOL_STOCK[pKey(p)];
@@ -11865,8 +11889,8 @@ function renderPsList(){
     const sub=`${brandChips(p)}${code?`<span class="mono">${esc(code)}</span>`:''}${p.needCost?'<span class="bchip" style="background:#FEF3C7;color:#92400E">원가 대기</span>':''}`;
     let extra='', acts='';
     if(prep){ const pr=prog.get(p), sg=sig.get(p)||{warn:[]};
-      if(can){ const cal=pr.cal, price=pl?laNum(pl.price):retailOf(p);
-        extra+=`<div class="sub">원가 ${w(pl?laNum(pl.cost):unitCost(p))} · 판매가 ${w(price)}${cal&&cal.avgRate!=null&&price>0?` · 마진 <b style="color:${cal.avgRate<0?'var(--red)':'var(--xl-green-dark)'}">${(cal.avgRate*100).toFixed(1)}%</b>`:''}</div>`; }
+      if(can){ const cal=pr.cal, price=pr.price;   // 체크와 같은 값(검토값 → 없으면 가격정책표)
+        extra+=`<div class="sub">원가 ${w(pr.cost)} · 판매가 ${w(price)}${cal&&cal.avgRate!=null&&price>0?` · 마진 <b style="color:${cal.avgRate<0?'var(--red)':'var(--xl-green-dark)'}">${(cal.avgRate*100).toFixed(1)}%</b>`:''}</div>`; }
       extra+=`<div class="la-steps">${pr.steps.map(([l,ok])=>`<span class="${ok?'ok':''}">${ok?'✓':'·'} ${l}</span>`).join('')}</div>`;
       if(sg.x) extra+=`<div class="sub">🚀 로드맵 <b>${sg.g.pct}%</b>${sg.g.cur?` · 지금 ${esc(sg.g.cur)}`:' · 준비 끝'}${sg.x.launchDate?` · 출시 ${esc(String(sg.x.launchDate).slice(5).replace('-','/'))}`:''}</div>`;
       if(sg.warn.length) extra+=`<div class="la-next" style="color:var(--red);font-weight:800">⚠ ${sg.warn.map(esc).join(' · ')}</div>`;
@@ -13715,7 +13739,7 @@ function startLiveSync(){
     if(!d.exists) return; const x=d.data()||{};
     const nl=Array.isArray(x.list)?x.list:[], np=(x.patch&&typeof x.patch==='object')?x.patch:{};
     if(liveSame([nl,np],[CHCUSTOM,CHPATCH])) return;
-    CHCUSTOM=nl; CHPATCH=np;
+    CHCUSTOM=nl; CHPATCH=np; CHCUSTOM_LOADED=true;
     scheduleRebuild('custom-channels('+CHCUSTOM.length+')');
   }, onErr('custom-channels'));
   db.collection('product-meta').doc('all').onSnapshot(d=>{
@@ -13998,8 +14022,18 @@ function applyTeamCatalog(c){
     if(p.bc && !TEAM_BC_LIVE) PBARCODE[k]=p.bc; if(p.l1) PCAT[k]={l1:p.l1,l2:p.cat,l3:''}; PTYPE[k]=p.type==='세트'?'세트':'단품'; });
   if(typeof applyBrandList==='function') applyBrandList([...new Set((TEAMCAT.products||[]).flatMap(p=>p.brand||[]))]);
 }
+/* 팀 화면 저장 막기 (2026-11-03 사고 뒤 안전망): 마스터 계정으로 ?team=1 을 열어도 서버 규칙은 마스터라 다 허용된다.
+   그래서 팀 화면에서는 관리자 설정(product-meta·config·team-catalog)을 화면 쪽에서 아예 쓰지 않는다 — 팀원 권한으로 쓰는 4곳만 예외 */
+const TEAM_PM_OK=new Set(['prod-barcode','prod-code','promo-types','sales-map']);
+function teamWriteGuard(){
+  const R=firebase.firestore.DocumentReference&&firebase.firestore.DocumentReference.prototype; if(!R||R.__teamGuard) return; R.__teamGuard=true;
+  const blocked=ref=>{ if(!TEAM_MODE||!ref||!ref.parent) return false; const c=ref.parent.id; return (c==='product-meta'&&!TEAM_PM_OK.has(ref.id))||c==='config'||c==='team-catalog'; };
+  ['set','update','delete'].forEach(m=>{ const orig=R[m]; R[m]=function(...a){
+    if(blocked(this)){ console.warn(`[팀 화면] ${this.path} ${m} 막음 — 팀 화면에서는 관리자 설정을 저장하지 않아요`); return Promise.reject(Object.assign(new Error('팀 화면에서는 관리자 설정을 저장하지 않아요'),{code:'team-mode-blocked'})); }
+    return orig.apply(this,a); }; });
+}
 async function bootTeam(){
-  TEAM_MODE=true; costAllowed=false; secAllowed=false; document.body.classList.remove('cost-ok'); document.body.classList.add('team-mode');
+  TEAM_MODE=true; teamWriteGuard(); costAllowed=false; secAllowed=false; document.body.classList.remove('cost-ok'); document.body.classList.add('team-mode');
   { const t=$('#appTitle'); if(t) t.textContent='POUR 팀 대시보드'; document.title='POUR 팀 대시보드'; }
   renderAccessDenied(false);
   const _tPromo=db.collection('product-meta').doc('promo-types').get(), _tMkt=fetchMkt();   // 동시에 출발(폰 부팅 시간)

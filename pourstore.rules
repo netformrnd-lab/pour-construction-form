@@ -11,7 +11,14 @@ rules_version = '2';
 //   · 시딩은 Admin SDK(서비스 계정)로 수행되며 보안규칙을 우회하므로 영향 없음
 //   · 공개 회원가입은 사용하지 않음 — 계정은 Firebase 콘솔에서 수동 생성 후 허용목록에 추가
 //
-//  배포:
+//  2026-11-03 (사장님 확정 1A 2A 3A 4A 5B 6A 7A — 팀원별 권한 · 원가·제조사는 넣은 사람만):
+//   · config/access.perms {이메일:{barcode,newProd,cost}} = 팀원별 입력 권한 (소유자 마스터만 고침)
+//   · 팀원: 바코드 고치기(barcode) · 제품 등록 = 출시준비·원가 없이(newProd) · 자체상품코드는 '새 칸 추가'만
+//   · cost-private = 팀원·부마스터가 넣은 원가·제조사 — 마스터 + viewers(넣은 본인·마스터가 지정한 사람)만 읽음
+//   · cost-log = 원가 변경 이력(마스터·부마스터) · dashboard-activity = 활동 기록(추가만)
+//   · 팀원 화면엔 제조사 가칭도 안 보임 → 팀원의 product-meta/mfg-alias 읽기 뺌
+//
+//  배포 (자동 배포 없음 — Firebase 콘솔 › Firestore › 규칙 에 이 파일 전체를 붙여 넣고 [게시]):
 //   firebase deploy --only firestore:rules --project pourstoreproject
 //   (firebase.json 의 firestore.rules 를 이 파일로 지정하거나 --config 로 분리)
 // ─────────────────────────────────────────────────────────────
@@ -64,6 +71,19 @@ service cloud.firestore {
     }
     function canTeam() {
       return isAllowedReader() || isTeam();
+    }
+    // 부마스터: 원가·마진 열람 (공급업체·제조사는 마스터 전용) — 이메일 인증 필요
+    function isSubMaster() {
+      return signedIn()
+        && request.auth.token.email_verified == true
+        && accessExists()
+        && request.auth.token.email in get(/databases/$(database)/documents/config/access).data.get('subMasterEmails', []);
+    }
+    // 팀원별 입력 권한 (2026-11-03): config/access.perms[이메일][항목] == true
+    function hasPerm(k) {
+      return signedIn()
+        && accessExists()
+        && get(/databases/$(database)/documents/config/access).data.get('perms', {}).get(request.auth.token.email, {}).get(k, false) == true;
     }
 
     match /channels/{uid} {
@@ -151,9 +171,18 @@ service cloud.firestore {
     // 상품 기준 메타(시장조사최저가·상품별 마케팅·프로모션 파라미터) — 허용목록 계정만
     match /product-meta/{doc} {
       allow read, write: if isAllowedReader();
-      // 팀원: 원가 없는 문서 3개만 (행사 구성 순서 · 제조사 가칭 · 판매 엑셀 상품 연결 기억)
-      allow read: if isTeam() && doc in ['promo-types', 'mfg-alias', 'sales-map'];
+      // 팀원: 원가 없는 문서만 (행사 구성 순서 · 판매 엑셀 상품 연결 기억 · 자체상품코드 · 바코드)
+      //  · 제조사 가칭(mfg-alias)은 2026-11-03 부터 팀원에게 안 보임
+      allow read: if isTeam() && doc in ['promo-types', 'sales-map', 'prod-code', 'prod-barcode'];
       allow write: if isTeam() && doc in ['promo-types', 'sales-map'];
+      // 바코드 권한 팀원: 바코드 표(map)만 고침
+      allow update: if isTeam() && doc == 'prod-barcode' && hasPerm('barcode')
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['map', 'updatedAt', 'updatedBy']);
+      // 제품 등록 권한 팀원: 새 제품의 자체상품코드 '추가'만 (있는 코드를 바꾸거나 지우지 못함)
+      allow update: if isTeam() && doc == 'prod-code' && hasPerm('newProd')
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['map', 'updatedAt', 'updatedBy'])
+        && request.resource.data.map.diff(resource.data.map).changedKeys().size() == 0
+        && request.resource.data.map.diff(resource.data.map).removedKeys().size() == 0;
     }
     // 팀용 단가표(원가 없음) — 관리자 화면이 자동으로 만들어 저장, 팀원은 읽기만
     match /team-catalog/{doc} {
@@ -163,6 +192,52 @@ service cloud.firestore {
     // 공유 상품 원장(앱에서 등록한 상품) — 대시보드·소싱앱 공용. 허용목록 계정 등록·수정·삭제
     match /products-added/{id} {
       allow read, write: if isAllowedReader();
+      // 제품 등록 권한 팀원 (2026-11-03): 출시준비 · 원가·제조사·판매가 없이 새로 만들기만 (고치기·지우기는 관리자 화면)
+      allow create: if isTeam() && hasPerm('newProd')
+        && request.resource.data.createdVia == 'team'
+        && request.resource.data.createdBy == request.auth.token.email
+        && request.resource.data.status == '출시준비'
+        && request.resource.data.type == '단품'
+        && request.resource.data.cost == null
+        && request.resource.data.mfg == ''
+        && request.resource.data.pr.size() == 0
+        && request.resource.data.keys().hasOnly(['cat', 'name', 'spec', 'cost', 'pr', 'mfg', 'concept', 'type', 'status', 'setItems',
+             'seq', 'updatedAt', 'createdBy', 'createdVia', 'l1', 'l3', 'brands', 'barcode', 'needCost']);
+    }
+    // 🔑 팀원·부마스터가 넣은 원가·제조사 (2026-11-03 사장님 2A 3A 4A)
+    //  · 읽기: 마스터는 전부 · 그 밖엔 viewers 에 든 사람(넣은 본인 · 마스터가 '보여 주기'한 팀원)만
+    //  · 팀원(원가 권한)·부마스터: 자기 칸(kind own)만 만들고 고침 — 반영·요청 처리·보여 주기는 마스터
+    match /cost-private/{id} {
+      allow read: if isMaster()
+        || (signedIn() && request.auth.token.email in resource.data.viewers);
+      allow create: if isMaster()
+        || ( (hasPerm('cost') || isSubMaster())
+             && request.resource.data.kind == 'own'
+             && request.resource.data.by == request.auth.token.email
+             && request.resource.data.viewers == [request.auth.token.email]
+             && request.resource.data.status == 'ok'
+             && request.resource.data.rev == 1
+             && request.resource.data.keys().hasOnly(['kind', 'key', 'name', 'spec', 'cost', 'mfg', 'by', 'viewers', 'status', 'rev',
+                  'createdAt', 'updatedAt', 'history']) );
+      allow update: if isMaster()
+        || ( (hasPerm('cost') || isSubMaster())
+             && resource.data.kind == 'own'
+             && resource.data.by == request.auth.token.email
+             && request.resource.data.status == 'ok'
+             && request.resource.data.rev == resource.data.rev + 1
+             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['cost', 'mfg', 'status', 'updatedAt', 'history', 'rev', 'name', 'spec']) );
+      allow delete: if isMaster();
+    }
+    // 원가 변경 이력 — 마스터·부마스터만 (지우기 없음)
+    match /cost-log/{id} {
+      allow read, create, update: if isMaster() || isSubMaster();
+      allow delete: if false;
+    }
+    // 활동 기록 — 쓴 사람 이름으로 추가만 (고치기·지우기 없음)
+    match /dashboard-activity/{id} {
+      allow read: if isAllowedReader();
+      allow create: if canTeam() && request.resource.data.by == request.auth.token.email;
+      allow update, delete: if false;
     }
     // 📥 판매 엑셀 업로드 기록 (날짜별 문서 · 묶음 기록 batch-*) — 허용목록 계정 (2026-09 대표와 협의 후 추가)
     match /sales-orders/{id} {

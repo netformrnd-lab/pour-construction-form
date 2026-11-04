@@ -7096,7 +7096,7 @@ async function teamSubmitFromModal(){
   if(!noCost){ if(!(cost>0)) return bad('매입원가를 넣어 주세요 · 모르면 아래 \'원가·제조사를 몰라요\' 체크','adCost'); if(!mfg) return bad('제조사를 넣어 주세요 · 모르면 아래 \'원가·제조사를 몰라요\' 체크','adMfg'); }
   const spec=specIn, key=`${cat}|${name}|${spec}`;
   if(((TEAMCAT&&TEAMCAT.products)||[]).some(p=>p.name===name && (p.spec||'-')===spec)) return bad('같은 제품명·규격이 이미 있어요');
-  if(bc){ const o=Object.keys(PBARCODE).find(k=>normBarcode(PBARCODE[k])===bc); if(o) return bad(`바코드 ${bc} 는 이미 '${o.split('|')[1]}'에 붙어 있어요`,'adBarcode'); }
+  if(bc){ await refreshIdMaps(['bc']); const c=barcodeClash(bc,[key]); if(c) return bad(clashText(c,'바코드'),'adBarcode'); }   // 겹치면 등록 안 함 (2026-11-04)
   btn.disabled=true; const old=btn.textContent; btn.textContent='저장 중…'; st.textContent='';
   const now=new Date().toISOString(), em=curUser.email, notes=[];
   try{
@@ -7820,9 +7820,46 @@ async function saveBarcodePatch(patch){
   const map={}; Object.entries(patch).forEach(([k,v])=>{ map[k]=v?v:del; });
   await db.collection('product-meta').doc('prod-barcode').set({map, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''},{merge:true});
 }
+/* ══ 바코드·자체상품코드 겹침 막기 (2026-11-04 대표님 '중복 안 되게') ══
+   같은 값 판단: 바코드 = 공백·하이픈 빼고 · 영문 대소문자 무시(앞자리 0 은 그대로)
+                 자체상품코드 = 대문자로 · 공백·하이픈·밑줄 빼고 (PS-001-01 = ps 001 01 = PS00101) · 그로홈 코드(ghCode)와도 비교
+   저장하는 모양은 그대로(바코드 공백 제거 · 코드 대문자) · 저장 직전 서버 최신본을 다시 읽고 한 번 더 본다 */
+const bcNorm=v=>String(v==null?'':v).replace(/[\s\-]+/g,'').toUpperCase();
+const pcNorm=v=>String(v==null?'':v).toUpperCase().replace(/[\s\-_]+/g,'');
+function idProd(k){ return P.find(x=>pKey(x)===k)||null; }
+function idLabel(k){ const p=idProd(k), parts=String(k||'').split('|'); const nm=p?p.name:(parts[1]||k), sp=p?p.spec:(parts[2]||''); return `${nm}${sp&&sp!=='-'?' '+sp:''}`; }
+function idDeleted(k){ const p=idProd(k); return p?isDeletedProd(p):!!PDEL[k]; }
+/* extra: 아직 저장 안 한 값 [[제품키, 값, 줄 이름]] (엑셀 한 파일 안 · 그로홈 가져오기 한 번 안) */
+function barcodeClash(v, selfKeys, extra){
+  const n=bcNorm(v); if(!n) return null; const self=new Set([].concat(selfKeys||[]));
+  for(const [k,b] of Object.entries(PBARCODE)) if(!self.has(k) && b && bcNorm(b)===n) return {key:k, del:idDeleted(k)};
+  for(const [k,b,lb] of (extra||[])) if(!self.has(k) && bcNorm(b)===n) return {key:k, del:false, label:lb};
+  return null;
+}
+function codeClash(v, selfKeys, extra){
+  const n=pcNorm(v); if(!n) return null; const self=new Set([].concat(selfKeys||[]));
+  for(const [k,c] of Object.entries(PCODE)) if(!self.has(k) && c && pcNorm(c)===n) return {key:k, del:idDeleted(k)};
+  for(const p of P){ const k=pKey(p); if(p.ghCode && !self.has(k) && pcNorm(p.ghCode)===n) return {key:k, del:isDeletedProd(p), gh:true}; }   // 그로홈 코드(GH-…)
+  for(const [k,c,lb] of (extra||[])) if(!self.has(k) && pcNorm(c)===n) return {key:k, del:false, label:lb};
+  return null;
+}
+function clashText(c, what){ const lb=c.label||idLabel(c.key); return c.del?`휴지통에 있는 [${lb}]이 쓰는 ${what}예요`:`이미 [${lb}]에 쓰이는 ${what}예요`; }
+/* 저장 직전 서버 최신본 다시 읽기 — 동시에 두 사람이 넣어도 겹치지 않게 */
+async function refreshIdMaps(which){
+  const want=which||['bc','pc'];
+  if(want.includes('bc')){ try{ const d=await db.collection('product-meta').doc('prod-barcode').get(); if(d.exists&&d.data().map&&typeof d.data().map==='object') PBARCODE={...d.data().map}; }catch(e){ console.warn('[prod-barcode] 최신본 읽기 실패 — 이 화면 값으로 검사', e.code||e); } }
+  if(want.includes('pc')){ try{ const d=await db.collection('product-meta').doc('prod-code').get(); if(d.exists&&d.data().map&&typeof d.data().map==='object') PCODE={...d.data().map}; }catch(e){ console.warn('[prod-code] 최신본 읽기 실패 — 이 화면 값으로 검사', e.code||e); } }
+}
+/* 지금 데이터의 겹침 (고치지 않고 알림만) — 같은 값을 다른 제품 둘 이상이 씀 */
+function idDupScan(){
+  const groups=(pairs)=>{ const m=new Map(); pairs.forEach(([n,k])=>{ if(!n) return; if(!m.has(n)) m.set(n,new Set()); m.get(n).add(k); }); return [...m.entries()].filter(([,ks])=>ks.size>1); };
+  const bc=groups(Object.entries(PBARCODE).map(([k,v])=>[bcNorm(v),k]));
+  const pc=groups([...Object.entries(PCODE).map(([k,v])=>[pcNorm(v),k]), ...P.filter(p=>p.ghCode).map(p=>[pcNorm(p.ghCode),pKey(p)])]);
+  return {bc, pc, n:bc.length+pc.length};
+}
 async function setBarcodeFor(k,val){   // 바코드 지정 — 다른 제품과 겹치면 거부. 반환: 오류 문구 또는 ''
   const v=normBarcode(val);
-  if(v){ const o=Object.keys(PBARCODE).find(kk=>kk!==k && normBarcode(PBARCODE[kk])===v); if(o) return `바코드 ${v} 는 다른 제품(${o.split('|')[1]})에 붙어 있습니다.`; }
+  if(v){ await refreshIdMaps(['bc']); const c=barcodeClash(v,[k]); if(c) return clashText(c,'바코드'); }
   if((PBARCODE[k]||'')===v) return '';
   const old=PBARCODE[k]; if(v) PBARCODE[k]=v; else delete PBARCODE[k];
   try{ await saveBarcodePatch({[k]:v}); logAct('바코드', `${k.split('|')[1]} ${old||'—'} → ${v||'—'}`, '수동 변경'); return ''; }
@@ -7887,7 +7924,7 @@ function planPcodes(orderHint, extra){   // orderHint: {pKey: 옛 코드} — �
     .filter(p=>!(extra||[]).some(x=>pKey(x)===pKey(p))).concat(extra||[]);
   /* 세트(패키지)는 단품과 번호대를 나눈다: 단품 PS-002-04 · 세트 PS-S001-01.
      그룹 열쇠 g 는 '002' 또는 'S001' 같은 문자열 — 단품·세트 각각 따로 다음 번호를 센다. */
-  const used=new Set(Object.values(PCODE));
+  const used=new Set([...Object.values(PCODE).map(pcNorm), ...P.filter(p=>p.ghCode).map(p=>pcNorm(p.ghCode))]);   // 공백·하이픈·대소문자 무시 + 그로홈 코드 (2026-11-04)
   const baseGrp={}, grpMaxOpt={}, maxN={'':0,'S':0};
   const note=(c,p)=>{ const m=c&&c.match(PCODE_RE); if(!m) return; const g=m[1], o=+m[2], s=g[0]==='S'?'S':'', n=+g.replace('S','');
     maxN[s]=Math.max(maxN[s],n); grpMaxOpt[g]=Math.max(grpMaxOpt[g]||0,o); if(p){ const b=s+codeBase(p.name); if(!(b in baseGrp)) baseGrp[b]=g; } };
@@ -7896,8 +7933,8 @@ function planPcodes(orderHint, extra){   // orderHint: {pKey: 옛 코드} — �
   list.forEach(p=>{ const k=pKey(p); if(PCODE[k]) return;
     const s=(p._new?p._isSet:isPackage(p))?'S':'', b=s+codeBase(p.name);
     let g=baseGrp[b]; if(g==null){ g=s+String(++maxN[s]).padStart(3,'0'); baseGrp[b]=g; }
-    let o=(grpMaxOpt[g]||0)+1, code; do{ code=`${PCODE_PREFIX}-${g}-${String(o).padStart(2,'0')}`; o++; }while(used.has(code));
-    grpMaxOpt[g]=o-1; used.add(code); plan[k]=code; });
+    let o=(grpMaxOpt[g]||0)+1, code; do{ code=`${PCODE_PREFIX}-${g}-${String(o).padStart(2,'0')}`; o++; }while(used.has(pcNorm(code)));
+    grpMaxOpt[g]=o-1; used.add(pcNorm(code)); plan[k]=code; });
   return plan;
 }
 async function savePcodePatch(patch){   // 바뀐 칸만 병합 저장 — 다른 사람이 동시에 붙인 코드를 덮지 않게
@@ -7946,12 +7983,13 @@ async function autoGhCodes(){
   try{
     const sn=await ghDB().collection('products').get(), gh=sn.docs.map(d=>({id:d.id,...d.data()}));
     console.log(`[그로홈 코드] 코드 없는 GROHOME 제품 ${need.length}개 · 그로홈 제품마스터 ${gh.length}개`);
-    const used=new Set(Object.values(PCODE).map(c=>String(c).toUpperCase())); P.forEach(p=>{ if(p.ghCode) used.add(String(p.ghCode).toUpperCase()); });
+    await refreshIdMaps(['pc']);
+    const used=new Set(Object.values(PCODE).map(pcNorm)); P.forEach(p=>{ if(p.ghCode) used.add(pcNorm(p.ghCode)); });   // 공백·하이픈·대소문자 무시 (2026-11-04)
     const patch={}, miss=[];
     need.forEach(p=>{ const g=gh.find(x=>!x.mergedInto && ghNorm(x.name)===ghNorm(p.name)); if(!g){ miss.push(p.name); return; }
       const opts=(Array.isArray(g.options)?g.options:[]).filter(o=>o&&o.code), sp=ghNorm(p.spec&&p.spec!=='-'?p.spec:'');
       const o=opts.find(x=>ghNorm(x.name)===sp)||(opts.length===1?opts[0]:null); if(!o){ miss.push(p.name+' '+(p.spec||'')); return; }
-      const c=String(o.code).toUpperCase(), cur=PCODE[pKey(p)]||''; if(c===cur||(used.has(c)&&c!==cur)) return; used.add(c); patch[pKey(p)]=c; });
+      const c=String(o.code).toUpperCase(), cur=PCODE[pKey(p)]||''; if(c===cur||(used.has(pcNorm(c))&&pcNorm(c)!==pcNorm(cur))) return; used.add(pcNorm(c)); patch[pKey(p)]=c; });
     const n=Object.keys(patch).length;
     if(n){ await savePcodePatch(patch); Object.assign(PCODE,patch); logAct('상품코드',`그로홈 코드 연결 ${n}개`,Object.entries(patch).slice(0,3).map(([k,c])=>c+' '+k.split('|')[1]).join(', ')+(n>3?' 외':''));
       renderGrid(); scheduleTeamCatalog(); }
@@ -7999,13 +8037,14 @@ async function setPcodeFor(k,code){   // 수동 지정 — 형식·중복 검사
   code=String(code||'').trim().toUpperCase();
   if(!code){ return '코드를 비울 수 없습니다(비우면 자동 부여로 다시 붙습니다).'; }
   if(!/^[A-Z0-9][A-Z0-9\-_]{1,29}$/.test(code)) return '영문 대문자·숫자·하이픈만 30자 이내로 써 주세요.';
-  const o=pcodeOwner(code); if(o && o!==k) return `이미 다른 제품(${o.split('|')[1]})이 쓰는 코드입니다.`;
+  await refreshIdMaps(['pc']); { const c=codeClash(code,[k]); if(c) return clashText(c,'자체상품코드'); }
   if(PCODE[k]===code) return '';
   const old=PCODE[k]; PCODE[k]=code;
   try{ await savePcodePatch({[k]:code}); logAct('상품코드', `${k.split('|')[1]} ${old||'—'} → ${code}`, '수동 변경'); return ''; }
   catch(e){ if(old) PCODE[k]=old; else delete PCODE[k]; return '저장 실패: '+(e.code||e.message||e); }
 }
 async function renumberPcodes(){
+  await refreshIdMaps(['pc']);   // 서버 최신본 기준 (2026-11-04)
   const targets=pcodeTargets(); if(!targets.length) return;
   if(!confirm(`POUR스토어 제품 ${targets.length}개의 자체상품코드를 처음부터 다시 매깁니다.\n\n· 규칙: 단품 PS-제품번호-옵션번호 · 세트 PS-S세트번호-01\n· 순서: 가격정책표 제품 순서\n· 3PL 코드는 그대로 둡니다\n\n⚠️ 오픈마켓 판매자관리코드에 이미 넣은 코드가 있다면 다시 넣어야 합니다.\n계속할까요?`)) return;
   const old={...PCODE};
@@ -9215,6 +9254,9 @@ async function submitAddProduct(){
     if(AD_EDIT){   // ── 수정 ──
       // 제품명·규격이 바뀌었으면 먼저 옮긴다(이후 저장이 새 열쇠로 기록되도록)
       const nName=($('#adName').value||'').trim(), nSpec=($('#adSpec').value||'').trim()||'-';
+      { const self=[pKey(AD_EDIT), `${AD_EDIT.cat}|${nName}|${nSpec}`], chBc=bcIn && bcIn!==(PBARCODE[pKey(AD_EDIT)]||''), chPc=pcIn && pcIn!==(PCODE[pKey(AD_EDIT)]||'');
+        if(chBc||chPc){ await refreshIdMaps(); const c=(chBc&&barcodeClash(bcIn,self))||null, d=(chPc&&codeClash(pcIn,self))||null;   // 겹치면 아무것도 저장하지 않음 (2026-11-04)
+          if(c||d){ $('#adStatus').innerHTML=`<span style="color:var(--red)">${esc(c?clashText(c,'바코드'):clashText(d,'자체상품코드'))}</span>`; btn.disabled=false; btn.textContent=old; return; } } }
       if(nName!==AD_EDIT.name || nSpec!==(AD_EDIT.spec||'')){
         const from=`${AD_EDIT.name}${AD_EDIT.spec&&AD_EDIT.spec!=='-'?' ('+AD_EDIT.spec+')':''}`;
         const to=`${nName}${nSpec!=='-'?' ('+nSpec+')':''}`;
@@ -9262,6 +9304,9 @@ async function submitAddProduct(){
     const rUid=(typeof retailUid==='function')?retailUid():null;
     const pr={}; if(rUid && retail>0) pr[rUid]=retail;
     const cat=l2||'기타', key=`${cat}|${name}|${spec}`;
+    if(bcIn || (pcIn && !pcAuto)){ await refreshIdMaps();   // 바코드·직접 적은 코드가 겹치면 제품을 만들지 않음 (2026-11-04)
+      const c=bcIn?barcodeClash(bcIn,[key]):null, d=(!c&&pcIn&&!pcAuto)?codeClash(pcIn,[key]):null;
+      if(c||d){ $('#adStatus').innerHTML=`<span style="color:var(--red)">${esc(c?clashText(c,'바코드'):clashText(d,'자체상품코드'))}</span>`; const el=$(c?'#adBarcode':'#adPcode'); if(el) el.focus(); btn.disabled=false; btn.textContent=old; return; } }
     /* 같은 제품명·규격이 이미 있으면 새 줄이 생기지 않는다(제품명|규격이 열쇠라 한 줄로 합쳐짐).
        예전에는 조용히 저장만 되고 화면엔 아무 변화가 없었다(=등록 안 된 것처럼 보임).
        이제는 물어보고, '덮어쓰기'를 고르면 그 제품을 이 창의 값으로 제대로 갱신한다. */
@@ -9436,8 +9481,8 @@ function bulkCheck(rows){
     const name=o.name, spec=o.spec, code=o.pcode.toUpperCase();
     if(!code){ if(bulkBrands(o.brand).list.includes('POUR스토어')) warn.push('자체상품코드 자동'); }   // 2026-11-03 6A: 비우면 등록할 때 자동
     else if(!/^[A-Z0-9][A-Z0-9\-_]{1,29}$/.test(code)) err.push('제품코드 형식(영문 대문자·숫자·하이픈)');
-    else { const own=pcodeOwner(code); if(own) err.push(`제품코드 ${code} 를 이미 '${own.split('|')[1]}'가 씀`);
-      else if(seenCode[code]) err.push(`제품코드가 ${seenCode[code]}번 줄과 겹침`); else seenCode[code]=o.line; }
+    else { const c=codeClash(code,[]); if(c) err.push(`제품코드 ${code}: ${clashText(c,'자체상품코드')}`);
+      else if(seenCode[pcNorm(code)]) err.push(`제품코드가 ${seenCode[pcNorm(code)]}번 줄과 겹침`); else seenCode[pcNorm(code)]=o.line; }   // 공백·하이픈·대소문자 무시 (2026-11-04)
     if(!name) err.push('제품명 없음');
     if(!spec) err.push('규격 없음 (없으면 - )');
     if(!o.mfg) err.push('공급업체 없음'); else if(!mfgNames.has(o.mfg)) warn.push('새 공급업체로 추가');
@@ -9454,9 +9499,8 @@ function bulkCheck(rows){
     p3&&p3.split(', ').forEach(c=>{ const ow=Object.keys(P3PL).find(k=>norm3pl(P3PL[k]).split(', ').includes(c));
       if(ow) err.push(`3PL ${c} 를 이미 '${ow.split('|')[1]}'가 씀`); else if(seen3[c]) err.push(`3PL ${c} 가 ${seen3[c]}번 줄과 겹침`); else seen3[c]=o.line; });
     const bc=normBarcode(o.barcode);
-    if(!bc){}   // 바코드는 선택 (2026-11-03 사장님 7A)
-    else{ const ow=Object.keys(PBARCODE).find(k=>normBarcode(PBARCODE[k])===bc);
-      if(ow) err.push(`바코드를 이미 '${ow.split('|')[1]}'가 씀`); else if(seenBc[bc]) err.push(`바코드가 ${seenBc[bc]}번 줄과 겹침`); else seenBc[bc]=o.line; }
+    if(bc){ const c=barcodeClash(bc,[]); if(c) err.push(`바코드 ${bc}: ${clashText(c,'바코드')}`);
+      else if(seenBc[bcNorm(bc)]) err.push(`바코드가 ${seenBc[bcNorm(bc)]}번 줄과 겹침`); else seenBc[bcNorm(bc)]=o.line; }   // 바코드는 선택 · 공백·하이픈·대소문자 무시 (2026-11-04)
     const l1=o.l1||'POUR공법', cat=o.l2||'기타';
     return {...o, code, spec:sp, cost, vbase, retail, ship, p3, bc, l1, cat, brands:br.list, key:`${cat}|${name}|${sp}`, err, warn, check:!err.length};
   });
@@ -9497,6 +9541,7 @@ function renderBulk(){
 }
 async function bulkSave(){
   if(!secAllowed||BULK.saving) return;
+  await refreshIdMaps();   // 다른 사람이 그사이 넣은 바코드·코드까지 보고 다시 검사 (2026-11-04)
   const list=bulkCheck(BULK.rows.filter(r=>r.check&&!r.done)).filter(r=>!r.err.length);   // 그사이 다른 사람이 같은 코드·제품을 넣었을 수 있어 다시 확인
   if(!list.length){ uiToast('등록할 줄이 없어요','warn'); return; }
   if(!confirm(`제품 ${list.length}개를 등록합니다.\n\n· 상태: 출시 · 유형: 단품\n· 가격정책표·손익에 바로 들어갑니다\n\n계속할까요?`)) return;
@@ -10079,15 +10124,22 @@ async function applyGhImport(){
   let made=0, linked=0, failed=0, split=0; const errs=[];
   const usedKeys=new Set(P.filter(p=>!isDeletedProd(p)).map(pKey));
   const p3Patch={};
+  await refreshIdMaps(['pc']);
+  const ghNew=[];   // 이번에 새로 넣는 그로홈 코드 [[키, 코드, 이름]] — 한 번에 가져오는 줄끼리도 겹치지 않게 (2026-11-04)
   const addOne=async(r,cat,name,spec,price,optCode,optWms)=>{   // 제품 1줄 등록(옵션 1개 = 1줄) · optCode = 그로홈 자체상품코드 · optWms = 3PL 코드
-    if(optWms){ const k0=`${cat}|${name}|${spec}`; if(!P3PL[k0]){ P3PL[k0]=optWms; p3Patch[k0]=optWms; } }
     const key=`${cat}|${name}|${spec}`;
-    if(usedKeys.has(key)){ setPbrandKey(key, [...pbrandKey(key), 'GROHOME']); PGHLINK[key]=r.id; linked++; return; }
+    if(usedKeys.has(key)){ if(optWms&&!P3PL[key]){ P3PL[key]=optWms; p3Patch[key]=optWms; } setPbrandKey(key, [...pbrandKey(key), 'GROHOME']); PGHLINK[key]=r.id; linked++; return; }
+    let ghc=optCode||r.code||'';
+    if(ghc){ const c=codeClash(ghc,[key],ghNew);
+      if(c){ if(optCode){ failed++; errs.push(`${name} ${spec}: ${clashText(c,'그로홈 코드')} — 이 줄은 등록하지 않았어요`); return; }   // 옵션 코드가 겹치면 그 줄은 등록 안 함
+        ghc=''; errs.push(`${name} ${spec}: 대표 코드 ${r.code}가 이미 쓰여 그로홈 코드를 비워 뒀어요 (그로홈 코드 자동 연결로 채워짐)`); } }
+    if(optWms&&!P3PL[key]){ P3PL[key]=optWms; p3Patch[key]=optWms; }
     const pr={}; if(rUid && price) pr[rUid]=price;
     try{
       await db.collection('products-added').add({ cat,name,spec,cost:null,pr,mfg:'',concept:'',type:'단품',status:r.active?'출시':'단종',
         setItems:'', seq:P.length+made, updatedAt:new Date().toISOString(), createdBy:(curUser&&curUser.email)||'',
-        source:'그로홈 제품마스터', brand:'GROHOME', ghId:r.id, ghCode:optCode||r.code||'', ghName:r.name });
+        source:'그로홈 제품마스터', brand:'GROHOME', ghId:r.id, ghCode:ghc, ghName:r.name });
+      if(ghc) ghNew.push([key,ghc,`${name}${spec&&spec!=='-'?' '+spec:''}`]);
       PCAT[key]={l1,l2:cat,l3:r.sub||''}; PTYPE[key]='단품';
       if(price) VRETAIL[key]=price;
       setPbrandKey(key, ['GROHOME']); PGHLINK[key]=r.id;
@@ -10105,7 +10157,7 @@ async function applyGhImport(){
         if(rr&&rr.err){ failed++; errs.push(`${r.name}: ${rr.err}`); continue; }
         for(const o of opts.slice(1)) await addOne(r, p.cat, nm, o.label, o.price||ghPrice(r.g), r.optCodes&&r.optCodes[o.label], r.optWms&&r.optWms[o.label]);
         { const w=r.optWms&&r.optWms[opts[0].label], k1=pKey(p); if(w&&!P3PL[k1]){ P3PL[k1]=w; p3Patch[k1]=w; } }
-        if(p.docId && r.optCodes && r.optCodes[opts[0].label]){ p.ghCode=r.optCodes[opts[0].label]; await db.collection('products-added').doc(p.docId).set({ghCode:p.ghCode},{merge:true}).catch(e=>console.warn('[그로홈 옵션코드] 저장 실패',e)); }
+        if(p.docId && r.optCodes && r.optCodes[opts[0].label] && (()=>{ const c=codeClash(r.optCodes[opts[0].label],[pKey(p)],ghNew); if(c) errs.push(`${nm} ${opts[0].label}: ${clashText(c,'그로홈 코드')} — 코드는 넣지 않았어요`); return !c; })()){ p.ghCode=r.optCodes[opts[0].label]; await db.collection('products-added').doc(p.docId).set({ghCode:p.ghCode},{merge:true}).catch(e=>console.warn('[그로홈 옵션코드] 저장 실패',e)); }
         split++; continue;
       }
       if(r.act==='link'){
@@ -11419,9 +11471,15 @@ function todoHtml(){
     return `<div class="pb-chip info">🔎 ${esc(it?it[1]:'')}만 보는 중 <button class="pb-go" data-todo="">전체 보기</button></div>`; }
   let al=[]; try{ al=detectAlerts(); }catch(e){ console.warn('[가격 점검] 감지 실패',e); }
   const alHtml=al.length?`<button class="pb-todo" data-goto="sh-dash" title="요약·알림에서 목록 보기">가격역전·역마진 <b>${al.length}</b> ▸</button>`:'';
-  if(!items.length&&!alHtml) return '';
-  return `<div class="pb-chip warn">⚠ ${[...items.map(([k,l,n])=>`<button class="pb-todo" data-todo="${k}">${l} <b>${n}</b></button>`),alHtml].filter(Boolean).join(' · ')}</div>`;
+  let dup={n:0}; try{ dup=idDupScan(); }catch(e){ console.warn('[바코드·코드 겹침] 확인 실패',e); }
+  const dupHtml=dup.n?`<button class="pb-todo" data-iddup="1" title="같은 바코드·자체상품코드를 쓰는 제품이 있어요 — 눌러서 목록 보기">바코드·코드 겹침 <b>${dup.n}</b>건 ▸</button>`:'';
+  if(!items.length&&!alHtml&&!dupHtml) return '';
+  return `<div class="pb-chip warn">⚠ ${[...items.map(([k,l,n])=>`<button class="pb-todo" data-todo="${k}">${l} <b>${n}</b></button>`),alHtml,dupHtml].filter(Boolean).join(' · ')}</div>`;
 }
+document.addEventListener('click',e=>{ if(!e.target.closest('[data-iddup]')) return;
+  const d=idDupScan(), line=(t,[n,ks])=>`· ${t} ${n}: ${[...ks].map(k=>idLabel(k)+(idDeleted(k)?'(휴지통)':'')).join(' / ')}`;
+  alert(`바코드·자체상품코드가 겹치는 제품 ${d.n}건 (고치지는 않았어요 — 제품 수정 ✏️ 또는 도구 › 자체상품코드에서 바꿔 주세요)\n\n${[...d.bc.map(g=>line('바코드',g)),...d.pc.map(g=>line('코드',g))].slice(0,30).join('\n')}`);
+});
 (function bindPriceUx(){
   document.addEventListener('click',e=>{
     const tb=e.target.closest('#btnTools'), menu=$('#trTools');

@@ -7066,7 +7066,7 @@ document.addEventListener('click',async e=>{
   const s=e.target.closest('[data-tpbcsave]');
   if(s){ const k=s.dataset.tpbcsave, i=s.parentElement.querySelector('.tp-bcin'); s.disabled=true;
     const err=await setBarcodeFor(k, i?i.value:'');
-    if(err){ uiToast(err.includes('permission')?'저장 실패 — 바코드 권한이 없거나 보안 규칙이 아직 안 바뀌었어요':err,'warn'); s.disabled=false; return; }
+    if(err){ uiToast(isDenied(err)?await teamDenyMsg('바코드','prod-barcode','barcode','permission-denied'):err,'warn'); s.disabled=false; return; }
     uiToast(`바코드 저장 ✓ ${normBarcode(i?i.value:'')||'(지움)'}`,'ok'); renderTeamPrice(); return; }
   const c=e.target.closest('[data-tpcost]'); if(c){ tcOpen(c.dataset.tpcost); return; }
 });
@@ -7094,12 +7094,12 @@ async function teamSubmitFromModal(){
     let code='';
     if(br.includes('POUR스토어')){ try{ code=await assignPcodeNow(cat,name,spec,false,null,br); }catch(e){ console.warn('[prod-code] 팀원 등록 — 코드는 관리자 화면에서 붙음', e.code||e); notes.push('자체상품코드는 관리자 화면이 열릴 때 붙어요'); } }
     if(bc && hasPerm('barcode')){ const er=await setBarcodeFor(key,bc); if(er) notes.push('바코드는 관리자 화면이 열릴 때 옮겨져요'); }
-    if(!noCost){ try{ await cpSaveOwn({key,name,spec,cost,mfg}); }catch(e){ console.error('[cost-private] 저장 실패', e); notes.push('원가·제조사 저장 실패('+(e.code||e.message||e)+') — 단가표에서 [원가·제조사 넣기]로 다시 넣어 주세요'); } }
+    if(!noCost){ try{ await cpSaveOwn({key,name,spec,cost,mfg}); }catch(e){ console.error('[cost-private] 저장 실패', e); notes.push(isDenied(e)?await teamDenyMsg('원가·제조사',null,'cost',e.code):'원가·제조사 저장 실패('+(e.code||e.message||e)+') — 단가표에서 [원가·제조사 넣기]로 다시 넣어 주세요'); } }
     if(TEAMCAT){ (TEAMCAT.products||(TEAMCAT.products=[])).push({cat,name,spec,brand:br,status:'출시준비',group:'출시준비',prices:{},type:'단품',code,bc,l1:l1||'POUR공법',_local:true});
       if(code) PCODE[key]=code; if(bc&&!PBARCODE[key]) PBARCODE[key]=bc; }
     TP.st='준비중'; closeAddModal(); renderTeamPrice();
     uiToast(`"${name}" 준비중으로 등록됐어요${code?' · '+code:''}${noCost?' · 원가·제조사는 아는 사람에게 넘겼어요':''}${notes.length?' · '+notes.join(' · '):''}`, notes.length?'warn':'ok');
-  }catch(e){ console.error('[팀원 제품 등록] 실패', e); bad('저장 실패: '+esc(e.code||e.message||e)+' — 제품 등록 권한·보안 규칙을 확인해 주세요'); }
+  }catch(e){ console.error('[팀원 제품 등록] 실패', e); bad(isDenied(e)?esc(await teamDenyMsg('제품 등록',null,'newProd',e.code)):'저장 실패: '+esc(e.code||e.message||e)); }
   finally{ btn.disabled=false; btn.textContent=old; }
 }
 /* ── 원가·제조사 넣기 (권한: 원가·제조사) — 넣은 값은 나와 마스터만 봄 ── */
@@ -7123,7 +7123,7 @@ async function tcSave(){
   const p=((TEAMCAT&&TEAMCAT.products)||[]).find(x=>tpKey(x)===TC_KEY); if(!p) return;
   btn.disabled=true;
   try{ await cpSaveOwn({key:TC_KEY,name:p.name,spec:p.spec,cost,mfg}); $('#tcostOverlay').classList.remove('on'); uiToast('저장했어요 · 마스터 화면이 열리면 반영돼요','ok'); }
-  catch(e){ console.error('[cost-private] 저장 실패', e); st.innerHTML=`<span style="color:var(--red)">저장 실패: ${esc(e.code||e.message||e)} — 원가 권한·보안 규칙을 확인해 주세요</span>`; }
+  catch(e){ console.error('[cost-private] 저장 실패', e); st.innerHTML=`<span style="color:var(--red)">${esc(isDenied(e)?await teamDenyMsg('원가·제조사',null,'cost',e.code):'저장 실패: '+(e.code||e.message||e))}</span>`; }
   finally{ btn.disabled=false; }
 }
 (function wireTeamEdit(){
@@ -13817,7 +13817,7 @@ async function boot(){
   { const lo=$('#loadingOverlay'); if(lo) lo.style.display='none'; }
   // 4) 실시간 동기화 시작 — 이후 서버 변경은 새로고침 없이 반영
   startLiveSync();
-  if(costAllowed){ cpStart(); setTimeout(teamAbsorbPadd,1500); }   // 팀원이 넣은 원가·제조사 / 팀원이 등록한 제품
+  if(costAllowed){ cpStart(); setTimeout(teamAbsorbPadd,1500); ensureTeamDocs(); }   // 팀원이 넣은 원가·제조사 / 팀원이 등록한 제품 / 팀원이 고치기만 하는 문서 준비
   setTimeout(checkSourcingImport,400);   // 소싱앱에서 넘어온 상품이 있으면 확인 창
 }
 /* ══════════ 🔑 원가·제조사 — 팀원이 직접 넣기 · 넣은 사람만 보기 (2026-11-03 사장님 2A 3A 4A) ══════════
@@ -14033,6 +14033,32 @@ function applyTeamCatalog(c){
     if(p.bc && !TEAM_BC_LIVE) PBARCODE[k]=p.bc; if(p.l1) PCAT[k]={l1:p.l1,l2:p.cat,l3:''}; PTYPE[k]=p.type==='세트'?'세트':'단품'; });
   if(typeof applyBrandList==='function') applyBrandList([...new Set((TEAMCAT.products||[]).flatMap(p=>p.brand||[]))]);
 }
+/* 팀원이 '고치기(update)'만 할 수 있는 문서 — 서버에 없으면 팀원의 첫 저장이 '새로 만들기'가 되어 규칙에 막힌다 (2026-11-04)
+   마스터·원가 권한 화면이 열릴 때 없으면 빈 문서만 만든다(있으면 손대지 않음 · transaction) */
+const TEAM_UPDATE_DOCS=['prod-barcode','prod-code'];
+async function ensureTeamDocs(){
+  if(TEAM_MODE||!costAllowed) return;
+  for(const id of TEAM_UPDATE_DOCS){
+    const ref=db.collection('product-meta').doc(id);
+    try{ const made=await db.runTransaction(async tx=>{ const d=await tx.get(ref); if(d.exists) return false;
+        tx.set(ref,{map:{}, createdAt:new Date().toISOString(), createdBy:(curUser&&curUser.email)||'', note:'팀원 저장용 빈 문서(대시보드가 자동 생성)'}); return true; });
+      if(made){ console.log(`[product-meta/${id}] 없어서 빈 문서를 만들었어요 — 이제 팀원 저장이 돼요`); logAct('팀원 문서 준비', id, '빈 문서 생성'); } }
+    catch(e){ console.warn(`[product-meta/${id}] 준비 실패`, e.code||e); }
+  }
+}
+/* 팀 화면 저장이 막혔을 때 이유 나누기: 문서 없음 / 권한 꺼짐 / 그 밖의 거부 */
+const TEAM_PERM_LB={barcode:'바코드',newProd:'제품 등록',cost:'원가·제조사'};
+async function teamDenyMsg(what, docId, perm, code){
+  let reason='other';
+  if(docId){ try{ const d=await db.collection('product-meta').doc(docId).get(); if(!d.exists) reason='nodoc'; }catch(e){ console.warn('[팀 화면] 문서 확인 실패', e.code||e); } }
+  if(reason==='other' && perm){ try{ await reloadAccess(); }catch(e){} if(!hasPerm(perm)) reason='perm'; }   // 화면을 연 뒤 권한이 바뀌었을 수 있어 다시 읽음
+  const msg = reason==='nodoc' ? `${what} 저장 실패 — 서버에 ${what} 표가 아직 없어요. 마스터(또는 원가 권한) 계정으로 가격정책표를 한 번 열면 만들어져요`
+    : reason==='perm' ? `${what} 저장 실패 — 이 계정의 '${TEAM_PERM_LB[perm]||perm}' 권한이 꺼져 있어요. 마스터에게 켜 달라고 해 주세요 (켠 뒤 새로고침)`
+    : `${what} 저장 실패 — 서버가 거부했어요${code?` (${code})`:''}. 보안 규칙이 최신인지 마스터에게 확인해 달라고 해 주세요`;
+  console.warn('[팀 화면 저장 실패]', what, reason, code||'');
+  return msg;
+}
+const isDenied=v=>/permission|PERMISSION_DENIED|insufficient/i.test(String((v&&v.code)||v||''));
 /* 팀 화면 저장 막기 (2026-11-03 사고 뒤 안전망): 마스터 계정으로 ?team=1 을 열어도 서버 규칙은 마스터라 다 허용된다.
    그래서 팀 화면에서는 관리자 설정(product-meta·config·team-catalog)을 화면 쪽에서 아예 쓰지 않는다 — 팀원 권한으로 쓰는 4곳만 예외 */
 const TEAM_PM_OK=new Set(['prod-barcode','prod-code','promo-types','sales-map']);

@@ -7092,7 +7092,7 @@ async function teamSubmitFromModal(){
     await db.collection('products-added').add({cat,name,spec,cost:null,pr:{},mfg:'',concept:'',type:'단품',status:'출시준비',setItems:'',
       seq:Date.now(),updatedAt:now,createdBy:em,createdVia:'team',l1:l1||'POUR공법',l3,brands:br,barcode:bc,needCost:noCost});
     let code='';
-    if(br.includes('POUR스토어')){ try{ code=await assignPcodeNow(cat,name,spec,false); }catch(e){ console.warn('[prod-code] 팀원 등록 — 코드는 관리자 화면에서 붙음', e.code||e); notes.push('자체상품코드는 관리자 화면이 열릴 때 붙어요'); } }
+    if(br.includes('POUR스토어')){ try{ code=await assignPcodeNow(cat,name,spec,false,null,br); }catch(e){ console.warn('[prod-code] 팀원 등록 — 코드는 관리자 화면에서 붙음', e.code||e); notes.push('자체상품코드는 관리자 화면이 열릴 때 붙어요'); } }
     if(bc && hasPerm('barcode')){ const er=await setBarcodeFor(key,bc); if(er) notes.push('바코드는 관리자 화면이 열릴 때 옮겨져요'); }
     if(!noCost){ try{ await cpSaveOwn({key,name,spec,cost,mfg}); }catch(e){ console.error('[cost-private] 저장 실패', e); notes.push('원가·제조사 저장 실패('+(e.code||e.message||e)+') — 단가표에서 [원가·제조사 넣기]로 다시 넣어 주세요'); } }
     if(TEAMCAT){ (TEAMCAT.products||(TEAMCAT.products=[])).push({cat,name,spec,brand:br,status:'출시준비',group:'출시준비',prices:{},type:'단품',code,bc,l1:l1||'POUR공법',_local:true});
@@ -7696,7 +7696,11 @@ function brandStyle(b){ return BRAND_STYLE[b]||{bg:'#EEE',fg:'#555',short:b}; }
 const LS_BRAND='pour-brand-filter';
 let PBRAND={}, PGHLINK={};
 let BRAND_FILTER=(()=>{ try{ const v=localStorage.getItem(LS_BRAND)||''; return BRAND_LIST.includes(v)?v:''; }catch(e){ return ''; } })();
-function pbrandKey(k){ const v=PBRAND[k]; return (Array.isArray(v)&&v.length)?v:[BRAND_DEFAULT]; }
+/* 브랜드 표(PBRAND)에 아직 없으면 등록 원장(products-added) 문서의 brands 를 본다 (2026-11-04)
+   — 새 제품을 저장하는 사이 화면이 다시 그려지면 브랜드를 기본값(POUR스토어)으로 보고 PS 코드를 붙이던 문제 */
+let _paddBrandSrc=null, _paddBrand={};
+function paddBrandOf(k){ if(_paddBrandSrc!==PADD){ _paddBrandSrc=PADD; _paddBrand={}; (PADD||[]).forEach(r=>{ if(Array.isArray(r.brands)&&r.brands.length) _paddBrand[`${r.cat}|${r.name}|${r.spec}`]=r.brands.filter(b=>BRAND_LIST.includes(b)); }); } const v=_paddBrand[k]; return (v&&v.length)?v:null; }
+function pbrandKey(k){ const v=PBRAND[k]; if(Array.isArray(v)&&v.length) return v; return paddBrandOf(k)||[BRAND_DEFAULT]; }
 function pbrand(p){ return pbrandKey(pKey(p)); }
 function hasBrand(p,b){ return !b || pbrand(p).includes(b); }
 function setPbrandKey(k,list){ const l=BRAND_LIST.filter(b=>(list||[]).includes(b)); if(!l.length || (l.length===1&&l[0]===BRAND_DEFAULT)) delete PBRAND[k]; else PBRAND[k]=l; }
@@ -7968,8 +7972,10 @@ function pcodePlanForP(o,isSet,prev){   // prev: 방금 같이 등록한(아직 
   const fake={cat:o.cat||'__new__',name:nm,spec:o.spec||'__new__',_new:true,_isSet:!!isSet};
   try{ return planPcodes(null,[...(prev||[]),fake])[pKey(fake)]||''; }catch(e){ console.warn('[prod-code] 미리 계산 실패', e); return ''; }
 }
-async function assignPcodeNow(cat,name,spec,isSet,prev){
+async function assignPcodeNow(cat,name,spec,isSet,prev,brands){
   const key=`${cat}|${name}|${spec}`;
+  const br=Array.isArray(brands)?brands:pbrandKey(key);
+  if(!br.includes('POUR스토어')){ console.log(`[prod-code] ${name} — POUR스토어 브랜드가 아니라 PS 코드를 붙이지 않음 (그로홈은 GH 코드)`); return ''; }   // 2026-11-04
   try{ const d=await db.collection('product-meta').doc('prod-code').get(); if(d.exists&&d.data().map) PCODE={...d.data().map}; }   // 그사이 다른 기기가 붙인 번호와 겹치지 않게 최신본으로
   catch(e){ console.warn('[prod-code] 최신본 읽기 실패', e.code||e); }
   if(PCODE[key]) return PCODE[key];
@@ -9260,6 +9266,7 @@ async function submitAddProduct(){
     const doc={ cat,name,spec,cost,pr,mfg:'',concept:($('#adConcept').value||'').trim(),type,status:launchSt,setItems:setItemsStr(),
       seq:P.length, updatedAt:new Date().toISOString(), createdBy:(curUser&&curUser.email)||'' };
     if(noCost && !isSet && !(cost>0 && (mfg || !adMfgShown()))) doc.needCost=true;   // 아는 사람에게 넘김 → 채워져야 출시
+    doc.brands=brands; setPbrandKey(key, brands);   // 브랜드를 제품보다 먼저(같이) — 저장 사이 자동 번호가 기본 브랜드로 보지 않게 (2026-11-04)
     const ref=await db.collection('products-added').add(doc);
     if(secAllowed && mfg) await mfgSetFor(key, mfg);
     else if(mfg){   // 부마스터: 제조사는 마스터 전용 저장소에 못 씀 → 본인만 보는 자리(cost-private)에 두고 마스터 화면이 반영
@@ -9268,7 +9275,7 @@ async function submitAddProduct(){
     PCAT[key]={l1,l2:cat,l3}; await savePcat();     // 분류 태그 저장
     setPbrandKey(key, brands); await savePbrand();  // 브랜드(POUR스토어·GROHOME)
     if(pcIn && !pcAuto){ const er=await setPcodeFor(key,pcIn); if(er) alert('자체상품코드는 자동으로 붙입니다: '+er); }   // 직접 적은 코드
-    else if(brands.includes('POUR스토어')){ try{ await assignPcodeNow(cat,name,spec,isSet); }catch(e){ console.warn('[prod-code] 등록할 때 붙이기 실패 — 다음에 자동으로 붙음', e.code||e); } }   // 2026-11-03 6A: 등록하는 순간
+    else if(brands.includes('POUR스토어')){ try{ await assignPcodeNow(cat,name,spec,isSet,null,brands); }catch(e){ console.warn('[prod-code] 등록할 때 붙이기 실패 — 다음에 자동으로 붙음', e.code||e); } }   // 2026-11-03 6A: 등록하는 순간
     if(p3In){ const er=await setP3plFor(key,p3In); if(er) alert('3PL 코드는 저장하지 않았습니다: '+er); }
     if(bcIn){ const er=await setBarcodeFor(key,bcIn); if(er) alert('바코드는 저장하지 않았습니다: '+er); }
     /* 📋 복사 등록이면 원본 바로 아래에 놓는다 — 예전엔 표 맨 끝에 붙어 찾아 헤맸다 */
@@ -9478,7 +9485,8 @@ async function bulkSave(){
       btn.textContent=`등록 중… ${done.length+failed.length}/${list.length}`;
       const pr={}; if(rUid && r.retail>0) pr[rUid]=r.retail;
       try{
-        await db.collection('products-added').add({ cat:r.cat, name:r.name, spec:r.spec, cost:r.cost, pr, mfg:'', concept:'', type:'단품', status:'출시', setItems:'',
+        setPbrandKey(r.key,r.brands);   // 브랜드 먼저 (2026-11-04)
+        await db.collection('products-added').add({ cat:r.cat, name:r.name, spec:r.spec, cost:r.cost, pr, mfg:'', concept:'', type:'단품', status:'출시', setItems:'', brands:r.brands,
           seq:P.length+done.length, updatedAt:new Date().toISOString(), createdBy:(curUser&&curUser.email)||'', source:'엑셀 일괄 등록' });
         done.push(r);
       }catch(e){ console.error('[제품 엑셀등록] 실패', r.name, e.code||e); failed.push(r); }
@@ -9498,7 +9506,7 @@ async function bulkSave(){
       if(done.some(r=>r.ship>0)) await saveProdShip();
       try{ await mfgSave(); }catch(e){ console.error('[제품 엑셀등록] 공급업체 저장 실패',e); uiToast('공급업체 저장 실패 — 제품 수정 창에서 다시 넣어 주세요','err'); }
       { const prev=[];   // 코드를 비운 줄 = 등록할 때 자동 (같이 올린 같은 기본 제품은 다음 옵션 번호로)
-        for(const r of done){ if(!r.code && r.brands.includes('POUR스토어')){ try{ r.code=await assignPcodeNow(r.cat,r.name,r.spec,false,prev); }catch(e){ console.warn('[제품 엑셀등록] 자동 코드 실패 — 다음에 자동으로 붙음', r.name, e.code||e); } }
+        for(const r of done){ if(!r.code && r.brands.includes('POUR스토어')){ try{ r.code=await assignPcodeNow(r.cat,r.name,r.spec,false,prev,r.brands); }catch(e){ console.warn('[제품 엑셀등록] 자동 코드 실패 — 다음에 자동으로 붙음', r.name, e.code||e); } }
           prev.push({cat:r.cat,name:r.name,spec:r.spec,_new:true,_isSet:false}); } }
       logAct('제품추가', `엑셀 일괄 등록 ${done.length}개`, done.slice(0,3).map(r=>`${r.code||''} ${r.name}`).join(', ')+(done.length>3?' 외':''));
     }

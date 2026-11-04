@@ -4532,11 +4532,11 @@ function renderDash(){
 
 /* ══════════ 가격정책표 그리드 ══════════ */
 let viewMode='price', selCell=null;
-function cellDisplay(p,uid){
-  const pr=effPrice(p,uid);                             // 패키지는 구성 단품 채널가 합
+function cellDisplay(p,uid,costIn,prIn){   // costIn·prIn: 표를 그릴 때 이미 계산한 값(같은 계산을 칸마다 되풀이하지 않게 · 2026-11-04)
+  const pr=prIn!==undefined?prIn:effPrice(p,uid);       // 패키지는 구성 단품 채널가 합
   if(pr==null)return'—';
   if(!costVisible())return won(pr);                     // 일반계정 또는 '원가·제조사 접기' 상태: 판매가만
-  const cost=mCost(p);                                  // 택배비를 넣은 제품은 원가+택배비로 마진 계산
+  const cost=costIn!==undefined?costIn:mCost(p);        // 택배비를 넣은 제품은 원가+택배비로 마진 계산
   const m=(pr==null||cost==null)?null:pr-cost;
   const r=(m==null||!pr)?null:m/pr;
   if(viewMode==='margin')return m==null?won(pr)+'<span class="mrate">원가?</span>':won(m);
@@ -4620,7 +4620,12 @@ async function bulkClearOvr(){
   await applyOvrClear(hits, `${prods}개 제품의 직접 조정 ${hits.length}칸을 해제했습니다.`);
   logAct('직접조정', `일괄 해제 ${hits.length}칸`, `제품 ${prods}개`);
 }
+let GRID_DIRTY=false;   // 가격정책표가 안 보일 때 바뀐 게 있으면 true → 가격정책표를 열 때 그림
+/* 데이터가 연달아 도착할 때 표 그리기 묶기 (2026-11-04 속도): 잠깐(0.3초) 기다렸다 한 번 · 그사이 표를 이미 다시 그렸으면 건너뜀 */
+let _rgStamp=0, _rgTimer=null, _rgWant=0;
+function scheduleGridRender(){ if(_rgTimer) return; _rgWant=_rgStamp; _rgTimer=setTimeout(()=>{ _rgTimer=null; if(_rgStamp!==_rgWant) return; if(typeof GB_BUSY!=='undefined'&&GB_BUSY) return; renderGrid(); },300); }
 function renderGrid(){   // 채널 열은 고른 브랜드의 채널만(계산에 쓰는 COLS 는 그대로)
+  _rgStamp++;
   ensureCatCfg();   // 새 분류 자동 시딩(표시·정렬용, 저장은 분류 관리에서)
   ensurePorder();   // 제품 순서 시딩(드래그 재정렬용)
   ensureChord();    // 채널 열 순서 시딩(가로 드래그 재정렬용)
@@ -4638,6 +4643,8 @@ function renderGrid(){   // 채널 열은 고른 브랜드의 채널만(계산�
   paintSaveBtn();
   const chanBtn=$('#btnAddChan'); if(chanBtn) chanBtn.style.display='none';    // 채널 추가는 설정 › 채널·브랜드 에서 (도구 메뉴 중복 정리)
   const psBtn=$('#btnPriceSheet'); if(psBtn) psBtn.style.display=costAllowed?'':'none';        // 단가표 PDF: 원가열람 계정만
+  { const sh=$('#sh-price'); if(!sh||!sh.classList.contains('on')){ GRID_DIRTY=true; return; } }   // 안 보이는 화면은 그리지 않음 → 열 때 그림 (2026-11-04 속도)
+  GRID_DIRTY=false;
   renderPsTabs();
   { const sh=$('#sh-price'); if(sh) sh.classList.toggle('ps-list-mode', PS_TAB!=='판매중'); }
   if(PS_TAB!=='판매중'){ renderPsList(); return; }   // 준비중·단종 = 목록 화면 (가격 칸 대신)
@@ -4726,7 +4733,7 @@ function renderGrid(){   // 채널 열은 고른 브랜드의 채널만(계산�
       const ovr=!pkg && hasOvr(p,c.uid), ovrD=!pkg && isOvrDraft(p,c.uid);
       const cls=['num']; if(editable)cls.push('editable'); else if(pkg)cls.push('pkglock'); else cls.push('autolock'); if(m!=null&&m<0)cls.push('neg','warn'); if(est)cls.push('estcell'); if(ovr)cls.push('ovrcell');
       let disp = todo ? '<span class="todohint">미정</span>'
-               : ((editable && pr==null) ? '<span class="edithint">＋ 입력</span>' : cellDisplay(p,c.uid));
+               : ((editable && pr==null) ? '<span class="edithint">＋ 입력</span>' : cellDisplay(p,c.uid,pcost,pr));
       if(est) disp+='<span class="estbadge">추정</span>';
       /* 정가보다 비싼 채널가는 거의 항상 잘못된 값(옛 업로드값이 남은 경우) — 눈에 띄게 표시 */
       if(!pkg && !isAnchor && pr!=null){ const rp=effPrice(p,rUid);
@@ -4781,11 +4788,14 @@ function layoutFrozen(){
   const keys=['no','code','name','spec','sup','cost'];
   const cells=keys.map(k=>head.querySelector('.frz-'+k));
   const hid=th=>!th||getComputedStyle(th).display==='none';
-  if(cells.some(th=>!hid(th) && !th.offsetWidth)) return;   // 폭을 못 재면 이전 값을 유지 (폰에서 숨긴 열은 제외)
+  /* 먼저 전부 재고 나서 한꺼번에 쓴다 (2026-11-04 속도) — 예전엔 쓰고·재기를 번갈아 해서 1만 칸 표 전체를 6번 다시 배치했다.
+     left 위치(--frz*)는 열 폭을 바꾸지 않으므로 결과는 같다 */
+  const info=cells.map(th=>hid(th)?null:{w:th.offsetWidth, sticky:getComputedStyle(th).position==='sticky'});
+  if(info.some(x=>x && !x.w)) return;   // 폭을 못 재면 이전 값을 유지 (폰에서 숨긴 열은 제외)
   let L=0;
-  keys.forEach((key,i)=>{ const th=cells[i]; if(hid(th))return;
+  keys.forEach((key,i)=>{ const x=info[i]; if(!x) return;
     g.style.setProperty(vmap[key], L+'px');
-    if(getComputedStyle(th).position==='sticky') L+=th.offsetWidth;   // 모바일에서 고정 해제된 열(코드 등)은 폭에 넣지 않는다
+    if(x.sticky) L+=x.w;   // 모바일에서 고정 해제된 열(코드 등)은 폭에 넣지 않는다
   });
 }
 window.addEventListener('resize',()=>{ if(document.querySelector('#sh-price.on')) layoutFrozen(); });
@@ -6443,6 +6453,7 @@ function gotoTab(sh){
   $$('.sheet').forEach(s=>s.classList.toggle('on',s.id===sh));
   renderTabs(); if(window.__appTabsPaint) window.__appTabsPaint();
   // 숨김 상태로 렌더된 경우를 대비해 보이는 시점에 고정 열 좌표를 다시 잡는다
+  if(sh==='sh-price' && GRID_DIRTY && typeof renderGrid==='function') renderGrid();   // 다른 화면에 있는 동안 바뀐 것
   if(sh==='sh-price') requestAnimationFrame(()=>{ if(typeof layoutFrozen==='function') layoutFrozen(); });
   if(sh==='sh-access' && TEAM_MODE) renderTeamAccess();   // 팀 화면은 보안구역 설정 대신 내 계정 카드만 (예전엔 빈 화면)
   if(sh==='sh-data' && typeof openDataTab==='function') openDataTab();
@@ -8087,7 +8098,12 @@ async function savePkgSet(){ try{ await db.collection('product-meta').doc('pkg-s
 function parseSetItems(str){ return String(str||'').split(',').map(s=>s.trim()).filter(Boolean).map(s=>{ const m=s.match(/^(.*?)\s*[\u00D7\u2715xX*]\s*(\d+)\s*$/); return m?{name:m[1].trim(),qty:+m[2]||1}:{name:s,qty:1}; }); }
 function isPackage(p){ const t=PTYPE[pKey(p)]; if(t==='세트')return true; if(t==='단품')return false;   // 명시 전환 우선
   return p.cat==='패키지' || p.ptype==='세트' || p.type==='세트' || !!(pkgSetItems(p)&&String(pkgSetItems(p)).trim()); }
-function pkgComps(p){ return parseSetItems(pkgSetItems(p)).map(it=>({prod:findProd(it.name), qty:it.qty})).filter(x=>x.prod); }
+function pkgComps(p){   // 구성 문자열이 같으면 같은 결과(문자열이 바뀌면 다른 열쇠) · 제품·휴지통·이름이 바뀌면 _fpFresh 가 비움
+  _fpFresh(); const str=String(pkgSetItems(p)||'');
+  let r=_fp.comps.get(str);
+  if(!r){ r=parseSetItems(str).map(it=>({prod:findProd(it.name), qty:it.qty})).filter(x=>x.prod); _fp.comps.set(str,r); }
+  return r.map(x=>({prod:x.prod, qty:x.qty}));   // 부르는 쪽이 고쳐도 기억이 안 바뀌게 복사
+}
 function pkgCost(p){ const cs=pkgComps(p); if(!cs.length)return null; let s=0,any=false; cs.forEach(c=>{ const uc=unitCost(c.prod); if(uc!=null){s+=uc*c.qty;any=true;} }); return any?s:null; }
 function pkgPrice(p,uid){ const cs=pkgComps(p); if(!cs.length)return null; let s=0,any=false; cs.forEach(c=>{ const v=gp(c.prod,uid); if(v!=null){s+=v*c.qty;any=true;} }); return any?s:null; }
 function pkgVbase(p){ const cs=pkgComps(p); if(!cs.length)return null; let s=0,any=false; cs.forEach(c=>{ const v=effVbase(pKey(c.prod)); if(v!=null){s+=v*c.qty;any=true;} }); return any?s:null; }
@@ -8906,10 +8922,24 @@ function _pickProd(pool,it){
   return pool.find(x=>x.name===it.raw) || pool.find(x=>_sq(x.name)===_sq(it.raw))
       || pool.find(x=>x.name===it.name) || pool.find(x=>_sq(x.name)===_sq(it.name)) || null;
 }
+/* 세트 구성 이름 → 제품 찾기 결과를 기억한다 (2026-11-04 속도: 예전엔 칸마다 P 전체를 훑어 renderGrid 한 번에 1천만 번 넘게 돌았다)
+   기억은 '찾는 데 쓰는 것'이 바뀌면 통째로 버린다: 제품 목록(P 새로 만듦·개수) · 휴지통(PDEL) · 이름 바꾸기(PNAME_GEN)
+   값(원가·가격)은 기억하지 않는다 — 찾은 제품의 지금 값을 그때그때 읽으므로 숫자는 예전과 같다 */
+let PNAME_GEN=0;
+const _fp={P:null,n:-1,del:null,delKeys:'',gen:-1,find:new Map(),comps:new Map()};
+function _fpFresh(){
+  const dk=Object.keys(PDEL).join('\u0001');
+  if(_fp.P!==P || _fp.n!==P.length || _fp.del!==PDEL || _fp.delKeys!==dk || _fp.gen!==PNAME_GEN){
+    _fp.P=P; _fp.n=P.length; _fp.del=PDEL; _fp.delKeys=dk; _fp.gen=PNAME_GEN; _fp.find.clear(); _fp.comps.clear(); }
+}
+function prodIndexReset(){ PNAME_GEN++; }   // 이름·규격을 바꾼 곳에서 부름
 function findProd(str){
-  const it=splitNameSpec(str); if(!it.raw) return null;
-  const live=P.filter(x=>!isDeletedProd(x));
-  return _pickProd(live,it) || _pickProd(P,it);   // 휴지통 제품도 마지막에 한 번 (기존 구성이 깨지지 않게)
+  _fpFresh();
+  const key=String(str==null?'':str);
+  if(_fp.find.has(key)) return _fp.find.get(key);
+  const it=splitNameSpec(str); let r=null;
+  if(it.raw){ const live=P.filter(x=>!isDeletedProd(x)); r=_pickProd(live,it) || _pickProd(P,it); }   // 휴지통 제품도 마지막에 한 번 (기존 구성이 깨지지 않게)
+  _fp.find.set(key,r); return r;
 }
 function setRowsFromStr(str){ SET_ROWS=parseSetItems(str).map(it=>{ const pr=findProd(it.name); return {name:pr?compLabel(pr):it.name, qty:it.qty}; }); }
 function setItemsStr(){ return SET_ROWS.filter(r=>(r.name||'').trim()).map(r=>`${r.name.trim()}×${Math.max(1,+r.qty||1)}`).join(', '); }
@@ -9147,7 +9177,7 @@ async function renameProduct(p, newName, newSpec){
     if(hit) PKGSET[k]=out.join(', ');
   });
   // 3) 화면 상태
-  p.name=nm; p.spec=sp;
+  p.name=nm; p.spec=sp; prodIndexReset();
   // 4) 저장 — 등록상품은 문서 자체를, 기본 제품은 이름 변경 기록(PNAME)을 쓴다
   if(p.docId){ await db.collection('products-added').doc(p.docId).set({name:nm,spec:sp,updatedAt:new Date().toISOString()},{merge:true});
     const r=PADD.find(x=>x.docId===p.docId); if(r){ r.name=nm; r.spec=sp; } }
@@ -9542,7 +9572,7 @@ function ghChAppend(){
 }
 function ghPriceEnsure(){
   if(GHP_STATE!=='idle') return; GHP_STATE='loading';
-  const done=()=>{ GHID_MEMO={}; ghChAppend(); if(!GB_BUSY) renderGrid(); };   // 공구 입력 중엔 표를 다시 그리지 않음
+  const done=()=>{ GHID_MEMO={}; ghChAppend(); scheduleGridRender(); };   // 공구 입력 중엔 표를 다시 그리지 않음 · 세 가지가 연달아 와도 한 번만 그림(2026-11-04)
   try{
     ghDB().collection('platforms').onSnapshot(sn=>{ GHPL=sn.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.order??999)-(b.order??999)); console.log(`[grohome platforms] ${GHPL.length}개`); GHP_STATE='ok'; done(); },
       e=>{ console.error('[grohome platforms] 불러오기 실패', e); GHP_STATE='err'; GHP_ERR=e.code||e.message||String(e); renderGrid(); });
@@ -12020,8 +12050,10 @@ async function eolAutoCheck(opts){
     if(ended.length){ uiToast(`재고 소진으로 ${ended.length}개 자동 단종: ${ended.slice(0,3).join(', ')}${ended.length>3?' 외':''}`,'info'); refreshAll(); }
   })();
   try{ await _eolRun; } finally{ _eolRun=null; }
-  if($('#sh-price')&&$('#sh-price').classList.contains('on')&&PS_TAB==='판매중') renderGrid();   // 단종예정 줄의 '재고 N개'
+  const eolSig=JSON.stringify(EOL_STOCK);
+  if(eolSig!==_eolSig){ _eolSig=eolSig; if($('#sh-price')&&$('#sh-price').classList.contains('on')&&PS_TAB==='판매중') renderGrid(); }   // 단종예정 줄의 '재고 N개' — 바뀌었을 때만
 }
+let _eolSig='{}';
 function laOpen(k){ LA_KEY=k; LA_VIEW='detail'; renderLaunch(); window.scrollTo({top:0}); }
 document.addEventListener('click',async e=>{
   const f=e.target.closest('#laSum [data-laf]'); if(f){ LA_LIST_F=f.dataset.laf; renderLaunchList(); if(LA_LIST_F==='단종예정') eolAutoCheck(); return; }
@@ -13573,7 +13605,16 @@ document.addEventListener('click',e=>{ const b=e.target.closest('[data-cc-open]'
     if(t.dataset&&(t.dataset.rf==='kind'||t.dataset.rf==='cur')) renderCostCalc();
   });
 })();
+/* 같은 틈에 여러 번 불려도 그리기는 한 번 (2026-11-04 속도) — 계산(recalcVendor)은 부를 때마다 바로 해서
+   부른 뒤 바로 읽는 값은 예전과 같다 · 그리기만 다음 화면 갱신(requestAnimationFrame) 때 한 번 */
+let _raQ=false, _raT=null;
 function refreshAll(){
+  if(!TEAM_MODE) recalcVendor();
+  if(_raQ) return; _raQ=true;
+  const run=()=>{ if(!_raQ) return; _raQ=false; clearTimeout(_raT); refreshAllNow(); };
+  requestAnimationFrame(run); _raT=setTimeout(run,250);   // 백그라운드 탭(그리기 멈춤) 대비
+}
+function refreshAllNow(){
   if(TEAM_MODE){   // 팀 화면: 원가·계산 화면은 그리지 않는다(데이터도 없음)
     const safe=(n,fn)=>{ try{ fn(); }catch(e){ console.warn('[team] '+n+' 그리기 실패', e); } };
     safe('매출',()=>{ const on=$('#sh-sales'); if(on&&on.classList.contains('on')&&typeof openSalesTab==='function') openSalesTab(); });
@@ -13687,7 +13728,7 @@ function applyRenames(){
     const ok=`${p.cat}|${p.origName||p.name}|${p.origSpec!=null?p.origSpec:p.spec}`;
     const nm=PNAME[ok]; if(!nm) return;
     if(p.origName==null){ p.origName=p.name; p.origSpec=p.spec; }
-    if(nm.name) p.name=nm.name;
+    if(nm.name){ p.name=nm.name; PNAME_GEN++; }
     if(nm.spec!=null) p.spec=nm.spec;
   });
 }

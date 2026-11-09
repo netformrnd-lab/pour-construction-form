@@ -939,8 +939,10 @@ function todoRow(p,r,k,t){
 }
 function viewRound(R){
   const p=findProd(R.pid), r=findRound(p,R.rid); if(!p||!r)return empty('회차 없음');
-  const c=cnt(r.todos), rq=r.reqId?findReq(r.reqId):null, todos=r.todos||{};
-  const rrefs=r.refs||[], qrefs=rq?(rq.refs||[]):[];
+  const c=cnt(r.todos), linked=r.reqId?findReq(r.reqId):null, todos=r.todos||{};
+  // 이 회차에 연결된 요청이 없으면(직접 추가한 2차·3차 등) 이 제품 폴더의 요청을 보여 줌
+  const rqs=linked?[linked]:reqsOfProd(p).sort(sortRecent);
+  const rrefs=r.refs||[], qrefs=[].concat(...rqs.map(q=>(q.refs||[]).map(x=>({x,q}))));
   return [
     r.archived?'<div class="banner">보류 중인 회차 · ⋯ 메뉴에서 보류 해제</div>':'',
     '<section class="card" style="padding:14px"><div class="chiprow"><span class="chip '+brandC(p.brand)+'">'+esc(p.brand)+'</span><a class="chip line" href="'+H.prod(p.id)+'">'+esc(p.name)+'</a><span class="grow"></span>'+
@@ -950,7 +952,7 @@ function viewRound(R){
       (r.note?'<p class="small muted pre" style="margin:8px 0 0">'+esc(r.note)+'</p>':'')+
       '<div class="row" style="margin-top:11px;gap:9px">'+bar(c.p,c.p===100?'done':'')+'<span class="pct mono">'+c.p+'%</span></div>'+
       (c.t&&c.p===100?'<div class="banner" style="margin-top:10px;background:var(--q4s);color:var(--q4)">투두 전체 완료</div>':'')+'</section>',
-    rq?reqFold(rq):'',
+    rqs.map(reqFold).join(''),
     '<div class="matrix">'+QUADS.map(q=>{
       const list=todos[q.k]||[], dn=list.filter(t=>t.done).length;
       return '<div class="quad '+q.q+'"><div class="quad-h"><span class="nm">'+q.n+'</span>'+
@@ -959,7 +961,7 @@ function viewRound(R){
         (S.adding===q.k?'<form class="inlineform" data-act="addtodo" data-p="'+esc(p.id)+'" data-r="'+esc(r.id)+'" data-q="'+q.k+'"><input name="tx" placeholder="항목 입력" enterkeyhint="done"><button type="submit">추가</button></form>'
           :'<button class="addtask" data-act="addtask" data-q="'+q.k+'">+ 항목 추가</button>')+'</div>';}).join('')+'</div>',
     sec('레퍼런스 '+(qrefs.length+rrefs.length)),
-    qrefs.length||rrefs.length?'<div class="refgrid">'+qrefs.map(x=>refTile(x,'req',' data-id="'+esc(rq.id)+'"')).join('')+
+    qrefs.length||rrefs.length?'<div class="refgrid">'+qrefs.map(o=>refTile(o.x,'req',' data-id="'+esc(o.q.id)+'"')).join('')+
       rrefs.map(x=>refTile(x,'round',' data-p="'+esc(p.id)+'" data-r="'+esc(r.id)+'"')).join('')+'</div>':'',
     qrefs.length?'<div class="tiny faint" style="margin-top:-8px">요청 레퍼런스 '+qrefs.length+'개 포함 (변경은 요청 수정에서)</div>':'',
     '<div class="refadd"><button data-act="roundlink" data-p="'+esc(p.id)+'" data-r="'+esc(r.id)+'">+ 링크</button><button data-act="pickimg" data-to="round" data-p="'+esc(p.id)+'" data-r="'+esc(r.id)+'">+ 사진</button></div>'

@@ -445,8 +445,6 @@ const opts=(arr,sel)=>arr.map(([v,l])=>'<option value="'+esc(v)+'"'+(v===sel?' s
 const lsGet=k=>{try{return localStorage.getItem(k)||'';}catch(e){return '';}};
 const lsSet=(k,v)=>{try{localStorage.setItem(k,v);}catch(e){}};
 const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x;};
-const MIN_LEAD=7;
-const minDeadline=()=>d2s(addDays(today,MIN_LEAD));
 const H={home:'#/',form:'#/request',requests:'#/requests',req:id=>'#/r/'+encodeURIComponent(id),folders:'#/folders',
   brand:b=>'#/folders/'+encodeURIComponent(b),prod:id=>'#/p/'+encodeURIComponent(id),round:(p,r)=>'#/p/'+encodeURIComponent(p)+'/'+encodeURIComponent(r),cal:'#/calendar'};
 
@@ -746,7 +744,6 @@ function missing(){
   if(!D.product.trim())m.push(['product','촬영 품목']);
   if(!D.concept.trim())m.push(['concept','촬영 컨셉']);
   if(!D.deadline)m.push(['deadline','마감일']);
-  else if(!D.id&&D.deadline<minDeadline())m.push(['deadline','마감일(7일 이후)']);
   if(D.refs.length<2)m.push(['refs','레퍼런스 '+(2-D.refs.length)+'개 부족']);
   return m;
 }
@@ -769,7 +766,7 @@ function viewForm(R){
     '</section>',
     '<section class="formcard"><h4>촬영 내용</h4>',
       F('concept','촬영 컨셉','<textarea data-f="concept" placeholder="예: 자연광, 옥상 실사용 장면">'+esc(D.concept)+'</textarea>',1),
-      dpField('촬영 마감일','deadline',D.deadline,{req:1,f:'deadline',key:'deadline',err:E.deadline,min:R.id?'':minDeadline(),hint:'마감일 최소 1주일 전 요청'}),
+      dpField('촬영 마감일','deadline',D.deadline,{req:1,f:'deadline',key:'deadline',err:E.deadline,hint:'마감일 최소 1주일 전 요청'}),
       F('cuts','필요한 컷 · 추가 내용','<textarea data-f="cuts" placeholder="예: 정면 누끼 3컷 / 사용 장면 2컷 / 9:16 영상 15초 1개">'+esc(D.cuts)+'</textarea>'),
     '</section>',
     '<section class="formcard'+(E.refs?' err':'')+'" data-field="refs" style="padding-bottom:14px"><div class="row" style="margin-bottom:10px"><h4 style="margin:0">레퍼런스 <b class="req" style="color:var(--accent)">*</b></h4>'+
@@ -799,7 +796,7 @@ async function submitReq(){
     const el=document.querySelector('[data-field="'+m[0][0]+'"]');
     if(el){el.scrollIntoView({behavior:'smooth',block:'center'});const i=el.querySelector('input:not([type=hidden]),textarea');
       if(i)setTimeout(()=>i.focus({preventScroll:true}),300);else{const b=el.querySelector('.dp-btn');if(b)setTimeout(()=>b.click(),300);}}
-    const MSG={name:'요청자 이름 미입력',brand:'브랜드 미선택',product:'촬영 품목 미입력',concept:'촬영 컨셉 미입력',deadline:DRAFT.deadline?'마감일 최소 1주일 이후':'촬영 마감일 미입력'};
+    const MSG={name:'요청자 이름 미입력',brand:'브랜드 미선택',product:'촬영 품목 미입력',concept:'촬영 컨셉 미입력',deadline:'촬영 마감일 미입력'};
     toast(MSG[m[0][0]]||'레퍼런스 '+(2-DRAFT.refs.length)+'개 부족'); return;
   }
   S.busy=true; const btn=$('#submitReq'); if(btn){btn.textContent='접수 중…';btn.classList.add('dim');}

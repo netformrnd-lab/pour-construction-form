@@ -181,6 +181,10 @@ body.noTabs .tabbar{display:none}
 .task .tg{display:flex;gap:8px;align-items:flex-start;padding:6px 4px;flex:1;min-width:0;text-align:left}
 .task .del{width:26px;height:28px;color:var(--faint);font-size:14px;flex:none;opacity:.55;border-radius:7px}
 .task .del:hover{opacity:1;color:var(--accent);background:var(--sunk)}
+.task .ed{width:26px;height:28px;color:var(--faint);font-size:13px;flex:none;opacity:.55;border-radius:7px}
+.task .ed:hover{opacity:1;color:var(--ink);background:var(--sunk)}
+.task.editing{padding:2px 0}
+.task.editing .inlineform{flex:1}
 .box{width:16px;height:16px;border-radius:5px;border:1.5px solid var(--line);flex:none;margin-top:2px;display:grid;place-items:center;color:transparent}
 .box svg{width:10px;height:10px}
 .task.done .box{background:var(--q4);border-color:var(--q4);color:#fff}
@@ -925,8 +929,11 @@ function viewProd(R){
   ].join('');
 }
 function todoRow(p,r,k,t){
+  const at=' data-p="'+esc(p.id)+'" data-r="'+esc(r.id)+'" data-q="'+k+'" data-t="'+esc(t.id)+'"';
+  if(S.editing===t.id)return '<div class="task editing"><form class="inlineform" data-act="edittodo"'+at+'><input name="tx" value="'+esc(t.text)+'" enterkeyhint="done"><button type="submit">저장</button><button type="button" data-act="edittodo-cancel" style="color:var(--faint)">취소</button></form></div>';
   return '<div class="task '+(t.done?'done':'')+'"><button class="tg" data-act="toggle" data-p="'+esc(p.id)+'" data-r="'+esc(r.id)+'" data-q="'+k+'" data-t="'+esc(t.id)+'">'+
     '<span class="box">'+I.chk+'</span><span class="grow"><span class="tx">'+esc(t.text)+'</span>'+(t.done&&t.at?'<span class="who">완료 '+esc(t.at)+'</span>':'')+'</span></button>'+
+    '<button class="ed" data-act="edittodo-open"'+at+' aria-label="항목 수정">✎</button>'+
     '<button class="del" data-act="deltodo" data-p="'+esc(p.id)+'" data-r="'+esc(r.id)+'" data-q="'+k+'" data-t="'+esc(t.id)+'" aria-label="항목 삭제">✕</button></div>';
 }
 function viewRound(R){
@@ -1018,7 +1025,8 @@ function render(){
     R.v==='brand'?viewBrand(R):R.v==='prod'?viewProd(R):R.v==='round'?viewRound(R):R.v==='calendar'?viewCal():viewHome();
   if(R.v==='form')updateMissing();
   v.querySelectorAll('.reqfold').forEach(f=>{const bd=f.querySelector('.bd');if(bd.scrollHeight>bd.clientHeight+4){f.classList.add('clip');f.querySelector('.more').hidden=false;}});
-  if(S.focusAdd){S.focusAdd=false;const inp=v.querySelector('.inlineform input');if(inp)inp.focus();}
+  if(S.focusEdit){S.focusEdit=false;const inp=v.querySelector('.task.editing input');if(inp){inp.focus();inp.setSelectionRange(inp.value.length,inp.value.length);}}
+  else if(S.focusAdd){S.focusAdd=false;const inp=v.querySelector('.inlineform[data-act=addtodo] input');if(inp)inp.focus();}
   if(S.focusLink){S.focusLink=false;const lk=v.querySelector('#lk-url');if(lk)lk.focus();}
 }
 
@@ -1265,7 +1273,9 @@ document.addEventListener('click',async e=>{
    case 'newround': closeSheet(); setTimeout(()=>roundSheet(d.p),180); break;
    case 'editround': closeSheet(); setTimeout(()=>roundSheet(d.p,d.r),180); break;
    case 'roundlink': linkSheet(d.p,d.r); break;
-   case 'addtask': S.adding=d.q; S.focusAdd=true; render(); break;
+   case 'addtask': S.adding=d.q; S.editing=null; S.focusAdd=true; render(); break;
+   case 'edittodo-open': S.editing=d.t; S.adding=null; S.focusEdit=true; render(); break;
+   case 'edittodo-cancel': S.editing=null; render(); break;
    case 'toggle': {
      const p=findProd(d.p), r=findRound(p,d.r), t=r&&((r.todos||{})[d.q]||[]).find(x=>x.id===d.t); if(!t)break;
      const to=!t.done, at=to?shortNow():null;
@@ -1331,7 +1341,7 @@ document.addEventListener('input',e=>{
   updateMissing();
 });
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape')closeSheet();
+  if(e.key==='Escape'){if(S.editing&&e.target.closest&&e.target.closest('.task.editing')){S.editing=null;render();return;}closeSheet();}
   if(e.key==='Enter'&&e.target.id==='lk-url'){e.preventDefault();$('#lk-note').focus();}
   else if(e.key==='Enter'&&e.target.id==='lk-note'){e.preventDefault();document.querySelector('[data-act="draft-linkadd"]').click();}
   if(e.key==='Enter'&&e.target.getAttribute&&e.target.getAttribute('role')==='button'){e.preventDefault();e.target.click();}
@@ -1348,6 +1358,12 @@ document.addEventListener('submit',async e=>{
   const lock=()=>{if(btn){btn.disabled=true;btn.dataset.t=btn.textContent;btn.textContent='저장 중…';}};
   const unlock=()=>{if(btn){btn.disabled=false;btn.textContent=btn.dataset.t||'저장';}};
   try{
+    if(a==='edittodo'){
+      const tx=v('tx'); S.editing=null;
+      if(!tx){render();return;}
+      mutateProd(d.p,p=>{const r=findRound(p,d.r),t=r&&((r.todos||{})[d.q]||[]).find(x=>x.id===d.t);if(t)t.text=tx;return p;}).catch(()=>{});
+      return;
+    }
     if(a==='addtodo'){
       const tx=v('tx'); if(!tx)return; f.elements.tx.value='';
       const nt={id:uid(),text:tx,done:false}; S.focusAdd=true;
@@ -1402,7 +1418,7 @@ document.addEventListener('submit',async e=>{
 });
 
 /* ---------------- 시작 ---------------- */
-window.addEventListener('hashchange',()=>{S.adding=null;closeSheet();render();window.scrollTo(0,0);});
+window.addEventListener('hashchange',()=>{S.adding=null;S.editing=null;closeSheet();render();window.scrollTo(0,0);});
 function start(){
   const forceLocal=/[?&]local=1/.test(location.search);
   if(forceLocal||typeof firebase==='undefined'){

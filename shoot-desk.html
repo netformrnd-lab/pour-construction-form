@@ -691,7 +691,8 @@ function dpClose(box){box.classList.remove('on');box.querySelector('.dp-cal').hi
 
 /* ---------------- 요청 요약 (제품·회차 화면 상단) ---------------- */
 function reqFold(rq){
-  return '<div class="reqfold"><div class="row"><span class="t">요청</span><span class="small trunc"><b style="color:var(--ink)">'+esc(rq.name)+'</b> · '+fmtISO(rq.createdAt)+' 요청</span><span class="grow"></span>'+ddayChip(rq.deadline,'마감 ')+'</div>'+
+  return '<div class="reqfold"><div class="row"><span class="t">요청</span><span class="small trunc"><b style="color:var(--ink)">'+esc(rq.name)+'</b> · '+fmtISO(rq.createdAt)+' 요청</span><span class="grow"></span>'+ddayChip(rq.deadline,'마감 ')+
+      '<button type="button" class="chip line" style="margin-left:6px" data-act="reqedit" data-id="'+esc(rq.id)+'">수정</button></div>'+
     '<div class="bd"><dl class="kv"><dt>마감일</dt><dd>'+(rq.deadline?fmtD(rq.deadline):'-')+'</dd>'+
       '<dt>컨셉</dt><dd class="pre">'+(esc(rq.concept)||'-')+'</dd>'+
       (rq.cuts?'<dt>필요 컷</dt><dd class="pre">'+esc(rq.cuts)+'</dd>':'')+'</dl>'+miniThumbs(rq.refs)+'</div>'+
@@ -1055,6 +1056,17 @@ function acceptSheet(id){
     Fld('촬영 장소','loc','','text',' list="locs" placeholder="예: 성수 스튜디오 A"')+locList()+
     '<button class="btn accent" type="submit">수락 · 폴더 생성</button></form>',true);
 }
+function reqEditSheet(id){
+  const r=findReq(id); if(!r)return;
+  openSheet('<h3>요청 내용 수정</h3><p class="lead">'+esc(r.brand)+' · '+esc(r.product)+' · 요청자 '+esc(r.name)+'</p>'+
+    '<form data-act="do-reqedit" data-id="'+esc(r.id)+'">'+
+    Fld('촬영 품목','product',r.product)+
+    dpField('촬영 마감일','deadline',r.deadline,{hint:'마감일 최소 1주일 전 요청'})+
+    '<label class="field"><span>촬영 컨셉</span><textarea name="concept" style="min-height:90px">'+esc(r.concept)+'</textarea></label>'+
+    '<label class="field"><span>필요한 컷 · 추가 내용</span><textarea name="cuts" style="min-height:220px">'+esc(r.cuts)+'</textarea></label>'+
+    '<button class="btn" type="submit">저장</button>'+
+    '<a class="btn ghost" style="margin-top:8px" href="'+H.form+'/'+encodeURIComponent(r.id)+'">레퍼런스까지 전체 수정</a></form>',true);
+}
 function holdSheet(id){
   openSheet('<h3>요청 보류</h3><p class="lead">요청함 “보류” 탭으로 이동. 보류 해제로 되돌림.</p>'+
     '<form data-act="do-hold" data-id="'+esc(id)+'"><label class="field"><span>보류 이유 (선택)</span><textarea name="memo" placeholder="예: 제품 입고 후 진행"></textarea></label>'+
@@ -1315,6 +1327,7 @@ document.addEventListener('click',async e=>{
      else{let m=S.cal.m+Number(d.n),y=S.cal.y;if(m<0){m=11;y--;}if(m>11){m=0;y++;}S.cal={y,m};}
      render(); break;}
    case 'close': closeSheet(); break;
+   case 'reqedit': reqEditSheet(d.id); break;
    case 'fold': {const f=el.closest('.reqfold');const o=f.classList.toggle('open');el.textContent=o?'접기 ▴':'더보기 ▾';break;}
    case 'dp-toggle': {
      const box=el.closest('.dp'), cal=box.querySelector('.dp-cal');
@@ -1385,6 +1398,11 @@ document.addEventListener('submit',async e=>{
       await patchReq(r.id,{status:'accepted',prodId:pid,roundId:rid,acceptedAt:nowISO(),holdMemo:''});
       console.log('[shootreq] 수락 '+r.id+' → '+pid+'/'+rid);
       closeSheet(); go(H.round(pid,rid)); toast('수락 완료 · 폴더 생성됨');
+    }
+    if(a==='do-reqedit'){
+      const product=v('product'); if(!product){unlock();toast('촬영 품목 미입력');return;}
+      await patchReq(d.id,{product,deadline:v('deadline'),concept:v('concept'),cuts:v('cuts')});
+      closeSheet(); render(); toast('요청 수정됨'); return;
     }
     if(a==='do-hold'){await patchReq(d.id,{status:'hold',holdMemo:v('memo'),archived:false});closeSheet();render();toast('보류 처리됨');}
     if(a==='do-newround'){

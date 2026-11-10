@@ -208,6 +208,12 @@ body.noTabs .tabbar{display:none}
 .refthumb .play{position:absolute;width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;display:grid;place-items:center;font-size:11px}
 .linktile{display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;padding:10px;background:linear-gradient(140deg,var(--card2),var(--sunk))}
 .linktile svg{width:18px;height:18px;color:var(--muted)}
+.filetile{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4px;background:linear-gradient(140deg,var(--card2),var(--sunk))}
+.filetile .ext{font:700 15px "IBM Plex Mono",monospace;letter-spacing:.04em;color:var(--accent);padding:4px 8px;border:1.5px solid currentColor;border-radius:7px}
+.filetile .ext.xls{color:var(--q4)} .filetile .ext.doc{color:var(--q1)} .filetile .ext.etc{color:var(--muted)}
+.minithumbs .fx{font:700 8.5px "IBM Plex Mono",monospace;color:var(--accent)}
+.fileinfo{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;gap:12px;align-items:center;margin-bottom:12px}
+.fileinfo .filetile{width:64px;height:64px;border-radius:10px;flex:none}
 .linktile .host{font-size:10px;font-family:"IBM Plex Mono",monospace;color:var(--muted);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .reflabel{padding:7px 9px 9px}
 .reflabel .t{font-size:11.5px;font-weight:600;line-height:1.35;color:var(--ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-all}
@@ -397,7 +403,7 @@ body.noTabs .toast{bottom:150px}
 <div class="scrim" id="scrim"></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<input type="file" id="filepick" accept="image/*" multiple hidden>
+<input type="file" id="filepick" multiple hidden>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -421,7 +427,8 @@ const TPL={pre:['컷 리스트 확정','레퍼런스 팀 공유','제품 실물 
   props:['제품 본품 2개 (여분 포함)','배경지 · 소품'],post:['원본 백업','셀렉 후 리터칭 요청']};
 const REQ_ST={new:{n:'확인 대기',c:'q2'},accepted:{n:'수락됨',c:'q4'},hold:{n:'보류',c:'line'}};
 const MAX_REFS=12;
-const P_REQ='shootreq-', P_PROD='shootprod-', P_IMG='shootimg-';
+const P_REQ='shootreq-', P_PROD='shootprod-', P_IMG='shootimg-', P_FILE='shootfile-';
+const MAX_FILE=20*1024*1024, CHUNK=600*1024;   // 파일은 600KB씩 나눠 config/shootfile-<id>-<n> 에 저장 (문서 1MB 한도)
 const NAME_KEY='shootdesk.name', LOCAL_KEY='shootdesk-local-v1';
 
 /* ---------------- 유틸 ---------------- */
@@ -501,6 +508,28 @@ const Store={
     else{const o=local.read();o[P_IMG+id]={data};local.write(o);}
     IMG[id]=data;
   },
+  async setFile(fid,file,onProg){
+    const n=Math.max(1,Math.ceil(file.size/CHUNK));
+    for(let i=0;i<n;i++){
+      const data=await blobB64(file.slice(i*CHUNK,(i+1)*CHUNK));
+      const doc={data,i,n,name:file.name,createdAt:nowISO()};
+      if(MODE==='db')await db.collection('config').doc(P_FILE+fid+'-'+i).set(doc);
+      else{const o=local.read();o[P_FILE+fid+'-'+i]=doc;local.write(o);}
+      if(onProg)onProg(i+1,n);
+    }
+    console.log('[shootfile] 저장 '+fid+' · '+n+'조각');
+    return n;
+  },
+  async getFile(ref,onProg){
+    const parts=[];
+    for(let i=0;i<(ref.parts||1);i++){
+      let data='';
+      if(MODE==='db'){const d=await db.collection('config').doc(P_FILE+ref.file+'-'+i).get();if(!d.exists)throw new Error('파일 조각 없음 ('+(i+1)+'/'+ref.parts+')');data=d.data().data;}
+      else{const o=local.read()[P_FILE+ref.file+'-'+i];if(!o)throw new Error('파일 조각 없음');data=o.data;}
+      parts.push(b64Bytes(data)); if(onProg)onProg(i+1,ref.parts||1);
+    }
+    return new Blob(parts,{type:ref.type||'application/octet-stream'});
+  },
   async getImg(id){
     if(IMG[id])return IMG[id];
     if(MODE==='db'){const d=await db.collection('config').doc(P_IMG+id).get();console.log('[shootimg] '+id+(d.exists?' 불러옴':' 없음'));IMG[id]=d.exists?d.data().data:'';}
@@ -517,6 +546,12 @@ const Store={
     localSubs.push({prefix,cb}); setTimeout(local.emit,0);
   }
 };
+
+function blobB64(blob){return new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(',')[1]||'');r.onerror=()=>no(r.error||new Error('파일 읽기 실패'));r.readAsDataURL(blob);});}
+function b64Bytes(b){const s=atob(b),u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u;}
+const fmtSize=n=>n>=1048576?(n/1048576).toFixed(1)+'MB':Math.max(1,Math.round(n/1024))+'KB';
+const fileExt=n=>{const m=String(n||'').match(/\.([a-z0-9]{1,5})$/i);return m?m[1].toUpperCase():'FILE';};
+const extCls=e=>/^(XLS|XLSX|XLSM|CSV)$/.test(e)?'xls':/^(DOC|DOCX|HWP|HWPX|TXT)$/.test(e)?'doc':/^(PDF|PPT|PPTX|KEY)$/.test(e)?'':'etc';
 
 /* ---------------- 상태 ---------------- */
 let REQS=[], PRODS=[];
@@ -605,19 +640,21 @@ function renderChrome(R){
 
 /* ---------------- 공통 조각 ---------------- */
 function refThumb(ref){
+  if(ref.kind==='file'){const e=fileExt(ref.name);return '<div class="refthumb filetile"><span class="ext '+extCls(e)+'">'+esc(e)+'</span></div>';}
   if(ref.kind==='image')return '<div class="refthumb">'+I.img+(ref.thumb||ref.data?'<img src="'+esc(ref.thumb||ref.data)+'" alt="" loading="lazy" onerror="this.remove()">':'')+'</div>';
   const y=ytId(ref.url);
   if(y)return '<div class="refthumb">'+I.link+'<img src="https://i.ytimg.com/vi/'+y+'/hqdefault.jpg" alt="" loading="lazy" onerror="this.remove()"><span class="play">▶</span></div>';
   return '<div class="refthumb linktile">'+I.link+'<span class="host">'+esc(host(ref.url))+'</span></div>';
 }
 function refTile(ref,src,extra){
-  const label=ref.note||(ref.kind==='image'?'사진':host(ref.url));
+  const label=ref.note||(ref.kind==='file'?ref.name:ref.kind==='image'?'사진':host(ref.url));
   return '<div class="refcard" role="button" tabindex="0" data-act="openref" data-src="'+src+'" data-ref="'+esc(ref.id)+'"'+(extra||'')+'>'+refThumb(ref)+
-    '<div class="reflabel"><div class="t">'+esc(label)+'</div><div class="d">'+(ref.kind==='image'?'사진':'링크 · '+esc(host(ref.url)))+'</div></div></div>';
+    '<div class="reflabel"><div class="t">'+esc(label)+'</div><div class="d">'+(ref.kind==='file'?'파일 · '+fmtSize(ref.size||0):ref.kind==='image'?'사진':'링크 · '+esc(host(ref.url)))+'</div></div></div>';
 }
 function miniThumbs(refs){
   if(!refs||!refs.length)return '';
   return '<div class="minithumbs">'+refs.slice(0,5).map(r=>{
+    if(r.kind==='file')return '<span class="fx">'+esc(fileExt(r.name))+'</span>';
     if(r.kind==='image'&&r.thumb)return '<span>'+I.img+'<img src="'+esc(r.thumb)+'" alt="" loading="lazy" onerror="this.remove()"></span>';
     const y=ytId(r.url); if(y)return '<span>'+I.link+'<img src="https://i.ytimg.com/vi/'+y+'/default.jpg" alt="" loading="lazy" onerror="this.remove()"></span>';
     return '<span>'+I.link+'</span>';}).join('')+(refs.length>5?'<span class="tiny mono">+'+(refs.length-5)+'</span>':'')+'</div>';
@@ -776,12 +813,12 @@ function viewForm(R){
     '</section>',
     '<section class="formcard'+(E.refs?' err':'')+'" data-field="refs" style="padding-bottom:14px"><div class="row" style="margin-bottom:10px"><h4 style="margin:0">레퍼런스 <b class="req" style="color:var(--accent)">*</b></h4>'+
       '<span class="chip '+(D.refs.length>=2?'q4':'q2')+'" style="margin-left:auto">'+D.refs.length+' / 최소 2개</span></div>'+
-      '<div class="tiny faint" style="margin:-4px 0 10px">링크 또는 사진 · 최소 2개</div>'+
+      '<div class="tiny faint" style="margin:-4px 0 10px">링크 · 사진 · 파일(PDF·엑셀 등) · 최소 2개</div>'+
       (D.refs.length?'<div class="refgrid" style="margin-bottom:10px">'+D.refs.map(r=>'<div style="position:relative">'+refTile(r,'draft')+
         '<button type="button" class="refx" data-act="draft-delref" data-ref="'+esc(r.id)+'" aria-label="레퍼런스 빼기">✕</button></div>').join('')+'</div>':'')+
       (D.linkOpen?'<div class="linkform"><input id="lk-url" type="url" inputmode="url" placeholder="https://"><input id="lk-note" placeholder="메모 (선택)">'+
         '<div class="row"><button type="button" class="btn soft" data-act="draft-linkcancel">취소</button><button type="button" class="btn" data-act="draft-linkadd">추가</button></div></div>'
-        :'<div class="refadd"><button type="button" data-act="draft-linkopen">+ 링크</button><button type="button" data-act="pickimg" data-to="draft">+ 사진</button></div>')+
+        :'<div class="refadd"><button type="button" data-act="draft-linkopen">+ 링크</button><button type="button" data-act="pickimg" data-to="draft">+ 사진·파일</button></div>')+
     '</section>',
     '<div class="actionbar"><div class="actionbar-in"><div class="missing" id="missing"></div>'+
       '<button class="btn accent" id="submitReq" data-act="submit-req">'+(R.id?'저장':'요청 접수')+'</button></div></div>'
@@ -808,7 +845,10 @@ async function submitReq(){
   try{
     const D=DRAFT;
     for(const ref of D.refs){if(ref.kind==='image'&&ref.data&&!ref.img){const iid=uid();await Store.setImg(iid,ref.data);ref.img=iid;}}
-    const refs=D.refs.map(r=>{const o=Object.assign({},r);delete o.data;return o;});
+    const fl=D.refs.filter(x=>x.kind==='file'&&x._file&&!x.file);
+    for(let k=0;k<fl.length;k++){const ref=fl[k],fid=uid();
+      ref.parts=await Store.setFile(fid,ref._file,(a,n)=>{if(btn)btn.textContent='파일 올리는 중… '+(k+1)+'/'+fl.length+(n>1?' ('+Math.round(a/n*100)+'%)':'');});ref.file=fid;}
+    const refs=D.refs.map(r=>{const o=Object.assign({},r);delete o.data;delete o._file;return o;});
     const prev=D.id?findReq(D.id):null;
     const id=D.id||uid();
     const doc=Object.assign({},prev||{status:'new',archived:false,createdAt:nowISO()},{
@@ -964,7 +1004,7 @@ function viewRound(R){
     qrefs.length||rrefs.length?'<div class="refgrid">'+qrefs.map(o=>refTile(o.x,'req',' data-id="'+esc(o.q.id)+'"')).join('')+
       rrefs.map(x=>refTile(x,'round',' data-p="'+esc(p.id)+'" data-r="'+esc(r.id)+'"')).join('')+'</div>':'',
     qrefs.length?'<div class="tiny faint" style="margin-top:-8px">요청 레퍼런스 '+qrefs.length+'개 포함 (변경은 요청 수정에서)</div>':'',
-    '<div class="refadd"><button data-act="roundlink" data-p="'+esc(p.id)+'" data-r="'+esc(r.id)+'">+ 링크</button><button data-act="pickimg" data-to="round" data-p="'+esc(p.id)+'" data-r="'+esc(r.id)+'">+ 사진</button></div>'
+    '<div class="refadd"><button data-act="roundlink" data-p="'+esc(p.id)+'" data-r="'+esc(r.id)+'">+ 링크</button><button data-act="pickimg" data-to="round" data-p="'+esc(p.id)+'" data-r="'+esc(r.id)+'">+ 사진·파일</button></div>'
   ].join('');
 }
 
@@ -1136,8 +1176,10 @@ function delSheet(d){
     openSheet('<h3>회차 삭제</h3><p class="lead">'+esc(p.name)+' · “'+esc(r.title)+'” 투두·레퍼런스 삭제. 복구 불가.</p>'+
       btns('data-kind="round" data-p="'+esc(p.id)+'" data-r="'+esc(r.id)+'"'),true);}
 }
-const imgIds=refs=>(refs||[]).filter(x=>x.img).map(x=>x.img);
-async function delImgs(ids){for(const i of ids){try{await Store.del(P_IMG+i);}catch(e){console.error('[shootimg] 삭제 실패 '+i+':',e);}}}
+// 레퍼런스가 쓰는 저장 문서(사진 원본·파일 조각) 목록
+const imgIds=refs=>[].concat(...(refs||[]).map(x=>x.img?[P_IMG+x.img]:x.kind==='file'&&x.file?Array.from({length:x.parts||1},(_,i)=>P_FILE+x.file+'-'+i):[]));
+function usedDocs(){const u=new Set();REQS.forEach(q=>imgIds(q.refs).forEach(i=>u.add(i)));PRODS.forEach(p=>(p.rounds||[]).forEach(r=>imgIds(r.refs).forEach(i=>u.add(i))));return u;}
+async function delImgs(ids){const used=usedDocs();for(const i of ids){if(used.has(i))continue;try{await Store.del(i);}catch(e){console.error('[레퍼런스] 삭제 실패 '+i+':',e);}}}
 async function deleteReq(id){
   const r=findReq(id); if(!r)return;
   await Store.del(P_REQ+id); REQS=REQS.filter(x=>x.id!==id);
@@ -1185,6 +1227,13 @@ async function openRefSheet(d){
       '<a class="btn" href="'+esc(safeUrl(ref.url))+'" target="_blank" rel="noopener">링크 열기</a>'+delBtn,true);
     return;
   }
+  if(ref.kind==='file'){
+    const e=fileExt(ref.name);
+    openSheet('<h3>'+esc(ref.note||ref.name)+'</h3><div class="fileinfo"><div class="filetile"><span class="ext '+extCls(e)+'">'+esc(e)+'</span></div>'+
+      '<div class="grow"><div class="small" style="word-break:break-all;color:var(--ink);font-weight:600">'+esc(ref.name)+'</div><div class="tiny faint" style="margin-top:3px">'+fmtSize(ref.size||0)+'</div></div></div>'+
+      '<button class="btn" id="dlbtn" data-act="dlfile" data-src="'+esc(d.src)+'" data-ref="'+esc(ref.id)+'"'+(d.id?' data-id="'+esc(d.id)+'"':'')+(d.p?' data-p="'+esc(d.p)+'" data-r="'+esc(d.r)+'"':'')+'>파일 받기</button>'+delBtn,true);
+    return;
+  }
   openSheet('<h3>'+esc(ref.note||'레퍼런스 사진')+'</h3><div class="viewer" id="viewer">'+(ref.thumb?'<img src="'+esc(ref.thumb)+'" alt="">':'')+'</div>'+
     '<a class="btn ghost" id="imgdl" download="reference.jpg" href="'+esc(ref.data||ref.thumb||'')+'">사진 저장</a>'+delBtn,true);
   if(ref.data)return;
@@ -1209,19 +1258,30 @@ let pickTarget=null;
 $('#filepick').addEventListener('change',async e=>{
   const files=[...e.target.files]; e.target.value=''; if(!files.length||!pickTarget)return;
   const tg=pickTarget; pickTarget=null;
-  toast('사진 '+files.length+'장 처리 중…');
+  const big=files.filter(f=>f.size>MAX_FILE); if(big.length)toast('20MB 초과 제외: '+big.map(f=>f.name).join(', '));
+  const ok=files.filter(f=>f.size<=MAX_FILE); if(!ok.length)return;
+  if(!big.length)toast('첨부 '+ok.length+'개 처리 중…');
   try{
-    const made=[]; for(const f of files){const {full,thumb}=await compress(f);made.push({id:uid(),kind:'image',thumb,data:full,note:''});}
+    const made=[];
+    for(const f of ok){
+      let im=null;
+      if(/^image\//.test(f.type)&&!/svg/.test(f.type)){try{im=await compress(f);}catch(err){console.warn('[첨부] 이미지로 못 읽어 파일로 저장:',f.name,err);}}
+      made.push(im?{id:uid(),kind:'image',thumb:im.thumb,data:im.full,note:''}
+        :{id:uid(),kind:'file',name:f.name,size:f.size,type:f.type||'',note:'',_file:f});
+    }
     if(tg.to==='draft'){
       if(!DRAFT)return;
       const room=MAX_REFS-DRAFT.refs.length; DRAFT.refs.push(...made.slice(0,Math.max(0,room))); DRAFT.err.refs=0;
-      if(made.length>room)toast('레퍼런스 최대 '+MAX_REFS+'개'); else toast('사진 '+made.length+'장 추가');
+      if(made.length>room)toast('레퍼런스 최대 '+MAX_REFS+'개'); else if(!big.length)toast('첨부 '+made.length+'개 추가');
       render(); return;
     }
-    for(const m of made){const iid=uid();await Store.setImg(iid,m.data);m.img=iid;delete m.data;}
+    for(let k=0;k<made.length;k++){const m=made[k];
+      if(m.kind==='image'){const iid=uid();await Store.setImg(iid,m.data);m.img=iid;delete m.data;}
+      else{const fid=uid();m.parts=await Store.setFile(fid,m._file,(a,n)=>toast('파일 올리는 중… '+(k+1)+'/'+made.length+(n>1?' ('+Math.round(a/n*100)+'%)':'')));m.file=fid;delete m._file;}
+    }
     mutateProd(tg.p,p=>{const r=findRound(p,tg.r);if(r)r.refs=(r.refs||[]).concat(made);return p;});
-    toast('사진 '+made.length+'장 추가');
-  }catch(err){console.error('[사진] 처리 실패:',err);toast('사진 추가 실패 · '+err.message);}
+    toast('첨부 '+made.length+'개 추가');
+  }catch(err){console.error('[첨부] 처리 실패:',err);toast('첨부 실패 · '+err.message);}
 });
 
 /* ---------------- 쓰기 ---------------- */
@@ -1301,7 +1361,8 @@ document.addEventListener('click',async e=>{
      break;
    case 'delroundref':
      closeSheet();
-     mutateProd(d.p,p=>{const rr=findRound(p,d.r);if(rr)rr.refs=(rr.refs||[]).filter(x=>x.id!==d.ref);return p;}).then(()=>toast('레퍼런스 삭제됨')).catch(()=>{});
+     {const gone=imgIds(((findRound(findProd(d.p),d.r)||{}).refs||[]).filter(x=>x.id===d.ref));
+     mutateProd(d.p,p=>{const rr=findRound(p,d.r);if(rr)rr.refs=(rr.refs||[]).filter(x=>x.id!==d.ref);return p;}).then(()=>delImgs(gone)).then(()=>toast('레퍼런스 삭제됨')).catch(()=>{});}
      break;
    case 'copyround': {
      closeSheet();
@@ -1330,6 +1391,17 @@ document.addEventListener('click',async e=>{
      render(); break;}
    case 'close': closeSheet(); break;
    case 'reqedit': reqEditSheet(d.id); break;
+   case 'dlfile': {
+     const ref=findRefFrom(d); if(!ref||el.disabled)break;
+     el.disabled=true;
+     try{
+       const blob=ref._file||await Store.getFile(ref,(a,n)=>{el.textContent='받는 중… '+Math.round(a/n*100)+'%';});
+       const url=URL.createObjectURL(blob), aa=document.createElement('a');
+       aa.href=url; aa.download=ref.name||'file'; document.body.appendChild(aa); aa.click(); aa.remove();
+       setTimeout(()=>URL.revokeObjectURL(url),60000);
+       el.textContent='파일 받기'; toast('다운로드 시작');
+     }catch(err){console.error('[shootfile] 받기 실패:',err);el.textContent='파일 받기';toast('파일 받기 실패 · '+err.message);}
+     el.disabled=false; break;}
    case 'fold': {const f=el.closest('.reqfold');const o=f.classList.toggle('open');el.textContent=o?'접기 ▴':'더보기 ▾';break;}
    case 'dp-toggle': {
      const box=el.closest('.dp'), cal=box.querySelector('.dp-cal');

@@ -18,6 +18,13 @@ rules_version = '2';
 //   · cost-log = 원가 변경 이력(마스터·부마스터) · dashboard-activity = 활동 기록(추가만)
 //   · 팀원 화면엔 제조사 가칭도 안 보임 → 팀원의 product-meta/mfg-alias 읽기 뺌
 //
+//  2026-11-23 (송희님 승인 — 원가 분해 화면 pourstore-cost.html):
+//   · 새 역할 '경영 열람' = config/access.mgmtEmails (+ 이메일 인증) — 원가·마진·공급처·제조사까지 보기만, 수정·승인 불가
+//   · cost-cards = 품목 1장 원가 분해(숫자 · 업체는 가칭 A사·B사만) — 마스터·부마스터·경영 열람 읽기 / 마스터만 쓰기
+//   · cost-names = 원가 분해의 실제 공급처·제조사 이름 — 마스터 + 경영 열람(읽기만) · 부마스터·열람·팀원은 못 읽음
+//   · cost-ref = 가격정책표 제품·매입원가 목록(products) · 원가 분해 요약(cards) · 판매가 설정(settings)
+//   · 이 아래 '기존' 규칙은 한 글자도 안 바뀜 — 새 함수 2개 + 새 자리 3곳만 더함
+//
 //  배포 (자동 배포 없음 — Firebase 콘솔 › Firestore › 규칙 에 이 파일 전체를 붙여 넣고 [게시]):
 //   firebase deploy --only firestore:rules --project pourstoreproject
 //   (firebase.json 의 firestore.rules 를 이 파일로 지정하거나 --config 로 분리)
@@ -84,6 +91,17 @@ service cloud.firestore {
       return signedIn()
         && accessExists()
         && get(/databases/$(database)/documents/config/access).data.get('perms', {}).get(request.auth.token.email, {}).get(k, false) == true;
+    }
+    // 경영 열람 (2026-11-23): 원가 분해를 보기만 — 이메일 인증 필요 (부마스터와 같은 조건)
+    function isMgmt() {
+      return signedIn()
+        && request.auth.token.email_verified == true
+        && accessExists()
+        && request.auth.token.email in get(/databases/$(database)/documents/config/access).data.get('mgmtEmails', []);
+    }
+    // 원가 분해를 볼 수 있는 사람: 마스터 · 부마스터 · 경영 열람
+    function canCostView() {
+      return isMaster() || isSubMaster() || isMgmt();
     }
 
     match /channels/{uid} {
@@ -242,6 +260,24 @@ service cloud.firestore {
     // 📥 판매 엑셀 업로드 기록 (날짜별 문서 · 묶음 기록 batch-*) — 허용목록 계정 (2026-09 대표와 협의 후 추가)
     match /sales-orders/{id} {
       allow read, write: if canTeam();
+    }
+
+    // ── 🧾 원가 분해 (2026-11-23 송희님 승인 · pourstore-cost.html) ──
+    // 품목 1장 = 원가 분해 1장 — 숫자·구성·가칭(A사·B사)만, 실제 업체 이름 없음
+    match /cost-cards/{id} {
+      allow read: if canCostView();
+      allow write: if isMaster();
+    }
+    // 실제 공급처·제조사 이름 — 보안구역과 같은 급(마스터 전용) + 경영 열람 읽기만
+    match /cost-names/{id} {
+      allow read: if isMaster() || isMgmt();
+      allow write: if isMaster();
+    }
+    // 연결 문서: products = 가격정책표가 만들어 두는 제품·매입원가 목록(마스터·부마스터 화면이 저장)
+    //            cards = 원가 분해 요약(가격정책표 매입원가 옆 표시용) · settings = 판매가 설정
+    match /cost-ref/{doc} {
+      allow read: if canCostView();
+      allow write: if isMaster() || (isSubMaster() && doc == 'products');
     }
 
     // 그 외 모든 경로(다른 config 문서 포함) 금지

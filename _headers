@@ -11,6 +11,13 @@
 /pourstore-pricing-dashboard.html
   Cache-Control: no-store, must-revalidate
 
+# 원가 분해 (2026-11-23) — 가격·마진 대시보드와 같은 이유로 늘 새로 받기
+/pourstore-cost
+  Cache-Control: no-store, must-revalidate
+
+/pourstore-cost.html
+  Cache-Control: no-store, must-revalidate
+
 # 마진 v2 (폰) — 같은 이유로 늘 새로 받기
 /pourstore-margin2
   Cache-Control: no-store, must-revalidate

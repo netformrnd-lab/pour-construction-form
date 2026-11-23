@@ -3995,6 +3995,24 @@ function renderAccess(){
       ${verified?'':'<br>· 편집하려면 먼저 이메일 인증이 필요합니다.'}</p>
     </div></div>`;
   }
+  // 경영 열람 (2026-11-23 송희님) — 원가 분해 화면만: 원가·마진·공급처·제조사까지 보기 · 수정·승인 불가 · 소유자만 추가/해제
+  let mgmtPanel='';
+  if(master){
+    const mg=(ACCESS&&Array.isArray(ACCESS.mgmtEmails))?ACCESS.mgmtEmails:[];
+    const grows=mg.length?mg.map(e=>`<tr><td class="name">${esc(e)} <span class="pill a">경영 열람</span></td>
+        <td style="text-align:center;width:80px">${isPrimary?`<button class="tbtn" data-mgmtdel="${esc(e)}" style="color:var(--red);padding:2px 9px;font-size:11px">해제</button>`:'—'}</td></tr>`).join('')
+      :`<tr><td class="dim" colspan="2" style="padding:10px">경영 열람 계정이 없습니다.</td></tr>`;
+    mgmtPanel=`<div class="panel"><h3>경영 열람 계정 <span class="tag">원가 분해 화면 · 원가·마진·공급처·제조사 보기만</span></h3><div class="bd">
+      ${isPrimary?`<div class="formgrid" style="grid-template-columns:minmax(220px,1fr) auto;align-items:end;margin-bottom:12px">
+        <div class="fld"><label>경영 열람으로 추가할 계정 이메일 (미리 Firebase Authentication에 계정 생성 필요)</label><input type="email" id="mgmtAddEmail" placeholder="mgmt@netformrnd.com"></div>
+        <button class="tbtn primary" id="btnMgmtAdd" style="height:42px" ${verified?'':'disabled'}>경영 열람 추가</button>
+      </div>`:`<p class="footnote" style="margin-bottom:10px">· 경영 열람 추가/해제는 <b>소유자(기본) 마스터</b> 계정만 할 수 있습니다.</p>`}
+      <table class="grid" style="width:100%"><thead><tr><th>경영 열람 계정</th><th style="width:80px">해제</th></tr></thead><tbody>${grows}</tbody></table>
+      <p class="footnote">· 경영 열람은 <a href="pourstore-cost.html" target="_blank" rel="noopener"><b>원가 분해</b></a> 화면에서 원가·마진·공급처·제조사까지 <b>보기만</b> 합니다(고치기·승인 불가 · 서버 규칙이 막음).
+      <br>· 이 가격정책표 화면은 열리지 않습니다(허용목록과 별개). 본인 기기에서 <b>이메일 인증</b>을 마쳐야 열립니다.
+      ${verified?'':'<br>· 편집하려면 먼저 이메일 인증이 필요합니다.'}</p>
+    </div></div>`;
+  }
   // 열람 허용목록 (마스터만 편집 가능)
   const list=(ACCESS&&Array.isArray(ACCESS.allowedEmails))?ACCESS.allowedEmails:[];
   let allowPanel='';
@@ -4088,6 +4106,7 @@ function renderAccess(){
     ${actions}
     ${mastersPanel}
     ${subPanel}
+    ${mgmtPanel}
     ${allowPanel}
     ${teamPanel}
     ${smsPanel}
@@ -4223,6 +4242,24 @@ function renderAccess(){
       const nSub=curSub.filter(x=>String(x).toLowerCase()!==String(em).toLowerCase());
       await db.collection('config').doc('access').set({subMasterEmails:nSub,updatedAt:new Date().toISOString(),updatedBy:curUser.email},{merge:true});
       await reloadAccess(); refreshAll(); accMsg(`${em} 을(를) 부마스터에서 해제했습니다. (판매가만 보이는 일반계정으로 전환)`,true);
+    }catch(e){ accMsg('해제 실패: '+(e.code||e.message||e)); }
+  }));
+  on('btnMgmtAdd',async()=>{
+    const ne=($('#mgmtAddEmail').value||'').trim();
+    if(!ne||!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(ne)){ accMsg('올바른 이메일을 입력하세요.'); return; }
+    try{
+      const cur=(ACCESS&&Array.isArray(ACCESS.mgmtEmails))?ACCESS.mgmtEmails:[];
+      await db.collection('config').doc('access').set({mgmtEmails:Array.from(new Set([...cur,ne])),updatedAt:new Date().toISOString(),updatedBy:curUser.email},{merge:true});
+      await reloadAccess(); refreshAll(); accMsg(`${ne} 을(를) 경영 열람으로 추가했습니다. (이메일 인증 후 원가 분해 화면 보기)`,true); logAct('계정', ne, '경영 열람 추가');
+    }catch(e){ accMsg('추가 실패: '+(e.code||e.message||e)+' (소유자 마스터·이메일 인증 여부 확인)'); }
+  });
+  box.querySelectorAll('[data-mgmtdel]').forEach(b=>b.addEventListener('click',async()=>{
+    const em=b.dataset.mgmtdel;
+    if(!confirm(`${em} 을(를) 경영 열람에서 해제할까요?\n(원가 분해 화면을 더 이상 볼 수 없습니다)`))return;
+    try{
+      const cur=(ACCESS&&Array.isArray(ACCESS.mgmtEmails))?ACCESS.mgmtEmails:[];
+      await db.collection('config').doc('access').set({mgmtEmails:cur.filter(x=>String(x).toLowerCase()!==String(em).toLowerCase()),updatedAt:new Date().toISOString(),updatedBy:curUser.email},{merge:true});
+      await reloadAccess(); refreshAll(); accMsg(`${em} 을(를) 경영 열람에서 해제했습니다.`,true); logAct('계정', em, '경영 열람 해제');
     }catch(e){ accMsg('해제 실패: '+(e.code||e.message||e)); }
   }));
   on('btnTeamAdd',async()=>{
@@ -4762,7 +4799,7 @@ function renderGrid(){   // 채널 열은 고른 브랜드의 채널만(계산�
           + (empty?` <span style="color:#B45309;font-size:10px;font-weight:700" title="구성 단품(${comps.map(c=>compLabel(c.prod)).join(', ')})에 업체단가·정가가 없어 합산할 값이 없습니다">값없음 · 구성단품 입력필요</span>`:'');
       })():''}</td>
       ${showSup?`<td class="frz frz-sup dim${lastFrz==='sup'?' frz-edge':''}" title="${unlocked?esc(p.mgr||''):''}">${unlocked?esc(p.sup||'—'):'🔒'}</td>`:''}
-      ${showCost?`<td class="frz frz-cost num cost${lastFrz==='cost'?' frz-edge':''}" title="${pkg?'구성 단품 원가 합':"원가는 '제품 수정'에서"}${pship?' · 마진은 택배비 '+won(pship)+'원까지 빼고 계산':''}">${won(effCost(p))}${pkg?'<span class="mrate">합산</span>':''}${pship?`<span class="mrate">🚚 +${won(pship)}</span>`:''}</td>`:''}
+      ${showCost?`<td class="frz frz-cost num cost${lastFrz==='cost'?' frz-edge':''}" title="${pkg?'구성 단품 원가 합':"원가는 '제품 수정'에서"}${pship?' · 마진은 택배비 '+won(pship)+'원까지 빼고 계산':''}">${won(effCost(p))}${pkg?'<span class="mrate">합산</span>':''}${pship?`<span class="mrate">🚚 +${won(pship)}</span>`:''}${pkg?'':costBadgeHtml(p)}</td>`:''}
       ${showBc?(()=>{ const b=pbarcodeOf(p); return `<td class="bc-col${b?'':' dim'}${canBc?' bc-edit':''}" data-bck="${esc(pKey(p))}" title="${canBc?'눌러서 바코드 넣기·고치기':(b?'바코드':'바코드 없음')}">${b?esc(b):(canBc?'＋ 바코드':'—')}</td>`; })():''}
       ${tdPrice}
     </tr>`;
@@ -6382,7 +6419,7 @@ function renderSide(){
   const cur=document.querySelector('.stab.on'), curSh=cur?cur.dataset.sh:'';
   document.body.dataset.sh=curSh;
   let h=`<div class="sn-head"><div class="sn-logo">${TEAM_MODE?'<b>POUR 팀</b><span>대시보드</span>':'<b>POUR 가격·마진</b><span>통합 관리</span>'}</div><button id="snFold" title="메뉴 접기/펴기">☰</button><button id="snClose" title="메뉴 닫기">✕</button></div><nav class="sn-menu">`;
-  const copyBtn=`<button class="sn-item" id="snCopyCatalog" title="분류·상품명·옵션·자체상품코드·브랜드·채널별 판매가만 (원가·마진·제조사 없음)">📋 제품 목록 복사 (원가 없음)</button>`; let copyIn=false; // 옵시디언 제품 카드용 목록 — '제품' 묶음 안 (없으면 맨 아래)
+  const copyBtn=`<button class="sn-item" id="snCopyCatalog" title="분류·상품명·옵션·자체상품코드·브랜드·채널별 판매가만 (원가·마진·제조사 없음)">📋 제품 목록 복사 (원가 없음)</button>`+((costAllowed&&!TEAM_MODE)?`<a class="sn-item" id="snCostLink" href="pourstore-cost.html" target="_blank" rel="noopener" style="text-decoration:none" title="품목 1장 = 원가 분해 1장 (엑셀 표준 원가계산기 v7과 같은 식) · 새 창">🧾 원가 분해 ↗</a>`:''); let copyIn=false; // 옵시디언 제품 카드용 목록 — '제품' 묶음 안 (없으면 맨 아래)
   MENU.forEach(g=>{
     const its=g.items.map(it=>({it,tabs:miTabs(it)})).filter(x=>x.tabs.length);
     if(!its.length) return;
@@ -6434,6 +6471,7 @@ function buildMobileMenu(){
     if(!its.length)return;
     html+='<div class="mm-grp">'+esc(g.ic+' '+g.lb)+'</div>';
     its.forEach(({it,tabs})=>{ const on=tabs.includes(curSh); html+='<button class="mm-item'+(on?' on':'')+'" data-sh="'+(on?curSh:tabs[0])+'">'+esc(it.lb)+(sheetReady(tabs[0])?'':' <i class="sn-dot"></i>')+'</button>'; });
+    if(g.g==='prod'&&costAllowed&&!TEAM_MODE) html+='<a class="mm-item" href="pourstore-cost.html" target="_blank" rel="noopener" style="text-decoration:none;display:block">🧾 원가 분해 ↗</a>';
   });
   list.innerHTML=html;
 }
@@ -8227,6 +8265,7 @@ let COEFF_NOW=false; // 채널 비율 '즉시 적용' 모드(마스터 전용) �
 let LAD_BASE=0.81; // 사다리 하한/상한 비율(총판=업체단가 ÷ 자사몰정가). 한쪽 앵커만 있을 때 반대편을 이 비율로 보완 ← product-meta/channel-markup.ladBase
 /* ── 개정안(draft): 승인 전 제안값. 여기만 바뀌고 실제(applied)는 승인해야 반영 ── */
 let DVBASE={}, DRETAIL={}, DCOEFF={};
+let DCOST={}, DCOSTSRC={};   // 매입원가 개정안 — 원가 분해 화면 [매입원가로 승인요청]이 담음 (2026-11-23 · 승인해야 PCOST 에 들어감)
 let DRAFT_META={status:'', by:'', at:'', note:''};   // status: ''|'작성중'|'대기'
 let PREVIEW=false;   // 가격정책표에 개정안 미리보기 오버레이
 /* 사다리(ladder) 기본 계수: 업체단가(=총판, 0%) ~ 자사몰정가(100%) 사이 '위치 비율'
@@ -11347,16 +11386,27 @@ function ovrSave(){
 function ovrClear(){ if(!OVR_CTX) return; const {p,uid}=OVR_CTX; draftSetOvr(p,uid,null); PREVIEW=true; recalcVendor(); refreshAll(); closeOvrPanel(); }
 
 /* ── 개정안(draft) API ── */
-function draftCount(){ return Object.keys(DVBASE).length+Object.keys(DRETAIL).length+Object.keys(DCOEFF).length+Object.keys(DPOVR).length+Object.keys(DTODO).length; }
+function draftCount(){ return Object.keys(DVBASE).length+Object.keys(DRETAIL).length+Object.keys(DCOEFF).length+Object.keys(DPOVR).length+Object.keys(DTODO).length+Object.keys(DCOST).length; }
 function draftSetVbase(p,val){ const k=pKey(p); const v=(val==null)?null:ceil100(val);   // 저장값도 100원 올림
   if(v==null||v===VBASE[k])delete DVBASE[k]; else DVBASE[k]=v; DRAFT_META.status=DRAFT_META.status||'작성중'; saveDraft(); }
 function draftSetRetail(p,val){ const k=pKey(p); const v=(val==null)?null:ceil100(val);
   if(v==null||v===VRETAIL[k])delete DRETAIL[k]; else DRETAIL[k]=v; DRAFT_META.status=DRAFT_META.status||'작성중'; saveDraft(); }
 function draftSetCoeff(code,obj){ const cur=VCOEFF[code]||VCOEFF_DEFAULT[code]||{a:'manual',f:0}; if(obj.a===cur.a && (+obj.f)===(+cur.f))delete DCOEFF[code]; else DCOEFF[code]={a:obj.a,f:+obj.f||0}; DRAFT_META.status=DRAFT_META.status||'작성중'; saveDraft(); }
 function draftImport(){ const r=importVendorPricesTo(DVBASE); DRAFT_META.status=DRAFT_META.status||'작성중'; saveDraft(); return r; }
-function draftDiscard(){ DVBASE={};DRETAIL={};DCOEFF={};DPOVR={};DTODO={};DRAFT_META={status:'',by:'',at:'',note:''};PREVIEW=false; saveDraft(); }
-async function saveDraft(){ try{ await db.collection('product-meta').doc('pricing-draft').set({vbase:DVBASE,retail:DRETAIL,coeff:DCOEFF,ovr:DPOVR,todo:DTODO,meta:DRAFT_META,updatedAt:new Date().toISOString()}); }catch(e){ console.warn('[pricing-draft] 저장 실패',e.code||e); } }
-async function loadDraft(){ try{ const d=await db.collection('product-meta').doc('pricing-draft').get(); if(d.exists){ const x=d.data(); DVBASE=x.vbase||{}; DRETAIL=x.retail||{}; DCOEFF=x.coeff||{}; DPOVR=x.ovr||{}; DTODO=x.todo||{}; DRAFT_META=x.meta||{status:'',by:'',at:'',note:''}; } }catch(e){ console.warn('[pricing-draft] 로드 실패',e.code||e); } }
+function draftDiscard(){ const ck=Object.keys(DCOST); DVBASE={};DRETAIL={};DCOEFF={};DPOVR={};DTODO={};DCOST={};DCOSTSRC={};DRAFT_META={status:'',by:'',at:'',note:''};PREVIEW=false; saveDraft(ck); }
+/* 저장: 예전처럼 vbase~meta 칸을 통째로 씀. 매입원가(cost·costSrc) 칸은 원가 분해 화면이 따로 담으므로 덮지 않고,
+   이 화면이 본 것(승인·반려·취소)만 지운다(clearCost) — 열어 둔 옛 창이 새 요청을 지우지 않게 (2026-11-23) */
+async function saveDraft(clearCost){ try{
+  const data={vbase:DVBASE,retail:DRETAIL,coeff:DCOEFF,ovr:DPOVR,todo:DTODO,meta:DRAFT_META,updatedAt:new Date().toISOString()}, fields=Object.keys(data);
+  (Array.isArray(clearCost)?clearCost:[]).forEach(k=>{ (data.cost=data.cost||{})[k]=firebase.firestore.FieldValue.delete(); (data.costSrc=data.costSrc||{})[k]=firebase.firestore.FieldValue.delete();
+    fields.push(new firebase.firestore.FieldPath('cost',k), new firebase.firestore.FieldPath('costSrc',k)); });
+  await db.collection('product-meta').doc('pricing-draft').set(data,{mergeFields:fields}); }catch(e){ console.warn('[pricing-draft] 저장 실패',e.code||e); } }
+async function loadDraft(){ try{ const d=await db.collection('product-meta').doc('pricing-draft').get(); if(d.exists){ const x=d.data(); DVBASE=x.vbase||{}; DRETAIL=x.retail||{}; DCOEFF=x.coeff||{}; DPOVR=x.ovr||{}; DTODO=x.todo||{}; DCOST=x.cost||{}; DCOSTSRC=x.costSrc||{}; DRAFT_META=x.meta||{status:'',by:'',at:'',note:''}; } }catch(e){ console.warn('[pricing-draft] 로드 실패',e.code||e); } }
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState!=='visible'||TEAM_MODE||!appStarted||!costAllowed||editingNow()) return;
+  const snap=()=>JSON.stringify([DVBASE,DRETAIL,DCOEFF,DPOVR,DTODO,DCOST,DRAFT_META]), before=snap();
+  loadDraft().then(()=>{ if(snap()!==before){ console.log('[pricing-draft] 다른 화면에서 바뀐 개정안을 다시 읽음'); recalcVendor(); refreshAll(); } });
+});
 /* ── 승인요청 / 승인 / 반려 ── */
 async function submitDraft(){ if(!draftCount()){ alert('변경된 내용이 없습니다.'); return; } DRAFT_META={status:'대기', by:(curUser&&curUser.email)||'', at:new Date().toISOString(), note:($('#draftNote')&&$('#draftNote').value)||''}; await saveDraft(); refreshAll(); alert('상급자에게 승인을 요청했습니다.\n승인 전까지 실제 가격은 바뀌지 않습니다.'); }
 async function approveDraft(){
@@ -11367,8 +11417,11 @@ async function approveDraft(){
   Object.entries(DCOEFF).forEach(([c,o])=>{ VCOEFF[c]=o; });
   Object.entries(DPOVR).forEach(([k,v])=>{ if(v==null) delete POVR[k]; else POVR[k]=v; });   // null=해제
   Object.entries(DTODO).forEach(([k,v])=>{ if(v) PTODO[k]=true; else delete PTODO[k]; });    // true=미정 · false=미정 해제
+  const costN=Object.keys(DCOST).length;   // 매입원가(원가 분해 요청) — 승인할 때만 PCOST 에 (cost-log 에 이력)
+  Object.entries(DCOST).forEach(([k,v])=>{ const p=P.find(x=>pKey(x)===k); if(v==null) delete PCOST[k]; else { PCOST[k]=+v; if(p) p.cost=+v; } });
   const rev={ ts:new Date().toISOString(), approvedBy:(curUser&&curUser.email)||'', proposedBy:DRAFT_META.by, note:DRAFT_META.note||'', vbase:{...DVBASE}, retail:{...DRETAIL}, coeff:{...DCOEFF}, ovr:{...DPOVR}, todo:{...DTODO} };
-  await saveVendorPrices(); await saveRetailPrices(); await saveChannelMarkup(); await saveOverrides(); await saveTodo(); await appendHistory(rev);
+  if(costN) rev.cost={...DCOST};
+  await saveVendorPrices(); await saveRetailPrices(); await saveChannelMarkup(); await saveOverrides(); await saveTodo(); if(costN) await saveProdCost(); await appendHistory(rev);
   draftDiscard(); await saveDraft(); recalcVendor(); refreshAll();
   alert('개정안을 승인·적용했습니다.\n변동이력에 기록되었습니다.'+(CRM_AUTO?'\n· CRM으로 단가를 보내는 중입니다.':''));
   if(CRM_AUTO) syncPriceBookToCrm(true);   // 승인된 값만 CRM 으로 (설정에서 끌 수 있음)
@@ -11411,6 +11464,7 @@ function draftChangeList(){
   const nameOf=k=>{ const p=P.find(x=>pKey(x)===k); return p?`${p.name}${p.spec?' ('+p.spec+')':''}`:k.split('|').slice(1).join(' '); };
   Object.entries(DVBASE).forEach(([k,v])=>items.push({t:'업체단가', n:nameOf(k), from:VBASE[k], to:v}));
   Object.entries(DRETAIL).forEach(([k,v])=>items.push({t:'자사몰정가', n:nameOf(k), from:VRETAIL[k], to:v}));
+  Object.entries(DCOST).forEach(([k,v])=>{ const p=P.find(x=>pKey(x)===k); items.push({t:'매입원가(원가 분해)', n:nameOf(k), from:p?unitCost(p):null, to:v}); });
   Object.entries(DPOVR).forEach(([k,v])=>{ const i=k.lastIndexOf('|'), pk=k.slice(0,i), uid=k.slice(i+1);
     const c=chByUid(uid); items.push({t:(c?c.name:uid)+' 직접조정', n:nameOf(pk), from:POVR[k], to:v}); });
   Object.entries(DCOEFF).forEach(([code,o])=>{ const c=chByCode(code); const cur=VCOEFF[code]||VCOEFF_DEFAULT[code]||{a:'manual',f:0};
@@ -13693,6 +13747,7 @@ function refreshAllNow(){
   renderViewChrome();
   requestAnimationFrame(syncStickyTop);   // 도구줄 높이에 맞춰 헤더 고정 오프셋 갱신(버튼 줄바꿈 대비)
   scheduleTeamCatalog();
+  scheduleCostRef();   // 원가 분해 화면용 제품·매입원가 목록 (2026-11-23)
   if(TEAM_MODE && typeof renderTeamPrice==='function') renderTeamPrice();
   if(window.__uiFold) window.__uiFold();
   if(window.__appTabsPaint) window.__appTabsPaint();
@@ -14218,6 +14273,56 @@ function scheduleTeamCatalog(){
       _tcHash=hash; console.log(`[team-catalog] 팀용 단가표 저장 · 제품 ${pl.products.length}개`);
     }catch(e){ console.warn('[team-catalog] 저장 실패', e.code||e.message||e); }
   }, 4000);
+}
+/* ── 원가 분해 연결 (2026-11-23 송희님 · pourstore-cost.html) ──
+   · cost-ref/products = 가격정책표 제품·매입원가 목록(원가 분해 화면이 읽음) — 마스터·부마스터 화면이 바뀐 게 있을 때만 저장
+   · cost-names/_ref  = 지금 공급업체·제조사 실제 이름(마스터 전용 + 경영 열람 읽기) — 마스터 + 보안구역 열린 뒤에만
+   · cost-ref/cards   = 원가 분해 요약 → 매입원가 옆 작은 표시(분해 있음 · 분해와 차이 있음 · 분해 필요)
+   · 새 규칙을 아직 안 붙여 넣었으면 거부되고 끝 — 이 화면은 그대로(콘솔 경고 한 번 · 다시 시도 안 함) */
+let _crTimer=null, _crHash='', _crnHash='', _crOff=false, COSTIDX=null, _costSumOff=null;
+const _crH=js=>{ let x=0; for(let i=0;i<js.length;i++) x=(x*31+js.charCodeAt(i))|0; return String(x>>>0)+':'+js.length; };
+function costRefPayload(){
+  return P.filter(p=>!isDeletedProd(p)).map(p=>{ const k=pKey(p), c=effCost(p);
+    const o={k, cat:p.cat, name:p.name, spec:p.spec, brand:pbrand(p), st:pstatus(p), type:isPackage(p)?'세트':'단품', cost:(c==null||!isFinite(c))?null:c};
+    const code=PCODE[k]||p.ghCode||''; if(code) o.code=code; return o; });
+}
+function startCostSum(){
+  if(_costSumOff||TEAM_MODE||!costAllowed) return;
+  _costSumOff=db.collection('cost-ref').doc('cards').onSnapshot(d=>{ const map=d.exists?(d.data().map||{}):{}, idx={}, rn=x=>{ const m=String(x||'').match(/\d+/); return m?+m[0]:0; };
+      Object.entries(map).forEach(([id,s])=>{ if(!s||!s.k) return; const b=idx[s.k]; if(!b||rn(s.r)>rn(b.r)||(rn(s.r)===rn(b.r)&&String(s.at||'')>String(b.at||''))) idx[s.k]={...s,id}; });   // 1차·2차… 높은 차수 → 최근
+      COSTIDX=idx; console.log(`[cost-ref/cards] 원가 분해 요약 ${Object.keys(map).length}장`); GRID_DIRTY=true; refreshAll(); },
+    e=>{ console.warn('[cost-ref/cards] 못 읽음(새 규칙 게시 전이면 정상) — 매입원가 옆 표시 없이 그대로', e.code||e.message||e); COSTIDX=null; });
+}
+function costBadgeHtml(p){
+  if(!COSTIDX||isPackage(p)) return '';
+  const s=COSTIDX[pKey(p)], c=effCost(p), a=s?Math.round(+s.unit||0):null, b=(c==null||!isFinite(c))?null:Math.round(c);
+  const t=!s||s.need?'need':(b==null||a!==b)?'diff':'has';
+  const lb={need:'분해 필요',diff:'분해와 차이 있음',has:'분해 있음'}[t], col={need:'#6B7280',diff:'#B45309',has:'#0B7A3E'}[t];
+  const tip=t==='need'?(s?'원가 분해 카드가 아직 매입 1줄뿐이에요':'원가 분해 카드가 없어요'):t==='diff'?`원가 분해 ${won(s.unit)}원 · 매입원가 ${b==null?'없음':won(b)+'원'}`:`원가 분해 ${won(s.unit)}원 = 매입원가`;
+  return `<a class="mrate cbadge" href="pourstore-cost.html${s?'#card='+encodeURIComponent(s.id):''}" target="_blank" rel="noopener" title="${esc(tip)} · 눌러서 원가 분해 열기" style="color:${col};text-decoration:none;font-weight:700">${lb}</a>`;
+}
+function scheduleCostRef(){
+  if(TEAM_MODE||!costAllowed||!appStarted) return;
+  startCostSum();
+  if(_crOff) return;
+  clearTimeout(_crTimer);
+  _crTimer=setTimeout(async()=>{
+    const by=(curUser&&curUser.email)||'', at=new Date().toISOString();
+    try{ const list=costRefPayload(), hash=_crH(JSON.stringify(list));
+      if(hash!==_crHash){
+        if(!_crHash){ const d=await db.collection('cost-ref').doc('products').get(); if(d.exists&&d.data().hash===hash) _crHash=hash; }
+        if(hash!==_crHash){ await db.collection('cost-ref').doc('products').set({list, hash, at, by}); _crHash=hash; console.log(`[cost-ref] 원가 분해용 제품 목록 저장 · ${list.length}개`); }
+      }
+    }catch(e){ if(e&&e.code==='permission-denied') _crOff=true; console.warn('[cost-ref] 저장 못 함(새 규칙 게시 전이면 정상)', e.code||e.message||e); return; }
+    if(secAllowed && unlocked){ try{
+      const map={}; P.filter(p=>!isDeletedProd(p)&&!isPackage(p)).forEach(p=>{ const sup=p.sup||'', mfg=mfgOf(p)||''; if(sup||mfg) map[pKey(p)]={sup,mfg}; });
+      const hash=_crH(JSON.stringify(map));
+      if(hash!==_crnHash){
+        if(!_crnHash){ const d=await db.collection('cost-names').doc('_ref').get(); if(d.exists&&d.data().hash===hash) _crnHash=hash; }
+        if(hash!==_crnHash){ await db.collection('cost-names').doc('_ref').set({map, hash, at, by}); _crnHash=hash; console.log(`[cost-names/_ref] 공급업체·제조사 ${Object.keys(map).length}개 (마스터 전용 자리)`); }
+      }
+    }catch(e){ console.warn('[cost-names/_ref] 저장 못 함', e.code||e.message||e); } }
+  }, 5000);
 }
 /* 허용목록에 없는 계정용 전체화면 안내 */
 function renderAccessDenied(show){

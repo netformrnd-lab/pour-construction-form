@@ -502,7 +502,7 @@ const ymd = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).p
 const fmt = (v, d = 2) => (v == null || v === "" || !isFinite(v) ? "—" : (+v).toLocaleString("ko-KR", { maximumFractionDigits: d }));
 const won = (v) => fmt(v, 0);
 const W = (v, d = 2) => (v == null || v === "" || !isFinite(v) ? "—" : fmt(v, d) + "원");
-const pctTxt = (v) => (v == null || v === "" || !isFinite(v) ? "—" : `${+(v * 100).toFixed(1)}%`);
+const pctTxt = (v) => (v == null || v === "" || !isFinite(v) ? "—" : `${+(v * 100).toFixed(2)}%`);
 const whenTxt = (iso) => { if (!iso) return ""; const d = new Date(iso); if (isNaN(d)) return ""; return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; };
 const dTxt = (s) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s || "")); return m ? `${m[1].slice(2)}.${+m[2]}.${+m[3]}` : (s || "—"); };
 const who = (e) => String(e || "").split("@")[0] || "—";
@@ -881,7 +881,7 @@ function CardSheet({ id, ctx, onClose, onSaved }) {
   const sel = (v, on, opts, o = {}) => html`<select class=${"in" + (ro ? " ro" : "")} value=${v ?? ""} onChange=${(e) => on(e.target.value)} disabled=${ro} aria-label=${o.al || ""}>${(opts.some((p) => p[0] === (v ?? "")) ? opts : [[v ?? "", v ? v : "(빈칸)"], ...opts]).map(([a, b]) => html`<option key=${a} value=${a}>${b}</option>`)}</select>`;
   const KIND_OPTS = [["", "구분 고르기"], ...C.KINDS.map((k) => [k, k])], IN_OPTS = [["별도", "별도"], ["포함", "포함"]], PER_OPTS = [["개당", "개당"], ["1회", "1회"]], VAT_OPTS = C.VATS, ST_OPTS = [["", "자동(확정)"], ["확정", "확정"], ["임시", "임시"], ["확인 필요", "확인 필요"]];
   const stTag = (st) => html`<span class=${"tag " + (st === "확정" ? "ok" : st === "임시" ? "tmp" : "chk")}>${st}</span>`;
-  const hint1 = (r) => (r.kind === "1회 비용" && !String(r.use || "").trim() ? html`<div class="hint">무엇에 쓰는지에 대상(박스·통·파우치) 이름을 넣어 주세요</div>` : "");
+  const hint1 = (r) => (!ro && r.kind === "1회 비용" && !String(r.use || "").trim() ? html`<div class="hint">무엇에 쓰는지에 대상(박스·통·파우치) 이름을 넣어 주세요</div>` : "");
   return html`<div class="sheet" role="dialog" aria-label=${title}>
     <div class="sh-top"><div class="sh-in">
       <div class="sh-t"><div class="tt">${title}</div>${isM && card && html`<button class="btn sm red" onClick=${del}>휴지통</button>`}<button class="x" onClick=${close}>닫기</button></div>

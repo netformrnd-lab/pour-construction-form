@@ -5,16 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#24386B">
-<title>POUR 원가 분해</title>
+<title>POUR 원가 계산기</title>
 <!--
-  원가 분해 (매입단가 분해·조립) — 2026-11-23 김송희 요청·승인 (관리 = 대시보드 · 경영팀 = 공급처까지 전부 열람 · 본부장님 = 전부 · 처음 품목 = POUR스토어 기존 품목 포함)
+  원가 분해·조립 계산기 — 2026-11-23 김송희 요청·승인 (관리 = 대시보드 · 경영팀 = 공급처까지 전부 열람 · 본부장님 = 전부 · 처음 품목 = POUR스토어 기존 품목 포함)
+  · 같은 날 오후 범위 줄임: 결과는 ① 최종 완제품 원가 ② 판매가를 넣으면 마진율·마진액 두 가지 (판매가 3단계 고정 표·판매가 설정은 뺌)
+    마진율 = 엑셀 '판매가' 시트 식을 판매가 기준으로 거꾸로 푼 값(pcc-core marginCalc) + 작게 가격정책표 방식 (판매가−원가)÷판매가
   · 가격·마진 대시보드(pourstore-pricing-dashboard.html)와 같은 프로젝트(pourstoreproject) · 같은 로그인
   · 품목 1장 = 원가 분해 1장 (송희님 엑셀 '표준_원가계산기_v7' 과 같은 칸·같은 식 — 계산은 아래 pcc-core 블록 하나)
   · 저장 자리 (규칙 pourstore.rules 2026-11-23):
       cost-cards/{id}   숫자·구성·가칭(A사·B사)만 — 마스터·부마스터·경영 열람 읽기 / 마스터 쓰기
       cost-names/{id}   실제 공급처·제조사 이름 — 마스터 + 경영 열람(읽기) · _alias = 이름→가칭 · _ref = 가격정책표 공급업체·제조사(본 화면이 저장)
-      cost-ref/products 가격정책표 제품·매입원가 목록(본 화면이 저장) · cost-ref/cards 요약(가격정책표 매입원가 옆 표시) · cost-ref/settings 판매가 설정
-  · 매입원가 바꾸기 = [매입원가로 승인요청] → 가격정책표 개정안(product-meta/pricing-draft.cost) → 마스터가 가격정책표에서 승인 (자동 덮어쓰기 없음)
+      cost-ref/products 가격정책표 제품·매입원가·채널 판매가 + 채널·수수료(본 화면이 저장) · cost-ref/cards 요약(가격정책표 매입원가 옆 표시)
+  · 매입원가 바꾸기 = 버튼 하나 [매입원가로 승인요청] → 가격정책표 개정안(product-meta/pricing-draft.cost) → 마스터가 가격정책표에서 승인 (자동 덮어쓰기 없음)
+  · 채널·수수료 = 가격정책표가 cost-ref/products.channels 로 넘겨줌(config/calc.chVar 수수료) · 고칠 수 있음
   · 역할: 마스터 = 전부 보기·수정·승인 · 경영 열람(config/access.mgmtEmails) = 전부 보기만 · 부마스터 = 원가·마진 보기 + 업체는 가칭 · 열람·팀원 = 못 봄(서버 규칙)
 -->
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
@@ -90,7 +93,22 @@ table.t{border-collapse:separate;border-spacing:0;width:100%;font-size:13px}
 .tag.tmp{background:var(--yelbg);color:var(--yel)}.tag.chk{background:var(--redbg);color:var(--red)}.tag.ok{background:var(--grbg);color:var(--green)}
 .tag.off{background:#F1F2F5;color:#6B7280}
 .clamp2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.plus{color:var(--amber);font-weight:800}.minus{color:#1D4ED8;font-weight:800}
+.plus{color:var(--amber);font-weight:800}
+/* 결과 두 가지 */
+.res .rg{display:grid;grid-template-columns:minmax(250px,1fr) 2fr;gap:12px}
+.res .r1,.res .r2{background:#F7F8FB;border-radius:12px;padding:12px 14px;min-width:0}
+.res .k{font-size:13.5px;color:var(--ink2);font-weight:800}
+.res .big{font-size:30px;font-weight:800;margin-top:4px;font-variant-numeric:tabular-nums;letter-spacing:-.5px}
+.res .big.red{color:var(--red)}
+.res .s{font-size:12px;color:var(--mute);margin-top:2px}
+.res .mi{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:8px}
+.res .mi .fld>label{display:flex;align-items:center;gap:4px;min-height:20px;white-space:nowrap;overflow:hidden}
+.res .mi .tag{font-size:10px;padding:1px 5px}
+.res .mo{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.res .mo>div{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-width:0}
+.tline{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:3px;font-size:12px}
+.minusR,.minusR b{color:var(--red)!important}
+details.more>summary{cursor:pointer;font-weight:800;font-size:14px;color:var(--ink2)}.minus{color:#1D4ED8;font-weight:800}
 /* 폰 목록 */
 .ml{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
 .mr{display:block;width:100%;text-align:left;border:0;border-top:1px solid var(--line);background:#fff;padding:11px 14px;cursor:pointer;font-size:14px}
@@ -169,6 +187,7 @@ table.ed{min-width:1640px;font-size:12.5px}
 .dropz{border:2px dashed var(--line);border-radius:14px;padding:22px 14px;text-align:center;color:var(--mute);background:#fff}
 @media (max-width:900px){
   .fg,.kv{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .res .rg{grid-template-columns:1fr}.res .mi{grid-template-columns:1fr 1fr}
   .h1{font-size:20px}
 }
 @media (max-width:700px){
@@ -181,12 +200,13 @@ table.ed{min-width:1640px;font-size:12.5px}
 @media (max-width:380px){
   .fg{grid-template-columns:1fr}.fld.w2{grid-column:auto}
   .qc{grid-template-columns:1fr}
+  .res .mi{grid-template-columns:1fr}.res .big{font-size:26px}
   .btn{padding:0 10px}
 }
 </style>
 </head>
 <body>
-<div id="root"><div class="ld">원가 분해 불러오는 중…</div></div>
+<div id="root"><div class="ld">원가 계산기 불러오는 중…</div></div>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -339,7 +359,7 @@ table.ed{min-width:1640px;font-size:12.5px}
     return "업체" + (u.size + 1);
   }
 
-  // ── 판매가 3단계 (엑셀 '판매가' 시트) ──
+  // ── 엑셀 '판매가' 시트 식 (화면엔 3단계 표를 안 씀 · 아래 marginCalc 가 이 식을 거꾸로 푼 값 · 대조 시험용으로 남김) ──
   // 물류비(개당) = 공장→창고 이동비(넷폼 부담이면 총액 ÷ 생산 수량) + 입고 상하차 + 입고 검수 + 창고 보관 + 3PL 출고 + 포장 부자재 + 고객 택배비
   function logiCalc(o) {
     const q = z(o.qty), move = o.moveOurs && q > 0 ? z(o.moveTotal) / q : 0;
@@ -354,6 +374,18 @@ table.ed{min-width:1640px;font-size:12.5px}
     if (!(den > 0)) return { over: true, den, price: null };
     const raw = (z(o.cost) + z(o.logi)) / den;
     return { over: false, den, raw, price: ceil100(raw) };
+  }
+
+  // ── 판매가를 넣으면 마진 (2026-11-23 송희님 · 위 판매가 식을 판매가 기준으로 거꾸로 푼 값) ──
+  //  판매가 = (원가+물류비) ÷ ( ((1−할인) − 마진율) ÷ 1.1 − (1−할인) × 수수료 )
+  //  → 마진율 = (1−할인) − 1.1 × ( (원가+물류비) ÷ 판매가 + (1−할인) × 수수료 )
+  //  → 마진액 = 판매가 × 마진율 ÷ 1.1  (= 판매가÷1.1×(1−할인) − 판매가×(1−할인)×수수료 − 원가 − 물류비)
+  //  가격정책표 방식 = (판매가 − 원가) ÷ 판매가   · 계산기 화면은 할인 0 (넣은 판매가 = 실제 판매가)
+  function marginCalc(o) {
+    const P = z(o.price), d = z(o.disc), f = z(o.fee), C = z(o.cost), L = z(o.logi);
+    if (!(P > 0)) return null;
+    const rate = (1 - d) - 1.1 * ((C + L) / P + (1 - d) * f);
+    return { rate, amt: (P * rate) / 1.1, ptRate: (P - C) / P, ptAmt: P - C };
   }
 
   // ── 엑셀 v7 품목 시트 읽기 (aoa = 시트를 2차원 배열로 · 0부터 셈) ──
@@ -478,7 +510,7 @@ table.ed{min-width:1640px;font-size:12.5px}
   const seedId = (key) => { let h = 2166136261; const s = String(key); for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return "seed-" + (h >>> 0).toString(36); };
 
   G.PCC = { KINDS, VATS, ROW_ST, BADGE, SALE_CH, SALE_MARGINS, LOGI, num, z, has, ceil100, normBrand, vatOf, perOf, inMfgOf, kindOf, rowStatus, rowEmpty, rowCalc, fragNeed, cardCalc, qtyCompare,
-    parseDate, days, validity, roundNo, summaryOf, pickForProduct, badgeOf, aliasNext, logiCalc, salePrice, parseV7, compareXl, sheetSkip, diffCard, seedCard, seedId };
+    parseDate, days, validity, roundNo, summaryOf, pickForProduct, badgeOf, aliasNext, logiCalc, salePrice, marginCalc, parseV7, compareXl, sheetSkip, diffCard, seedCard, seedId };
 })(typeof window !== "undefined" ? window : globalThis);
 </script>
 <script>
@@ -514,6 +546,8 @@ const stable = (o) => JSON.stringify(o, (k, v) => (v && typeof v === "object" &&
 const ST_NAME = { "출시": "판매중", "출시준비": "준비중", "단종": "단종" };
 const ROLE_NAME = { master: "마스터", mgmt: "경영 열람", sub: "부마스터" };
 const VAL_TXT = { over: "지남", soon: "30일 이내", ok: "" };
+// 카드에 넣어 둔 판매가 → 마진 (계산기 ②)
+const saleCalc = (c, unit) => { const s = (c && c.sale) || {}; return C.marginCalc({ price: s.price, fee: s.fee, logi: s.logi, cost: unit }); };
 const joinWhat = (l) => l.slice(0, 10).join(" · ") + (l.length > 10 ? ` 외 ${l.length - 10}건` : "");
 function loadXLSX() {
   if (window.XLSX) return Promise.resolve(window.XLSX);
@@ -544,7 +578,7 @@ function toEdit(c) {
   d.rows = ((c && c.rows) || []).map((r) => ({ ...newRow(), ...r, price: str(r.price), usage: str(r.usage), moq: str(r.moq) }));
   if (!d.rows.length) d.rows = [newRow()];
   const s = (c && c.sale) || {};
-  d.sale = { moveTotal: str(s.moveTotal), moveOurs: s.moveOurs !== false, discPct: pctStr(s.disc), logi: Object.fromEntries(C.LOGI.map(([k]) => [k, str((s.logi || {})[k])])) };
+  d.sale = { price: str(s.price), ch: str(s.ch), chName: str(s.chName), feePct: pctStr(s.fee), logi: str(s.logi) };
   ["history", "deleted", "deletedAt", "deletedBy", "createdAt", "createdBy", "updatedAt", "updatedBy", "id"].forEach((k) => delete d[k]);
   return d;
 }
@@ -556,7 +590,7 @@ function fromEdit(d) {
     prodKey: d.prodKey || "", prodLabel: T(d.prodLabel), mfgAlias: d.mfgAlias || "", seed: d.seed || "manual",
     frag: { name: T(f.name), ratio: fromPct(f.ratioPct), batchKg: N(f.batchKg), directKg: N(f.directKg) },
     rows: (d.rows || []).filter((r) => !C.rowEmpty(r)).map((r) => ({ id: r.id, kind: r.kind || "", name: T(r.name), use: T(r.use), supAlias: r.supAlias || "", inMfg: r.inMfg || "", price: N(r.price), vat: r.vat || "", per: r.per || "", usage: N(r.usage), moq: N(r.moq), src: T(r.src), st: r.st || "" })),
-    sale: { moveTotal: N(s.moveTotal), moveOurs: s.moveOurs !== false, disc: fromPct(s.discPct), logi: Object.fromEntries(C.LOGI.map(([k]) => [k, N((s.logi || {})[k])])) },
+    sale: { price: N(s.price), ch: s.ch || "", chName: T(s.chName), fee: fromPct(s.feePct), logi: N(s.logi) },
   };
 }
 // 업체 이름 → 가칭 (가격정책표 제조사 가칭과 같은 이름이면 같은 가칭 · 새 이름은 비어 있는 다음 글자)
@@ -576,7 +610,8 @@ async function saveCard(ctx, { id, prev, prevNames, d, nm, why }) {
   card.mfgAlias = al(mfg);
   card.rows.forEach((r) => { const n = String(((nm && nm.sup) || {})[r.id] || "").trim(); sup[r.id] = n; r.supAlias = al(n); });
   const what = C.diffCard(prev || null, card);
-  if (prev && stable(prev.sale || {}) !== stable(card.sale)) what.push("판매가 입력 바뀜");
+  const sk = (x) => { const o = x || {}; return stable({ price: o.price ?? "", ch: o.ch || "", fee: o.fee ?? "", logi: o.logi ?? "" }); };
+  if (prev && sk(prev.sale) !== sk(card.sale)) what.push(`판매가 계산 바뀜 (${card.sale.price === "" ? "판매가 없음" : "판매가 " + won(card.sale.price)}${card.sale.chName ? " · " + card.sale.chName : ""})`);
   const pn = prevNames || {};
   if (prev && !what.length && (pn.mfg || "") === mfg && stable(pn.sup || {}) === stable(sup)) return { id, same: true };
   id = id || cardsCol().doc().id;
@@ -619,7 +654,7 @@ function useWide() {
 
 // ── 데이터 ──
 function useCostData(user, role) {
-  const [S, setS] = useState({ cards: null, names: {}, alias: {}, refNames: null, ref: undefined, settings: {}, draft: undefined, mfgList: [], err: "" });
+  const [S, setS] = useState({ cards: null, names: {}, alias: {}, refNames: null, ref: undefined, draft: undefined, mfgList: [], err: "" });
   useEffect(() => {
     if (!user || !["master", "mgmt", "sub"].includes(role)) return;
     const set = (p) => setS((s) => ({ ...s, ...p })), off = [];
@@ -631,7 +666,6 @@ function useCostData(user, role) {
       console.log(`[cost-names] ${Object.keys(names).length}장`); set({ names, alias, refNames });
     }, fail("cost-names")));
     off.push(refDoc("products").onSnapshot((d) => { const x = d.exists ? d.data() : null; console.log(`[cost-ref/products] 제품 ${x && x.list ? x.list.length : 0}개`); set({ ref: x }); }, fail("cost-ref/products", { ref: null })));
-    off.push(refDoc("settings").onSnapshot((d) => set({ settings: d.exists ? d.data() || {} : {} }), (e) => console.warn("[cost-ref/settings] 읽기 실패", e.code || e)));
     if (role === "master") {
       off.push(draftDoc().onSnapshot((d) => set({ draft: d.exists ? d.data() : null }), (e) => { console.warn("[pricing-draft] 읽기 실패", e.code || e); set({ draft: null }); }));
       db.collection("config").doc("seckey").get().then((d) => { const l = d.exists && Array.isArray(d.data().mfgList) ? d.data().mfgList : []; console.log(`[seckey] 제조사 가칭 ${l.length}개`); set({ mfgList: l.filter((m) => m && m.name).map((m) => ({ name: m.name, alias: m.alias || "" })) }); })
@@ -649,7 +683,7 @@ function Login() {
     catch (x) { const c = (x && x.code) || ""; setMsg(/invalid|wrong|not-found/.test(c) ? "이메일 또는 비밀번호가 맞지 않아요." : "로그인 못 했어요: " + (c || x.message || x)); }
     setBusy(false); };
   return html`<div class="login">
-    <div class="h1">원가 분해</div>
+    <div class="h1">원가 계산기</div>
     <p class="sub">가격·마진 대시보드와 같은 계정으로 들어가요. (대시보드에 이미 로그인했다면 자동으로 열려요)</p>
     ${msg && html`<div class="err">${msg}</div>`}
     <form onSubmit=${go}>
@@ -673,9 +707,9 @@ function App() {
   if (access === undefined) return html`<div class="ld">권한 확인 중…</div>`;
   const role = roleOf(access, user.email, user.emailVerified);
   if (role === "none" || role === "unverified") return html`<div class="wrap"><div class="top"><div class="nav"><a href=${V1_URL}>← 가격·마진 대시보드</a></div></div>
-    <div class="h1">원가 분해</div>
+    <div class="h1">원가 계산기</div>
     <div class="err">${role === "unverified" ? html`<b>${user.email}</b> 계정은 이메일 인증을 아직 안 했어요. 가격·마진 대시보드 › 설정 › 계정에서 [인증메일 보내기] → 메일의 링크를 누른 뒤 다시 열어 주세요.`
-      : html`<b>${user.email}</b> 계정은 원가 분해를 볼 수 없어요. (마스터 · 부마스터 · 경영 열람만) 송희님께 '경영 열람' 등록을 요청해 주세요.${accErr ? ` (${accErr})` : ""}`}</div>
+      : html`<b>${user.email}</b> 계정은 원가 계산기를 볼 수 없어요. (마스터 · 부마스터 · 경영 열람만) 송희님께 '경영 열람' 등록을 요청해 주세요.${accErr ? ` (${accErr})` : ""}`}</div>
     <button class="btn" onClick=${() => auth.signOut()}>다른 계정으로</button></div>`;
   return html`<${Main} user=${user} role=${role} />`;
 }
@@ -705,7 +739,7 @@ function Main({ user, role }) {
     const x = C.cardCalc(c), p = c.prodKey ? refMap[c.prodKey] || null : null, pt = p && p.cost != null && p.cost !== "" ? +p.cost : null;
     const badge = c.prodKey ? C.badgeOf(C.summaryOf(c), pt) : c.need ? "need" : "";
     return { c, x, p, pt, diff: pt == null ? null : x.unit - pt, badge, val: C.validity(c.validUntil, today), mfg: nameOf(c), last: (c.history || [])[0] || null,
-      chk: (c.rows || []).filter((r) => C.rowStatus(r) === "확인 필요").length };
+      chk: (c.rows || []).filter((r) => C.rowStatus(r) === "확인 필요").length, sale: c.sale || {}, m: saleCalc(c, x.unit) };
   }), [S.cards, refMap, S.names, role]);
   const brands = useMemo(() => [...new Set(items.map((i) => i.c.brand || "브랜드 없음"))].sort(), [items]);
   const cnt = { need: items.filter((i) => i.badge === "need").length, over: items.filter((i) => i.val === "over").length, soon: items.filter((i) => i.val === "soon").length,
@@ -716,12 +750,10 @@ function Main({ user, role }) {
       && (!t || nz(`${i.c.item}${i.c.spec}${i.c.brand}${i.c.round}${i.mfg}${i.c.scope}`).includes(t))
       && (!flt || (flt === "need" ? i.badge === "need" : flt === "val" ? i.val === "over" || i.val === "soon" : flt === "diff" ? i.badge === "diff" : flt === "chk" ? i.chk > 0 : true)));
     const by = { brand: (a, b) => (a.c.brand || "").localeCompare(b.c.brand || "") || (a.c.item || "").localeCompare(b.c.item || "") || C.roundNo(a.c.round) - C.roundNo(b.c.round),
-      amt: (a, b) => (b.x.firstAmt || 0) - (a.x.firstAmt || 0), val: (a, b) => String(a.c.validUntil || "9999").localeCompare(String(b.c.validUntil || "9999")),
+      rate: (a, b) => (a.m ? a.m.rate : 9) - (b.m ? b.m.rate : 9), val: (a, b) => String(a.c.validUntil || "9999").localeCompare(String(b.c.validUntil || "9999")),
       recent: (a, b) => String(b.c.updatedAt || "").localeCompare(String(a.c.updatedAt || "")) };
     return l.sort(by[sort] || by.brand);
   }, [items, brand, q, flt, sort]);
-  const totals = brands.map((b) => { const its = items.filter((i) => (i.c.brand || "브랜드 없음") === b), inc = its.filter((i) => i.c.include !== false);
-    return { b, n: its.length, inc: inc.length, amt: inc.reduce((a, i) => a + (i.x.firstAmt || 0), 0), need: its.filter((i) => i.badge === "need").length }; });
   const openCard = (id) => setOpen(id);
   const ctx = { S, user, role, isM, seeNames, refList, refMap, setToast, today };
   const loading = S.cards === null && !S.err;
@@ -729,12 +761,12 @@ function Main({ user, role }) {
   const T = (k) => setFlt(flt === k ? "" : k);
   return html`<div class="wrap">
     <div class="top"><div class="nav"><a href=${V1_URL}>← 가격·마진 대시보드</a><span class="sp"></span><span class="dim" style=${{ color: "var(--mute)" }}>${user.email}</span><button class="lnk" onClick=${() => auth.signOut()}>로그아웃</button></div></div>
-    <div class="h1">🧾 원가 분해 <span class=${"role " + role}>${ROLE_NAME[role]}</span></div>
-    <p class="sub">품목 1장 = 원가 분해 1장 · 송희님 엑셀 '표준_원가계산기_v7'과 같은 식 · 금액은 모두 부가세 별도(V-) ${role === "sub" ? "· 업체는 가칭(A사·B사)으로 보여요" : ""}${role === "mgmt" ? "· 보기 전용" : ""}</p>
+    <div class="h1">🧾 원가 분해·조립 계산기 <span class=${"role " + role}>${ROLE_NAME[role]}</span></div>
+    <p class="sub">구성요소를 넣으면 ① 완제품 원가 · 판매가를 넣으면 ② 마진율·마진액 · 원가는 부가세 별도(V-) · 엑셀 '표준_원가계산기_v7'과 같은 식 ${role === "sub" ? "· 업체는 가칭(A사·B사)" : ""}${role === "mgmt" ? "· 보기 전용" : ""}</p>
     ${S.err === "rules" && html`<div class="err"><b>아직 새 보안 규칙이 게시되지 않았어요.</b> 송희님이 Firebase 콘솔 › Firestore › 규칙에 새 규칙(pourstore.rules)을 붙여 넣고 [게시]하면 이 화면이 열려요. (가격·마진 대시보드는 그 전에도 지금처럼 돌아가요)</div>`}
     ${S.err && S.err !== "rules" && html`<div class="err">불러오기 실패: ${S.err}</div>`}
     ${S.ref === null && !S.err && html`<div class="warn">가격정책표 제품 목록이 아직 없어요. ${isM ? "가격·마진 대시보드를 한 번 열면(마스터·부마스터) 제품·매입원가가 여기로 넘어와요." : "마스터가 가격·마진 대시보드를 한 번 열면 생겨요."}</div>`}
-    ${loading ? html`<div class="ld">원가 분해 불러오는 중…</div>` : !S.err && html`<${React.Fragment}>
+    ${loading ? html`<div class="ld">원가 계산기 불러오는 중…</div>` : !S.err && html`<${React.Fragment}>
       <div class="next"><b>다음 할 일</b>
         ${seedN > 0 && html`<button class="lnk" onClick=${() => setSheet("seed")}>기존 제품 ${seedN}개 카드 만들기</button>`}
         ${cnt.need > 0 && html`<button class="lnk" onClick=${() => T("need")}>분해 필요 ${cnt.need}장</button>`}
@@ -750,29 +782,23 @@ function Main({ user, role }) {
         <button class="btn" disabled=${!items.length} onClick=${() => exportXlsx(ctx, items).then(() => setToast("엑셀을 받았어요")).catch((e) => { console.error("[엑셀 받기] 실패", e); setToast("엑셀 못 받았어요: " + (e.message || e)); })}>📤 엑셀 받기</button>
         ${isM && seedN > 0 && html`<button class="btn" onClick=${() => setSheet("seed")}>🧩 기존 제품 카드 만들기 (${seedN})</button>`}
         <span class="sp"></span>
-        <button class="btn soft" onClick=${() => setSheet("settings")}>⚙ 판매가 설정</button>
         ${isM && html`<button class="btn soft" onClick=${() => setSheet("trash")}>🗑 휴지통 ${(S.cards || []).filter((c) => c.deleted).length || ""}</button>`}
       </div>
-      ${totals.length > 0 && html`<div class="tots">${totals.map((t) => html`<div class="tot" key=${t.b}>
-        <div class="k">${t.b} <span class="tag off">${t.n}장</span>${t.need ? html`<span class="tag need">분해 필요 ${t.need}</span>` : ""}</div>
-        <div class="v">${W(t.amt, 0)}</div><div class="s">첫 생산 금액 합계 · 합계 포함 ${t.inc}장만</div></div>`)}</div>`}
       <div class="chips">${["", ...brands].map((b) => html`<button key=${b || "all"} class=${"chip" + (brand === b ? " on" : "")} onClick=${() => setBrand(b)}>${b || "전체"}<span class="n">${b ? items.filter((i) => (i.c.brand || "브랜드 없음") === b).length : items.length}</span></button>`)}</div>
       <div class="find" style=${{ marginBottom: 8 }}>
         <input class="in" placeholder="품목·규격·제조사 찾기" value=${q} onInput=${(e) => setQ(e.target.value)} aria-label="찾기" />
         <select class="in" style=${{ width: "auto", height: 36, fontSize: 14 }} value=${sort} onChange=${(e) => setSort(e.target.value)} aria-label="정렬">
-          <option value="brand">브랜드·품목순</option><option value="amt">첫 생산 금액 큰 순</option><option value="val">유효기간 빠른 순</option><option value="recent">최근 바뀐 순</option></select>
+          <option value="brand">브랜드·품목순</option><option value="rate">마진율 낮은 순</option><option value="val">유효기간 빠른 순</option><option value="recent">최근 바뀐 순</option></select>
         ${flt && html`<button class="chip on" onClick=${() => setFlt("")}>${{ need: "분해 필요", val: "유효기간", diff: "차이 있음", chk: "확인 필요" }[flt]} ✕</button>`}
       </div>
       ${!shown.length ? html`<div class="empty">${items.length ? "조건에 맞는 카드가 없어요." : isM ? "아직 원가 분해 카드가 없어요. 위 [엑셀 올리기] · [기존 제품 카드 만들기] · [＋ 새 품목]으로 시작해요." : "아직 원가 분해 카드가 없어요."}</div>`
         : wide ? html`<${SumTable} items=${shown} open=${openCard} />` : html`<${SumList} items=${shown} open=${openCard} />`}
-      <p class="note">· 견적 유효기간: <span class="tag tmp">30일 이내</span> 노랑 · <span class="tag chk">지남</span> 빨강 · 근거 확인 = 확정 줄 ÷ 전체 줄 (출처가 비면 '임시', 부가세 V?면 '확인 필요')
-        <br />· 가격정책표 매입원가와 차이 = 완제품 기준 원가 − 지금 매입원가 (+ 분해가 비쌈 · − 분해가 쌈) · 매입원가를 바꾸려면 카드 안 [매입원가로 승인요청] → 가격정책표에서 승인
-        <br />· 세트(패키지) 제품은 카드를 따로 만들지 않아요 — 세트 매입원가는 가격정책표가 구성 단품 합으로 계산해요.</p>
+      <p class="note">· 완제품 원가 = 구성요소 개당 금액 합(부가세 별도) · 마진율·마진액 = 카드에 넣은 판매가·채널 수수료·물류비로 계산 (엑셀 '판매가' 시트 식을 거꾸로 푼 값)
+        <br />· 매입원가를 바꾸려면 카드의 [매입원가로 승인요청] → 가격정책표에서 승인 · 세트(패키지)는 카드를 따로 만들지 않아요(구성 단품 합).</p>
     <//>`}
     ${open && html`<${CardSheet} key=${open} id=${open} ctx=${ctx} onClose=${() => setOpen(null)} onSaved=${(id) => setOpen(id)} />`}
     ${sheet === "import" && html`<${ImportSheet} ctx=${ctx} onClose=${() => setSheet("")} />`}
     ${sheet === "seed" && html`<${SeedSheet} ctx=${ctx} onClose=${() => setSheet("")} />`}
-    ${sheet === "settings" && html`<${SettingsSheet} ctx=${ctx} onClose=${() => setSheet("")} />`}
     ${sheet === "trash" && html`<${TrashSheet} ctx=${ctx} onClose=${() => setSheet("")} />`}
     ${toast && html`<div class="toast" role="status">${toast}</div>`}
   </div>`;
@@ -780,25 +806,27 @@ function Main({ user, role }) {
 const diffCell = (i) => (!i.c.prodKey ? html`<span class="dim">연결 안 됨</span>` : i.p && i.p.type === "세트" ? html`<span class="dim">세트</span>` : !i.p ? html`<span class="dim">가격표에 없음</span>`
   : i.pt == null ? html`<span class="dim">매입원가 없음</span>` : Math.round(i.diff) === 0 ? html`<span class="tag has">같음</span>` : html`<span class=${i.diff > 0 ? "plus" : "minus"}>${i.diff > 0 ? "+" : "−"}${fmt(Math.abs(i.diff))}</span>`);
 const badgeTag = (b) => (b ? html`<span class=${"tag " + b}>${C.BADGE[b]}</span>` : "");
+const valTag = (v) => (v === "over" ? html`<span class="tag chk">견적 유효기간 지남</span>` : v === "soon" ? html`<span class="tag tmp">견적 30일 이내</span>` : "");
 const lastTxt = (h) => (h ? `${who(h.by)} ${whenTxt(h.at)} · ${h.what}${h.why ? ` (이유: ${h.why})` : ""}` : "—");
+const rateCls = (m) => (!m ? "dim" : m.rate < 0 ? "minusR" : "");
 function SumTable({ items, open }) {
-  return html`<div class="tblw"><table class="t" style=${{ minWidth: 1500 }}><thead><tr>
-    <th class="stk">품목 · 규격</th><th>브랜드</th><th>차수</th><th>완제품 제조사</th><th>완제품 범위</th><th class="num">완제품 기준 원가</th><th class="num">첫 생산 원가</th><th class="num">생산 수량</th><th class="num">첫 생산 금액</th><th>견적 유효기간</th><th class="num">근거 확인</th><th class="num">가격정책표 매입원가와 차이</th><th>최근 변경</th></tr></thead>
+  return html`<div class="tblw"><table class="t" style=${{ minWidth: 860 }}><thead><tr>
+    <th class="stk">품목 · 규격</th><th class="num">완제품 원가</th><th class="num">판매가</th><th>채널</th><th class="num">마진율</th><th class="num">마진액</th></tr></thead>
     <tbody>${items.map((i) => html`<tr key=${i.c.id} class="go" onClick=${() => open(i.c.id)}>
-      <td class="stk"><b>${i.c.item || "(품목 없음)"}</b> <span class="dim">${i.c.spec}</span> ${badgeTag(i.badge)}${i.c.include === false ? html`<span class="tag off" style=${{ marginLeft: 4 }}>합계 제외</span>` : ""}</td>
-      <td class="nw">${i.c.brand}</td><td class="nw">${i.c.round}</td><td class="nw">${i.mfg || "—"}</td><td style=${{ minWidth: 160, maxWidth: 260 }}>${i.c.scope || html`<span class="dim">—</span>`}</td>
-      <td class="num"><b>${fmt(i.x.unit)}</b></td><td class="num">${fmt(i.x.first)}</td><td class="num">${won(i.x.qty)}</td><td class="num">${won(i.x.firstAmt)}</td>
-      <td class=${"nw " + (i.val ? "v-" + i.val : "")}>${dTxt(i.c.validUntil)}${i.val === "over" ? " 지남" : ""}</td>
-      <td class="num">${i.x.n ? `${i.x.ok}/${i.x.n} (${Math.round(i.x.okRatio * 100)}%)` : "—"}</td>
-      <td class="num">${diffCell(i)}</td>
-      <td class="dim" style=${{ minWidth: 220, maxWidth: 340, fontSize: 12 }} title=${lastTxt(i.last)}><div class="clamp2">${lastTxt(i.last)}</div></td></tr>`)}</tbody></table></div>`;
+      <td class="stk"><div><b>${i.c.item || "(품목 없음)"}</b> <span class="dim">${i.c.spec}</span></div>
+        <div class="tline"><span class="dim">${i.c.brand} · ${i.c.round}${i.mfg ? " · " + i.mfg : ""}</span>${badgeTag(i.badge)}${valTag(i.val)}</div></td>
+      <td class="num"><b>${W(i.x.unit)}</b></td>
+      <td class="num">${i.m ? W(i.sale.price, 0) : html`<span class="dim">—</span>`}</td>
+      <td class="nw">${i.m ? i.sale.chName || html`<span class="dim">직접 입력</span>` : ""}</td>
+      <td class=${"num " + rateCls(i.m)}><b>${i.m ? pctTxt(i.m.rate) : "—"}</b></td>
+      <td class=${"num " + rateCls(i.m)}>${i.m ? W(i.m.amt, 0) : "—"}</td></tr>`)}</tbody></table></div>`;
 }
 function SumList({ items, open }) {
   return html`<div class="ml">${items.map((i) => html`<button key=${i.c.id} class="mr" onClick=${() => open(i.c.id)}>
     <div class="a"><b>${i.c.item || "(품목 없음)"} ${i.c.spec}</b>${badgeTag(i.badge)}</div>
-    <div class="c"><span>${i.c.brand} · ${i.c.round}</span><span>${i.mfg || "제조사 —"}</span>${i.c.include === false ? html`<span class="tag off">합계 제외</span>` : ""}</div>
-    <div class="b"><span>완제품 <b>${W(i.x.unit)}</b></span><span>첫 생산 <b>${W(i.x.first)}</b></span><span>${won(i.x.qty)}개 · <b>${W(i.x.firstAmt, 0)}</b></span></div>
-    <div class="c"><span class=${VAL_TXT[i.val] ? "v-" + i.val : ""} style=${{ borderRadius: 5, padding: VAL_TXT[i.val] ? "0 4px" : 0 }}>유효 ${dTxt(i.c.validUntil)}${VAL_TXT[i.val] ? " · " + VAL_TXT[i.val] : ""}</span><span>근거 ${i.x.n ? `${i.x.ok}/${i.x.n}` : "—"}</span><span>가격표와 ${diffCell(i)}</span></div>
+    <div class="c"><span>${i.c.brand} · ${i.c.round}</span>${i.mfg ? html`<span>${i.mfg}</span>` : ""}${valTag(i.val)}</div>
+    <div class="b"><span>완제품 원가 <b>${W(i.x.unit)}</b></span>${i.m ? html`<span>판매가 <b>${W(i.sale.price, 0)}</b>${i.sale.chName ? ` (${i.sale.chName})` : ""}</span>` : html`<span class="dim">판매가 —</span>`}</div>
+    ${i.m && html`<div class="b"><span>마진율 <b class=${rateCls(i.m)}>${pctTxt(i.m.rate)}</b></span><span>마진액 <b class=${rateCls(i.m)}>${W(i.m.amt, 0)}</b></span></div>`}
   </button>`)}</div>`;
 }
 
@@ -809,7 +837,9 @@ async function exportXlsx(ctx, items) {
     "완제품 기준 원가": r2(i.x.unit), "첫 생산 원가": r2(i.x.first), "생산 수량": i.x.qty, "첫 생산 금액": i.x.firstAmt == null ? "" : Math.round(i.x.firstAmt),
     "견적 유효기간": i.c.validUntil || "", "유효기간 상태": { over: "지남", soon: "30일 이내", ok: "" }[i.val] || "", "근거 확인 비율": i.x.okRatio == null ? "" : r2(i.x.okRatio * 100) + "%",
     "가격정책표 매입원가": i.pt == null ? "" : i.pt, "차이(분해−매입원가)": i.diff == null ? "" : r2(i.diff), "합계 포함": i.c.include === false ? "제외" : "포함",
-    "분해 상태": i.badge ? C.BADGE[i.badge] : "연결 안 됨", "최근 변경": lastTxt(i.last) }));
+    "분해 상태": i.badge ? C.BADGE[i.badge] : "연결 안 됨", "판매가(부가세 포함)": i.m ? i.sale.price : "", "채널": i.m ? i.sale.chName || "직접 입력" : "",
+    "수수료": i.m && i.sale.fee !== "" ? r2(i.sale.fee * 100) + "%" : "", "물류비(개당)": i.m ? i.sale.logi : "", "마진율": i.m ? r2(i.m.rate * 100) + "%" : "", "마진액": i.m ? Math.round(i.m.amt) : "",
+    "가격정책표 방식 마진율": i.m ? r2(i.m.ptRate * 100) + "%" : "", "최근 변경": lastTxt(i.last) }));
   const brands = [...new Set(items.map((i) => i.c.brand))];
   const bt = brands.map((b) => { const its = items.filter((i) => i.c.brand === b), inc = its.filter((i) => i.c.include !== false);
     return { "브랜드": b, "카드 수": its.length, "합계 포함 카드": inc.length, "첫 생산 금액 합계(합계 포함만)": Math.round(inc.reduce((a, i) => a + (i.x.firstAmt || 0), 0)) }; });
@@ -818,7 +848,7 @@ async function exportXlsx(ctx, items) {
       "공급처": seeNames ? ((nm.sup || {})[r.id] || r.supAlias || "") : r.supAlias || "", "제조 단가에 포함?": r.inMfg, "견적 단가": r.price, "부가세": r.vat, "단가(V-)": r2(m.unitV),
       "개당/1회": r.per, "개당 사용량·1회 횟수": r.usage, "구매·MOQ 수량": r.moq, "개당 금액": r2(m.per), "첫 생산 남는 비용": r2(m.left), "출처·견적일": r.src, "상태": m.st }); }); });
   const wb = X.utils.book_new(), add = (name, data, w) => { const ws = X.utils.json_to_sheet(data); if (data.length) ws["!autofilter"] = { ref: ws["!ref"] }; ws["!cols"] = w.map((x) => ({ wch: x })); X.utils.book_append_sheet(wb, ws, name); };
-  add("완제품 원가 요약", sum, [12, 6, 18, 10, 14, 26, 12, 12, 10, 14, 12, 10, 10, 14, 14, 8, 14, 50]);
+  add("완제품 원가 요약", sum, [12, 6, 18, 10, 14, 26, 12, 12, 10, 14, 12, 10, 10, 14, 14, 8, 14, 12, 12, 8, 10, 9, 10, 12, 50]);
   add("브랜드 합계", bt, [14, 8, 12, 26]);
   add("구성요소 전체", rows, [12, 6, 16, 10, 5, 10, 18, 18, 12, 8, 10, 6, 10, 7, 10, 10, 10, 12, 16, 9]);
   const name = `원가분해_요약_${ymd().replace(/-/g, "")}${seeNames ? "" : "_가칭"}.xlsx`;
@@ -886,20 +916,11 @@ function CardSheet({ id, ctx, onClose, onSaved }) {
     <div class="sh-top"><div class="sh-in">
       <div class="sh-t"><div class="tt">${title}</div>${isM && card && html`<button class="btn sm red" onClick=${del}>휴지통</button>`}<button class="x" onClick=${close}>닫기</button></div>
       <div class="sh-sub">${live.brand || "브랜드 —"} · ${live.round || "차수 —"} ${badgeTag(sumBadge)} ${ro ? html`<span class="tag off">보기 전용</span>` : ""}${card && card.updatedAt ? html`<span>· 마지막 ${who(card.updatedBy)} ${whenTxt(card.updatedAt)}</span>` : ""}</div>
-      <div class="tabs" role="tablist">${[["cost", "원가 분해"], ["sale", "판매가"], ["hist", `이력 ${card && card.history ? card.history.length : 0}`]].map(([k, l]) => html`<button key=${k} role="tab" class=${"tab" + (tab === k ? " on" : "")} onClick=${() => setTab(k)}>${l}</button>`)}</div>
+      <div class="tabs" role="tablist">${[["cost", "원가 계산"], ["hist", `이력 ${card && card.history ? card.history.length : 0}`]].map(([k, l]) => html`<button key=${k} role="tab" class=${"tab" + (tab === k ? " on" : "")} onClick=${() => setTab(k)}>${l}</button>`)}</div>
     </div></div>
     <div class="sh-body">
     ${tab === "cost" && html`<${React.Fragment}>
-      <div class="sec"><h3>원가 요약 <span class="sp"></span><span class="rt">부가세 별도(V-) · 개당</span></h3>
-        <div class="kv">
-          <div><div class="k">완제품 기준 원가</div><div class="v">${W(x.unit)}</div><div class="s">개당 금액 합계</div></div>
-          <div><div class="k">첫 생산 원가</div><div class="v">${W(x.first)}</div><div class="s">+ 남는 비용 ${W(x.leftSum, 0)} ÷ ${won(x.qty)}개</div></div>
-          <div><div class="k">첫 생산 금액</div><div class="v">${W(x.firstAmt, 0)}</div><div class="s">첫 생산 원가 × 생산 수량</div></div>
-          <div><div class="k">근거 확인 비율</div><div class="v">${x.n ? Math.round(x.okRatio * 100) + "%" : "—"}</div><div class="s">확정 ${x.ok}줄 / 전체 ${x.n}줄</div></div>
-        </div>
-        <div class="subt">${Object.entries(x.byKind).map(([k, v]) => html`<span key=${k}>${k} <b>${fmt(v)}</b></span>`)}</div>
-        ${live.prodKey && html`<${CostLink} ctx=${ctx} card=${card} live=${live} x=${x} prod=${prod} pt=${pt} dirty=${dirty} />`}
-      </div>
+      <${ResultPanel} ctx=${ctx} card=${card} d=${d} setD=${setD} live=${live} x=${x} prod=${prod} pt=${pt} ro=${ro} dirty=${dirty} />
       <div class="sec"><h3>기본 정보</h3>
         <div class="fg">
           <div class="fld"><label>브랜드</label>${inp(d.brand, (v) => set("brand", v), { list: "pccBrands", ph: "예: 바라스데이", al: "브랜드" })}</div>
@@ -974,9 +995,17 @@ function CardSheet({ id, ctx, onClose, onSaved }) {
         <p class="note">· 1회 비용(동판·목형 등)은 '1회'를 고르고 횟수를 넣어요 → 생산 수량으로 나눠요 · '제조 단가에 포함'이면 개당 금액 0 (첫 생산 남는 비용은 계산)
           <br />· 출처를 비우면 '임시', 부가세가 V?면 '확인 필요'로 자동 표시돼요.</p>
       </div>
-      <${QtyCompare} live=${live} />
+      <details class="sec more"><summary>더 보기 · 첫 생산 원가 · 근거 확인 · 수량 바꿔 보기</summary>
+        <div class="kv" style=${{ marginTop: 10 }}>
+          <div><div class="k">첫 생산 원가</div><div class="v">${W(x.first)}</div><div class="s">+ 남는 비용 ${W(x.leftSum, 0)} ÷ ${won(x.qty)}개</div></div>
+          <div><div class="k">첫 생산 금액</div><div class="v">${W(x.firstAmt, 0)}</div><div class="s">첫 생산 원가 × 생산 수량</div></div>
+          <div><div class="k">생산 수량</div><div class="v">${won(x.qty)}개</div><div class="s">기본 정보에서 고쳐요</div></div>
+          <div><div class="k">근거 확인 비율</div><div class="v">${x.n ? Math.round(x.okRatio * 100) + "%" : "—"}</div><div class="s">확정 ${x.ok}줄 / 전체 ${x.n}줄</div></div>
+        </div>
+        <div class="subt">${Object.entries(x.byKind).map(([k, v]) => html`<span key=${k}>${k} <b>${fmt(v)}</b></span>`)}</div>
+        <${QtyCompare} live=${live} />
+      </details>
     <//>`}
-    ${tab === "sale" && html`<${SalePanel} ctx=${ctx} d=${d} setD=${setD} live=${live} x=${x} ro=${ro} />`}
     ${tab === "hist" && html`<div class="sec"><h3>변경 이력 <span class="rt">누가 · 언제 · 무엇을 · 이유 (최근 100건)</span></h3>
       ${card && card.history && card.history.length ? html`<ul class="hist">${card.history.map((h, k) => html`<li key=${k}><b>${who(h.by)}</b> <span class="w">${whenTxt(h.at)}</span><div>${h.what}</div>${h.why ? html`<div class="w">이유: ${h.why}</div>` : ""}</li>`)}</ul>` : html`<div class="empty">아직 이력이 없어요.</div>`}</div>`}
     </div>
@@ -994,108 +1023,75 @@ function QtyCompare({ live }) {
   const [qs, setQs] = useState(["5000", "10000", ""]);
   const cur = C.num(live.qty), list = [qs[0], qs[1], qs[2] === "" ? str(cur ?? "") : qs[2]];
   const res = C.qtyCompare(live, list.map((v) => C.num(v) ?? 0));
-  return html`<div class="sec"><h3>수량 바꿔 보기 <span class="rt">저장 안 해요 · 완제품 원가가 수량에 따라 어떻게 바뀌나</span></h3>
+  return html`<div style=${{ marginTop: 14 }}><h3 style=${{ fontSize: 14, margin: "0 0 8px" }}>수량 바꿔 보기 <span class="rt" style=${{ fontSize: 12, color: "var(--mute)", fontWeight: 600 }}>저장 안 해요</span></h3>
     <div class="qc">${res.map((r, k) => html`<div key=${k}>
       <label class="note" style=${{ margin: 0, display: "block" }}>${k === 2 ? "③ 지금 수량" : k === 0 ? "① 수량" : "② 수량"}</label>
       <input class="in num" inputmode="decimal" value=${list[k]} onInput=${(e) => setQs((o) => { const n = o.slice(); n[k] = e.target.value; return n; })} aria-label=${"수량 " + (k + 1)} />
       <div class="v">${W(r.unit)}</div><div class="s">완제품 기준 원가 · 첫 생산 ${W(r.first)} · 금액 ${W(r.firstAmt, 0)}</div></div>`)}</div></div>`;
 }
-// 가격정책표 매입원가와 비교 + [매입원가로 승인요청] (자동 덮어쓰기 없음 → 가격정책표 개정안 → 상급자 승인)
-function CostLink({ ctx, card, live, x, prod, pt, dirty }) {
+// ── 결과 두 가지 (2026-11-23 송희님): ① 최종 완제품 원가 ② 판매가를 넣으면 마진율·마진액 ──
+function ResultPanel({ ctx, card, d, setD, live, x, prod, pt, ro, dirty }) {
+  const chans = (ctx.S.ref && ctx.S.ref.channels) || [];
+  const s = d.sale || {}, setS = (p) => setD((o) => ({ ...o, sale: { ...o.sale, ...p } }));
+  const pickCh = (u) => { const c = chans.find((y) => y.uid === u); setS(c ? { ch: u, chName: c.name, feePct: String(+c.fee || 0) } : { ch: "", chName: "" }); };
+  const m = C.marginCalc({ price: s.price, fee: fromPct(s.feePct), logi: s.logi, cost: x.unit });
+  const chObj = chans.find((c) => c.uid === s.ch), chPrice = prod && s.ch && prod.pr ? prod.pr[s.ch] : null;
+  const feeTag = !chObj ? "" : String(+chObj.fee || 0) === String(C.num(s.feePct) ?? "") ? html`<span class="tag ok">자동</span>` : html`<span class="tag tmp">고침 (가격정책표 ${+chObj.fee || 0}%)</span>`;
+  const neg = m && m.rate < 0;
+  return html`<div class="sec res">
+    <div class="rg">
+      <div class="r1"><div class="k">① 최종 완제품 원가</div><div class="big">${W(x.unit)}</div><div class="s">개당 · 부가세 별도 · 구성요소 ${x.n}줄 합</div>
+        <div style=${{ marginTop: 10 }}><${ReqButton} ctx=${ctx} card=${card} live=${live} x=${x} prod=${prod} pt=${pt} dirty=${dirty} /></div></div>
+      <div class="r2"><div class="k">② 판매가를 넣으면 마진</div>
+        <div class="mi">
+          <div class="fld"><label>판매가 (원 · 부가세 포함)</label><input class="in num" inputmode="decimal" value=${s.price || ""} placeholder="예: 12900" onInput=${(e) => setS({ price: e.target.value })} aria-label="판매가" /></div>
+          <div class="fld"><label>채널</label><select class="in" value=${s.ch || ""} onChange=${(e) => pickCh(e.target.value)} aria-label="채널">
+            <option value="">직접 입력</option>${chans.map((c) => html`<option key=${c.uid} value=${c.uid}>${c.name}${c.code ? ` (${c.code})` : ""} · ${+c.fee || 0}%</option>`)}</select></div>
+          <div class="fld"><label>수수료 % ${feeTag}</label><input class="in num" inputmode="decimal" value=${s.feePct || ""} placeholder="예: 10.8" onInput=${(e) => setS({ feePct: e.target.value })} aria-label="수수료" /></div>
+          <div class="fld"><label>물류비 (개당 · 원)</label><input class="in num" inputmode="decimal" value=${s.logi || ""} placeholder="예: 3600" onInput=${(e) => setS({ logi: e.target.value })} aria-label="물류비" /></div>
+        </div>
+        ${chPrice != null && String(C.num(s.price)) !== String(chPrice) && html`<div class="note" style=${{ marginTop: 6 }}>가격정책표 ${s.chName || "이 채널"} 판매가 <b>${W(chPrice, 0)}</b> <button class="lnk" onClick=${() => setS({ price: String(chPrice) })}>넣기</button></div>`}
+        <div class="mo">
+          <div><div class="k">마진율</div><div class=${"big" + (neg ? " red" : "")}>${m ? pctTxt(m.rate) : "—"}</div></div>
+          <div><div class="k">마진액 (개당)</div><div class=${"big" + (neg ? " red" : "")}>${m ? W(m.amt, 0) : "—"}</div></div>
+        </div>
+        <div class="note">${m ? html`가격정책표 방식 마진율 = (판매가−원가)÷판매가 = <b>${pctTxt(m.ptRate)}</b> (${W(m.ptAmt, 0)})` : "판매가를 넣으면 마진율·마진액이 나와요"}</div>
+        <div class="note" style=${{ fontSize: 11 }}>마진율 = 1 − 1.1 × ( (원가+물류비) ÷ 판매가 + 수수료 ) — 엑셀 '판매가' 시트 식을 판매가 기준으로 거꾸로 푼 값(부가세 뺀 판매가 기준) · 마진액 = 판매가÷1.1 − 판매가×수수료 − 원가 − 물류비${ro ? " · 보기 전용: 계산만 되고 저장은 안 돼요" : " · [저장]하면 요약에도 보여요"}</div>
+      </div>
+    </div></div>`;
+}
+// 매입원가 승인요청 — 버튼 하나 (가격정책표 개정안에 담고, 마스터가 가격정책표에서 승인해야 바뀜 · 자동 덮어쓰기 없음)
+function ReqButton({ ctx, card, live, x, prod, pt, dirty }) {
   const { isM, S, user, setToast } = ctx, [busy, setBusy] = useState(false);
-  if (!prod) return html`<div class="warn" style=${{ marginTop: 10 }}>연결한 제품이 지금 가격정책표에 없어요 (삭제·이름 바뀜?). 기본 정보에서 다시 연결해 주세요.</div>`;
-  if (prod.type === "세트") return html`<div class="note">세트 제품은 매입원가가 구성 단품 합이라 요청하지 않아요.</div>`;
+  if (!live.prodKey) return html`<div class="note" style=${{ margin: 0 }}>가격정책표 제품과 연결하면(아래 기본 정보) 매입원가 승인요청 버튼이 생겨요</div>`;
+  if (!prod) return html`<div class="note" style=${{ margin: 0, color: "var(--amber)" }}>연결한 제품이 지금 가격정책표에 없어요</div>`;
+  if (prod.type === "세트") return "";
   const unit = Math.round(x.unit), same = pt != null && unit === Math.round(pt);
-  const dr = S.draft || null, pend = dr && dr.cost && dr.cost[live.prodKey] != null ? { v: dr.cost[live.prodKey], st: (dr.meta && dr.meta.status) || "작성중", src: (dr.costSrc || {})[live.prodKey] || {} } : null;
+  if (same) return html`<div class="note" style=${{ margin: 0, color: "var(--green)" }}>✓ 가격정책표 매입원가(${W(pt, 0)})와 같아요</div>`;
+  if (!isM) return html`<div class="note" style=${{ margin: 0 }}>가격정책표 매입원가 ${W(pt, 0)}</div>`;
+  const dr = S.draft, pend = dr && dr.cost && dr.cost[live.prodKey] != null ? Math.round(+dr.cost[live.prodKey]) : null;
+  if (pend === unit) return html`<button class="btn sm" disabled>승인 대기 중 · ${won(unit)}원 (가격정책표 개정안)</button>`;
   const req = async () => {
-    if (!card) return;
-    const why = prompt(`가격정책표 매입원가 ${pt == null ? "(없음)" : won(pt) + "원"} → ${W(unit, 0)} 으로 승인요청할까요?\n\n· 가격정책표 개정안에 담기고, 마스터가 승인해야 바뀌어요.\n· 바꾸는 이유(선택):`, "");
-    if (why === null) return;
+    if (!card || !confirm(`가격정책표 매입원가 ${pt == null ? "(없음)" : won(pt) + "원"} → ${won(unit)}원\n승인요청할까요?\n\n· 가격정책표 개정안에 담기고, 마스터가 가격정책표에서 승인해야 바뀌어요.`)) return;
     setBusy(true);
     try {
       const at = new Date().toISOString(), by = user.email || "", k = live.prodKey;
-      const line = `원가 분해: ${live.item} ${live.spec} 매입원가 ${pt == null ? "없음" : won(pt)} → ${won(unit)}${why ? " (" + why.trim().slice(0, 80) + ")" : ""}`;
+      const line = `원가 계산기: ${live.item} ${live.spec} 매입원가 ${pt == null ? "없음" : won(pt)} → ${won(unit)}`;
       let mode = "";
       await db.runTransaction(async (tx) => {
-        const s = await tx.get(draftDoc()), cur = s.exists ? s.data() : {}, meta = cur.meta || { status: "", by: "", at: "", note: "" };
+        const sn = await tx.get(draftDoc()), cur = sn.exists ? sn.data() : {}, meta = cur.meta || { status: "", by: "", at: "", note: "" };
         let nm;
         if (meta.status === "대기") { nm = { ...meta, note: [meta.note, line].filter(Boolean).join(" / ").slice(0, 500) }; mode = "대기"; }
-        else if (meta.status === "작성중") { nm = meta; mode = "작성중"; }   // 다른 사람이 쓰는 중인 개정안 → 같이 담기만 (승인요청은 가격정책표 배너에서)
+        else if (meta.status === "작성중") { nm = meta; mode = "작성중"; }   // 작성 중인 개정안 → 같이 담기만 (승인요청은 가격정책표 위 배너에서)
         else { nm = { status: "대기", by, at, note: line }; mode = "새로"; }
-        tx.set(draftDoc(), { cost: { [k]: unit }, costSrc: { [k]: { card: card.id, by, at, from: pt == null ? null : pt, why: String(why || "").trim().slice(0, 200) } }, meta: nm, updatedAt: at }, { merge: true });
+        tx.set(draftDoc(), { cost: { [k]: unit }, costSrc: { [k]: { card: card.id, by, at, from: pt == null ? null : pt, why: "" } }, meta: nm, updatedAt: at }, { merge: true });
       });
       console.log(`[pricing-draft] 매입원가 요청 ${k} → ${unit} (${mode})`);
       setToast(mode === "작성중" ? "가격정책표에 작성 중인 개정안에 같이 담았어요 · 가격정책표 위 [상급자 승인요청]을 눌러야 승인 단계로 가요" : "가격정책표 개정안에 담았어요 · 가격정책표에서 [승인·적용]하면 매입원가가 바뀌어요");
     } catch (e) { console.error("[pricing-draft] 매입원가 요청 실패", e); setToast("요청 못 했어요: " + (e.code || e.message)); }
     setBusy(false);
   };
-  return html`<div class=${same ? "ok" : "warn"} style=${{ marginTop: 10, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-    <span>가격정책표 매입원가 <b>${pt == null ? "없음" : won(pt) + "원"}</b> · 분해 <b>${W(unit, 0)}</b> ${same ? "· 같아요 ✓" : pt == null ? "" : `· 차이 ${unit - pt > 0 ? "+" : "−"}${W(Math.abs(unit - pt), 0)}`}</span>
-    ${pend && html`<span class="tag tmp">개정안 ${pend.st === "대기" ? "승인 대기" : "작성 중"} ${W(pend.v, 0)} · ${who(pend.src.by)} ${whenTxt(pend.src.at)}</span>`}
-    ${isM && !same && !(pend && Math.round(+pend.v) === unit) && html`<button class="btn sm solid" disabled=${busy || dirty || !card || !(unit > 0)} title=${dirty ? "먼저 저장해 주세요" : ""} onClick=${req}>${busy ? "요청 중…" : pend ? "요청 다시 (값 바꾸기)" : "매입원가로 승인요청"}</button>`}
-    ${isM && !same && dirty && html`<span class="note" style=${{ margin: 0 }}>먼저 저장해 주세요</span>`}
-  </div>`;
-}
-
-// ── 판매가 3단계 (엑셀 '판매가' 시트 규칙) ──
-const SET_FEES = (S) => { const f = (S.settings && S.settings.fees) || {}; return C.SALE_CH.map((c) => ({ ...c, fee: (f[c.k] || {}).fee, pg: (f[c.k] || {}).pg, tmp: !(f[c.k] && f[c.k].tmp === false) })); };
-const SET_LOGI = (S) => { const l = (S.settings && S.settings.logi) || {}; return C.LOGI.map(([k, lb]) => ({ k, lb, v: (l[k] || {}).v, tmp: !(l[k] && l[k].tmp === false) })); };
-function SalePanel({ ctx, d, setD, live, x, ro }) {
-  const { S } = ctx, fees = SET_FEES(S), logiSet = SET_LOGI(S), discSet = (S.settings && S.settings.disc) || {};
-  const s = d.sale || {}, setS = (k, v) => setD((o) => ({ ...o, sale: { ...o.sale, [k]: v } })), setL = (k, v) => setD((o) => ({ ...o, sale: { ...o.sale, logi: { ...(o.sale.logi || {}), [k]: v } } }));
-  const lv = {}, ltmp = {};
-  logiSet.forEach((l) => { const own = C.num((s.logi || {})[l.k]); lv[l.k] = own != null ? own : l.v; ltmp[l.k] = own == null && (l.tmp || l.v == null || l.v === ""); });
-  const lg = C.logiCalc({ qty: live.qty, moveTotal: s.moveTotal, moveOurs: s.moveOurs !== false, ...lv });
-  const discOwn = C.num(s.discPct), disc = discOwn != null ? discOwn / 100 : C.num(discSet.v) ?? 0, discTmp = discOwn == null && !(discSet.tmp === false && discSet.v != null && discSet.v !== "");
-  const anyTmp = discTmp || Object.values(ltmp).some(Boolean) || fees.some((f) => f.tmp || f.fee == null || f.fee === "");
-  return html`<${React.Fragment}>
-    <div class="sec"><h3>① 물류비 예상 (개당) <span class="sp"></span><span class="rt">빈칸 = 판매가 설정 값</span></h3>
-      <div class="fg">
-        <div class="fld"><label>공장→창고 이동비 총액 (원)</label><input class=${"in num" + (ro ? " ro" : "")} disabled=${ro} inputmode="decimal" value=${s.moveTotal || ""} onInput=${(e) => setS("moveTotal", e.target.value)} aria-label="이동비 총액" /></div>
-        <div class="fld"><label>이동비를 누가 내나</label><select class=${"in" + (ro ? " ro" : "")} disabled=${ro} value=${s.moveOurs === false ? "no" : "yes"} onChange=${(e) => setS("moveOurs", e.target.value === "yes")} aria-label="이동비 부담"><option value="yes">넷폼 부담 (총액 ÷ 생산 수량)</option><option value="no">제조사 부담 (0)</option></select></div>
-        <div class="fld"><label>공장→창고 (개당)</label><div class="calc">${W(lg.parts.move)}</div></div>
-        <div class="fld"><label>할인율 % (빈칸 = 설정 ${pctTxt(C.num(discSet.v))})</label><input class=${"in num" + (ro ? " ro" : "")} disabled=${ro} inputmode="decimal" value=${s.discPct || ""} placeholder=${ro ? "" : "예: 5"} onInput=${(e) => setS("discPct", e.target.value)} aria-label="할인율" /></div>
-        ${logiSet.map((l) => html`<div class="fld" key=${l.k}><label>${l.lb} ${ltmp[l.k] ? html`<span class="tag tmp">임시</span>` : ""}</label>
-          <input class=${"in num" + (ro ? " ro" : "")} disabled=${ro} inputmode="decimal" value=${(s.logi || {})[l.k] || ""} placeholder=${l.v == null || l.v === "" ? "설정 없음" : `설정 ${fmt(l.v)}`} onInput=${(e) => setL(l.k, e.target.value)} aria-label=${l.lb} /></div>`)}
-      </div>
-      <div class="subt"><span>물류비 예상 합계 <b>${W(lg.total)}</b> / 개</span><span>완제품 기준 원가 <b>${W(x.unit)}</b></span><span>원가 + 물류비 <b>${W(x.unit + lg.total)}</b></span></div>
-    </div>
-    <div class="sec"><h3>② 판매가 (부가세 포함 · 백원 올림) ${anyTmp ? html`<span class="tag tmp">임시 값 포함</span>` : ""}</h3>
-      <div class="tblw"><table class="t sale" style=${{ minWidth: 520 }}><thead><tr><th>채널</th><th class="num">채널 수수료</th><th class="num">카드·PG</th>${C.SALE_MARGINS.map((m) => html`<th key=${m} class="num">목표 마진 ${Math.round(m * 100)}%</th>`)}</tr></thead>
-        <tbody>${fees.map((f) => html`<tr key=${f.k}><td class="nw"><b>${f.name}</b> ${f.tmp || f.fee == null || f.fee === "" ? html`<span class="tag tmp">임시</span>` : ""}</td><td class="num">${pctTxt(C.num(f.fee))}</td><td class="num">${pctTxt(C.num(f.pg))}</td>
-          ${C.SALE_MARGINS.map((m) => { const r = C.salePrice({ cost: x.unit, logi: lg.total, disc, margin: m, fee: f.fee, pg: f.pg }); return r.over ? html`<td key=${m} class="over">마진 과다</td>` : html`<td key=${m} class="num"><b>${W(r.price, 0)}</b></td>`; })}</tr>`)}</tbody></table></div>
-      <p class="note">· 판매가 = 백원 올림[ (완제품 원가 + 물류비) ÷ ( ((1−할인) − 목표 마진) ÷ 1.1 − (1−할인) × (채널 수수료 + 카드·PG 수수료) ) ] · 아래 값이 0 이하면 '마진 과다'
-        <br />· 할인 ${pctTxt(disc)}${discTmp ? " (임시)" : ""} · 수수료·물류 단가는 [⚙ 판매가 설정]에서 고쳐요 (확정 안 된 값은 '임시') · 이 표는 참고용이에요 — 가격정책표 판매가는 바뀌지 않아요.</p>
-    </div>
-  <//>`;
-}
-function SettingsSheet({ ctx, onClose }) {
-  const { S, isM, user, setToast } = ctx; useBackClose(true, onClose);
-  const init = () => { const f = SET_FEES(S), l = SET_LOGI(S), dv = (S.settings && S.settings.disc) || {};
-    return { fees: Object.fromEntries(f.map((x) => [x.k, { fee: pctStr(x.fee), pg: pctStr(x.pg), tmp: x.tmp }])), logi: Object.fromEntries(l.map((x) => [x.k, { v: str(x.v), tmp: x.tmp }])), disc: { v: pctStr(dv.v), tmp: !(dv.tmp === false) } }; };
-  const [v, setV] = useState(init), [busy, setBusy] = useState(false), ro = !isM;
-  const save = async () => { setBusy(true);
-    try { const N = (s) => { const n = C.num(s); return n == null ? "" : n; };
-      await refDoc("settings").set({ fees: Object.fromEntries(Object.entries(v.fees).map(([k, o]) => [k, { fee: fromPct(o.fee), pg: fromPct(o.pg), tmp: !!o.tmp }])),
-        logi: Object.fromEntries(Object.entries(v.logi).map(([k, o]) => [k, { v: N(o.v), tmp: !!o.tmp }])), disc: { v: fromPct(v.disc.v), tmp: !!v.disc.tmp }, updatedAt: new Date().toISOString(), updatedBy: user.email || "" });
-      console.log("[cost-ref/settings] 저장"); setToast("판매가 설정을 저장했어요"); onClose(); }
-    catch (e) { console.error("[cost-ref/settings] 저장 실패", e); setToast("저장 못 했어요: " + (e.code || e.message)); }
-    setBusy(false); };
-  const tmpBox = (on, set) => html`<label class="tg"><input type="checkbox" checked=${!!on} disabled=${ro} onChange=${(e) => set(e.target.checked)} /> 임시</label>`;
-  const box = (val, set, al) => html`<input class=${"in num" + (ro ? " ro" : "")} disabled=${ro} inputmode="decimal" value=${val} onInput=${(e) => set(e.target.value)} aria-label=${al} />`;
-  return html`<div class="sheet" role="dialog" aria-label="판매가 설정"><div class="sh-top"><div class="sh-in"><div class="sh-t"><div class="tt">⚙ 판매가 설정</div><button class="x" onClick=${onClose}>닫기</button></div>
-    <div class="sh-sub">모든 품목 카드의 '판매가' 칸이 이 값을 써요 · ${S.settings && S.settings.updatedAt ? `마지막 ${who(S.settings.updatedBy)} ${whenTxt(S.settings.updatedAt)}` : "아직 저장 안 됨"}${ro ? " · 보기 전용" : ""}</div></div></div>
-    <div class="sh-body">
-      <div class="sec"><h3>채널 수수료 (%)</h3><div class="tblw" style=${{ border: 0 }}><table class="t" style=${{ minWidth: 420 }}><thead><tr><th>채널</th><th>채널 수수료 %</th><th>카드·PG 수수료 %</th><th>확정 여부</th></tr></thead><tbody>
-        ${C.SALE_CH.map((c) => { const o = v.fees[c.k], up = (p) => setV((s) => ({ ...s, fees: { ...s.fees, [c.k]: { ...s.fees[c.k], ...p } } }));
-          return html`<tr key=${c.k}><td><b>${c.name}</b></td><td>${box(o.fee, (x) => up({ fee: x }), c.name + " 수수료")}</td><td>${box(o.pg, (x) => up({ pg: x }), c.name + " PG")}</td><td>${tmpBox(o.tmp, (x) => up({ tmp: x }))}</td></tr>`; })}</tbody></table></div></div>
-      <div class="sec"><h3>물류 단가 (개당 · 원)</h3><div class="fg">
-        ${C.LOGI.map(([k, lb]) => { const o = v.logi[k], up = (p) => setV((s) => ({ ...s, logi: { ...s.logi, [k]: { ...s.logi[k], ...p } } }));
-          return html`<div class="fld" key=${k}><label>${lb}</label>${box(o.v, (x) => up({ v: x }), lb)}<div style=${{ marginTop: 4 }}>${tmpBox(o.tmp, (x) => up({ tmp: x }))}</div></div>`; })}
-        <div class="fld"><label>기본 할인율 %</label>${box(v.disc.v, (x) => setV((s) => ({ ...s, disc: { ...s.disc, v: x } })), "할인율")}<div style=${{ marginTop: 4 }}>${tmpBox(v.disc.tmp, (x) => setV((s) => ({ ...s, disc: { ...s.disc, tmp: x } })))}</div></div>
-      </div><p class="note">· 공장→창고 이동비는 품목마다 달라서 각 카드의 '판매가' 칸에서 넣어요. · '임시'를 끄면 확정 값으로 보여요.</p></div>
-      ${isM && html`<div style=${{ display: "flex", gap: 8 }}><button class="btn solid" disabled=${busy} onClick=${save}>${busy ? "저장 중…" : "저장"}</button><button class="btn" onClick=${onClose}>취소</button></div>`}
-    </div></div>`;
+  return html`<button class="btn solid" disabled=${busy || dirty || !card || !(unit > 0)} title=${dirty ? "먼저 저장해 주세요" : ""} onClick=${req}>${busy ? "요청 중…" : `매입원가로 승인요청 (${pt == null ? "없음" : won(pt)} → ${won(unit)}원)`}</button>${dirty ? html`<div class="note" style=${{ margin: "4px 0 0" }}>먼저 아래 [저장]</div>` : ""}`;
 }
 
 // ── 기존 제품 → 카드 자동 생성 (6번) ──

@@ -38,5 +38,17 @@ console.log(`  물류비(개당) 엑셀 ${fmt(g(12, 2))} · 화면 ${fmt(logi.to
 });
 const over = C.salePrice({ cost: g(1, 2), logi: logi.total, disc: g(11, 2), margin: 0.95, fee: g(15, 2), pg: g(15, 3) });
 console.log(`  목표 마진 95%: 엑셀 ${g(19, 2)} / 화면 ${over.over ? "마진 과다" : over.price} ${g(19, 2) === "마진 과다" && over.over ? "✓" : "✗"}`);
+// 원가 계산기 ② 판매가 → 마진율 (판매가 식을 거꾸로 푼 값): 백원 올리기 전 판매가를 넣으면 목표 마진이 그대로 나와야 함
+console.log("■ 판매가 → 마진율 (계산기 ②가 판매가 식을 거꾸로 푼 값)");
+[15, 16, 17].forEach((r) => {
+  const cells = [4, 5, 6].map((c) => {
+    const o = { cost: g(1, 2), logi: logi.total, disc: g(11, 2), fee: g(r, 2), pg: g(r, 3) }, tgt = g(14, c), sp = C.salePrice({ ...o, margin: tgt });
+    if (sp.over) return `${Math.round(tgt * 100)}% 마진 과다`;
+    const back = C.marginCalc({ cost: o.cost, logi: o.logi, disc: o.disc, fee: o.fee + o.pg, price: sp.raw }), atXl = C.marginCalc({ cost: o.cost, logi: o.logi, disc: o.disc, fee: o.fee + o.pg, price: g(r, c) });
+    const same = Math.abs(back.rate - tgt) < 1e-9, ok = atXl.rate >= tgt - 1e-9; if (!same || !ok) fail++;
+    return `목표 ${Math.round(tgt * 100)}% → 되돌림 ${(back.rate * 100).toFixed(4)}% ${same ? "✓" : "✗"} · 엑셀 판매가 ${fmt(g(r, c))}원이면 ${(atXl.rate * 100).toFixed(2)}% (마진액 ${fmt(atXl.amt)}원)`;
+  });
+  console.log(`  ${String(g(r, 1)).padEnd(7)} ${cells.join("\n          ")}`);
+});
 console.log(fail ? `\n✗ 다른 칸 ${fail}개` : "\n✓ 모두 같음");
 process.exit(fail ? 1 : 0);

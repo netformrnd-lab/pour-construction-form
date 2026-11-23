@@ -153,6 +153,11 @@ tr.catrow .gridadd:hover,tr.catrow .catedit:hover{background:rgba(255,255,255,.3
 .overbadge{display:inline-block;margin-left:5px;font-size:9.5px;font-weight:700;color:#fff;background:var(--red);border-radius:3px;padding:0 4px;vertical-align:middle}
 /* No 칸: 번호를 눌러 순서 바꾸기 — 드래그가 어려운 긴 표에서 쓰는 방법 */
 .nono{cursor:pointer;border-bottom:1px dotted #b3bdc4;padding:0 2px;border-radius:2px}
+.pschk,.pschk-all{width:14px;height:14px;margin:0 4px 0 0;vertical-align:-2px;accent-color:var(--xl-green);cursor:pointer}
+.fld .ps-opts{display:flex;gap:6px 16px;flex-wrap:wrap;font-size:12.5px}
+.fld .ps-opts label{display:flex!important;gap:6px;align-items:center;font-weight:600;margin:0;color:var(--ink)}
+.fld .ps-opts input{width:auto!important;height:auto!important;min-height:0!important;margin:0!important;padding:0!important;flex:0 0 auto;accent-color:var(--xl-green)}
+.fld .ps-opts em{font-style:normal;color:var(--ink-faint);font-weight:400}
 .nono:hover{color:var(--xl-green-dark);background:#EAF7EF;border-bottom-color:var(--xl-green)}
 .noedit{width:46px;padding:2px 4px;font-size:12px;text-align:right;border:1px solid var(--xl-green);border-radius:4px}
 .noedit::-webkit-outer-spin-button,.noedit::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
@@ -744,6 +749,8 @@ body{flex-direction:row;background:var(--ui-bg)}
 #sideNav .sn-ic{font-size:17px;width:22px;text-align:center}
 #sideNav .sn-item{display:block;width:100%;text-align:left;border:0;background:transparent;color:rgba(255,255,255,.82);padding:8px 12px 8px 44px;border-radius:9px;font-size:13px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #sideNav .sn-item:hover{background:rgba(255,255,255,.14);color:#fff}
+#sideNav .sn-tg{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:rgba(255,255,255,.7);margin-top:6px;border-top:1px dashed rgba(255,255,255,.18);border-radius:0 0 9px 9px;padding-top:9px}
+#sideNav .sn-tg input{width:15px;height:15px;margin:0;accent-color:#fff;flex:0 0 auto}
 #sideNav .sn-item.on{background:#fff;color:#0B5C30;font-weight:800;box-shadow:0 4px 12px rgba(0,0,0,.12)}
 body.sn-fold #sideNav{width:64px;flex-basis:64px}
 body.sn-fold #sideNav .sn-logo,body.sn-fold #sideNav .sn-t,body.sn-fold #sideNav .sn-item{display:none}
@@ -1075,7 +1082,7 @@ body.fab-hide :is(#daiFab,#calcFab){display:none!important}
   #sh-price .toolrow>.ttl{display:none!important}
   #pzFilt{display:inline-flex;align-items:center;gap:4px;flex:0 0 auto;min-height:40px;max-width:52%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
   #pzFilt b{font-weight:800;color:var(--xl-green-dark);overflow:hidden;text-overflow:ellipsis}
-  #sh-price .toolrow:not(.flt-open)>:is(#catSel,#brandSeg,#statusSeg,#viewSeg,#btnAddProd,#btnDeal,#trTools,#btnPriceInfo){display:none!important}
+  #sh-price .toolrow:not(.flt-open)>:is(#catSel,#brandSeg,#statusSeg,#viewSeg,#btnAddProd,#btnDeal,#btnPsXl,#trTools,#btnPriceInfo){display:none!important}
   #sh-price .toolrow .findbox{flex:1 1 0!important;min-width:0}
   #sh-price .toolrow.flt-open #pzFilt{background:#E8F5EE;border-color:var(--xl-green)}
   /* 행 정보: 아래에서 올라오는 시트 */
@@ -1572,7 +1579,7 @@ body.dai-open #daiFab,body.dai-open #calcFab{display:none!important}
   #dealPanel .qc-f input,#dealPanel .qc-f select,#dealPanel .dl-q input,#rowInfo .ri-add input{font-size:16px}
   #rowInfo .ri-add{margin-left:0;width:100%}
 }
-body:not(.cost-ok) :is(#calcFab,#calcMenu,#calcPanel,#promoCalc,#costCalc,#dealPanel,#btnDeal){display:none!important}
+body:not(.cost-ok) :is(#calcFab,#calcMenu,#calcPanel,#promoCalc,#costCalc,#dealPanel,#btnDeal,#btnPsXl){display:none!important}
 body:not(.cost-ok) #sh-expiry :is(#exFileBtn,#exPasteBtn,#exPastePanel,.toolrow .hint){display:none!important}   /* 유통기한: 일반 팀원은 보기만 */   /* 계산기: 부마스터·마스터만 (팀원 보기에서도 숨김) */
 .findbox{display:inline-flex;align-items:center;gap:4px;position:relative}
 #findNav{display:inline-flex;align-items:center;gap:2px;font-size:12px;color:var(--ink-soft);font-weight:700}
@@ -2084,6 +2091,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
       <button class="tbtn primary" id="btnSave">저장</button>
       <button class="tbtn" id="btnUndo" style="display:none" title="저장하지 않은 변경을 버리고 마지막 저장 상태로 되돌립니다">변경 취소</button>
       <button class="tbtn" id="btnDeal" title="견적 · B2B 딜 설계 (우리 이익·거래처 이익·윈윈 범위)">🧾 견적 <b id="dealN"></b></button>
+      <button class="tbtn" id="btnPsXl" title="거래처 배포용 단가표 엑셀 — 브랜드·제품(화면·체크·전체)·상태 골라서 받기 · 원가 없음">📥 단가표 엑셀<b id="psChkN" style="font-weight:700;color:var(--xl-green-dark)"></b></button>
             <div class="tr-tools" id="trTools"><button type="button" class="tbtn tr-tbtn" id="btnTools">도구 ▾</button><div class="tr-menu" id="toolMenu">
         <button class="tbtn" title="엑셀 양식 받기 · 작성한 파일 올리기(단가 반영은 이 안에서) · 단가표·판매가 내려받기" id="btnCsv">📊 엑셀 받기·올리기</button>
         <button class="tbtn" id="btnPcode" style="display:none" title="POUR스토어 자체상품코드(옵션 단위) 보기·수정·내보내기 — 오픈마켓 판매자관리코드에 넣는 값입니다">🏷 자체상품코드</button>
@@ -3241,7 +3249,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
 <!-- ═══ 단가표 PDF 옵션 모달 ═══ -->
 <div id="psOverlay">
   <div class="imp-panel" style="max-width:560px">
-    <div class="imp-head"><span>🖨 단가표 PDF · 채널 배포용</span><button id="psClose" aria-label="닫기">✕</button></div>
+    <div class="imp-head"><span>📥 단가표 엑셀·PDF · 채널 배포용</span><button id="psClose" aria-label="닫기">✕</button></div>
     <div class="imp-body">
       <p class="footnote" style="margin-top:0">순번 · 상품명 · 규격 · 공급가 · 정가 <b>(원가·제조사 제외)</b></p>
       <div class="fld" style="margin-bottom:9px">
@@ -3254,8 +3262,18 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
         </div>
       </div>
       <div class="formgrid" style="grid-template-columns:1fr 1fr">
-        <div class="fld"><label>분류</label><select id="psCat"><option value="">전체 분류</option></select></div>
+        <div class="fld"><label>브랜드</label><select id="psBrand"></select></div>
+        <div class="fld" id="psCatFld"><label>분류</label><select id="psCat"><option value="">전체 분류</option></select></div>
       </div>
+      <div class="fld" style="margin:2px 0 8px"><label>제품 범위</label>
+        <div class="ps-opts" id="psRangeBox">
+          <label><input type="radio" name="psRange" value="screen"> 화면에 보이는 제품 <em id="psRngScreen"></em></label>
+          <label><input type="radio" name="psRange" value="checked"> 체크한 제품만 <em id="psRngChk"></em></label>
+          <label><input type="radio" name="psRange" value="all"> 전체 <em id="psRngAll"></em></label>
+        </div></div>
+      <div class="fld" style="margin:0 0 8px"><label>상태</label>
+        <div class="ps-opts"><label><input type="checkbox" checked disabled> 판매중</label><label><input type="checkbox" id="psStPrep"> 준비중 포함</label><label><input type="checkbox" id="psStEol"> 단종 포함</label></div>
+        <p class="footnote" id="psStNote" style="margin:3px 0 0"></p></div>
       <div class="formgrid" style="grid-template-columns:1fr 1fr;margin-top:2px">
         <div class="fld"><label>표 제목</label><input id="psTitle" placeholder="POUR스토어 공급 단가표"></div>
         <div class="fld"><label>수신처(선택)</label><input id="psTo" placeholder="예: ○○총판 귀중"></div>
@@ -3454,6 +3472,10 @@ const LS_FAIL='pour-sec-fail-v1';
 
 // CHANNELS/P/BASE_N 는 Firestore 로드 후 buildState() 에서 채운다 (부팅 지연)
 let CHANNELS=[];
+// (2026-11-23) 메뉴 숨김 스위치 · 단가표 체크(화면에만) — 아래 블록 함수들이 처음 그릴 때부터 쓰므로 여기서 먼저 선언
+let MENU_SHOWALL=false, _menuPrefTried=false;
+const menuHid=x=>!!(x&&x.hide)&&!TEAM_MODE&&!MENU_SHOWALL;
+const PS_CHK=new Set();
 let uidSeq=100;
 /* 그로홈 판매 채널 — 매출 화면(판매 엑셀)과 같은 이름으로 기본 제공 (2026-09 대표 요청)
    · 그로홈을 고르면 가격정책표에 [자사몰 정가 + 이 채널들]이 나오고 업체단가 열은 나오지 않는다
@@ -4722,7 +4744,7 @@ function renderGrid(){   // 채널 열은 고른 브랜드의 채널만(계산�
   ).join('');
   const lastFrz = showCost ? 'cost' : (showSup ? 'sup' : 'spec');   // 고정 블록의 마지막(경계선) 열
   let html=`<thead><tr>
-    <th class="frz frz-no" style="min-width:40px">No</th>
+    <th class="frz frz-no" style="min-width:40px">${costAllowed?'<input type="checkbox" id="pschkAll" class="pschk-all" title="보이는 제품 전체 체크 · 단가표 엑셀용 (저장 안 됨)" aria-label="보이는 제품 전체 체크">':''}No</th>
     ${showCode?'<th class="frz frz-code" style="min-width:100px" title="자체상품코드(POUR스토어 PS-… · 그로홈 GH-…) · 아래 작은 글씨 = 3PL(물류센터) 코드">자체상품코드<button class="colx" id="codeColX" title="자체상품코드 열 숨기기">✕</button></th>':''}
     <th class="frz frz-name" style="min-width:200px">제품명</th>
     <th class="frz frz-spec${lastFrz==='spec'?' frz-edge':''}" style="min-width:78px">규격</th>
@@ -4784,7 +4806,7 @@ function renderGrid(){   // 채널 열은 고른 브랜드의 채널만(계산�
       return `<td class="${cls.join(' ')}"${editable?` data-id="${p.id}" data-f="u${c.uid}"`:''}${(!editable&&!pkg)?` data-cuid="${esc(c.uid)}"`:''}${tt?` title="${tt}"`:''}>${disp}</td>`;
     }).join('');
     html+=`<tr data-id="${p.id}" data-key="${esc(pKey(p))}" data-cat="${esc(p.cat)}" data-no="${no}">
-      <td class="frz frz-no dim">${costAllowed?`<span class="grip" draggable="true" title="드래그로 순서 변경">⠿</span><span class="nono" data-key="${esc(pKey(p))}" data-no="${no}" title="번호를 눌러 원하는 자리로 보냅니다 (기존 제품은 아래로 밀립니다)">${no}</span>`:no}</td>
+      <td class="frz frz-no dim">${costAllowed?`<input type="checkbox" class="pschk" data-k="${esc(pKey(p))}"${PS_CHK.has(pKey(p))?' checked':''} title="단가표 엑셀에 넣기 (저장 안 됨)" aria-label="단가표에 넣기"><span class="grip" draggable="true" title="드래그로 순서 변경">⠿</span><span class="nono" data-key="${esc(pKey(p))}" data-no="${no}" title="번호를 눌러 원하는 자리로 보냅니다 (기존 제품은 아래로 밀립니다)">${no}</span>`:no}</td>
       ${showCode?(()=>{ const pc=pcodeOf(p), gc=!pc?(p.ghCode||''):''; const v=pc||gc, t=p3plOf(p);
         return `<td class="frz frz-code${gc?' gh':''}${v?'':' dim'}" title="${v?(gc?'그로홈 자체상품코드':'자체상품코드')+' — 눌러서 복사':'자체상품코드 없음'}${t?' · 3PL '+esc(t):''}">${v?`<span class="pcode-cell">${esc(v)}</span>`:'—'}${t?`<span class="c3pl" title="3PL(물류센터) 코드">3PL ${esc(t)}</span>`:''}</td>`; })():''}
       <td class="frz frz-name name">${costAllowed?`<span class="rowtools"><button class="prodfix${isFixed(p)?' on':''}" data-id="${p.id}" title="${isFixed(p)?'📌 파일값 고정 — 업로드한 단가를 그대로 씁니다. 누르면 자동계산으로 바꿉니다':'⚙️ 자동계산 — 업체단가~정가 사다리로 계산합니다. 누르면 파일값 고정으로 바꿉니다'}">${isFixed(p)?'📌':'⚙️'}</button>${(()=>{ const n=ovrCellsOf(p).length; return n?`<button class="prodovr" data-id="${p.id}" title="🧹 이 제품의 직접 조정된 ${n}칸을 풀어 자동계산으로 되돌립니다">🧹</button>`:'<span class="prodovr" style="visibility:hidden" aria-hidden="true">🧹</span>'; })()}<button class="prodst" data-id="${p.id}" title="상태 바꾸기 — 단종예정으로 · 지금 단종">상태▾</button><button class="prodedit" data-id="${p.id}" title="제품 수정(분류·원가·유형·구성)">✏️</button><button class="prodcopy" data-id="${p.id}" title="이 제품을 복사해 새로 등록">📋</button><button class="proddel" data-id="${p.id}" title="휴지통으로 보내기(영구삭제 아님)">🗑</button></span>`:''}${statusChip(p)+eolChip(p)+brandChips(p)}${p.needCost?'<span class="bchip" style="background:#FEF3C7;color:#92400E" title="원가·제조사를 아는 사람에게 넘긴 제품 — 채워져야 출시돼요">원가 대기</span>':''}<span class="pname" title="${esc(p.name)}">${esc(p.name)}</span></td>
@@ -4810,6 +4832,7 @@ function renderGrid(){   // 채널 열은 고른 브랜드의 채널만(계산�
   { const th=$('#priceGrid thead'); if(th&&window.__toolh) th.style.setProperty('--toolh', window.__toolh); }   // 다시 그린 머리줄에 고정 위치 복원
   const tn=$('#twinNote'); if(tn) tn.innerHTML = twin?`<br>· <b>업체단가 = [${esc(twin.code)} ${esc(twin.name)}]</b> — 같은 값입니다. 업체단가 칸이 <b>입력</b>, ${esc(twin.name)} 칸이 <b>계산 결과</b>입니다.`:'';
   layoutFrozen();
+  psChkPaint();
   findApply(false); if(EDIT_ROW!=null){ const er=document.querySelector(`#priceGrid tbody tr[data-id="${EDIT_ROW}"]`); if(er) er.classList.add('row-edit'); else EDIT_ROW=null; } rowInfoRender();
   if(window.__pzCount) window.__pzCount();
 }
@@ -6338,7 +6361,9 @@ function tabHidden(b){
   side.addEventListener('click',e=>{ const b=e.target.closest('[data-sh]'); if(b&&side.contains(b)){ /* body 에도 data-sh(지금 시트)가 있어서 메뉴 안 버튼만 */ gotoTab(b.dataset.sh); document.body.classList.remove('sn-open'); try{ $('#sheetwrap .sheet.on').scrollTop=0; }catch(err){} return; }
     if(e.target.closest('#snClose')){ document.body.classList.remove('sn-open'); return; }
     if(e.target.closest('#snCopyCatalog')){ copyCatalogTSV(); return; }
+    if(e.target.closest('.sn-tg')) return;   // 숨긴 메뉴 스위치는 change 에서
     if(e.target.closest('#snFold')){ document.body.classList.toggle('sn-fold'); try{ localStorage.setItem('pour-sn-fold',document.body.classList.contains('sn-fold')?'1':'0'); }catch(err){} } });
+  side.addEventListener('change',e=>{ if(e.target&&e.target.id==='snShowHidden') setMenuShowAll(e.target.checked); });   // 숨긴 메뉴 다시 보기 (계정별)
   try{ if(localStorage.getItem('pour-sn-fold')==='1') document.body.classList.add('sn-fold'); }catch(e){}
 })();
 /* 옵시디언 제품 카드용 제품 목록 (마진 v2 더보기와 같은 6가지 칸 · 2026-10-09/10 사장님: 팀원은 원가·제조사를 알면 안 됨)
@@ -6392,10 +6417,27 @@ async function copyCatalogTSV(){
 const MENU=[
   {g:'price',ic:'💰',lb:'가격',items:[{lb:'단가표',tabs:['sh-tprice']},{lb:'가격정책표',tabs:['sh-price','sh-dash']}]},
   {g:'prod',ic:'📦',lb:'제품',items:[{lb:'제조사',tabs:['sh-reg']}]},   // 출시 관리 → 가격정책표 상태 탭(2026-11-03) · 제조사 = 마스터 전용
-  {g:'sales',ic:'📈',lb:'판매',items:[{lb:'매출',tabs:['sh-sales']},{lb:'재고·유통기한',tabs:['sh-expiry']},{lb:'손익',tabs:['sh-pl','sh-fixed']}]},
-  {g:'mkt',ic:'📣',lb:'마케팅',items:[{lb:'프로모션',tabs:['sh-mktpromo','sh-promo']},{lb:'링크',tabs:['sh-mktlink','sh-mkt']},{lb:'공동구매',tabs:['sh-gb']}]},
-  {g:'set',ic:'⚙',lb:'설정',items:[{lb:'채널·브랜드',tabs:['sh-chman']},{lb:'계정',tabs:['sh-access']},{lb:'CRM 연동',tabs:['sh-inbound']},{lb:'매칭',tabs:['sh-match']},{lb:'온라인 상품',tabs:['sh-items']},{lb:'MOQ 구간',tabs:['sh-moq']},{lb:'데이터·휴지통',tabs:['sh-data']}]}
+  {g:'sales',ic:'📈',lb:'판매',hide:1,items:[{lb:'매출',tabs:['sh-sales']},{lb:'재고·유통기한',tabs:['sh-expiry']},{lb:'손익',tabs:['sh-pl','sh-fixed']}]},
+  {g:'mkt',ic:'📣',lb:'마케팅',hide:1,items:[{lb:'프로모션',tabs:['sh-mktpromo','sh-promo']},{lb:'링크',tabs:['sh-mktlink','sh-mkt']},{lb:'공동구매',tabs:['sh-gb']}]},
+  {g:'set',ic:'⚙',lb:'설정',items:[{lb:'채널·브랜드',tabs:['sh-chman']},{lb:'계정',tabs:['sh-access']},{lb:'CRM 연동',tabs:['sh-inbound'],hide:1},{lb:'매칭',tabs:['sh-match'],hide:1},{lb:'온라인 상품',tabs:['sh-items'],hide:1},{lb:'MOQ 구간',tabs:['sh-moq'],hide:1},{lb:'데이터·휴지통',tabs:['sh-data']}]}
 ];
+/* 메뉴 정리 (2026-11-23 송희님): hide 표시한 묶음·항목은 메뉴에서만 숨김 — 화면·기능·데이터는 그대로
+   · 숨김: 판매 묶음 · 마케팅 묶음 · 제품 목록 복사 · CRM 연동 · 매칭 · 온라인 상품 · MOQ 구간
+   · 계정마다 [숨긴 메뉴 다시 보기] (설정 › 데이터·휴지통 아래) → product-meta/menu-prefs {map:{이메일:{showHidden}}}
+   · 팀 화면(?team=1 · pourstore-team.html)은 숨기지 않음 */
+async function loadMenuPref(){
+  if(_menuPrefTried||TEAM_MODE||!dataAllowed||!curUser) return; _menuPrefTried=true;
+  try{ const d=await db.collection('product-meta').doc('menu-prefs').get(), m=(d.exists&&d.data().map)||{}, me=m[_emailLc()]||{};
+    MENU_SHOWALL=me.showHidden===true; console.log(`[menu-prefs] 숨긴 메뉴 ${MENU_SHOWALL?'보임':'숨김'}`); if(MENU_SHOWALL){ renderSide(); if(window.__appTabsPaint) window.__appTabsPaint(); } }
+  catch(e){ console.warn('[menu-prefs] 못 읽음 — 기본(숨김)으로', e.code||e.message||e); }
+}
+async function setMenuShowAll(v){
+  MENU_SHOWALL=!!v; renderSide(); if(window.__appTabsPaint) window.__appTabsPaint();
+  const cur=document.querySelector('.stab.on'), m=cur&&menuItemOf(cur.dataset.sh);
+  if(!MENU_SHOWALL && m && (menuHid(m.g)||menuHid(m.it))) gotoTab('sh-price');   // 숨긴 화면을 보던 중이면 가격정책표로
+  try{ await db.collection('product-meta').doc('menu-prefs').set({map:{[_emailLc()]:{showHidden:MENU_SHOWALL, at:new Date().toISOString()}}},{merge:true}); }
+  catch(e){ console.error('[menu-prefs] 저장 실패', e); uiToast('메뉴 설정 저장 실패: '+(e.code||e.message||e),'err'); }
+}
 const stabOf=sh=>document.querySelector('.stab[data-sh="'+sh+'"]');
 const tabLabel=sh=>{ const b=stabOf(sh); return b?b.textContent.replace('🔒','').trim():sh; };
 function menuItemOf(sh){ for(const g of MENU) for(const it of g.items) if(it.tabs.includes(sh)) return {g,it}; return null; }
@@ -6419,18 +6461,23 @@ function renderSide(){
   const cur=document.querySelector('.stab.on'), curSh=cur?cur.dataset.sh:'';
   document.body.dataset.sh=curSh;
   let h=`<div class="sn-head"><div class="sn-logo">${TEAM_MODE?'<b>POUR 팀</b><span>대시보드</span>':'<b>POUR 가격·마진</b><span>통합 관리</span>'}</div><button id="snFold" title="메뉴 접기/펴기">☰</button><button id="snClose" title="메뉴 닫기">✕</button></div><nav class="sn-menu">`;
-  const copyBtn=`<button class="sn-item" id="snCopyCatalog" title="분류·상품명·옵션·자체상품코드·브랜드·채널별 판매가만 (원가·마진·제조사 없음)">📋 제품 목록 복사 (원가 없음)</button>`+((costAllowed&&!TEAM_MODE)?`<a class="sn-item" id="snCostLink" href="pourstore-cost.html" target="_blank" rel="noopener" style="text-decoration:none" title="품목 1장 = 원가 분해 1장 (엑셀 표준 원가계산기 v7과 같은 식) · 새 창">🧾 원가 분해 ↗</a>`:''); let copyIn=false; // 옵시디언 제품 카드용 목록 — '제품' 묶음 안 (없으면 맨 아래)
+  loadMenuPref();
+  const copyOnly=(TEAM_MODE||MENU_SHOWALL)?`<button class="sn-item" id="snCopyCatalog" title="분류·상품명·옵션·자체상품코드·브랜드·채널별 판매가만 (원가·마진·제조사 없음)">📋 제품 목록 복사 (원가 없음)</button>`:'';
+  const costLink=(costAllowed&&!TEAM_MODE)?`<a class="sn-item" id="snCostLink" href="pourstore-cost.html" target="_blank" rel="noopener" style="text-decoration:none" title="원가 분해·조립 계산기 — 완제품 원가 · 판매가 넣으면 마진 (새 창)">🧾 원가 계산기 ↗</a>`:'';
+  const copyBtn=copyOnly+costLink; let copyIn=false; // 옵시디언 제품 카드용 목록 — '제품' 묶음 안 (없으면 맨 아래)
   MENU.forEach(g=>{
-    const its=g.items.map(it=>({it,tabs:miTabs(it)})).filter(x=>x.tabs.length);
+    if(menuHid(g)) return;
+    const its=g.items.filter(it=>!menuHid(it)).map(it=>({it,tabs:miTabs(it)})).filter(x=>x.tabs.length);
     if(!its.length) return;
     h+=`<div class="sn-grp${its.some(x=>x.tabs.includes(curSh))?' on':''}"><div class="sn-gl"><span class="sn-ic">${esc(g.ic)}</span><span class="sn-t">${esc(g.lb)}</span></div>`;
     its.forEach(({it,tabs})=>{ const on=tabs.includes(curSh), dot=!sheetReady(tabs[0]);
       h+=`<button class="sn-item${on?' on':''}" data-sh="${esc(on?curSh:tabs[0])}" title="${esc(it.lb)}${dot?' · 먼저 준비할 데이터가 있어요':''}">${esc(it.lb)}${dot?'<i class="sn-dot"></i>':''}</button>`; });
     if(g.g==='prod'){ h+=copyBtn; copyIn=true; }
+    if(g.g==='set'&&!TEAM_MODE&&dataAllowed) h+=`<label class="sn-item sn-tg" title="판매·마케팅·CRM 연동 등 숨긴 메뉴를 이 계정에서 다시 보이기 (다른 사람 화면은 그대로)"><input type="checkbox" id="snShowHidden"${MENU_SHOWALL?' checked':''}> 숨긴 메뉴 다시 보기</label>`;
     h+='</div>';
   });
   if(TEAM_MODE) h+=`<div class="sn-grp"><div class="sn-gl"><span class="sn-ic">🧭</span><span class="sn-t">바로가기</span></div><a class="sn-item" href="${SOURCING_URL}" target="_blank" rel="noopener">소싱앱 ↗</a></div>`;
-  if(!copyIn) h+=`<div class="sn-grp"><div class="sn-gl"><span class="sn-ic">📦</span><span class="sn-t">제품</span></div>${copyBtn}</div>`;
+  if(!copyIn&&copyBtn) h+=`<div class="sn-grp"><div class="sn-gl"><span class="sn-ic">📦</span><span class="sn-t">제품</span></div>${copyBtn}</div>`;
   el.innerHTML=h+'</nav>';
   renderSub(); renderNeed();
 }
@@ -6467,11 +6514,12 @@ function buildMobileMenu(){
   const curSh=(document.querySelector('.stab.on')||{dataset:{}}).dataset.sh;
   let html='';
   MENU.forEach(g=>{
-    const its=g.items.map(it=>({it,tabs:miTabs(it)})).filter(x=>x.tabs.length);
+    if(menuHid(g)) return;
+    const its=g.items.filter(it=>!menuHid(it)).map(it=>({it,tabs:miTabs(it)})).filter(x=>x.tabs.length);
     if(!its.length)return;
     html+='<div class="mm-grp">'+esc(g.ic+' '+g.lb)+'</div>';
     its.forEach(({it,tabs})=>{ const on=tabs.includes(curSh); html+='<button class="mm-item'+(on?' on':'')+'" data-sh="'+(on?curSh:tabs[0])+'">'+esc(it.lb)+(sheetReady(tabs[0])?'':' <i class="sn-dot"></i>')+'</button>'; });
-    if(g.g==='prod'&&costAllowed&&!TEAM_MODE) html+='<a class="mm-item" href="pourstore-cost.html" target="_blank" rel="noopener" style="text-decoration:none;display:block">🧾 원가 분해 ↗</a>';
+    if(g.g==='prod'&&costAllowed&&!TEAM_MODE) html+='<a class="mm-item" href="pourstore-cost.html" target="_blank" rel="noopener" style="text-decoration:none;display:block">🧾 원가 계산기 ↗</a>';
   });
   list.innerHTML=html;
 }
@@ -10880,6 +10928,7 @@ function wireImportModal(){
   ['ncVal2','ncName2','ncCode2'].forEach(id=>on(id,'input',renderChanPreview));
   // ── 단가표 PDF 모달
   on('btnPriceSheet','click',openPsModal);
+  on('btnPsXl','click',openPsModal);   // 가격정책표 툴바 '📥 단가표 엑셀' (2026-11-23 · 예전 길 도구 › 엑셀 받기·올리기 › 단가표도 그대로)
   on('prQuickCalc','click',()=>openPromoCalc(''));   // 구성 계산기 화면 안 '제품 하나 빠르게 계산' (예전 fx 메뉴 프로모션 계산기와 같은 창)
   on('psClose','click',closePsModal); on('psCancel','click',closePsModal);
   bindOverlayClose('psOverlay',closePsModal);
@@ -10987,6 +11036,42 @@ function psOrderedProducts(){
   ensurePorder();
   return P.filter(p=>!isDeletedProd(p)).sort((a,b)=>(porderIdx(pKey(a))-porderIdx(pKey(b)))||((a.seq??a.id??0)-(b.seq??b.id??0)));
 }
+/* 단가표에 넣을 제품 고르기 (2026-11-23 송희님) — 화면에만 있는 체크(PS_CHK, 저장 안 함) · 브랜드 · 범위 · 상태
+   · 화면에 보이는 제품 = 가격정책표 지금 브랜드(창에서 고른 값)·분류·상태 탭·검색어 그대로
+   · 체크한 제품만 / 전체 = 창의 상태 체크(기본 판매중만) · 전체는 창의 분류도 */
+function psChkCount(){ return P.filter(p=>!isDeletedProd(p)&&PS_CHK.has(pKey(p))).length; }
+function psChkPaint(){
+  const n=psChkCount(), b=$('#psChkN'); if(b) b.textContent=n?` · 체크 ${n}`:'';
+  const all=$('#pschkAll'); if(all){ const bx=$$('#priceGrid .pschk'), on=bx.filter(x=>x.checked).length; all.checked=bx.length>0&&on===bx.length; all.indeterminate=on>0&&on<bx.length; }
+  if($('#psOverlay')&&$('#psOverlay').classList.contains('on')) psRangePaint();
+}
+document.addEventListener('change',e=>{
+  const t=e.target; if(!t) return;
+  if(t.classList&&t.classList.contains('pschk')){ if(t.checked) PS_CHK.add(t.dataset.k); else PS_CHK.delete(t.dataset.k); psChkPaint(); return; }
+  if(t.id==='pschkAll'){ $$('#priceGrid .pschk').forEach(x=>{ x.checked=t.checked; if(t.checked) PS_CHK.add(x.dataset.k); else PS_CHK.delete(x.dataset.k); }); psChkPaint(); return; }
+  if(t.id==='psBrand'||t.name==='psRange'||t.id==='psStPrep'||t.id==='psStEol'||t.id==='psCat'){ if(t.id==='psBrand') psTitleAuto(); psRangePaint(); }
+});
+function psStatusSet(){ const st=new Set(['출시']); if($('#psStPrep')&&$('#psStPrep').checked) st.add('출시준비'); if($('#psStEol')&&$('#psStEol').checked) st.add('단종'); return st; }
+function psPickList(range){
+  const b=$('#psBrand')?$('#psBrand').value:BRAND_FILTER, r=range||((document.querySelector('input[name="psRange"]:checked')||{}).value)||'screen', st=psStatusSet();
+  let list=psOrderedProducts().filter(p=>hasBrand(p,b));
+  if(r==='checked') list=list.filter(p=>PS_CHK.has(pKey(p))&&st.has(pstatus(p)));
+  else if(r==='screen'){ const cat=$('#catSel')?$('#catSel').value:'', q=(($('#q')||{}).value||'').trim().toLowerCase();
+    list=list.filter(p=>hasStatus(p,STATUS_FILTER)&&!(PS_EOL_ONLY&&!eolPending(p))&&!(TODO_FILTER&&!todoTest(p,TODO_FILTER))&&!(cat&&p.cat!==cat)
+      &&(!q||`${p.name} ${p.spec||''} ${pcodeOf(p)||''} ${pbarcodeOf(p)||''}`.toLowerCase().includes(q))); }
+  else { const catF=$('#psCat')?$('#psCat').value:''; list=list.filter(p=>st.has(pstatus(p))&&!(catF&&p.cat!==catF)); }
+  return {list, b, range:r};
+}
+function psRangePaint(){
+  const r=((document.querySelector('input[name="psRange"]:checked')||{}).value)||'screen', set=(id,v)=>{ const el=$('#'+id); if(el) el.textContent=v; };
+  set('psRngScreen',`(${psPickList('screen').list.length}개)`); set('psRngChk',`(${psPickList('checked').list.length}개${psChkCount()?'':' · 줄 맨 앞 체크칸'})`); set('psRngAll',`(${psPickList('all').list.length}개)`);
+  const cf=$('#psCatFld'); if(cf) cf.style.display=r==='all'?'':'none';
+  ['psStPrep','psStEol'].forEach(id=>{ const el=$('#'+id); if(el) el.disabled=r==='screen'; });
+  set('psStNote', r==='screen'?`화면에 보이는 제품은 가격정책표 지금 상태 탭(${PS_NAME[STATUS_FILTER]||STATUS_FILTER}) 그대로예요`:'');
+}
+function psTitleAuto(){ const t=$('#psTitle'), b=$('#psBrand')?$('#psBrand').value:''; if(!t) return;
+  const defs=['', ...BRAND_LIST.map(x=>x+' 공급 단가표'), 'POUR스토어 공급 단가표'];
+  if(defs.includes(t.value.trim())) t.value=`${b||'POUR스토어'} 공급 단가표`; }
 function psChanOpts(){ const rUid=retailUid(); return COLS().filter(c=>c.uid!==rUid); }   // 공급가 채널(정가 제외) · 표 열 순서 그대로
 function psUpdChanCnt(){
   const n=$$('#psChanBox input:checked').length, t=$$('#psChanBox input').length;
@@ -11015,7 +11100,12 @@ function psPrepare(){
   const secBox=$('#psSecretBox'); if(secBox) secBox.style.display=(costAllowed||secAllowed)?'':'none';
   const cats=[...new Set(psOrderedProducts().map(p=>p.cat))];
   $('#psCat').innerHTML='<option value="">전체 분류</option>'+cats.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  // 브랜드 = 지금 가격정책표에서 고른 브랜드 · 범위 = 체크한 게 있으면 '체크한 제품만', 없으면 '화면에 보이는 제품' · 상태 = 판매중만
+  const bs=$('#psBrand'); if(bs){ bs.innerHTML=[['','전체'],...BRAND_LIST.map(b=>[b,b])].map(([v,l])=>`<option value="${esc(v)}">${esc(l)}</option>`).join(''); bs.value=BRAND_LIST.includes(BRAND_FILTER)?BRAND_FILTER:''; }
+  const rr=document.querySelector(`input[name="psRange"][value="${psChkCount()?'checked':'screen'}"]`); if(rr) rr.checked=true;
+  ['psStPrep','psStEol'].forEach(id=>{ const el=$('#'+id); if(el) el.checked=false; });
   if(!$('#psTitle').value) $('#psTitle').value='POUR스토어 공급 단가표';
+  psTitleAuto(); psRangePaint();
   $('#psStatus').textContent='';
 }
 function closePsModal(){ $('#psOverlay').classList.remove('on'); }
@@ -11030,9 +11120,10 @@ function priceSheetData(){
   const incCost=!!($('#psCost')&&$('#psCost').checked&&costAllowed);
   const incMfg =!!($('#psMfg') &&$('#psMfg').checked &&secAllowed);
   const secret=incCost||incMfg;
-  const catF=$('#psCat').value, incZero=$('#psZero').checked;
+  const incZero=$('#psZero').checked;
   const title=$('#psTitle').value.trim()||'POUR스토어 공급 단가표', to=$('#psTo').value.trim();
-  const list=psOrderedProducts().filter(p=>!(catF&&p.cat!==catF));
+  const pk=psPickList(), list=pk.list;   // 브랜드 · 범위(화면·체크·전체) · 상태 (2026-11-23)
+  if(!list.length) return {err: pk.range==='checked'&&!psChkCount() ? '체크한 제품이 없어요 — 가격정책표 줄 맨 앞 체크칸을 눌러 주세요.' : '고른 브랜드·범위·상태에 맞는 제품이 없어요.'};
   const rows=[]; let no=0, lastG=null;
   list.forEach(p=>{
     const sup=chs.map(c=>effPrice(p,c.uid)), own=effPrice(p,rUid);
@@ -11046,13 +11137,14 @@ function priceSheetData(){
   if(!no) return {err:'출력할 제품이 없습니다. (공급가 미설정 제품 포함을 켜보세요)'};
   const d=new Date(), ymd=`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
   const ncol=3+(incMfg?1:0)+(incCost?1:0)+chs.length+(incRetail?1:0);
-  return {chs,ch:chs[0],title,to,rows,count:no,ymd,rUid,incRetail,incCost,incMfg,secret,ncol};
+  return {chs,ch:chs[0],title,to,rows,count:no,ymd,rUid,incRetail,incCost,incMfg,secret,ncol,brand:pk.b,range:pk.range};
 }
-/* 파일명: 1개면 채널명, 여러 개면 개수 표기 */
+/* 파일명: 단가표_브랜드_채널_날짜 (예: 단가표_GROHOME_P3_20261123) — 채널 1개면 코드, 여러 개면 개수 (2026-11-23) */
 function psFileBase(D){
-  const nm = D.chs.length===1 ? (D.chs[0].name||D.chs[0].code)
+  const nm = D.chs.length===1 ? (D.chs[0].code||D.chs[0].name)
            : (D.chs.length===psChanOpts().length ? '전체채널' : D.chs.length+'개채널');
-  return `단가표_${String(nm).replace(/[\\/:*?"<>|]/g,'')}_${D.ymd.replace(/\./g,'')}${D.secret?'_대외비':''}`;
+  const clean=v=>String(v).replace(/[\\/:*?"<>|\s]/g,'');
+  return `단가표_${clean(D.brand||'전체')}_${clean(nm)}_${D.ymd.replace(/\./g,'')}${D.secret?'_대외비':''}`;
 }
 const psChanLine=D=>D.chs.map(c=>`[${esc(c.code)}] ${esc(c.name)}`).join(' · ');
 /* ══════════ 진짜 .xlsx 생성기 (외부 라이브러리 없음) ══════════
@@ -13301,6 +13393,7 @@ function installApp(){ if(!INSTALL_EVT) return; INSTALL_EVT.prompt(); Promise.re
   const mq=matchMedia('(max-width:640px)');
   const tabsCfg=()=>{
     if(TEAM_MODE) return [['sh-tprice','💰','단가표'],['sh-sales','📈','매출'],['ai','💬','AI'],['sh-mktpromo','📣','마케팅'],['more','☰','더보기']];
+    if(!MENU_SHOWALL) return costAllowed ? [['sh-price','💰','가격'],['cost','🧾','원가 계산'],['ai','💬','AI'],['more','☰','더보기']] : [['sh-price','💰','가격'],['ai','💬','AI'],['more','☰','더보기']];   // 메뉴 정리(2026-11-23): 판매·마케팅 숨김 · [숨긴 메뉴 다시 보기]면 아래 예전 그대로
     if(!costAllowed) return [['sh-price','💰','가격'],['sh-mktlink','🔗','링크'],['ai','💬','AI'],['sh-mktpromo','📣','마케팅'],['more','☰','더보기']];
     return [['sh-price','💰','가격'],['sh-sales','📈','매출'],['ai','💬','AI'],['sh-mktpromo','📣','마케팅'],['more','☰','더보기']];   // 출시 → 가격 탭 안 상태 탭(2026-11-03)
   };
@@ -13311,6 +13404,7 @@ function installApp(){ if(!INSTALL_EVT) return; INSTALL_EVT.prompt(); Promise.re
   nav.addEventListener('click',e=>{ const b=e.target.closest('[data-apptab]'); if(!b) return; const k=b.dataset.apptab;
     if(k==='ai'){ if(typeof daiOpen==='function') daiOpen(); return; }
     if(k==='more'){ document.body.classList.add('sn-open'); return; }
+    if(k==='cost'){ window.open('pourstore-cost.html','_blank','noopener'); return; }   // 원가 계산기(새 창)
     if(document.body.classList.contains('ri-open')&&typeof rowSelect==='function'){ EDIT_ROW=null; rowSelect(null); }
     gotoTab(k); try{ $('#sheetwrap .sheet.on').scrollTop=0; }catch(err){} paint(); });
   const setMode=()=>{ document.body.classList.toggle('has-tabs', mq.matches);
@@ -14282,9 +14376,14 @@ function scheduleTeamCatalog(){
 let _crTimer=null, _crHash='', _crnHash='', _crOff=false, COSTIDX=null, _costSumOff=null;
 const _crH=js=>{ let x=0; for(let i=0;i<js.length;i++) x=(x*31+js.charCodeAt(i))|0; return String(x>>>0)+':'+js.length; };
 function costRefPayload(){
-  return P.filter(p=>!isDeletedProd(p)).map(p=>{ const k=pKey(p), c=effCost(p);
+  // 채널 = 가격정책표 열 그대로 + 채널 수수료(config/calc.chVar · 원가 계산기 '채널 고르면 수수료 자동')
+  const channels=COLS().filter(c=>c.role!=='export').map(c=>({uid:c.uid, code:c.code||'', name:c.short||c.name||c.code||'', fee:+((CH_VAR_DEFAULT[c.code]||{}).fee)||0, brands:chBrands(c), retail:c.uid===retailUid()}));
+  const list=P.filter(p=>!isDeletedProd(p)).map(p=>{ const k=pKey(p), c=effCost(p);
     const o={k, cat:p.cat, name:p.name, spec:p.spec, brand:pbrand(p), st:pstatus(p), type:isPackage(p)?'세트':'단품', cost:(c==null||!isFinite(c))?null:c};
-    const code=PCODE[k]||p.ghCode||''; if(code) o.code=code; return o; });
+    const code=PCODE[k]||p.ghCode||''; if(code) o.code=code;
+    const pr={}; channels.forEach(ch=>{ const v=effPrice(p,ch.uid); if(v!=null&&isFinite(v)) pr[ch.uid]=v; }); if(Object.keys(pr).length) o.pr=pr;   // 채널 판매가 → 계산기 [넣기]
+    return o; });
+  return {list, channels};
 }
 function startCostSum(){
   if(_costSumOff||TEAM_MODE||!costAllowed) return;
@@ -14308,10 +14407,10 @@ function scheduleCostRef(){
   clearTimeout(_crTimer);
   _crTimer=setTimeout(async()=>{
     const by=(curUser&&curUser.email)||'', at=new Date().toISOString();
-    try{ const list=costRefPayload(), hash=_crH(JSON.stringify(list));
+    try{ const pl=costRefPayload(), list=pl.list, hash=_crH(JSON.stringify(pl));
       if(hash!==_crHash){
         if(!_crHash){ const d=await db.collection('cost-ref').doc('products').get(); if(d.exists&&d.data().hash===hash) _crHash=hash; }
-        if(hash!==_crHash){ await db.collection('cost-ref').doc('products').set({list, hash, at, by}); _crHash=hash; console.log(`[cost-ref] 원가 분해용 제품 목록 저장 · ${list.length}개`); }
+        if(hash!==_crHash){ await db.collection('cost-ref').doc('products').set({...pl, hash, at, by}); _crHash=hash; console.log(`[cost-ref] 원가 계산기용 제품 ${list.length}개 · 채널 ${pl.channels.length}개 저장`); }
       }
     }catch(e){ if(e&&e.code==='permission-denied') _crOff=true; console.warn('[cost-ref] 저장 못 함(새 규칙 게시 전이면 정상)', e.code||e.message||e); return; }
     if(secAllowed && unlocked){ try{

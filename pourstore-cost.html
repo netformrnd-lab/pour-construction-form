@@ -802,10 +802,11 @@ function roleOf(a, email, verified) {
 // ── 편집 모양 ↔ 저장 모양 (숫자 칸은 편집 중엔 글자 그대로, 저장할 때 숫자로) ──
 //  줄 = 구분·구성요소·쓰임·개당/1회·사용량 + 업체 여러 곳(vendors: A 주 · B 서브 · C…) · sel = 적용 업체
 //  저장할 때 적용 업체 값(단가·부가세·통화·MOQ·견적일·가칭)을 줄에도 그대로 적음(C.syncRow) → 계산·엑셀 식은 예전 그대로
-const newVendor = (vid) => ({ vid: vid || "A", alias: "", price: "", vat: "V-", cur: "", moq: "", lead: "", ship: "", qd: "", vu: "", memo: "", img: "" });
-const newRow = (o) => ({ id: uid(), kind: "", name: "", use: "", inMfg: "별도", per: "개당", usage: "1", st: "", img: "", sel: "A", vendors: [newVendor("A")], ...(o || {}) });
+const origOk = (o) => !!(o && typeof o === "object" && /^photo\/[0-9a-f]{64}\.\w+$/.test(o.key || ""));   /* 사진 원본(R2) 열쇠 */
+const newVendor = (vid) => ({ vid: vid || "A", alias: "", price: "", vat: "V-", cur: "", moq: "", lead: "", ship: "", qd: "", vu: "", memo: "", img: "", imgOrig: "" });
+const newRow = (o) => ({ id: uid(), kind: "", name: "", use: "", inMfg: "별도", per: "개당", usage: "1", st: "", img: "", imgOrig: "", sel: "A", vendors: [newVendor("A")], ...(o || {}) });
 const tplRow = (t) => newRow({ kind: t.kind, name: t.name, use: t.use || "", inMfg: t.inMfg || "별도", per: t.per || "개당", usage: str(t.usage ?? 1), vendors: [{ ...newVendor("A"), vat: t.vat || "V-", cur: t.cur || "" }] });
-const blankCard = () => ({ brand: "", round: "1차", item: "", spec: "", method: "", origin: "", scope: "", qty: "", validUntil: "", include: true, need: false, prodKey: "", prodLabel: "", mfgAlias: "", seed: "manual", fx: {}, frag: { name: "", ratio: "", batchKg: "", directKg: "" }, rows: [newRow()], sale: {}, img: "", sched: null });
+const blankCard = () => ({ brand: "", round: "1차", item: "", spec: "", method: "", origin: "", scope: "", qty: "", validUntil: "", include: true, need: false, prodKey: "", prodLabel: "", mfgAlias: "", seed: "manual", fx: {}, frag: { name: "", ratio: "", batchKg: "", directKg: "" }, rows: [newRow()], sale: {}, img: "", imgOrig: "", sched: null });
 const av = (r) => r.vendors.find((v) => v.vid === r.sel) || r.vendors[0];   // 적용 업체 (편집 중)
 // 노션에서 가져온 업체 칸 표시 (nid 노션 줄 · nq 견적 · nsid 공급업체 · nno 견적 번호 · nnote 노션 비고 · ndel 노션에서 삭제됨) — 편집해도 그대로
 const N_KEYS = ["nid", "nq", "nsid", "nno", "nnote", "ndel", "nst", "nad", "unit", "qq"];   // + 노션 상태(탈락 등)·채택·단위·견적 수량
@@ -821,13 +822,13 @@ function toEdit(c) {
   d.frag = { name: str(f.name), ratioPct: pctStr(f.ratio), batchKg: str(f.batchKg), directKg: str(f.directKg) };
   d.fx = {}; Object.entries((c && c.fx) || {}).forEach(([k, v]) => { d.fx[k] = str(v); });
   d.rows = ((c && c.rows) || []).map((r) => {
-    const vs = C.vendorsOf(r).map((v) => ({ ...newVendor(v.vid), ...pickN(v), vid: v.vid, alias: v.alias || "", price: str(v.price), vat: v.vat || "", cur: v.cur || "", moq: str(v.moq), lead: str(v.lead), ship: str(v.ship), qd: str(v.qd), vu: str(v.vu), memo: str(v.memo), img: v.img || "" }));
-    return { id: r.id || uid(), kind: r.kind || "", name: str(r.name), use: str(r.use), inMfg: r.inMfg || "", per: r.per || "", usage: str(r.usage), st: r.st || "", img: r.img || "", sel: C.selOf({ ...r, vendors: vs }), vendors: vs };
+    const vs = C.vendorsOf(r).map((v) => ({ ...newVendor(v.vid), ...pickN(v), vid: v.vid, alias: v.alias || "", price: str(v.price), vat: v.vat || "", cur: v.cur || "", moq: str(v.moq), lead: str(v.lead), ship: str(v.ship), qd: str(v.qd), vu: str(v.vu), memo: str(v.memo), img: v.img || "", imgOrig: (v.img && v.imgOrig) || "" }));
+    return { id: r.id || uid(), kind: r.kind || "", name: str(r.name), use: str(r.use), inMfg: r.inMfg || "", per: r.per || "", usage: str(r.usage), st: r.st || "", img: r.img || "", imgOrig: (r.img && r.imgOrig) || "", sel: C.selOf({ ...r, vendors: vs }), vendors: vs };
   });
   if (!d.rows.length) d.rows = [newRow()];
   const s = (c && c.sale) || {};
   d.sale = { price: str(s.price), ch: str(s.ch), chName: str(s.chName), feePct: pctStr(s.fee), logi: str(s.logi) };
-  d.img = (c && c.img) || "";
+  d.img = (c && c.img) || ""; d.imgOrig = (c && c.img && c.imgOrig) || "";
   d.sched = c && c.sched && Array.isArray(c.sched.steps) ? { po: str(c.sched.po), steps: c.sched.steps.map((st) => ({ ...st, after: [...(st.after || [])], days: str(st.days), start: str(st.start), started: !!st.started })) } : null;
   ["history", "deleted", "deletedAt", "deletedBy", "createdAt", "createdBy", "updatedAt", "updatedBy", "id", "applied"].forEach((k) => delete d[k]);
   return d;
@@ -840,9 +841,9 @@ function fromEdit(d) {
     validUntil: C.parseDate(d.validUntil) || T(d.validUntil), include: d.include !== false, need: !!d.need,
     prodKey: d.prodKey || "", prodLabel: T(d.prodLabel), mfgAlias: d.mfgAlias || "", seed: d.seed || "manual", fx,
     frag: { name: T(f.name), ratio: fromPct(f.ratioPct), batchKg: N(f.batchKg), directKg: N(f.directKg) },
-    rows: (d.rows || []).filter((r) => !C.rowEmpty(C.syncRow(r))).map((r) => C.syncRow({ id: r.id, kind: r.kind || "", name: T(r.name), use: T(r.use), inMfg: r.inMfg || "", per: r.per || "", usage: N(r.usage), st: r.st || "", sel: r.sel, ...(r.img ? { img: r.img } : {}),
-      vendors: r.vendors.map((v) => ({ ...pickN(v), vid: v.vid, alias: v.alias || "", price: N(v.price), vat: v.vat || "", cur: v.cur || "", moq: N(v.moq), lead: C.leadDays(v.lead) ?? T(v.lead), ship: N(v.ship), qd: T(v.qd), vu: C.parseDate(v.vu) || T(v.vu), memo: T(v.memo), ...(v.img ? { img: v.img } : {}) })) })),
-    img: d.img || "",
+    rows: (d.rows || []).filter((r) => !C.rowEmpty(C.syncRow(r))).map((r) => C.syncRow({ id: r.id, kind: r.kind || "", name: T(r.name), use: T(r.use), inMfg: r.inMfg || "", per: r.per || "", usage: N(r.usage), st: r.st || "", sel: r.sel, ...(r.img ? { img: r.img, ...(origOk(r.imgOrig) ? { imgOrig: r.imgOrig } : {}) } : {}),
+      vendors: r.vendors.map((v) => ({ ...pickN(v), vid: v.vid, alias: v.alias || "", price: N(v.price), vat: v.vat || "", cur: v.cur || "", moq: N(v.moq), lead: C.leadDays(v.lead) ?? T(v.lead), ship: N(v.ship), qd: T(v.qd), vu: C.parseDate(v.vu) || T(v.vu), memo: T(v.memo), ...(v.img ? { img: v.img, ...(origOk(v.imgOrig) ? { imgOrig: v.imgOrig } : {}) } : {}) })) })),
+    img: d.img || "", imgOrig: d.img && origOk(d.imgOrig) ? d.imgOrig : "",
     sched: d.sched ? { po: C.parseDate(d.sched.po) || "", steps: (d.sched.steps || []).map((st) => ({ id: st.id, name: T(st.name), days: C.num(st.days) == null ? 0 : Math.max(0, Math.round(C.num(st.days))), after: [...(st.after || [])], gate: !!st.gate, pkg: st.pkg || "", use: st.use !== false, started: !!st.started, start: st.started ? C.parseDate(st.start) || "" : "", ...(st.opt != null ? { opt: st.opt } : {}), ...(st.byV === false ? { byV: false } : {}) })) } : null,
     sale: { price: N(s.price), ch: s.ch || "", chName: T(s.chName), fee: fromPct(s.feePct), logi: N(s.logi) },
   };
@@ -854,7 +855,7 @@ function namesInit(names, rows) {
     vfiles[r.id] = clone((n.vfiles || {})[r.id] || {}); vurl[r.id] = { ...((n.vurl || {})[r.id] || {}) }; });
   return { mfg: n.mfg || "", vsup, vfiles, vurl };
 }
-const cleanF = (vf) => { const o = {}; Object.entries(vf || {}).forEach(([rid, m]) => { const mm = {}; Object.entries(m || {}).forEach(([k, l]) => { if (Array.isArray(l) && l.length) mm[k] = l.map((f) => ({ id: f.id, name: f.name || "", kind: f.kind || "", url: f.url || "", key: f.key || "" })); }); if (Object.keys(mm).length) o[rid] = mm; }); return o; };
+const cleanF = (vf) => { const o = {}; Object.entries(vf || {}).forEach(([rid, m]) => { const mm = {}; Object.entries(m || {}).forEach(([k, l]) => { if (Array.isArray(l) && l.length) mm[k] = l.map((f) => ({ id: f.id, name: f.name || "", kind: f.kind || "", url: f.url || "", key: f.key || "", del: f.del || "" })); }); if (Object.keys(mm).length) o[rid] = mm; }); return o; };
 const cleanV = (vs) => { const o = {}; Object.entries(vs || {}).forEach(([rid, m]) => { const mm = {}; Object.entries(m || {}).forEach(([k, n]) => { n = String(n || "").trim(); if (n) mm[k] = n; }); if (Object.keys(mm).length) o[rid] = mm; }); return o; };
 // 업체 이름 → 가칭 (가격정책표 제조사 가칭과 같은 이름이면 같은 가칭 · 새 이름은 비어 있는 다음 글자)
 function makeAliaser(amap, mfgList) {
@@ -874,7 +875,7 @@ async function saveCard(ctx, { id, prev, prevNames, d, nm, why }) {
   card.rows = card.rows.map((r) => {
     const m = ((nm && nm.vsup) || {})[r.id] || {}; vsup[r.id] = {};
     const fm = ((nm && nm.vfiles) || {})[r.id] || {}, um = ((nm && nm.vurl) || {})[r.id] || {};
-    r.vendors.forEach((v) => { if (Array.isArray(fm[v.vid]) && fm[v.vid].length) (vfiles[r.id] = vfiles[r.id] || {})[v.vid] = fm[v.vid]; if (um[v.vid]) (vurl[r.id] = vurl[r.id] || {})[v.vid] = um[v.vid]; });
+    r.vendors.forEach((v) => { const fl = Array.isArray(fm[v.vid]) ? fm[v.vid].filter((f) => !(f && f.del && Date.now() - Date.parse(f.del) > FILE_STORE.trashDays * 864e5)) : []; if (fl.length) (vfiles[r.id] = vfiles[r.id] || {})[v.vid] = fl; if (um[v.vid]) (vurl[r.id] = vurl[r.id] || {})[v.vid] = um[v.vid]; });
     const vendors = r.vendors.map((v) => { const n = String(m[v.vid] || "").trim(); vsup[r.id][v.vid] = n; return { ...v, alias: al(n) }; });
     const x = C.syncRow({ ...r, vendors }); sup[r.id] = vsup[r.id][x.sel] || ""; return x;
   });
@@ -899,6 +900,7 @@ async function saveCard(ctx, { id, prev, prevNames, d, nm, why }) {
   b.set(refDoc("cards"), { map: { [id]: C.summaryOf(doc) }, at }, { merge: true });
   await b.commit();
   console.log(`[cost-cards] ${id} 저장 · ${what.length}가지`);
+  fileGc(ctx, { id, prev, card: doc, pvf: pn.vfiles, vf: vfiles });
   return { id, doc, what, names: namesInit({ mfg, vsup, vfiles, vurl }, doc.rows) };
 }
 // 가격정책표에 반영 (마스터 · 2026-11-25 송희님 C) — 버튼으로만 · 몰래 안 바뀜
@@ -928,6 +930,26 @@ async function applyToPriceTable(user, card, prod, unit, pt) {
 const CARD_MAX = 1000000, CARD_WARN = 750000;
 const docBytes = (o) => new Blob([JSON.stringify(o)]).size;
 const imgKey = (c) => stable([(c && c.img) || "", ((c && c.rows) || []).map((r) => [r.img || "", C.vendorsOf(r).map((v) => v.img || "")])]);
+// 저장 뒤 파일 정리 (마스터 · 파일 보관이 켜졌을 때만) — 다른 카드가 같은 파일(같은 내용 = 같은 열쇠)을 쓰면 안 지움
+//  견적서: 이번 저장으로 빠진 파일 → R2 휴지통(30일) · '되살리기'로 다시 넣은 파일 → 휴지통에서 되살림 / 사진 원본: 이 카드에서 빠진 원본 → 휴지통
+const qKeys = (vf, del) => { const s = new Set(); Object.values(vf || {}).forEach((m) => Object.values(m || {}).forEach((l) => (Array.isArray(l) ? l : []).forEach((f) => { if (f && f.kind === "r2" && f.key && !!f.del === !!del) s.add(f.key); }))); return s; };
+const pKeys = (c) => { const s = new Set(), add = (o) => { if (origOk(o)) s.add(o.key); }; if (c) { add(c.imgOrig); (c.rows || []).forEach((r) => { add(r.imgOrig); C.vendorsOf(r).forEach((v) => add(v.imgOrig)); }); } return s; };
+async function fileGc(ctx, { id, prev, card, pvf, vf }) {
+  if (FILE_STORE.state !== "ready" || !ctx.allCards || !ctx.allNames) return;   // 다른 카드를 모르면 안 지움
+  const otherQ = new Set(), otherP = new Set();
+  Object.entries(ctx.allNames || {}).forEach(([cid, nm]) => { if (cid !== id) qKeys(nm && nm.vfiles).forEach((k) => otherQ.add(k)); });
+  (ctx.allCards || []).forEach((c) => { if (c.id !== id && !c.deleted) pKeys(c).forEach((k) => otherP.add(k)); });
+  /* 지울 후보 = 저장 전에 있던 것 + 이번에 올린 것(저장 전에 빼거나 바꾼 것 포함) + 이번에 뺀 것 → 지금 어디에도 안 쓰면 휴지통 */
+  const before = qKeys(pvf), after = qKeys(vf), wasDel = qKeys(pvf, true), nowDel = qKeys(vf, true), ops = [];
+  new Set([...before, ...FILE_STORE.sess.quote, ...[...nowDel].filter((k) => !wasDel.has(k))]).forEach((k) => { if (!after.has(k) && !otherQ.has(k)) ops.push(["del", k]); });
+  after.forEach((k) => { if (wasDel.has(k)) ops.push(["restore", k]); });
+  const pb = pKeys(prev), pa = pKeys(card);
+  new Set([...pb, ...FILE_STORE.sess.photo]).forEach((k) => { if (!pa.has(k) && !otherP.has(k)) ops.push(["del", k]); });
+  FILE_STORE.sess.quote.clear(); FILE_STORE.sess.photo.clear();
+  const errs = [];
+  for (const [op, k] of ops) { try { await FILE_STORE[op](k); console.log(`[cost-files] ${op === "del" ? "휴지통으로" : "되살림"} ${k}`); } catch (e) { console.error(`[cost-files] ${op} 실패 ${k}`, e); errs.push(e.message || String(e)); } }
+  if (errs.length && ctx.onFileErr) ctx.onFileErr(`파일 정리 ${errs.length}개 못 함: ${errs[0]}`);
+}
 let LAST_SET = null;   /* 일정 설정(cost-ref/schedule) 마지막 값 — 저장 이력에서 기본 양식과 비교할 때 */
 function schedWhat(a, b, tplSteps) {
   /* 처음 일정을 고칠 때(a 없음) = 기본 양식과 비교 — '단계 추가' 가 양식 단계마다 적히지 않게 */
@@ -1232,22 +1254,47 @@ const EMBED = /[?&]embed=1\b/.test(location.search) && window.parent !== window;
 if (EMBED) document.body.classList.add("embed");
 const toParent = (msg) => { if (EMBED) try { window.parent.postMessage(msg, location.origin); } catch (e) {} };
 
-// ── 견적서 파일 저장소 (송희님 선택 전: 'link' = 노션 페이지·파일 링크만 동작) ──
-//  'r2'  = Cloudflare R2 + Pages Functions (/api/quote-files · 파이어베이스 로그인 토큰 → 마스터·경영 열람 확인) — 켜는 순서: scripts/cost-breakdown/QUOTE_FILES.md
-//  'gcs' = Firebase Storage (Blaze 요금제 필요) — 고르면 firebase-storage 스크립트 + storage 규칙 추가
-//  파일 목록(이름·종류·주소/열쇠)은 어느 쪽이든 cost-names/{카드}.vfiles[줄][업체] (마스터·경영 열람만 읽음 — 견적서엔 업체 실명)
+// ── 파일 보관 (Cloudflare R2 · 2026-11-25 송희님 '① R2 확정') — 서버: functions/api/cost-files/[[path]].js · 켜는 순서: scripts/cost-breakdown/QUOTE_FILES.md
+//  견적서 파일 = kind quote (보기 마스터·경영 열람 · 올리기·지우기 마스터) · 사진 원본 = kind photo (보기 마스터·부마스터·경영 열람 · 올리기 마스터)
+//  파일 목록(이름·열쇠)은 cost-names/{카드}.vfiles[줄][업체] · 사진 원본 열쇠는 카드 imgOrig(작은 썸네일 img 는 그대로 카드 안)
+//  버킷 연결 전(/status 의 ready 가 false · 주소가 없음) = '파일 보관 준비 중'만 보이고 다른 기능은 그대로
 const FILE_STORE = {
-  mode: "link",
-  r2: {
-    api: "/api/quote-files",
-    async upload(file, user) { const t = await user.getIdToken(); const r = await fetch(this.api, { method: "POST", headers: { Authorization: "Bearer " + t, "content-type": file.type || "application/octet-stream", "x-file-name": encodeURIComponent(file.name) }, body: file }); if (!r.ok) throw new Error("올리기 실패 " + r.status); return r.json(); },   // → {key, size, type}
-    async blob(f, user) { const t = await user.getIdToken(); const r = await fetch(this.api + "/" + encodeURIComponent(f.key), { headers: { Authorization: "Bearer " + t } }); if (!r.ok) throw new Error("열기 실패 " + r.status); return r.blob(); },
+  api: "/api/cost-files", state: "checking", maxMB: 20, trashDays: 30, _p: null,
+  sess: { quote: new Set(), photo: new Set() },   /* 이번에 올린 열쇠 — 저장할 때 안 쓰게 된 것은 휴지통으로 */
+  check() {
+    if (!this._p) this._p = fetch(this.api + "/status", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => {
+      this.state = j && j.ready ? "ready" : "off"; if (j && j.maxMB) this.maxMB = j.maxMB; if (j && j.trashDays) this.trashDays = j.trashDays;
+      console.log(`[cost-files] 파일 보관 ${this.state === "ready" ? "켜짐" : "준비 중"}`); return this.state;
+    }).catch((e) => { console.warn("[cost-files] 상태 확인 못 함 — 준비 중으로", e); this.state = "off"; return "off"; });
+    return this._p;
   },
-  gcs: { async upload() { throw new Error("Firebase Storage 는 아직 안 켰어요 (Blaze 요금제 필요)"); }, async blob() { throw new Error("Firebase Storage 는 아직 안 켰어요"); } },
+  async call(path, o = {}) {
+    const u = auth.currentUser; if (!u) throw new Error("로그인이 필요해요");
+    const r = await fetch(this.api + path, { ...o, headers: { Authorization: "Bearer " + (await u.getIdToken()), ...(o.headers || {}) } });
+    if (!r.ok) { let m = ""; try { m = (await r.json()).error || ""; } catch (e) {} throw new Error(m || `파일 보관 오류 (${r.status})`); }
+    return r;
+  },
+  async upload(file, kind) {   // → { key, size, type, name, dup }
+    if (file.size > this.maxMB * 1048576) throw new Error(`'${file.name}' ${(file.size / 1048576).toFixed(1)}MB — ${this.maxMB}MB까지 올릴 수 있어요`);
+    if (!/^image\//.test(file.type || "") && !(kind === "quote" && /pdf$/i.test(file.type || file.name || "")) && !/\.(pdf|jpe?g|png|gif|webp|heic|heif)$/i.test(file.name || "")) throw new Error(`'${file.name}' — ${kind === "quote" ? "PDF·이미지" : "이미지"}만 올릴 수 있어요`);
+    const r = await (await this.call("/upload?kind=" + kind, { method: "POST", body: file, headers: { "X-File-Name": encodeURIComponent(file.name || "파일") } })).json();
+    if (!r.dup && this.sess[kind]) this.sess[kind].add(r.key);
+    return r;
+  },
+  async blob(key, name) { return (await this.call("/file/" + key + (name ? "?name=" + encodeURIComponent(name) : ""))).blob(); },
+  async del(key) { return (await this.call("/file/" + key, { method: "DELETE" })).json(); },
+  async restore(key) { return (await this.call("/restore/" + key, { method: "POST" })).json(); },
 };
-const canUpload = () => FILE_STORE.mode === "r2" || FILE_STORE.mode === "gcs";
-const FILE_KIND = { notion: "노션", link: "링크", r2: "파일", gcs: "파일" };
-const fileCount = (names) => { let n = 0; Object.values((names && names.vfiles) || {}).forEach((m) => Object.values(m || {}).forEach((l) => { n += Array.isArray(l) ? l.length : 0; })); return n; };
+function useFileStore() {
+  const [st, setSt] = useState(FILE_STORE.state);
+  useEffect(() => { let on = true; FILE_STORE.check().then((v) => { if (on) setSt(v); }); return () => { on = false; }; }, []);
+  return st;
+}
+const FS_OFF = "📦 파일 보관 준비 중 — Cloudflare 설정이 끝나면 켜져요";
+const mbTxt = (b) => (b >= 1048576 ? (b / 1048576).toFixed(1) + "MB" : Math.max(1, Math.round((b || 0) / 1024)) + "KB");
+const openBlob = (b, name, dl) => { const u = URL.createObjectURL(b); if (dl) { const a = document.createElement("a"); a.href = u; a.download = name || "파일"; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(u); a.remove(); }, 1500); } return u; };
+const FILE_KIND = { notion: "노션", link: "링크", r2: "파일" };
+const fileCount = (names) => { let n = 0; Object.values((names && names.vfiles) || {}).forEach((m) => Object.values(m || {}).forEach((l) => { n += Array.isArray(l) ? l.filter((f) => f && !f.del).length : 0; })); return n; };
 
 // 따로 열었을 때 위쪽 머리 (대시보드 리본과 같은 모양)
 function TopBar({ user, role, kline }) {
@@ -1443,7 +1490,7 @@ function GridTable({ items, open, grouped, seeNames }) {
       if (m !== lm) { rows.push(html`<tr class="l2" key=${"m" + b + m}><td colspan="9">▸ ${m}<span class="n">${items.filter((x) => (x.c.brand || "브랜드 없음") === b && (C.methodName(x.c.method) || "생산 방식 미정") === m).length}</span></td></tr>`); lm = m; }
     }
     rows.push(html`<tr key=${i.c.id} class="go" onClick=${() => open(i.c.id)}>
-      <td class="stk" style=${{ minWidth: 190 }}><div style=${{ display: "flex", gap: 8, alignItems: "center" }}><${ImgSlot} src=${i.c.img} ro=${true} size=${30} title=${i.c.item} /><div style=${{ minWidth: 0 }}><div class="pname">${i.c.item || "(품목 없음)"}</div><div class="pspec">${[i.c.spec, i.c.round, !grouped ? i.c.brand : "", i.mfg].filter(Boolean).join(" · ")} ${i.need ? html`<span class="tag need">분해 필요</span>` : ""}${i.nt ? html` <span class="tag nt">노션</span>` : ""}${i.ndel ? html` <span class="tag ndel">노션 삭제 ${i.ndel}</span>` : ""}${i.samples ? html` <span class="tag need">샘플 ${i.samples}</span>` : ""}</div></div></div></td>
+      <td class="stk" style=${{ minWidth: 190 }}><div style=${{ display: "flex", gap: 8, alignItems: "center" }}><${ImgSlot} src=${i.c.img} orig=${i.c.imgOrig} ro=${true} size=${30} title=${i.c.item} /><div style=${{ minWidth: 0 }}><div class="pname">${i.c.item || "(품목 없음)"}</div><div class="pspec">${[i.c.spec, i.c.round, !grouped ? i.c.brand : "", i.mfg].filter(Boolean).join(" · ")} ${i.need ? html`<span class="tag need">분해 필요</span>` : ""}${i.nt ? html` <span class="tag nt">노션</span>` : ""}${i.ndel ? html` <span class="tag ndel">노션 삭제 ${i.ndel}</span>` : ""}${i.samples ? html` <span class="tag need">샘플 ${i.samples}</span>` : ""}</div></div></div></td>
       <td class="nw hm">${C.methodName(i.c.method) || html`<span class="dim">미정</span>`}</td>
       <td class="nw hm">${i.c.origin || html`<span class="dim">—</span>`}</td>
       <td class="num"><b>${W(i.x.unit)}</b><div class="sub">${reflTag(i)}</div></td>
@@ -1618,11 +1665,36 @@ async function makeThumb(file) {
   }
   throw new Error("사진을 30KB 아래로 못 줄였어요");
 }
-function ImgSlot({ src, onSet, ro, size = 30, title, faded }) {
-  const [over, setOver] = useState(false), [big, setBig] = useState(false), [busy, setBusy] = useState(false), ref = useRef(null);
-  const take = async (f) => { if (!f || ro) return; setBusy(true); try { onSet(await makeThumb(f)); } catch (e) { alert(e.message || e); } setBusy(false); };
+function ImgSlot({ src, orig, onSet, ro, size = 30, title, faded }) {
+  const fs = useFileStore();
+  const [over, setOver] = useState(false), [big, setBig] = useState(false), [busy, setBusy] = useState(false), [ov, setOv] = useState(null), [obusy, setObusy] = useState(""), ref = useRef(null);
+  useEffect(() => () => { if (ov) URL.revokeObjectURL(ov.u); }, [ov]);
+  /* 넣기: 썸네일(카드 안) + 파일 보관이 켜져 있으면 원본(R2 · 마스터) */
+  const take = async (f) => {
+    if (!f || ro) return; setBusy(true);
+    try {
+      const t = await makeThumb(f); let o = "";
+      if (FILE_STORE.state === "ready") {
+        try { const r = await FILE_STORE.upload(f, "photo"); o = { key: r.key, name: r.name || f.name, size: r.size, type: r.type }; }
+        catch (e) { console.error("[cost-files] 사진 원본 올리기 실패", e); alert("썸네일은 넣었어요 · 원본은 못 올렸어요: " + (e.message || e)); }
+      }
+      onSet(t, o); setOv(null);
+    } catch (e) { alert(e.message || e); }
+    setBusy(false);
+  };
   const pick = () => { if (ref.current) ref.current.click(); };
+  const hasOrig = !!(orig && orig.key);
+  const openOrig = async (dl) => {
+    setObusy(dl ? "내려받는 중…" : "원본 여는 중…");
+    try { const b = await FILE_STORE.blob(orig.key, orig.name), u = openBlob(b, orig.name || "사진", dl); if (!dl) setOv({ u, type: b.type || orig.type || "" }); }
+    catch (e) { console.error("[cost-files] 사진 원본 열기 실패", e); alert(e.message || e); }
+    setObusy("");
+  };
   if (ro && !src) return html`<span class="thumb nopic" style=${{ width: size, height: size, cursor: "default" }} title=${title || ""}></span>`;
+  const origLine = hasOrig
+    ? (fs === "ready" ? html`원본 ${mbTxt(orig.size)} · <button type="button" class="lnk" onClick=${() => openOrig(false)}>원본 보기</button> · <button type="button" class="lnk" onClick=${() => openOrig(true)}>내려받기</button>${obusy ? " · " + obusy : ""}`
+      : fs === "checking" ? "원본 확인 중…" : FS_OFF)
+    : fs === "ready" ? "원본 없음 — 썸네일만 있어요 (파일 보관을 켜기 전에 넣은 사진)" : fs === "off" ? `썸네일(긴 변 320px) · 원본 = ${FS_OFF}` : "";
   return html`<${React.Fragment}><span class=${"thumb" + (src ? " has" : " nopic") + (over ? " over" : "") + (faded ? " faded" : "")} style=${{ width: size, height: size }} tabIndex="0" role="button"
       title=${src ? (title || "사진") + " · 누르면 크게" : `${title || "사진"} 넣기 — 누르기 · 끌어다 놓기 · 누른 뒤 Ctrl+V`} aria-label=${(title || "사진") + (src ? " 크게 보기" : " 넣기")}
       onClick=${(e) => { e.stopPropagation(); if (src) setBig(true); else pick(); }} onKeyDown=${(e) => { if (e.key === "Enter") { e.preventDefault(); if (src) setBig(true); else pick(); } }}
@@ -1630,13 +1702,14 @@ function ImgSlot({ src, onSet, ro, size = 30, title, faded }) {
       onDrop=${(e) => { if (ro) return; e.preventDefault(); e.stopPropagation(); setOver(false); take([...((e.dataTransfer && e.dataTransfer.files) || [])].find((x) => /^image\//.test(x.type))); }}
       onPaste=${(e) => { if (ro) return; const it = [...(((e.clipboardData || {}).items) || [])].find((x) => /^image\//.test(x.type)); if (it) { e.preventDefault(); take(it.getAsFile()); } }}>
       ${busy ? "…" : src ? html`<img src=${src} alt="" />` : "＋"}</span>
-    ${!ro && html`<input ref=${ref} type="file" accept="image/*" style=${{ display: "none" }} onChange=${(e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; take(f); }} />`}
-    ${big && html`<div class="modal" role="dialog" aria-label="사진" onClick=${(e) => { e.stopPropagation(); if (e.target === e.currentTarget) setBig(false); }}><div class="box" style=${{ width: 460 }}>
-      <div class="mh">🖼 ${title || "사진"}<span class="sp"></span><button type="button" onClick=${() => setBig(false)}>닫기</button></div>
+    ${!ro && html`<input ref=${ref} type="file" accept="image/*" style=${{ display: "none" }} aria-label=${(title || "사진") + " 파일"} onChange=${(e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; take(f); }} />`}
+    ${big && html`<div class="modal" role="dialog" aria-label="사진" onClick=${(e) => { e.stopPropagation(); if (e.target === e.currentTarget) { setBig(false); setOv(null); } }}><div class="box" style=${{ width: ov ? 760 : 460 }}>
+      <div class="mh">🖼 ${title || "사진"}${ov ? " · 원본" : ""}<span class="sp"></span><button type="button" onClick=${() => { setBig(false); setOv(null); }}>닫기</button></div>
       <div class="mb" style=${{ textAlign: "center" }} tabIndex="0" onPaste=${(e) => { const it = [...(((e.clipboardData || {}).items) || [])].find((x) => /^image\//.test(x.type)); if (it && !ro) { e.preventDefault(); take(it.getAsFile()); } }}>
-        <img src=${src} alt=${title || ""} style=${{ width: "100%", maxWidth: 420, maxHeight: "60vh", objectFit: "contain", borderRadius: 6, background: "#F7F8F9" }} />
-        <div class="note">썸네일(긴 변 320px · ${Math.round(b64bytes(src) / 1024)}KB) — 원본 큰 사진은 견적서 저장소가 정해지면 같이 둬요</div>
-        ${!ro && html`<div style=${{ display: "flex", gap: 8, justifyContent: "center", marginTop: 10 }}><button type="button" class="tbtn" onClick=${pick}>바꾸기</button><button type="button" class="tbtn red" onClick=${() => { onSet(""); setBig(false); }}>빼기</button></div><div class="note">[저장]해야 반영돼요 · 이 창에서 Ctrl+V 로 바꿀 수도 있어요</div>`}
+        ${ov && !/^image\/(jpeg|png|gif|webp)/.test(ov.type) ? html`<div class="note">이 형식(${ov.type || "?"})은 화면에서 못 보여 줘요 — [내려받기]로 열어 주세요</div>`
+          : html`<img src=${ov ? ov.u : src} alt=${title || ""} style=${{ width: "100%", maxWidth: ov ? 720 : 420, maxHeight: "65vh", objectFit: "contain", borderRadius: 6, background: "#F7F8F9" }} />`}
+        <div class="note">${ov ? html`원본 ${mbTxt(orig.size)} · <button type="button" class="lnk" onClick=${() => setOv(null)}>썸네일로</button>` : html`썸네일 ${Math.round(b64bytes(src) / 1024)}KB · `}${!ov ? origLine : ""}</div>
+        ${!ro && html`<div style=${{ display: "flex", gap: 8, justifyContent: "center", marginTop: 10 }}><button type="button" class="tbtn" onClick=${pick}>바꾸기</button><button type="button" class="tbtn red" onClick=${() => { onSet("", ""); setBig(false); setOv(null); }}>빼기</button></div><div class="note">[저장]해야 반영돼요 · 이 창에서 Ctrl+V 로 바꿀 수도 있어요${fs === "ready" ? " · 원본도 같이 보관돼요" : ""}</div>`}
       </div></div></div>`}<//>`;
 }
 
@@ -1719,7 +1792,7 @@ function CardSheet({ id, ctx, onClose, onSaved }) {
     if (!String(d.item || "").trim()) { setToast("품목 이름을 넣어 주세요"); return; }
     setBusy(true);
     try {
-      const r = await saveCard({ user, amap: { ...(S.alias || {}) }, mfgList: S.mfgList }, { id: card ? card.id : "", prev: card, prevNames: names, d, nm, why });
+      const r = await saveCard({ user, amap: { ...(S.alias || {}) }, mfgList: S.mfgList, allCards: S.cards, allNames: S.names, onFileErr: (m) => setToast(m) }, { id: card ? card.id : "", prev: card, prevNames: names, d, nm, why });
       if (r.same) setToast("바뀐 것이 없어요");
       else { setToast(card ? "저장했어요 · 이력에 남았어요" : "새 품목을 만들었어요"); setWhy(""); const nd = toEdit(r.doc); base.current = stable({ d: nd, nm: r.names }); setD(nd); setNm(r.names); if (!card) onSaved(r.id); }
     } catch (e) { console.error("[cost-cards] 저장 실패", e); setToast("저장 못 했어요: " + (e.code || e.message)); }
@@ -1746,15 +1819,15 @@ function CardSheet({ id, ctx, onClose, onSaved }) {
   const supI = (v) => { const x = seeNames && v.nsid && S.notion && (S.notion.suppliers || {})[v.nsid]; if (!x) return "";
     const st = (n) => (n === "" || n == null ? "" : "★" + n); return [x.type, x.region, x.pay && "결제 " + x.pay, x.move && "이동비 " + x.move, st(x.quality) && "품질 " + st(x.quality), st(x.onTime) && "납기 " + st(x.onTime)].filter(Boolean).join(" · "); };
   const nTags = (r, v) => html`${v.nst === "탈락" ? html` <span class="tag off">탈락</span>` : v.nad ? html` <span class="tag has" title="노션에서 채택한 견적">채택</span>` : v.nst ? html` <span class="tag off">${v.nst}</span>` : ""}${isNotion(v) ? html` <span class="tag nt" title=${v.nno ? "노션 견적 " + v.nno : "노션 견적"}>노션</span>` : ""}${v.ndel ? html` <span class="tag ndel" title="노션에서 지운 견적 — 계산엔 그대로(빼려면 ✕)">노션에서 삭제됨</span>` : ""}${isNotion(v) && vUrl(r, v) ? html` <a class="lnk" style=${{ fontSize: 11 }} href=${vUrl(r, v)} target="_blank" rel="noopener">노션에서 고치기 ↗</a>` : ""}`;
-  const fileBtn = (r, v) => { if (!seeNames) return html`<span class="dim" title="견적서는 마스터·경영 열람만">—</span>`; const n = vFiles(r, v).length;
+  const fileBtn = (r, v) => { if (!seeNames) return html`<span class="dim" title="견적서는 마스터·경영 열람만">—</span>`; const n = vFiles(r, v).filter((f) => !f.del).length;
     return html`<button type="button" class="tbtn sm" onClick=${() => setFilesFor({ rid: r.id, vid: v.vid, lb: `${r.name || r.kind || "구성요소"} · ${v.vid} ${vName(r, v) || ""}` })} title="견적서 (PDF·이미지·노션)">📎 ${n || (isM ? "＋" : 0)}</button>`; };
   const vbtn = (r) => { const a = av(r), k = r.vendors.indexOf(a), on = !!openV[r.id];
     return html`<button type="button" class=${"vbtn" + (on ? " on" : "")} onClick=${() => setOpenV((o) => ({ ...o, [r.id]: !o[r.id] }))} aria-expanded=${on} title="업체 여러 곳 · 단가 비교">${vLabel(a, k)}${r.vendors.length > 1 ? html` <b>${r.vendors.length}곳</b>` : ""} ${on ? "▴" : "▾"}</button>`; };
   const priceIn = (r, i) => { const a = av(r); return html`<div class="pcur">${vin(i, a, "price", { num: true, ph: "0", al: "견적 단가" })}${a.cur ? html`<span class="cu">${a.cur}</span>` : ""}</div>`; };
   const SET = ctx.SET, sx = useMemo(() => C.schedule(live, SET, ctx.today), [live, SET]);
   const swapOf = (rid, vid) => { try { return C.swapDays(live, SET, ctx.today, rid, vid).days; } catch (e) { return null; } };
-  const vImg = (i, v) => html`<${ImgSlot} src=${v.img} onSet=${(val) => setV(i, v.vid, "img", val)} ro=${ro} size=${26} title=${`${v.vid} 업체 사진`} />`;
-  const rowImg = (r, v) => html`<${ImgSlot} src=${(v && v.img) || r.img} ro=${true} size=${26} title=${r.name || "구성요소"} />`;
+  const vImg = (i, v) => html`<${ImgSlot} src=${v.img} orig=${v.imgOrig} onSet=${(val, o) => upRow(i, (r) => ({ ...r, vendors: r.vendors.map((x) => (x.vid === v.vid ? { ...x, img: val, imgOrig: o || "" } : x)) }))} ro=${ro} size=${26} title=${`${v.vid} 업체 사진`} />`;
+  const rowImg = (r, v) => html`<${ImgSlot} src=${(v && v.img) || r.img} orig=${v && v.img ? v.imgOrig : r.imgOrig} ro=${true} size=${26} title=${r.name || "구성요소"} />`;
   const leadBad = (v) => String(v.lead ?? "").trim() !== "" && C.leadDays(v.lead) == null;
   const showShip = live.origin === "수입" || d.rows.some((r) => r.vendors.some((v) => v.cur || String(v.ship || "").trim()));
   const bytes = useMemo(() => docBytes({ ...live, history: (card && card.history) || [] }), [live]);
@@ -1764,7 +1837,7 @@ function CardSheet({ id, ctx, onClose, onSaved }) {
       <input class="in why" placeholder="바꾼 이유 (선택 · 이력에 남아요)" value=${why} onInput=${(e) => setWhy(e.target.value)} aria-label="바꾼 이유" />
       <button type="button" class="tbtn primary" style=${{ height: 32, padding: "0 18px" }} disabled=${busy || (!dirty && !!card)} onClick=${save}>${busy ? "저장 중…" : card ? "저장" : "만들기"}</button>
     </div></div>` : "";
-  const meta = html`<${ImgSlot} src=${d.img} onSet=${(v) => set("img", v)} ro=${ro} size=${36} title="완제품 사진" /><span>${live.brand || "브랜드 —"} · ${live.round || "차수 —"} · ${C.methodName(live.method) || "생산 방식 미정"}${live.origin ? " · " + live.origin : ""}</span>${stTag2(cst)}${live.need ? html`<span class="tag need">분해 필요</span>` : ""}${ro ? html`<span class="tag off">보기 전용</span>` : ""}${card && card.updatedAt ? html`<span>마지막 ${who(card.updatedBy)} ${whenTxt(card.updatedAt)}</span>` : ""}`;
+  const meta = html`<${ImgSlot} src=${d.img} orig=${d.imgOrig} onSet=${(v, o) => setD((x) => ({ ...x, img: v, imgOrig: o || "" }))} ro=${ro} size=${36} title="완제품 사진" /><span>${live.brand || "브랜드 —"} · ${live.round || "차수 —"} · ${C.methodName(live.method) || "생산 방식 미정"}${live.origin ? " · " + live.origin : ""}</span>${stTag2(cst)}${live.need ? html`<span class="tag need">분해 필요</span>` : ""}${ro ? html`<span class="tag off">보기 전용</span>` : ""}${card && card.updatedAt ? html`<span>마지막 ${who(card.updatedBy)} ${whenTxt(card.updatedAt)}</span>` : ""}`;
   return html`<${Frame} title=${title} meta=${meta} close=${close} rawClose=${onClose} bar=${bar} tab=${tab} setTab=${setTab}
       tabs=${[["cost", "원가 계산"], ["cmp", "업체 비교", multiN || null], ["sched", "일정", sx && sx.ready ? "상차 " + (+sx.ready.slice(5, 7)) + "/" + (+sx.ready.slice(8, 10)) : null], ["hist", "이력", card && card.history ? card.history.length : 0]]}
       right=${isM && card ? html`<button type="button" class="tbtn red" onClick=${del}>휴지통</button>` : ""}>
@@ -1812,7 +1885,7 @@ function CardSheet({ id, ctx, onClose, onSaved }) {
             <th class="num">개당 금액</th><th class="num">첫 생산 남는 비용</th><th style=${{ minWidth: 110 }}>견적일·출처</th><th style=${{ width: 96 }}>상태</th>${!ro && html`<th></th>`}</tr></thead>
           <tbody>${d.rows.map((r, i) => { const m = rcalc(r), a = av(r); return html`<${React.Fragment} key=${r.id}><tr class=${openV[r.id] ? "vopen" : ""}>
             <td class="nw">${!ro && html`<button class="mv" title="위로" onClick=${() => mvRow(i, -1)}>▲</button>`}${i + 1}${!ro && html`<button class="mv" title="아래로" onClick=${() => mvRow(i, 1)}>▼</button>`}</td>
-            <td><${ImgSlot} src=${r.img} onSet=${(v) => setR(i, "img", v)} ro=${ro} size=${28} title=${(r.name || "구성요소") + " 사진"} /></td>
+            <td><${ImgSlot} src=${r.img} orig=${r.imgOrig} onSet=${(v, o) => upRow(i, (x) => ({ ...x, img: v, imgOrig: o || "" }))} ro=${ro} size=${28} title=${(r.name || "구성요소") + " 사진"} /></td>
             <td>${sel(r.kind, (v) => setR(i, "kind", v), KIND_OPTS, { al: "구분" })}</td>
             <td>${inp(r.name, (v) => setR(i, "name", v), { ph: "예: 용기", al: "구성 요소" })}</td>
             <td>${inp(r.use, (v) => setR(i, "use", v), { ph: r.kind === "1회 비용" ? "대상 박스·통·파우치" : "쓰임", al: "무엇에 쓰는지" })}${hint1(r)}</td>
@@ -1831,7 +1904,7 @@ function CardSheet({ id, ctx, onClose, onSaved }) {
           </tr>${openV[r.id] && html`<tr class="vrow"><td colspan=${ro ? 17 : 18}><${VendorTable} r=${r} i=${i} cx=${cmp[live.rows.findIndex((y) => y.id === r.id)]} ...${vProps} /></td></tr>`}<//>`; })}</tbody>
           <tfoot><tr><td colspan="13" style=${{ textAlign: "right" }}>합계</td><td class="c">${fmt(x.unit)}</td><td class="c">${fmt(x.leftSum, 0)}</td><td colspan=${ro ? 2 : 3}>근거 확인 ${x.ok}/${x.n}</td></tr></tfoot></table></div>`
         : html`<div>${d.rows.map((r, i) => { const m = rcalc(r), a = av(r); return html`<div class="rc" key=${r.id}>
-            <div class="rh"><span class="no">${i + 1}</span><${ImgSlot} src=${r.img} onSet=${(v) => setR(i, "img", v)} ro=${ro} size=${32} title=${(r.name || "구성요소") + " 사진"} />${sel(r.kind, (v) => setR(i, "kind", v), KIND_OPTS, { al: "구분" })}${!ro && html`<button type="button" class="tbtn sm" onClick=${() => mvRow(i, -1)} aria-label="위로">▲</button><button type="button" class="tbtn sm red" onClick=${() => rmRow(i)} aria-label="줄 빼기">✕</button>`}</div>
+            <div class="rh"><span class="no">${i + 1}</span><${ImgSlot} src=${r.img} orig=${r.imgOrig} onSet=${(v, o) => upRow(i, (x) => ({ ...x, img: v, imgOrig: o || "" }))} ro=${ro} size=${32} title=${(r.name || "구성요소") + " 사진"} />${sel(r.kind, (v) => setR(i, "kind", v), KIND_OPTS, { al: "구분" })}${!ro && html`<button type="button" class="tbtn sm" onClick=${() => mvRow(i, -1)} aria-label="위로">▲</button><button type="button" class="tbtn sm red" onClick=${() => rmRow(i)} aria-label="줄 빼기">✕</button>`}</div>
             <div class="g">
               <div class="fld w2"><label>구성 요소</label>${inp(r.name, (v) => setR(i, "name", v), { ph: "예: 용기", al: "구성 요소" })}</div>
               <div class="fld w2"><label>무엇에 쓰는지</label>${inp(r.use, (v) => setR(i, "use", v), { ph: r.kind === "1회 비용" ? "대상 박스·통·파우치" : "쓰임", al: "무엇에 쓰는지" })}${hint1(r)}</div>
@@ -2030,38 +2103,68 @@ function ReqButton({ ctx, card, live, unit, pt }) {
 }
 // ── 견적서 (업체 × 구성요소마다 여러 개) — 마스터·경영 열람만 (견적서엔 업체 실명) ──
 function FilesModal({ title, files, canEdit, notionUrl, onChange, onClose, user }) {
-  const [nmTxt, setNmTxt] = useState(""), [url, setUrl] = useState(""), [pv, setPv] = useState(null), [busy, setBusy] = useState("");
-  const okUrl = /^https?:\/\/\S+$/i.test(url.trim());
+  const fs = useFileStore();
+  const [nmTxt, setNmTxt] = useState(""), [url, setUrl] = useState(""), [pv, setPv] = useState(null), [busy, setBusy] = useState(""), [msg, setMsg] = useState("");
+  const ref = useRef(files); ref.current = files;
+  useEffect(() => () => { if (pv) URL.revokeObjectURL(pv.u); }, [pv]);
+  const okUrl = /^https?:\/\/\S+$/i.test(url.trim()), now = Date.now(), TD = FILE_STORE.trashDays * 864e5;
+  const act = files.filter((f) => !f.del), gone = files.filter((f) => f.del && now - Date.parse(f.del) < TD);
   const add = () => { if (!okUrl) return; onChange([...files, { id: "f" + Date.now().toString(36), name: nmTxt.trim() || "견적서", kind: "link", url: url.trim(), at: new Date().toISOString(), by: (user && user.email) || "" }]); setNmTxt(""); setUrl(""); };
-  const rm = (f) => { if (confirm(`'${f.name}' 을(를) 목록에서 뺄까요? ([저장]해야 반영)`)) onChange(files.filter((x) => x.id !== f.id)); };
-  const upload = async (fl) => { if (!fl || !canUpload()) return; setBusy("올리는 중…");
-    try { const r = await FILE_STORE[FILE_STORE.mode].upload(fl, user); onChange([...files, { id: "f" + Date.now().toString(36), name: fl.name, kind: FILE_STORE.mode, key: r.key, size: r.size || fl.size, type: r.type || fl.type, at: new Date().toISOString(), by: user.email || "" }]); }
-    catch (e) { alert(e.message || e); } setBusy(""); };
-  const look = async (f, dl) => { setBusy("여는 중…");
-    try { const b = await FILE_STORE[f.kind].blob(f, user), u = URL.createObjectURL(b);
-      if (dl) { const a = document.createElement("a"); a.href = u; a.download = f.name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(u); a.remove(); }, 1500); }
-      else setPv({ u, type: b.type || f.type || "", name: f.name }); }
-    catch (e) { alert(e.message || e); } setBusy(""); };
+  const rm = (f) => {
+    if (f.kind === "r2") { if (confirm(`'${f.name}' 을(를) 뺄까요?\n[저장]하면 파일은 휴지통으로 가요 (${FILE_STORE.trashDays}일 동안 되살릴 수 있어요)`)) onChange(files.map((x) => (x.id === f.id ? { ...x, del: new Date().toISOString(), delBy: (user && user.email) || "" } : x))); return; }
+    if (confirm(`'${f.name}' 을(를) 목록에서 뺄까요? ([저장]해야 반영)`)) onChange(files.filter((x) => x.id !== f.id));
+  };
+  const back = (f) => onChange(files.map((x) => (x.id === f.id ? { ...x, del: "", delBy: "" } : x)));
+  const uploadAll = async (list) => {
+    if (fs !== "ready" || !list.length) return; let cur = ref.current; const notes = [];
+    for (const fl of list) {
+      setBusy(`올리는 중… ${fl.name}`);
+      try {
+        const r = await FILE_STORE.upload(fl, "quote");
+        const same = cur.find((x) => x.kind === "r2" && x.key === r.key);
+        if (same && !same.del) notes.push(`'${fl.name}' = 이미 있는 '${same.name}'와 같은 파일이라 하나로 뒀어요`);
+        else if (same) { cur = cur.map((x) => (x === same ? { ...x, del: "", delBy: "" } : x)); notes.push(`'${fl.name}' = 뺀 파일과 같아서 되살렸어요`); }
+        else cur = [...cur, { id: "f" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), name: r.name || fl.name, kind: "r2", key: r.key, size: r.size, type: r.type, at: new Date().toISOString(), by: (user && user.email) || "" }];
+        onChange(cur);
+      } catch (e) { console.error("[cost-files] 견적서 올리기 실패", e); notes.push(`'${fl.name}' 못 올림: ${e.message || e}`); }
+    }
+    setBusy(""); setMsg(notes.join(" · "));
+  };
+  const look = async (f, dl) => {
+    setBusy("여는 중…");
+    try { const b = await FILE_STORE.blob(f.key, f.name), u = openBlob(b, f.name, dl); if (!dl) { if (pv) URL.revokeObjectURL(pv.u); setPv({ u, type: b.type || f.type || "", name: f.name }); } }
+    catch (e) { console.error("[cost-files] 견적서 열기 실패", e); alert(e.message || e); }
+    setBusy("");
+  };
+  const r2Btns = (f) => (fs === "ready"
+    ? html`<button type="button" class="tbtn sm" onClick=${() => look(f)}>미리보기</button> <button type="button" class="tbtn sm" onClick=${() => look(f, true)}>내려받기</button>`
+    : html`<span class="dim" style=${{ fontSize: 11.5 }}>${fs === "checking" ? "확인 중…" : "파일 보관 준비 중"}</span>`);
   return html`<div class="modal" role="dialog" aria-label="견적서" onClick=${(e) => { if (e.target === e.currentTarget) onClose(); }}><div class="box">
     <div class="mh">📎 견적서<span style=${{ fontWeight: 500, fontSize: 12, opacity: 0.85 }}>${title}</span><span class="sp"></span><button type="button" onClick=${onClose}>닫기</button></div>
     <div class="mb">
       ${notionUrl && html`<div class="note" style=${{ marginTop: 0 }}>노션 견적 페이지: <a class="lnk" href=${notionUrl} target="_blank" rel="noopener">열기 ↗</a></div>`}
-      ${files.length ? html`<table class="grid" style=${{ marginTop: 6 }}><thead><tr><th>이름</th><th>종류</th><th></th></tr></thead><tbody>${files.map((f) => html`<tr key=${f.id}>
-          <td>${f.name}${f.at ? html`<div class="sub">${who(f.by)} ${whenTxt(f.at)}</div>` : ""}</td><td class="nw"><span class=${"tag " + (f.kind === "notion" ? "nt" : "ok")}>${FILE_KIND[f.kind] || f.kind}</span></td>
-          <td class="nw">${f.url ? html`<a class="tbtn sm" href=${f.url} target="_blank" rel="noopener">열기 ↗</a>` : html`<button type="button" class="tbtn sm" onClick=${() => look(f)}>미리보기</button> <button type="button" class="tbtn sm" onClick=${() => look(f, true)}>내려받기</button>`}
+      ${act.length ? html`<table class="grid" style=${{ marginTop: 6 }}><thead><tr><th>이름</th><th>종류</th><th></th></tr></thead><tbody>${act.map((f) => html`<tr key=${f.id}>
+          <td style=${{ whiteSpace: "normal", wordBreak: "break-all" }}>${f.name}${f.at ? html`<div class="sub">${f.size ? mbTxt(f.size) + " · " : ""}${who(f.by)} ${whenTxt(f.at)}</div>` : ""}</td><td class="nw"><span class=${"tag " + (f.kind === "notion" ? "nt" : "ok")}>${FILE_KIND[f.kind] || f.kind}</span></td>
+          <td class="nw">${f.url ? html`<a class="tbtn sm" href=${f.url} target="_blank" rel="noopener">열기 ↗</a>` : f.kind === "r2" ? r2Btns(f) : html`<span class="dim">—</span>`}
             ${canEdit && f.kind !== "notion" ? html` <button type="button" class="tbtn sm red" onClick=${() => rm(f)}>빼기</button>` : ""}</td></tr>`)}</tbody></table>`
         : html`<div class="empty" style=${{ padding: 16 }}>아직 견적서가 없어요.</div>`}
+      ${canEdit && gone.length > 0 && html`<div style=${{ marginTop: 10 }}><div style=${{ fontWeight: 700, fontSize: 12.5, marginBottom: 4 }}>뺀 파일 <span class="dim" style=${{ fontWeight: 500 }}>(${FILE_STORE.trashDays}일 동안 되살릴 수 있어요)</span></div>
+        ${gone.map((f) => html`<div key=${f.id} class="mline" style=${{ alignItems: "center", opacity: 0.75, marginTop: 4 }}><span style=${{ flex: 1, minWidth: 0, wordBreak: "break-all" }}>${f.name} <span class="sub">${who(f.delBy)} ${whenTxt(f.del)} 뺌</span></span><button type="button" class="tbtn sm" onClick=${() => back(f)}>되살리기</button></div>`)}</div>`}
       ${canEdit && html`<div style=${{ marginTop: 12, borderTop: "1px solid var(--grid2)", paddingTop: 10 }}>
-        <div style=${{ fontWeight: 700, fontSize: 12.5, marginBottom: 6 }}>링크 붙이기 <span class="dim" style=${{ fontWeight: 500 }}>(노션 견적서 페이지·파일 주소)</span></div>
+        <div style=${{ fontWeight: 700, fontSize: 12.5, marginBottom: 6 }}>파일 올리기 <span class="dim" style=${{ fontWeight: 500 }}>(PDF·이미지 · ${FILE_STORE.maxMB}MB까지 · 같은 파일은 하나로)</span></div>
+        ${fs === "ready" ? html`<div style=${{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <label class="tbtn primary" style=${busy ? { opacity: 0.6 } : null}>📄 파일 고르기<input type="file" accept="application/pdf,image/*" multiple style=${{ display: "none" }} disabled=${!!busy} aria-label="견적서 파일" onChange=${(e) => { const l = [...(e.target.files || [])]; e.target.value = ""; uploadAll(l); }} /></label>
+            <span class="note" style=${{ margin: 0 }}>${busy || "고르면 바로 보관함에 올라가요 · 목록은 [저장]해야 남아요"}</span></div>`
+          : html`<div class="note" style=${{ margin: 0 }}>${fs === "checking" ? "파일 보관 확인 중…" : FS_OFF + " · 지금은 아래 링크(노션 견적서 페이지)로"}</div>`}
+        ${msg && html`<div class="note" style=${{ color: /못 올림/.test(msg) ? "var(--red)" : null }}>${msg}</div>`}
+        <div style=${{ fontWeight: 700, fontSize: 12.5, margin: "12px 0 6px" }}>링크 붙이기 <span class="dim" style=${{ fontWeight: 500 }}>(노션 견적서 페이지·파일 주소)</span></div>
         <div class="mline"><div class="fld" style=${{ width: 160 }}><label>이름</label><input class="in" value=${nmTxt} placeholder="예: 2026-10 견적서" onInput=${(e) => setNmTxt(e.target.value)} aria-label="견적서 이름" /></div>
           <div class="fld" style=${{ flex: 1, minWidth: 200 }}><label>주소</label><input class="in" value=${url} placeholder="https://www.notion.so/…" onInput=${(e) => setUrl(e.target.value)} aria-label="견적서 주소" /></div>
           <button type="button" class="tbtn primary" disabled=${!okUrl} onClick=${add}>붙이기</button></div>
-        <div style=${{ marginTop: 10, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <label class="tbtn" style=${canUpload() ? null : { opacity: 0.45, cursor: "default" }}>📄 파일 올리기 (PDF·이미지)<input type="file" accept="application/pdf,image/*" multiple style=${{ display: "none" }} disabled=${!canUpload() || !!busy} onChange=${(e) => { [...(e.target.files || [])].forEach(upload); e.target.value = ""; }} /></label>
-          <span class="note" style=${{ margin: 0 }}>${canUpload() ? busy : "파일 저장소를 정하면 켜져요 — 지금은 노션 견적서 페이지 링크로"}</span></div>
         <div class="note">[저장]해야 반영돼요 · 노션에서 온 견적서는 노션에서 고쳐요.</div></div>`}
+      ${!canEdit && fs === "off" && act.some((f) => f.kind === "r2") ? html`<div class="note">${FS_OFF}</div>` : ""}
       ${pv && html`<div style=${{ marginTop: 10 }}><div class="note" style=${{ marginTop: 0 }}>${pv.name} <button type="button" class="lnk" onClick=${() => { URL.revokeObjectURL(pv.u); setPv(null); }}>닫기</button></div>
-        ${/^image\//.test(pv.type) ? html`<img src=${pv.u} alt=${pv.name} style=${{ maxWidth: "100%" }} />` : html`<iframe class="pv" src=${pv.u} title=${pv.name}></iframe>`}</div>`}
+        ${/^image\/(jpeg|png|gif|webp)/.test(pv.type) ? html`<img src=${pv.u} alt=${pv.name} style=${{ maxWidth: "100%" }} />` : /pdf/.test(pv.type) ? html`<iframe class="pv" src=${pv.u} title=${pv.name}></iframe>` : html`<div class="note">이 형식은 화면에서 못 보여 줘요 — [내려받기]로 열어 주세요</div>`}</div>`}
     </div></div></div>`;
 }
 // ── 줄 목록 올리기 (AI 소싱 팀장 표: 한 줄 = 품목 1개의 구성요소 1개 × 업체 1곳 · xlsx/CSV) ──

@@ -1958,6 +1958,22 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
 #promoCalc .prb{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:10px}
 #promoCalc .prb.ok{background:#E3F2E8;color:#0B5C30}#promoCalc .prb.warn{background:#FEF3C7;color:#92400E}#promoCalc .prb.bad{background:#FEE2E2;color:#B91C1C}
 @media(max-width:640px){ #calcMenu{right:12px;left:12px;bottom:72px} #promoCalc .pm-ps input{font-size:16px;width:74px} }
+
+/* 바코드(GTIN-13) 창 · 상태 꼬리표 (2026-11-25) */
+.bc-st{display:inline-block;margin-left:6px;padding:0 5px;border-radius:4px;font-size:10.5px;font-weight:700;line-height:16px;background:#E8F5EC;color:#1E7A3C;vertical-align:1px}
+.bc-st.lb{background:#1E7A3C;color:#fff}.bc-st.bad{background:#FDECEC;color:#C62828}
+th.bc-col .bcopt{width:auto;padding:0 5px;margin-left:4px;font-size:10.5px;border-radius:4px}th.bc-col .bcopt.on{background:#1E7A3C;color:#fff}
+.bcdlg-bg{position:fixed;inset:0;z-index:3000;background:rgba(17,24,39,.42);display:flex;align-items:center;justify-content:center;padding:12px}
+.bcdlg{background:#fff;border-radius:12px;width:440px;max-width:100%;max-height:92vh;overflow:auto;box-shadow:0 12px 40px rgba(0,0,0,.25)}
+.bcdlg-h{display:flex;align-items:center;gap:8px;padding:12px 14px;background:#14532D;color:#fff;border-radius:12px 12px 0 0}.bcdlg-h span{flex:1;min-width:0;font-size:12.5px;opacity:.9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bcdlg-x{border:0;background:rgba(255,255,255,.15);color:#fff;border-radius:6px;width:28px;height:28px;cursor:pointer}
+.bcdlg-b{padding:12px 14px;display:flex;flex-direction:column;gap:8px}.bcdlg-l{display:flex;flex-direction:column;gap:3px;font-size:12px;font-weight:700;color:#374151;flex:1;min-width:0}
+.bcdlg-l input,.bcdlg-l select{font:inherit;font-weight:500;font-size:14px;padding:7px 9px;border:1px solid #D1D5DB;border-radius:7px;min-width:0}.bcdlg-l #bcIn{font-size:17px;letter-spacing:1px;font-variant-numeric:tabular-nums}
+.bcdlg-row{display:flex;gap:8px;flex-wrap:wrap}.bcdlg-chk{font-size:12.5px;min-height:18px}.bcdlg-chk .ok{color:#1E7A3C;font-weight:700}.bcdlg-chk .bad{color:#C62828;font-weight:700}
+.bcdlg-chk .kr{margin-left:6px;padding:0 6px;border-radius:4px;background:#E8F5EC;color:#1E7A3C;font-weight:700;font-size:11px}.bcdlg-chk .dim{color:#9CA3AF}
+.bcdlg-img{display:flex;justify-content:center;min-height:10px}.bcdlg-img svg{width:280px;max-width:100%;height:auto;border:1px solid #F3F4F6}
+.bcdlg-btns{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.bcdlg-note{font-size:11.5px;color:#6B7280;line-height:1.5}
+@media (max-width:480px){.bcdlg-row{flex-direction:column}}
 </style>
 <!-- Firebase 10.12.0 compat (Analytics 제외) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -4858,13 +4874,13 @@ function renderGrid(){   // 채널 열은 고른 브랜드의 채널만(계산�
     ${showCost?`<th class="frz frz-cost num frz-edge" data-sort="cost" title="완제품 원가 — 분해원가에서 [가격정책표에 반영]한 값 · 아직이면 지금 매입원가(분해 전) · 눌러서 정렬">완제품 원가${sortI('cost')}</th>`:''}
     ${showCode?'<th class="c-code" title="자체상품코드(POUR스토어 PS-… · 그로홈 GH-…) · 아래 작은 글씨 = 3PL(물류센터) 코드">자체상품코드<button class="colx" id="codeColX" title="자체상품코드 열 숨기기">✕</button></th>':''}
     ${showSup?'<th class="c-sup">공급업체</th>':''}
-    ${showBc?`<th class="bc-col" title="상품 바코드(스캔용) · ${canBc?'칸을 눌러 넣기·고치기':'보기만'}">바코드<button class="colx" id="bcColX" title="바코드 열 숨기기">✕</button></th>`:''}
+    ${showBc?`<th class="bc-col" title="상품 바코드(GTIN-13) · ${canBc?'칸을 눌러 넣기·고치기·상태·그림':'칸을 눌러 그림 보기'}">바코드<button class="colx bcopt${BC_NOONLY?' on':''}" id="bcNoOnly" title="미발급(번호 없음)만 보기">미발급만</button><button class="colx bcopt" id="bcXl" title="바코드 목록 엑셀 (자체상품코드·제품명·규격·바코드·상태)">⤓엑셀</button><button class="colx" id="bcColX" title="바코드 열 숨기기">✕</button></th>`:''}
     ${thPrice}
     <th class="c-more" aria-label="줄 메뉴"></th>
   </tr></thead><tbody>`;
   const SEP='';
   const prob=PROB_ONLY?probSet():null;   // 문제만 보기: 원가 없음 · 역마진 · 가격역전
-  const passes=p=> hasBrand(p,BRAND_FILTER) && hasStatus(p,STATUS_FILTER) && !(PS_EOL_ONLY&&!eolPending(p)) && !(TODO_FILTER&&!todoTest(p,TODO_FILTER)) && !(cat&&p.cat!==cat) && !(prob&&!prob.has(pKey(p)));   // 검색어는 거르지 않고 '찾기'로 이동
+  const passes=p=> hasBrand(p,BRAND_FILTER) && hasStatus(p,STATUS_FILTER) && !(PS_EOL_ONLY&&!eolPending(p)) && !(TODO_FILTER&&!todoTest(p,TODO_FILTER)) && !(cat&&p.cat!==cat) && !(prob&&!prob.has(pKey(p))) && !(BC_NOONLY&&showBc&&PBARCODE[pKey(p)]);   // 검색어는 거르지 않고 '찾기'로 이동 · 바코드 열 미발급만
   const ordered=P.filter(p=>!isDeletedProd(p)).sort((a,b)=>(porderIdx(pKey(a))-porderIdx(pKey(b)))||((a.seq??a.id??0)-(b.seq??b.id??0)));
   const l1i={},l2i={},l3i={};   // 그룹 순서 = 최초 등장 순서
   ordered.forEach((p,idx)=>{ const c=pcat(p),k1=c.l1,k2=c.l1+SEP+c.l2,k3=k2+SEP+c.l3; if(!(k1 in l1i))l1i[k1]=idx; if(!(k2 in l2i))l2i[k2]=idx; if(!(k3 in l3i))l3i[k3]=idx; });
@@ -4938,7 +4954,7 @@ function renderGrid(){   // 채널 열은 고른 브랜드의 채널만(계산�
       ${showCode?(()=>{ const pc=pcodeOf(p), gc=!pc?(p.ghCode||''):''; const v=pc||gc, t=p3plOf(p);
         return `<td class="frz-code c-code${gc?' gh':''}${v?'':' dim'}" title="${v?(gc?'그로홈 자체상품코드':'자체상품코드')+' — 눌러서 복사':'자체상품코드 없음'}${t?' · 3PL '+esc(t):''}">${v?`<span class="pcode-cell">${esc(v)}</span>`:'—'}${t?`<span class="c3pl" title="3PL(물류센터) 코드">3PL ${esc(t)}</span>`:''}</td>`; })():''}
       ${showSup?`<td class="c-sup dim" title="${unlocked?esc(p.mgr||''):''}">${unlocked?esc(p.sup||'—'):'🔒'}</td>`:''}
-      ${showBc?(()=>{ const b=pbarcodeOf(p); return `<td class="bc-col${b?'':' dim'}${canBc?' bc-edit':''}" data-bck="${esc(k)}" title="${canBc?'눌러서 바코드 넣기·고치기':(b?'바코드':'바코드 없음')}">${b?esc(b):(canBc?'＋ 바코드':'—')}</td>`; })():''}
+      ${showBc?(()=>{ const b=pbarcodeOf(p), st=bcStOf(k), er=b?gtinErr(b):''; return `<td class="bc-col${b?'':' dim'}${canBc||b?' bc-edit':''}" data-bck="${esc(k)}" title="${canBc?'눌러서 바코드 넣기·고치기 · 상태 · 그림 받기':(b?'눌러서 바코드 그림 보기·받기':'바코드 없음')}">${b?esc(b):(canBc?'＋ 바코드':'—')}${b?`<span class="bc-st${er?' bad':st==='라벨 반영'?' lb':''}" title="${er?esc(er):b.startsWith('880')?'880 한국':''}">${er?'확인 필요':st}</span>`:''}</td>`; })():''}
       ${tdPrice}
       <td class="c-more">${costAllowed?`<button type="button" class="rowmore" data-id="${p.id}" title="이 줄 메뉴 — 가격 고치기 · 자동계산/파일값 고정 · 직접 조정 풀기 · 상태 · 자리 옮기기 · 복사 · 휴지통" aria-label="${esc(p.name)} 메뉴">⋯</button>`:''}</td>
     </tr>`;
@@ -7446,6 +7462,7 @@ async function teamSubmitFromModal(){
   if(!noCost){ if(!(cost>0)) return bad('매입원가를 넣어 주세요 · 모르면 아래 \'원가·제조사를 몰라요\' 체크','adCost'); if(!mfg) return bad('제조사를 넣어 주세요 · 모르면 아래 \'원가·제조사를 몰라요\' 체크','adMfg'); }
   const spec=specIn, key=`${cat}|${name}|${spec}`;
   if(((TEAMCAT&&TEAMCAT.products)||[]).some(p=>p.name===name && (p.spec||'-')===spec)) return bad('같은 제품명·규격이 이미 있어요');
+  if(bc&&gtinErr(bc)) return bad('바코드 '+gtinErr(bc),'adBarcode');   // GTIN-13 (2026-11-25)
   if(bc){ await refreshIdMaps(['bc']); const c=barcodeClash(bc,[key]); if(c) return bad(clashText(c,'바코드'),'adBarcode'); }   // 겹치면 등록 안 함 (2026-11-04)
   btn.disabled=true; const old=btn.textContent; btn.textContent='저장 중…'; st.textContent='';
   const now=new Date().toISOString(), em=curUser.email, notes=[];
@@ -8209,12 +8226,108 @@ function idDupScan(){
 }
 async function setBarcodeFor(k,val){   // 바코드 지정 — 다른 제품과 겹치면 거부. 반환: 오류 문구 또는 ''
   const v=normBarcode(val);
+  { const ge=gtinErr(v); if(ge) return '바코드 '+ge; }   // GTIN-13 (13자리 + 체크디지트) — 2026-11-25
   if(v){ await refreshIdMaps(['bc']); const c=barcodeClash(v,[k]); if(c) return clashText(c,'바코드'); }
   if((PBARCODE[k]||'')===v) return '';
   const old=PBARCODE[k]; if(v) PBARCODE[k]=v; else delete PBARCODE[k];
   try{ await saveBarcodePatch({[k]:v}); logAct('바코드', `${k.split('|')[1]} ${old||'—'} → ${v||'—'}`, '수동 변경'); return ''; }
   catch(e){ if(old) PBARCODE[k]=old; else delete PBARCODE[k]; return '저장 실패: '+(e.code||e.message||e); }
 }
+/* ══ 바코드(GTIN-13) 관리 (2026-11-25 송희님 · GS1 코리아·코리안넷 등록 완료 · 라벨 디자인에 사용) ══
+   번호 = product-meta/prod-barcode.map (지금 그대로 · 겹침 막기·팀원 '바코드 고치기' 권한 그대로)
+   상태·발급일·메모 = product-meta/prod-barcode-st.map[제품키] = {st, date, memo, at, by} — 관리자(허용목록) 지금 규칙으로 읽기·쓰기
+     (팀원은 지금 규칙상 이 문서를 못 읽음 → 팀원 화면은 번호·그림만 · 상태까지 열려면 규칙 추가 필요 — 보고서 질문)
+   상태: 미발급(번호 없음) · 발급(번호 있음 · 기본) · 라벨 반영
+   검사: 숫자 13자리 + GS1 체크디지트 — 틀리면 저장 막음 · 880 = 한국(GS1 Korea)
+   그림: EAN-13 을 화면 코드로 그림(외부 서비스 없음) → SVG(37.29×25.93mm · 100% 크기)·PNG 받기 */
+let PBCST={}, BCST_OK=true;
+const BC_ST=['미발급','발급','라벨 반영'];
+function gtinCheck(d12){ let s=0; for(let i=0;i<12;i++) s+=(+d12[i])*(i%2?3:1); return (10-s%10)%10; }
+function gtinErr(v){ const s=normBarcode(v); if(!s) return ''; if(!/^\d+$/.test(s)) return '숫자만 넣어 주세요 (GTIN-13)';
+  if(s.length!==13) return `13자리여야 해요 (지금 ${s.length}자리)`; const c=gtinCheck(s.slice(0,12)); if(c!==+s[12]) return `끝자리(체크디지트)가 맞지 않아요 — ${s.slice(0,12)}${c} 이어야 해요`; return ''; }
+function bcStOf(k){ const b=PBARCODE[k]||''; if(!b) return '미발급'; return (PBCST[k]||{}).st==='라벨 반영'?'라벨 반영':'발급'; }
+async function saveBcSt(k, o){
+  const del=firebase.firestore.FieldValue.delete(), v=o&&(o.st||o.date||o.memo)?{st:o.st||'', date:o.date||'', memo:String(o.memo||'').slice(0,300), at:new Date().toISOString(), by:(curUser&&curUser.email)||''}:del;
+  await db.collection('product-meta').doc('prod-barcode-st').set({map:{[k]:v}, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''},{merge:true});
+  if(v===del) delete PBCST[k]; else PBCST[k]=v;
+}
+const EAN_L=['0001101','0011001','0010011','0111101','0100011','0110001','0101111','0111011','0110111','0001011'];
+const EAN_R=EAN_L.map(x=>[...x].map(b=>b==='1'?'0':'1').join('')), EAN_G=EAN_R.map(x=>[...x].reverse().join(''));
+const EAN_PAR=['LLLLLL','LLGLGG','LLGGLG','LLGGGL','LGLLGG','LGGLLG','LGGGLL','LGLGLG','LGLGGL','LGGLGL'];
+function ean13Bits(s){ const par=EAN_PAR[+s[0]]; let b='101'; for(let i=1;i<=6;i++) b+=(par[i-1]==='L'?EAN_L:EAN_G)[+s[i]]; b+='01010'; for(let i=7;i<=12;i++) b+=EAN_R[+s[i]]; return b+'101'; }
+/* SVG: 1 모듈 = 0.33mm (100%) · 좌우 여백 11·7 모듈 · 막대 69 · 가드 +5 · 숫자 아래 */
+const EAN_W=113, EAN_H=80;
+function ean13Svg(code, opt){
+  const s=normBarcode(code); if(!s||gtinErr(s)) return '';
+  const bits=ean13Bits(s), Q=11, H=69, G=5, guard=i=>i<3||(i>=45&&i<50)||i>=92;
+  let bars=''; for(let i=0;i<95;){ if(bits[i]!=='1'){ i++; continue; } let j=i; while(j<95&&bits[j]==='1'&&guard(j)===guard(i)) j++; bars+=`<rect x="${Q+i}" y="0" width="${j-i}" height="${guard(i)?H+G:H}"/>`; i=j; }
+  const t=(x,ch)=>`<text x="${x}" y="${H+G+5.2}" text-anchor="middle">${ch}</text>`;
+  let tx=t(Q-4.5,s[0]); for(let i=0;i<6;i++) tx+=t(Q+3+7*i+3.5,s[1+i]); for(let i=0;i<6;i++) tx+=t(Q+50+7*i+3.5,s[7+i]); tx+=t(Q+95+3.5,'&gt;');
+  const sz=opt&&opt.mm?` width="${(EAN_W*0.33).toFixed(2)}mm" height="${(EAN_H*0.33).toFixed(2)}mm"`:opt&&opt.px?` width="${EAN_W*opt.px}" height="${EAN_H*opt.px}"`:'';
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${EAN_W} ${EAN_H}"${sz} shape-rendering="crispEdges"><rect width="${EAN_W}" height="${EAN_H}" fill="#fff"/><g fill="#000">${bars}</g><g font-family="Arial, Helvetica, sans-serif" font-size="8" fill="#000">${tx}</g></svg>`;
+}
+function bcFileName(k, ext){ const p=idProd(k), nm=(p?`${p.name}${p.spec&&p.spec!=='-'?'_'+p.spec:''}`:String(k).split('|')[1]||'바코드').replace(/[\\/:*?"<>|\s]+/g,'_'); return `바코드_${nm}_${normBarcode(PBARCODE[k]||'')}.${ext}`; }
+function dlBlob(blob, name){ const u=URL.createObjectURL(blob), a=document.createElement('a'); a.href=u; a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(u); a.remove(); },1500); }
+function bcDlSvg(k){ const svg=ean13Svg(PBARCODE[k],{mm:true}); if(!svg) return uiToast('바코드 번호가 올바르지 않아 그림을 못 만들어요','warn'); dlBlob(new Blob([svg],{type:'image/svg+xml'}), bcFileName(k,'svg')); }
+function bcDlPng(k){ const sc=12, svg=ean13Svg(PBARCODE[k],{px:sc}); if(!svg) return uiToast('바코드 번호가 올바르지 않아 그림을 못 만들어요','warn');
+  const img=new Image(); img.onload=()=>{ const c=document.createElement('canvas'); c.width=EAN_W*sc; c.height=EAN_H*sc; const x=c.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,c.width,c.height); x.drawImage(img,0,0,c.width,c.height); c.toBlob(b=>dlBlob(b,bcFileName(k,'png')),'image/png'); };
+  img.onerror=e=>{ console.error('[바코드] PNG 만들기 실패', e); uiToast('PNG 를 못 만들었어요 — SVG 로 받아 주세요','warn'); };
+  img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg); }
+/* 바코드 창 — 칸을 누르면: 번호(검사) · 상태·발급일·메모 · 그림·받기 */
+function bcDlgOpen(k){
+  const edit=canEditBarcode(), stOk=BCST_OK && !TEAM_MODE, cur=PBARCODE[k]||'', o=PBCST[k]||{};
+  let el=document.getElementById('bcDlg'); if(el) el.remove();
+  el=document.createElement('div'); el.id='bcDlg'; el.className='bcdlg-bg'; el.setAttribute('role','dialog'); el.setAttribute('aria-label','바코드');
+  el.innerHTML=`<div class="bcdlg"><div class="bcdlg-h"><b>바코드</b><span>${esc(idLabel(k))}</span><button type="button" class="bcdlg-x" aria-label="닫기">✕</button></div>
+    <div class="bcdlg-b">
+      <label class="bcdlg-l">바코드 번호 (GTIN-13)<input id="bcIn" inputmode="numeric" autocomplete="off" maxlength="20" value="${esc(cur)}" placeholder="880…  13자리" ${edit?'':'disabled'}></label>
+      <div id="bcChk" class="bcdlg-chk"></div>
+      ${stOk?`<div class="bcdlg-row"><label class="bcdlg-l">상태<select id="bcSt" ${edit?'':'disabled'}>${BC_ST.map(x=>`<option${x===bcStOf(k)?' selected':''}>${x}</option>`).join('')}</select></label>
+        <label class="bcdlg-l">발급일<input id="bcDate" type="date" value="${esc(o.date||'')}" ${edit?'':'disabled'}></label></div>
+      <label class="bcdlg-l">메모<input id="bcMemo" value="${esc(o.memo||'')}" placeholder="예: 코리안넷 등록 · 라벨 v2 반영" ${edit?'':'disabled'}></label>`:`<div class="bcdlg-note">상태·발급일·메모는 관리자 화면에서 보여요</div>`}
+      <div id="bcImg" class="bcdlg-img"></div>
+      <div class="bcdlg-btns"><button type="button" class="tbtn" id="bcSvg">⤓ SVG (라벨용 · 실제 크기)</button><button type="button" class="tbtn" id="bcPng">⤓ PNG</button>
+        ${edit?'<span style="flex:1"></span><button type="button" class="tbtn primary" id="bcSave">저장</button>':''}</div>
+      <div class="bcdlg-note">번호는 코리안넷에서 받아 넣어요 · 그림은 화면에서 만들어요(외부 서비스 없음) · SVG = 37.29×26.40mm(100% · 여백 포함)</div>
+    </div></div>`;
+  document.body.appendChild(el);
+  const inp=el.querySelector('#bcIn'), chk=el.querySelector('#bcChk'), img=el.querySelector('#bcImg');
+  const draw=()=>{ const v=normBarcode(inp.value), er=gtinErr(v);
+    chk.innerHTML=!v?'<span class="dim">번호 없음 = 미발급</span>':er?`<span class="bad">✕ ${esc(er)}</span>`:`<span class="ok">✓ GTIN-13 맞음</span> ${v.startsWith('880')?'<span class="kr">880 한국</span>':'<span class="dim">880 아님(한국 외 접두)</span>'}`;
+    img.innerHTML=v&&!er?ean13Svg(v):''; const sv=el.querySelector('#bcSave'); if(sv) sv.disabled=!!er;
+    el.querySelectorAll('#bcSvg,#bcPng').forEach(b=>{ b.disabled=!(v&&!er&&v===normBarcode(PBARCODE[k]||'')); b.title=b.disabled?'번호를 저장한 뒤 받을 수 있어요':''; }); };
+  inp.addEventListener('input',draw); draw();
+  const close=()=>el.remove();
+  el.addEventListener('click',async e=>{
+    if(e.target===el||e.target.closest('.bcdlg-x')) return close();
+    if(e.target.closest('#bcSvg')) return bcDlSvg(k);
+    if(e.target.closest('#bcPng')) return bcDlPng(k);
+    if(e.target.closest('#bcSave')){ const b=e.target.closest('#bcSave'), v=normBarcode(inp.value), er=gtinErr(v); if(er) return uiToast('바코드 '+er,'warn');
+      b.disabled=true; const msg=[];
+      if(v!==normBarcode(cur)){ const err=await setBarcodeFor(k, v); if(err){ uiToast(err,'warn'); b.disabled=false; return; } msg.push(`바코드 ${v||'지움'}`); }
+      if(stOk){ const st=el.querySelector('#bcSt').value, date=el.querySelector('#bcDate').value, memo=el.querySelector('#bcMemo').value.trim();
+        const want={st: v?(st==='미발급'?'발급':st):'', date, memo}, had=PBCST[k]||{};
+        if((had.st||'')!==want.st||(had.date||'')!==want.date||(had.memo||'')!==want.memo){
+          try{ await saveBcSt(k, want); logAct('바코드', `${k.split('|')[1]} 상태 ${want.st||'미발급'}${date?' · 발급일 '+date:''}`, memo||'수동 변경'); msg.push('상태 '+(want.st||'미발급')); }
+          catch(e2){ console.error('[prod-barcode-st] 저장 실패', e2); uiToast('상태 저장 실패: '+(e2.code||e2.message||e2),'warn'); b.disabled=false; return; } } }
+      gridToast(`${k.split('|')[1]} ${msg.join(' · ')||'바뀐 것 없음'}`); close(); renderGrid(); return; }
+  });
+  el.addEventListener('keydown',e=>{ if(e.key==='Escape') close(); });
+  if(edit) setTimeout(()=>{ inp.focus(); inp.select(); },30);
+}
+/* 바코드 목록 엑셀: 자체상품코드·제품명·규격·바코드·상태 (+발급일·메모·검사·880) — 휴지통 빼고 전체 */
+async function bcExportXl(){
+  try{ await ensureXLSX(); }catch(e){ console.error('[바코드] 엑셀 도구 불러오기 실패', e); }
+  if(typeof XLSX==='undefined') return uiToast('엑셀 도구를 못 불러왔어요 — 새로고침 후 다시','warn');
+  const rows=P.filter(p=>!isDeletedProd(p)).map(p=>{ const k=pKey(p), b=PBARCODE[k]||'', o=PBCST[k]||{}, er=gtinErr(b);
+    return {'자체상품코드':pcodeOf(p)||'', '제품명':p.name, '규격':p.spec&&p.spec!=='-'?p.spec:'', '바코드':b, '상태':bcStOf(k), '발급일':o.date||'', '메모':o.memo||'', '번호 검사':b?(er?'확인 필요: '+er:'맞음'):'', '880(한국)':b?(b.startsWith('880')?'예':'아니오'):'', '판매 상태':pstatus(p)||'' }; });
+  const ws=XLSX.utils.json_to_sheet(rows); ws['!cols']=[14,28,12,16,10,12,24,22,10,10].map(w=>({wch:w})); if(rows.length) ws['!autofilter']={ref:ws['!ref']};
+  rows.forEach((r,i)=>{ const c=XLSX.utils.encode_cell({r:i+1,c:3}); if(ws[c]){ ws[c].t='s'; ws[c].z='@'; } });   // 바코드는 글자로(지수 표기 방지)
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, '바코드 목록');
+  const d=new Date(), ymd=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+  XLSX.writeFile(wb, `POUR_바코드목록_${ymd}.xlsx`); gridToast(`바코드 목록 엑셀 ${rows.length}줄`);
+}
+let BC_NOONLY=false;   // 바코드 열: 미발급만 보기
 const LS_CODECOL='pour-codecol-open';
 let CODECOL_OPEN=(()=>{ try{ return localStorage.getItem(LS_CODECOL)!=='0'; }catch(e){ return true; } })();
 function setCodeCol(on){ CODECOL_OPEN=!!on; try{ localStorage.setItem(LS_CODECOL,on?'1':'0'); }catch(e){} setViewCol('code',on); }   // 2026-11-25: 계정별 '내 보기'로
@@ -8239,7 +8352,9 @@ function bcEditOpen(td){
 }
 document.addEventListener('click',e=>{
   if(e.target.closest('#bcColX')){ e.stopPropagation(); setBcCol(false); return; }
-  const td=e.target.closest('#priceGrid td.bc-edit'); if(td && !e.target.closest('.bc-inp')){ e.stopPropagation(); bcEditOpen(td); }
+  if(e.target.closest('#bcNoOnly')){ e.stopPropagation(); BC_NOONLY=!BC_NOONLY; renderGrid(); return; }
+  if(e.target.closest('#bcXl')){ e.stopPropagation(); bcExportXl(); return; }
+  const td=e.target.closest('#priceGrid td.bc-edit'); if(td && !e.target.closest('.bc-inp')){ e.stopPropagation(); bcDlgOpen(td.dataset.bck); }
 },true);
 const PCODE_RE=/^PS-(S?\d{3,})-(\d{2,})$/;   // 단품 PS-002-04 · 세트 PS-S001-01
 const PC_COLORS=/(백색|흰색|화이트|회색|그레이|녹색|초록|적갈색|갈색|파랑|파란색|청색|블루|블랙|검정|흑색|투명|아이보리|베이지|노랑|황색|빨강|적색)/g;
@@ -9608,6 +9723,7 @@ async function submitAddProduct(){
       // 제품명·규격이 바뀌었으면 먼저 옮긴다(이후 저장이 새 열쇠로 기록되도록)
       const nName=($('#adName').value||'').trim(), nSpec=($('#adSpec').value||'').trim()||'-';
       { const self=[pKey(AD_EDIT), `${AD_EDIT.cat}|${nName}|${nSpec}`], chBc=bcIn && bcIn!==(PBARCODE[pKey(AD_EDIT)]||''), chPc=pcIn && pcIn!==(PCODE[pKey(AD_EDIT)]||'');
+        if(chBc&&gtinErr(bcIn)){ $('#adStatus').innerHTML=`<span style="color:var(--red)">${esc('바코드 '+gtinErr(bcIn))}</span>`; btn.disabled=false; btn.textContent=old; return; }   // GTIN-13
         if(chBc||chPc){ await refreshIdMaps(); const c=(chBc&&barcodeClash(bcIn,self))||null, d=(chPc&&codeClash(pcIn,self))||null;   // 겹치면 아무것도 저장하지 않음 (2026-11-04)
           if(c||d){ $('#adStatus').innerHTML=`<span style="color:var(--red)">${esc(c?clashText(c,'바코드'):clashText(d,'자체상품코드'))}</span>`; btn.disabled=false; btn.textContent=old; return; } } }
       if(nName!==AD_EDIT.name || nSpec!==(AD_EDIT.spec||'')){
@@ -9657,6 +9773,7 @@ async function submitAddProduct(){
     const rUid=(typeof retailUid==='function')?retailUid():null;
     const pr={}; if(rUid && retail>0) pr[rUid]=retail;
     const cat=l2||'기타', key=`${cat}|${name}|${spec}`;
+    if(bcIn&&gtinErr(bcIn)){ $('#adStatus').innerHTML=`<span style="color:var(--red)">${esc('바코드 '+gtinErr(bcIn))}</span>`; const el=$('#adBarcode'); if(el) el.focus(); btn.disabled=false; btn.textContent=old; return; }   // GTIN-13
     if(bcIn || (pcIn && !pcAuto)){ await refreshIdMaps();   // 바코드·직접 적은 코드가 겹치면 제품을 만들지 않음 (2026-11-04)
       const c=bcIn?barcodeClash(bcIn,[key]):null, d=(!c&&pcIn&&!pcAuto)?codeClash(pcIn,[key]):null;
       if(c||d){ $('#adStatus').innerHTML=`<span style="color:var(--red)">${esc(c?clashText(c,'바코드'):clashText(d,'자체상품코드'))}</span>`; const el=$(c?'#adBarcode':'#adPcode'); if(el) el.focus(); btn.disabled=false; btn.textContent=old; return; } }
@@ -9852,7 +9969,8 @@ function bulkCheck(rows){
     p3&&p3.split(', ').forEach(c=>{ const ow=Object.keys(P3PL).find(k=>norm3pl(P3PL[k]).split(', ').includes(c));
       if(ow) err.push(`3PL ${c} 를 이미 '${ow.split('|')[1]}'가 씀`); else if(seen3[c]) err.push(`3PL ${c} 가 ${seen3[c]}번 줄과 겹침`); else seen3[c]=o.line; });
     const bc=normBarcode(o.barcode);
-    if(bc){ const c=barcodeClash(bc,[]); if(c) err.push(`바코드 ${bc}: ${clashText(c,'바코드')}`);
+    if(bc&&gtinErr(bc)) err.push(`바코드 ${bc}: ${gtinErr(bc)}`);   // GTIN-13 (2026-11-25)
+    else if(bc){ const c=barcodeClash(bc,[]); if(c) err.push(`바코드 ${bc}: ${clashText(c,'바코드')}`);
       else if(seenBc[bcNorm(bc)]) err.push(`바코드가 ${seenBc[bcNorm(bc)]}번 줄과 겹침`); else seenBc[bcNorm(bc)]=o.line; }   // 바코드는 선택 · 공백·하이픈·대소문자 무시 (2026-11-04)
     const l1=o.l1||'POUR공법', cat=o.l2||'기타';
     return {...o, code, spec:sp, cost, vbase, retail, ship, p3, bc, l1, cat, brands:br.list, key:`${cat}|${name}|${sp}`, err, warn, check:!err.length};
@@ -11600,6 +11718,8 @@ async function loadVendorConfig(){
   try{ const d=await pmGet('prod-rename'); if(d.exists&&d.data().map&&typeof d.data().map==='object'){ PNAME=d.data().map; console.log(`[prod-rename] 이름 변경 ${Object.keys(PNAME).length}건`); } }catch(e){ console.warn('[prod-rename] 로드 실패', e.code||e); }
   try{ const d=await pmGet('prod-code'); PCODE=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; PCODE_RULE=(d.exists&&d.data().rule)||''; PCODE_LOADED=true; console.log(`[prod-code] 자체상품코드 ${Object.keys(PCODE).length}개`); }catch(e){ console.warn('[prod-code] 로드 실패 — 자동 부여 보류', e.code||e); }
   try{ const d=await pmGet('prod-3pl'); P3PL=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; console.log(`[prod-3pl] 3PL 코드 ${Object.keys(P3PL).length}개`); }catch(e){ console.warn('[prod-3pl] 로드 실패', e.code||e); }
+  try{ const d=await pmGet('prod-barcode-st'); PBCST=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; BCST_OK=true; console.log(`[prod-barcode-st] 바코드 상태 ${Object.keys(PBCST).length}개`); }
+  catch(e){ BCST_OK=false; PBCST={}; console.warn('[prod-barcode-st] 바코드 상태 못 읽음 — 상태 칸 숨김 (팀원 계정이면 규칙상 정상)', e.code||e); }
   try{ const d=await pmGet('prod-barcode'); PBARCODE=(d.exists&&d.data().map&&typeof d.data().map==='object')?{...d.data().map}:{}; console.log(`[prod-barcode] 바코드 ${Object.keys(PBARCODE).length}개`); }catch(e){ console.warn('[prod-barcode] 로드 실패', e.code||e); }
   try{ const d=await pmGet('prod-brand'); if(d.exists){ const x=d.data()||{}; if(x.map&&typeof x.map==='object') PBRAND=x.map; if(x.gh&&typeof x.gh==='object') PGHLINK=x.gh; } console.log(`[prod-brand] 브랜드 지정 ${Object.keys(PBRAND).length}건 · 그로홈 연결 ${Object.keys(PGHLINK).length}건`); }catch(e){ console.warn('[prod-brand] 로드 실패', e.code||e); }
   try{ const d=await pmGet('brands'); BRAND_REG=(d.exists&&Array.isArray(d.data().list))?d.data().list:[]; applyBrandList(BRAND_REG); console.log(`[brands] 브랜드 ${BRAND_LIST.length}개`); }catch(e){ console.warn('[brands] 로드 실패 — 기본 2개로', e.code||e); }

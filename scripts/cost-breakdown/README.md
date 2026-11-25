@@ -47,4 +47,4 @@ node vendors_test.js
 ## 4. 견적서 파일 · 노션 가져오기 (2026-11-25 밤)
 
 - 견적서 저장소 고르기·Cloudflare R2 켜는 순서: [QUOTE_FILES.md](QUOTE_FILES.md)
-- 노션 → 분해원가 `window.costImport.applyNotion(payload)` 모양·규칙: [NOTION_IMPORT.md](NOTION_IMPORT.md)
+- 노션 → 분해원가 `window.costImport.applyNotion(payload)` · 줄 목록 엑셀/CSV 올리기 — 모양·규칙: [NOTION_IMPORT.md](NOTION_IMPORT.md)

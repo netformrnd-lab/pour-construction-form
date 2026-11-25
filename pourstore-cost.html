@@ -394,7 +394,7 @@ table.vt{border-collapse:separate;border-spacing:0;font-size:12px;background:#ff
       const vs = vendorsOf(r), s = selOf(r), curV = vs.find((v) => v.vid === s), cur = rowCalc(withVendor(r, curV), qty, fx);
       const firstOf = (m) => m.per + (q > 0 ? m.left / q : 0);
       const list = vs.map((v, k) => { const m = rowCalc(withVendor(r, v), qty, fx); return { v, k, m, on: v.vid === s, priced: vendorPriced(v, fx), dUnit: m.unitV - cur.unitV, dPer: m.per - cur.per, dFirst: firstOf(m) - firstOf(cur) }; });
-      const pr = list.filter((x) => x.priced);
+      const pr = list.filter((x) => x.priced && x.v.nst !== "탈락");   // 노션 '탈락' 견적은 비교엔 보이되 최저가 후보에서 뺌
       let best = null;
       if (pr.length) { const min = Math.min(...pr.map((x) => x.m.per)); best = pr.find((x) => x.on && x.m.per <= min + 1e-9) || pr.find((x) => x.m.per <= min + 1e-9); }
       return { i, r, sel: s, cur, list, best, n: vs.length };
@@ -697,7 +697,7 @@ const tplRow = (t) => newRow({ kind: t.kind, name: t.name, use: t.use || "", inM
 const blankCard = () => ({ brand: "", round: "1차", item: "", spec: "", method: "", origin: "", scope: "", qty: "", validUntil: "", include: true, need: false, prodKey: "", prodLabel: "", mfgAlias: "", seed: "manual", fx: {}, frag: { name: "", ratio: "", batchKg: "", directKg: "" }, rows: [newRow()], sale: {} });
 const av = (r) => r.vendors.find((v) => v.vid === r.sel) || r.vendors[0];   // 적용 업체 (편집 중)
 // 노션에서 가져온 업체 칸 표시 (nid 노션 줄 · nq 견적 · nsid 공급업체 · nno 견적 번호 · nnote 노션 비고 · ndel 노션에서 삭제됨) — 편집해도 그대로
-const N_KEYS = ["nid", "nq", "nsid", "nno", "nnote", "ndel"];
+const N_KEYS = ["nid", "nq", "nsid", "nno", "nnote", "ndel", "nst", "nad", "unit", "qq"];   // + 노션 상태(탈락 등)·채택·단위·견적 수량
 const pickN = (v) => { const o = {}; N_KEYS.forEach((k) => { if (v && v[k] != null && v[k] !== "") o[k] = v[k]; }); return o; };
 const isNotion = (v) => !!(v && v.nid);
 const vLabel = (v, k) => `${v.vid}${C.vRole(k) ? " " + C.vRole(k) : ""}`;
@@ -860,27 +860,91 @@ function useCostData(user, role) {
   return S;
 }
 
-// ══ 노션 → 분해원가 가져오기 (2026-11-25 송희님 · 매일 19:00 Aside 가 마스터로 로그인한 이 화면에서 window.costImport.applyNotion(payload)) ══
-//  · 품목 찾기: 자체상품코드 → 제품명+규격 → 못 찾으면 '연결 필요'(cost-names/_notion.unmatched) · 화면에서 한 번 고르면 기억(_notion.links)
-//  · 노션이 원본인 값(업체 단가·통화·부가세·MOQ·리드타임·견적일·유효기간·견적 번호·비고·견적서·노션 주소)만 새 값으로 · 업체 칸에 nid(노션 줄 id)
-//  · 대시보드에서만 정하는 것(적용 업체·사용량·개당/1회·제조 단가 포함·가격정책표 반영)은 절대 안 바꿈 · 가격정책표 반영은 자동으로 안 함
-//  · 같은 노션 id 는 여러 번 돌려도 같은 결과(바뀐 것 없으면 안 씀) · 노션에서 사라진 견적 = 지우지 않고 ndel('노션에서 삭제됨')
-//  · 실행마다 _notion.runs 에 '노션 동기화 ○건' · 바뀐 카드는 카드 이력에도 · 견적서·노션 주소·업체 실명 = cost-names(마스터·경영 열람만)
-const NOTION_OWN = ["price", "vat", "cur", "moq", "lead", "qd", "vu", "nnote", "nno", "nq", "nsid", "ndel"];
+// ══ 줄 단위 가져오기 — 노션(매일 19:00 Aside) · 줄 목록 엑셀/CSV(AI 소싱 팀장 표) 공용 (2026-11-25 송희님) ══
+//  한 줄 = 품목 1개의 구성요소 1개 × 업체 1곳 → 카드·구성요소 줄·업체 칸을 찾아 값만 바꿈
+//  · 품목 찾기: 기억(줄 → 품목·구성요소) → 자체상품코드 → 제품명+규격 → 카드 품목+규격 → 못 찾으면 '연결 필요'(cost-names/_notion.unmatched)
+//    연결 화면에서 '이 줄 = 이 품목의 이 구성요소(구분)'를 한 번 고르면 기억(_notion.lineLinks 줄마다 · keyLinks 같은 업체+제목 / 같은 품목)
+//  · 노션이 원본: 업체 단가·통화·부가세·MOQ·리드타임·견적일·유효기간·견적 번호·상태·채택·견적서 · 줄 목록: 그 칸에 값이 있으면 덮어씀
+//  · 절대 안 바꿈: 적용 업체(단, 구성요소에 업체가 처음 들어오면 노션 '채택'/줄 목록 '업체 순위 A' → 적용) · 가격정책표 반영(자동 반영 없음)
+//  · 노션: 같은 노션 id 여러 번 = 같은 결과 · 사라진 견적 = '노션에서 삭제됨' · 노션 구분: 본품 → 구성요소 · 1회 비용·시험 → 1회 비용 · 물류·통관 → 수입 물류 · 샘플 → 원가에 안 넣음(카드 '샘플')
+//  · 기록: _notion.runs (노션 동기화 / 줄 목록 올리기) · 바뀐 카드 이력 · 업체 실명·견적서·노션 주소·공급사 정보 = cost-names(마스터·경영 열람만)
+const NOTION_OWN = ["price", "vat", "cur", "moq", "lead", "qd", "vu", "nnote", "nno", "nq", "nsid", "ndel", "nst", "nad", "unit", "qq"];
+const SHEET_OWN = ["price", "vat", "cur", "moq", "lead", "qd", "vu", "memo"];
 const curOf = (c) => { const s = String(c || "").trim().toUpperCase(); return !s || s === "KRW" || s === "원" || s === "WON" ? "" : s; };
 const matchKeyOf = (p) => (p && String(p.code || "").trim() ? "c:" + String(p.code).trim() : "n:" + nz(p && p.name) + "|" + nz(p && p.spec));
 const hid = (s) => { let h = 2166136261; for (const ch of String(s)) { h ^= ch.codePointAt(0); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); };
-const seedMethodOf = (supName) => (/넷폼/.test(String(supName || "")) ? "self" : "oem");   // 4번: 공급업체 ㈜넷폼알앤디·넷폼 = 자체생산 · 그 밖 = 국내 OEM
+const seedMethodOf = (supName) => (/넷폼/.test(String(supName || "")) ? "self" : "oem");   // 공급업체 ㈜넷폼알앤디·넷폼 = 자체생산 · 그 밖 = 국내 OEM
+const methodOf = (s) => { const t = nz(s); if (!t) return ""; const m = C.METHODS.find(([k, n, sh]) => [k, n, sh].some((x) => nz(x) === t)); if (m) return m[0];
+  return /자체/.test(s) ? "self" : /수입|해외/.test(s) ? "imp" : /oem/i.test(s) ? "oem" : /매입/.test(s) ? "buy" : ""; };
+const originOf = (s) => (/수입|해외|중국/.test(String(s || "")) ? "수입" : /국내/.test(String(s || "")) ? "국내" : "");
+const leadOf = (v) => { const s = str(v).trim(); return /^\d+(\.\d+)?$/.test(s) ? s + "영업일" : s; };
 const cleanU = (vu) => { const o = {}; Object.entries(vu || {}).forEach(([rid, m]) => { const mm = {}; Object.entries(m || {}).forEach(([k, u]) => { if (u) mm[k] = u; }); if (Object.keys(mm).length) o[rid] = mm; }); return o; };
-const notionDoc = () => namesCol().doc("_notion");
 const packF = (vf) => { const o = {}; Object.entries(vf || {}).forEach(([rid, m]) => { const mm = {}; Object.entries(m || {}).forEach(([k, l]) => { if (Array.isArray(l) && l.length) mm[k] = clone(l); }); if (Object.keys(mm).length) o[rid] = mm; }); return o; };
-async function applyNotionImport(ctx, payload, opt = {}) {
-  const res = { added: 0, updated: 0, unchanged: 0, deleted: 0, unmatched: [], errors: [] };
-  const { S, user } = ctx;
-  if (!payload || payload.source !== "notion" || !Array.isArray(payload.quotes)) { res.errors.push("payload 모양이 달라요 (source:'notion', quotes:[…])"); return res; }
-  const at = new Date().toISOString(), by = (user && user.email) || "", partial = payload.partial === true;
-  const reg = clone(S.notion || {}); reg.links = { ...(reg.links || {}), ...(opt.links || {}) }; reg.unmatched = reg.unmatched || {};
-  const sups = {}; (payload.suppliers || []).forEach((s) => { if (s && s.notionId) sups[s.notionId] = s; });
+const notionDoc = () => namesCol().doc("_notion");
+const SRC_NAME = { notion: "노션", sheet: "줄 목록" };
+
+// 노션 payload → 줄
+function notionOps(payload) {
+  const sups = {}, ops = [];
+  (payload.suppliers || []).forEach((s) => { if (s && s.notionId) sups[s.notionId] = s; });
+  for (const q of payload.quotes || []) {
+    if (!q) continue;
+    const sup = sups[q.supplierNotionId] || {}, supName = String(sup.name || "").trim(), status = str(q.status).trim();
+    const files = [...(q.files || []).filter((f) => f && (f.notionUrl || f.url)).map((f) => ({ id: "n" + hid(f.notionUrl || f.url), name: str(f.name).trim() || "견적서", kind: "notion", url: f.notionUrl || f.url })),
+      ...((q.originUrl || q.sourceUrl) ? [{ id: "n" + hid(q.originUrl || q.sourceUrl), name: "원본 링크", kind: "notion", url: q.originUrl || q.sourceUrl }] : [])];
+    const lines = q.lines && q.lines.length ? q.lines : [{ notionId: q.notionId ? q.notionId + ":q" : "", title: q.title, product: q.product || {}, noteKind: q.noteKind || "본품", unitPrice: q.unitPrice, qty: q.qty, unit: q.unit, moq: q.moq, leadTime: q.leadTime, adopted: q.adopted, note: q.note }];   // 견적 품목 없는 견적서 = 한 줄
+    for (const L of lines) {
+      if (!L || !L.notionId) { ops.push({ err: `견적 ${q.quoteNo || q.title || q.notionId || "?"}: 줄 notionId 없음` }); continue; }
+      const nk = str(L.noteKind).trim(), sample = /샘플/.test(nk), cmp = L.component || {};
+      const kindDef = /1\s*회|시험/.test(nk) ? "1회 비용" : /물류|통관/.test(nk) ? "수입 물류" : "";
+      const title = str(L.title || cmp.name || L.name || (L.product && L.product.name)).trim();
+      const kind = C.kindOf(cmp.kind || kindDef) || "";
+      ops.push({ src: "notion", key: L.notionId, ck: "nt:" + nz(supName) + "|" + nz(title), title, noteKind: nk, sample, product: L.product || {}, where: [supName, q.quoteNo || q.title, title].filter(Boolean).join(" · "),
+        comp: { kind, name: str(cmp.name || title).trim(), per: C.perOf(cmp.per) || (kindDef ? "1회" : "개당"), use: str(cmp.use).trim() }, rowCreate: !!kind,
+        vendor: { name: supName, nid: L.notionId, nq: q.notionId || "", nsid: q.supplierNotionId || "", nno: str(q.quoteNo || q.title).trim(), price: C.num(L.unitPrice ?? q.unitPrice) ?? "",
+          cur: curOf(L.currency || q.currency), vat: C.vatOf(L.vat || q.vat) || "V?", moq: C.num(L.moq ?? q.moq) ?? "", lead: leadOf(L.leadTime ?? q.leadTime), qd: C.parseDate(q.quoteDate) || str(q.quoteDate).trim(),
+          vu: C.parseDate(q.validUntil) || "", nnote: str(L.note || "").trim(), nst: status, nad: !!(L.adopted ?? q.adopted) || status === "채택", unit: str(L.unit || q.unit).trim(), qq: C.num(L.qty ?? q.qty) ?? "", files, url: q.notionUrl || "" } });
+    }
+  }
+  return ops;
+}
+// 줄 목록 엑셀/CSV → 줄 (첫 줄 = 칸 이름 · 이 순서·이 이름)
+const LS_COLS = [["code", "자체상품코드"], ["item", "품목"], ["spec", "규격"], ["method", "생산 방식"], ["origin", "국내·수입"], ["kind", "구분"], ["comp", "구성요소"], ["use", "무엇에 쓰는지"], ["vendor", "업체"], ["rank", "업체 순위(A 주/B 서브/C)"],
+  ["price", "단가"], ["cur", "통화(KRW/USD/CNY)"], ["fx", "환율"], ["vat", "부가세(V+/V-/V?)"], ["per", "개당/1회"], ["usage", "개당 사용량·1회 횟수"], ["buyq", "구매 수량"], ["moq", "MOQ"], ["lead", "리드타임"], ["date", "날짜"],
+  ["vu", "견적 유효기간"], ["qty", "생산 수량"], ["src", "출처"], ["link", "출처 링크"], ["st", "상태(확정/임시/확인 필요)"], ["memo", "메모"]];
+const hnorm = (s) => String(s ?? "").replace(/\(.*?\)/g, "").replace(/[\s·・.]/g, "").toLowerCase();
+function sheetOps(aoa) {
+  const rows = aoa || [], hr = rows.findIndex((r) => (r || []).some((x) => hnorm(x) === "구성요소") && (r || []).some((x) => hnorm(x) === "업체"));
+  if (hr < 0) return { ops: [], err: "첫 줄에 칸 이름(자체상품코드 · 품목 · … · 구성요소 · 업체 …)이 없어요 — [줄 목록 양식 받기]의 칸 이름 그대로 써 주세요" };
+  const col = {}; (rows[hr] || []).forEach((h, c) => { const k = (LS_COLS.find(([, lb]) => hnorm(lb) === hnorm(h)) || [])[0]; if (k && !(k in col)) col[k] = c; });
+  const miss = ["item", "comp", "vendor", "price"].filter((k) => !(k in col)).map((k) => LS_COLS.find((x) => x[0] === k)[1]);
+  if (miss.length) return { ops: [], err: `꼭 있어야 하는 칸이 없어요: ${miss.join(" · ")}` };
+  const ops = [];
+  for (let r = hr + 1; r < rows.length; r++) {
+    const g = (k) => (k in col ? rows[r][col[k]] : ""), T = (k) => { const v = g(k); return v instanceof Date ? C.parseDate(v) : str(v).trim(); };
+    if (LS_COLS.every(([k]) => !T(k))) continue;
+    const n = r + 1, where = `${n}행`, code = T("code"), item = T("item"), spec = T("spec"), comp = T("comp"), vendor = T("vendor");
+    const err = !item && !code ? "품목·자체상품코드가 다 비어 있어요" : !comp ? "구성요소가 비어 있어요" : !vendor ? "업체가 비어 있어요" : T("price") && C.num(T("price")) == null ? `단가 '${T("price")}'가 숫자가 아니에요` : "";
+    if (err) { ops.push({ err: `${where}: ${err}`, where, n }); continue; }
+    const rk = T("rank"), vid = (/^[A-Za-z]/.test(rk) ? rk[0].toUpperCase() : /주/.test(rk) ? "A" : /서브/.test(rk) ? "B" : "");
+    const cur = curOf(T("cur")), fx = C.num(T("fx")), buyq = C.num(T("buyq")), moq = C.num(T("moq")), srcTxt = T("src"), link = T("link"), d = C.parseDate(g("date")) || T("date");
+    ops.push({ src: "sheet", n, where, key: "sh:" + hid([code, item, spec, T("kind"), comp, vendor].map(nz).join("|")), ck: "sh:" + (code ? "c:" + code : nz(item) + "|" + nz(spec)),
+      product: { code, name: item, spec }, title: `${item} ${spec}`.trim(), rowCreate: true,
+      comp: { kind: C.kindOf(T("kind")) || "", name: comp, use: T("use"), per: C.perOf(T("per")), usage: C.num(T("usage")), st: ["확정", "임시", "확인 필요"].includes(T("st")) ? T("st") : "" },
+      vendor: { name: vendor, vid, price: C.num(T("price")) ?? "", cur, curSet: !!T("cur"), vat: C.vatOf(T("vat")), moq: buyq ?? moq ?? "", lead: leadOf(T("lead")), qd: [d, srcTxt].filter(Boolean).join(" · "), vu: C.parseDate(g("vu")) || "",
+        memo: [T("memo"), buyq != null && moq != null && buyq !== moq ? `MOQ ${moq.toLocaleString("ko-KR")}` : ""].filter(Boolean).join(" · "),
+        files: /^https?:\/\//i.test(link) ? [{ id: "l" + hid(link), name: srcTxt || "출처 링크", kind: "link", url: link }] : [] },
+      card: { method: methodOf(T("method")), origin: originOf(T("origin")), qty: C.num(T("qty")), fx: cur && fx != null ? { [cur]: fx } : null } });
+  }
+  return { ops };
+}
+
+async function applyLineOps(ctx, ops, opt = {}) {
+  const { S, user } = ctx, src = opt.src || "notion", dry = !!opt.dry;
+  const res = { added: 0, updated: 0, unchanged: 0, deleted: 0, newCards: 0, unmatched: [], errors: [], lines: [] };
+  const at = new Date().toISOString(), by = (user && user.email) || "";
+  const reg = clone(S.notion || {});
+  ["links", "lineLinks", "keyLinks", "unmatched", "ignore", "suppliers"].forEach((k) => { reg[k] = { ...(reg[k] || {}), ...((opt[k]) || {}) }; });
   const refList = (S.ref && S.ref.list) || [], refMap = {}; refList.forEach((p) => { refMap[p.k] = p; });
   const live = (S.cards || []).filter((c) => !c.deleted);
   const work = {}, wnames = {}, prevCards = {}, prevNames = {}, created = {};
@@ -890,75 +954,108 @@ async function applyNotionImport(ctx, payload, opt = {}) {
     return work[c.id];
   };
   const bestCardFor = (k) => live.filter((c) => c.prodKey === k).sort((a, b) => C.roundNo(b.round) - C.roundNo(a.round) || String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")))[0] || null;
-  const newCardFor = (p) => {   // 가격정책표엔 있는데 카드가 없는 품목 → 노션 줄로 새 카드 (생산 방식 기본값 = 4번 규칙)
-    if (created[p.k]) return work[created[p.k]];
-    const id = "nt-" + hid(p.k), r = (S.refNames || {})[p.k] || {};
-    work[id] = { id, brand: C.normBrand((p.brand || [])[0] || ""), round: "1차", item: p.name || "", spec: p.spec && p.spec !== "-" ? p.spec : "", method: seedMethodOf(r.sup || r.mfg), origin: "국내", scope: "", qty: "", validUntil: "", include: true, need: false,
-      prodKey: p.k, prodLabel: `${p.name || ""}${p.spec && p.spec !== "-" ? " " + p.spec : ""}`, mfgAlias: "", seed: "notion", fx: {}, frag: { name: "", ratio: "", batchKg: "", directKg: "" }, rows: [], sale: {} };
-    wnames[id] = namesInit({}, []); prevCards[id] = null; prevNames[id] = {}; created[p.k] = id; return work[id];
+  const newCard = (base) => {   // 카드 없음 → 새 카드 (가격표 제품이면 그 값 · 아니면 줄의 품목·규격)
+    const ck = base.k || "new:" + nz(base.item) + "|" + nz(base.spec);
+    if (created[ck]) return work[created[ck]];
+    const id = (src === "sheet" ? "ls-" : "nt-") + hid(ck), r = base.k ? (S.refNames || {})[base.k] || {} : {};
+    const ex = live.find((c) => c.id === id); if (ex) { created[ck] = id; return getCard(ex); }   // 전에 같은 줄로 만든 카드 — 다시 안 만듦
+    work[id] = { id, brand: C.normBrand(base.brand || ""), round: "1차", item: base.item || "", spec: base.spec || "", method: base.method || (base.k ? seedMethodOf(r.sup || r.mfg) : ""), origin: base.origin || (base.k ? "국내" : ""),
+      scope: "", qty: "", validUntil: "", include: true, need: false, prodKey: base.k || "", prodLabel: base.k ? `${base.item}${base.spec ? " " + base.spec : ""}` : "", mfgAlias: "", seed: src === "sheet" ? "lines" : "notion",
+      fx: {}, frag: { name: "", ratio: "", batchKg: "", directKg: "" }, rows: [], sale: {} };
+    wnames[id] = namesInit({}, []); prevCards[id] = null; prevNames[id] = {}; created[ck] = id; return work[id];
   };
-  const resolve = (prod) => {
-    const t = reg.links[matchKeyOf(prod)];
-    if (t) {
-      if (String(t).startsWith("p:")) { const k = t.slice(2), p = refMap[k]; if (p) { const c = bestCardFor(k); return c ? getCard(c) : newCardFor(p); } }
-      else { const c = live.find((x) => x.id === t); if (c) return getCard(c); }
-    }
+  const fromRef = (p) => ({ k: p.k, item: p.name || "", spec: p.spec && p.spec !== "-" ? p.spec : "", brand: (p.brand || [])[0] || "" });
+  const cardOf = (t, op, L) => {
+    if (!t) return null;
+    if (String(t).startsWith("p:")) { const p = refMap[t.slice(2)]; if (!p) return null; const c = bestCardFor(p.k); return c ? getCard(c) : newCard(fromRef(p)); }
+    if (t === "new") { const nb = (L && L.newCard) || {}; return newCard({ item: nb.item || op.product.name || op.title || "", spec: nb.spec ?? op.product.spec ?? "", brand: nb.brand || "" }); }
+    const c = live.find((x) => x.id === t); if (c) return getCard(c); return work[t] || null;
+  };
+  const autoCard = (op) => {
+    const prod = op.product || {};
     let cands = [];
-    if (prod && String(prod.code || "").trim()) cands = refList.filter((p) => p.type !== "세트" && String(p.code || "").trim() === String(prod.code).trim());
-    if (!cands.length && prod && prod.name) cands = refList.filter((p) => p.type !== "세트" && nz(p.name) === nz(prod.name) && (!prod.spec || nz(p.spec === "-" ? "" : p.spec) === nz(prod.spec)));
-    if (cands.length === 1) { const p = cands[0], c = bestCardFor(p.k); return c ? getCard(c) : newCardFor(p); }
-    if (prod && prod.name && !cands.length) { const cs = live.filter((c) => nz(c.item) === nz(prod.name) && (!prod.spec || nz(c.spec) === nz(prod.spec))); if (cs.length === 1) return getCard(cs[0]); }   // 출시 전(가격표에 없는) 카드
+    if (String(prod.code || "").trim()) cands = refList.filter((p) => p.type !== "세트" && String(p.code || "").trim() === String(prod.code).trim());
+    if (!cands.length && prod.name) cands = refList.filter((p) => p.type !== "세트" && nz(p.name) === nz(prod.name) && (!prod.spec || nz(p.spec === "-" ? "" : p.spec) === nz(prod.spec)));
+    if (cands.length === 1) { const p = cands[0], c = bestCardFor(p.k); return c ? getCard(c) : newCard(fromRef(p)); }
+    if (prod.name && !cands.length) {
+      const cs = live.filter((c) => nz(c.item) === nz(prod.name) && (!prod.spec || nz(c.spec) === nz(prod.spec))); if (cs.length === 1) return getCard(cs[0]);
+      const w = Object.values(work).filter((c) => !prevCards[c.id] && nz(c.item) === nz(prod.name) && nz(c.spec) === nz(prod.spec || "")); if (w.length === 1) return w[0];
+    }
     return null;
   };
-  const seen = new Set();
-  for (const q of payload.quotes) {
-    if (!q) continue;
-    const sup = sups[q.supplierNotionId] || {}, supName = String(sup.name || "").trim();
-    for (const L of q.lines || []) {
-      try {
-        if (!L || !L.notionId) { res.errors.push(`견적 ${q.quoteNo || q.notionId}: 줄 notionId 없음`); continue; }
-        seen.add(L.notionId);
-        const c = resolve(L.product);
-        if (!c) {
-          const u = { lineId: L.notionId, quoteId: q.notionId || "", quoteNo: q.quoteNo || "", supplier: supName, product: L.product || {}, component: L.component || {}, unitPrice: L.unitPrice ?? "", currency: q.currency || "" };
-          res.unmatched.push(u); reg.unmatched[L.notionId] = clone({ ...u, q: { ...q, lines: [L] }, s: sup, at }); continue;
-        }
-        delete reg.unmatched[L.notionId];
-        const nmw = wnames[c.id], comp = L.component || {}, cname = String(comp.name || comp.kind || "").trim();
-        let row = c.rows.find((r) => r.vendors.some((v) => v.nid === L.notionId)) || (cname ? c.rows.find((r) => nz(r.name) === nz(cname)) : null), isNew = false;
-        if (!row) { row = { id: "n" + hid(L.notionId), kind: C.kindOf(comp.kind) || "", name: cname, use: str(comp.use).trim(), inMfg: "별도", per: C.perOf(comp.per) || "개당", usage: 1, st: "", sel: "A", vendors: [] }; c.rows.push(row); isNew = true; }   // per·use = 새 줄 만들 때만 (있는 줄은 대시보드가 정함)
-        let v = row.vendors.find((x) => x.nid === L.notionId);
-        if (!v) {
-          const vs = nmw.vsup[row.id] || {};
-          v = row.vendors.find((x) => !x.nid && supName && String(vs[x.vid] || "").trim() === supName)   // 같은 업체 이름으로 손으로 넣어 둔 칸 → 노션 칸으로
-            || row.vendors.find((x) => !x.nid && C.num(x.price) == null && !String(vs[x.vid] || "").trim() && !x.qd);   // 비어 있는 칸(기본 A) 채우기 — 적용 업체는 그대로
-          if (!v) { v = { vid: C.nextVid(row.vendors), alias: "", price: "", vat: "V-", cur: "", moq: "", lead: "", qd: "", vu: "", memo: "" }; row.vendors.push(v); isNew = true; }
-        }
-        const snap = () => stable({ v: NOTION_OWN.map((k) => v[k] ?? ""), nm: (nmw.vsup[row.id] || {})[v.vid] || "", u: (nmw.vurl[row.id] || {})[v.vid] || "", f: (((nmw.vfiles[row.id] || {})[v.vid]) || []).filter((f) => f.kind === "notion").map((f) => [f.name, f.url]) });
-        const before = snap();
-        Object.assign(v, { price: C.num(L.unitPrice) ?? "", vat: C.vatOf(L.vat || q.vat) || "V?", cur: curOf(L.currency || q.currency), moq: C.num(L.moq) ?? "", lead: str(L.leadTime).trim(), qd: C.parseDate(q.quoteDate) || str(q.quoteDate).trim(),
-          vu: C.parseDate(q.validUntil) || "", nnote: str(L.note).trim(), nno: str(q.quoteNo).trim(), nq: q.notionId || "", nsid: q.supplierNotionId || "", nid: L.notionId });
-        delete v.ndel;
-        if (!row.vendors.some((x) => x.vid === row.sel)) row.sel = row.vendors[0].vid;
-        (nmw.vsup[row.id] = nmw.vsup[row.id] || {})[v.vid] = supName;
-        nmw.vurl[row.id] = nmw.vurl[row.id] || {}; if (q.notionUrl) nmw.vurl[row.id][v.vid] = q.notionUrl; else delete nmw.vurl[row.id][v.vid];
-        const keep = (((nmw.vfiles[row.id] || {})[v.vid]) || []).filter((f) => f.kind !== "notion");
-        const nf = (q.files || []).filter((f) => f && f.notionUrl).map((f) => ({ id: "n" + hid(f.notionUrl), name: str(f.name).trim() || "견적서", kind: "notion", url: f.notionUrl }));
-        (nmw.vfiles[row.id] = nmw.vfiles[row.id] || {})[v.vid] = [...nf, ...keep];
-        if (isNew) res.added++; else if (before !== snap()) res.updated++; else res.unchanged++;
-      } catch (e) { console.error("[노션 가져오기] 줄 실패", L, e); res.errors.push(`${(L && L.notionId) || "?"}: ${e.message || e}`); }
-    }
+  const findRow = (c, name, kind) => (name ? c.rows.find((r) => nz(r.name) === nz(name) && (!kind || !r.kind || r.kind === kind)) : null);
+  const addRow = (c, o) => { const r = { id: "n" + hid(c.id + "|" + o.name + "|" + (o.kind || "")), kind: o.kind || "", name: o.name, use: o.use || "", inMfg: "별도", per: o.per || "개당", usage: o.usage ?? 1, st: o.st || "", sel: "A", vendors: [] }; c.rows.push(r); r._fresh = true; return r; };
+  const vs = (c, r) => (wnames[c.id].vsup[r.id] = wnames[c.id].vsup[r.id] || {});
+  const blankV = (c, r, v) => !v.nid && C.num(v.price) == null && !String(vs(c, r)[v.vid] || "").trim() && !String(v.qd || "").trim();
+  const tryLines = new Set();
+  for (const op of ops) {
+    try {
+      if (op.err) { res.errors.push(op.err); res.lines.push({ op, r: "error", why: op.err }); continue; }
+      tryLines.add(op.key);
+      if (reg.ignore[op.key]) { res.lines.push({ op, r: "ignored" }); continue; }
+      const L = reg.lineLinks[op.key] || (op.ck && reg.keyLinks[op.ck]) || null;
+      let c = null, row = null;
+      if (L) { c = cardOf(L.t, op, L);
+        if (c && L.t === "new") { reg.lineLinks[op.key] = { ...L, t: c.id }; if (op.ck && reg.keyLinks[op.ck] && reg.keyLinks[op.ck].t === "new") reg.keyLinks[op.ck] = { ...reg.keyLinks[op.ck], t: c.id }; }   /* '＋ 새 카드'는 만든 카드로 기억 */ if (c && !op.sample) { row = (L.row && c.rows.find((r) => r.id === L.row)) || (L.rname ? findRow(c, L.rname, L.kind || "") : null); if (!row && L.rname) row = addRow(c, { ...op.comp, name: L.rname, kind: L.kind || op.comp.kind }); } }
+      if (!c) { const t = reg.links[matchKeyOf(op.product)]; c = t ? cardOf(t, op) : autoCard(op); }
+      if (c && !op.sample && !row) { row = findRow(c, op.comp.name, op.comp.kind); if (!row && op.rowCreate) row = addRow(c, op.comp); }
+      if (!c || (!op.sample && !row)) {
+        const u = { src, key: op.key, ck: op.ck || "", where: op.where || "", title: op.title || "", supplier: op.vendor.name || "", product: op.product || {}, comp: op.comp || {}, noteKind: op.noteKind || "", sample: !!op.sample,
+          unitPrice: op.vendor.price, currency: op.vendor.cur || "", suggest: c ? c.id : "", rowCreate: !!op.rowCreate, at };
+        res.unmatched.push(u); res.lines.push({ op, r: "unmatched", why: c ? "구성요소를 골라 주세요" : "품목을 못 찾음" });
+        if (c && !prevCards[c.id] && !c.rows.length && !(c.nsamples || []).length) { delete work[c.id]; Object.keys(created).forEach((k) => { if (created[k] === c.id) delete created[k]; }); }   // 이 줄 때문에 만든 빈 카드는 버림
+        reg.unmatched[op.key] = clone({ ...u, op });
+        continue;
+      }
+      delete reg.unmatched[op.key];
+      const label = `${c.item} ${c.spec || ""}`.trim();
+      if (op.sample) {   // 샘플: 원가에 안 넣고 카드에 '샘플'로만
+        const l = c.nsamples = c.nsamples || [], k = l.findIndex((x) => x.nid === op.vendor.nid);
+        const sv = { nid: op.vendor.nid, name: op.title || op.comp.name, price: op.vendor.price, cur: op.vendor.cur, qd: op.vendor.qd, nsid: op.vendor.nsid, nno: op.vendor.nno };
+        const r0 = k < 0 ? "added" : stable(l[k]) === stable(sv) ? "unchanged" : "updated";
+        if (k < 0) l.push(sv); else l[k] = sv; res[r0]++; res.lines.push({ op, r: r0, card: label, comp: "샘플" }); continue;
+      }
+      const nmw = wnames[c.id];
+      if (row._fresh === undefined) row._fresh = row.vendors.every((v) => blankV(c, row, v));
+      const V = op.vendor;
+      let v = (V.nid && row.vendors.find((x) => x.nid === V.nid)) || row.vendors.find((x) => V.name && String(vs(c, row)[x.vid] || "").trim() === V.name && (src === "notion" ? !x.nid : true))
+        || (V.vid && row.vendors.find((x) => x.vid === V.vid && blankV(c, row, x))) || row.vendors.find((x) => blankV(c, row, x)), isNew = false;
+      if (!v) { const vid = V.vid && !row.vendors.some((x) => x.vid === V.vid) ? V.vid : C.nextVid(row.vendors); v = { vid, alias: "", price: "", vat: "V-", cur: "", moq: "", lead: "", qd: "", vu: "", memo: "" }; row.vendors.push(v); row.vendors.sort((a, b) => a.vid.localeCompare(b.vid)); isNew = true; }
+      if (src === "sheet" && v.nid) { const w = `${op.where}: ${label} › ${row.name} › ${V.name} 은(는) 노션 견적 업체 — 노션에서 고쳐요`; res.errors.push(w); res.lines.push({ op, r: "error", why: "노션 견적 업체" }); continue; }
+      const own = src === "notion" ? NOTION_OWN : SHEET_OWN, fl = () => (((nmw.vfiles[row.id] || {})[v.vid]) || []);
+      const snap = () => stable({ v: own.map((k) => v[k] ?? ""), nid: v.nid || "", nm: vs(c, row)[v.vid] || "", u: (nmw.vurl[row.id] || {})[v.vid] || "", f: fl().map((f) => [f.kind, f.name, f.url]),
+        r: src === "sheet" ? [row.kind, row.use, row.per, row.usage, row.st] : [], c: src === "sheet" ? [c.method, c.origin, c.qty, stable(c.fx || {})] : [] });
+      const before = snap();
+      if (src === "notion") {
+        NOTION_OWN.forEach((k) => { if (k !== "ndel" && k in V) v[k] = V[k]; }); v.nid = V.nid; delete v.ndel;
+        nmw.vurl[row.id] = nmw.vurl[row.id] || {}; if (V.url) nmw.vurl[row.id][v.vid] = V.url; else delete nmw.vurl[row.id][v.vid];
+        (nmw.vfiles[row.id] = nmw.vfiles[row.id] || {})[v.vid] = [...V.files, ...fl().filter((f) => f.kind !== "notion")];
+      } else {
+        SHEET_OWN.forEach((k) => { if (k !== "cur" && V[k] !== "" && V[k] != null) v[k] = V[k]; }); if (V.curSet) v.cur = V.cur;
+        if (V.files.length) { const have = fl(); (nmw.vfiles[row.id] = nmw.vfiles[row.id] || {})[v.vid] = [...have, ...V.files.filter((f) => !have.some((h) => h.url === f.url))]; }
+        const o = op.comp; if (o.use) row.use = o.use; if (o.per) row.per = o.per; if (o.usage != null) row.usage = o.usage; if (o.st) row.st = o.st; if (o.kind && !row.kind) row.kind = o.kind;
+        const cd = op.card || {}; if (cd.method) c.method = cd.method; if (cd.origin) c.origin = cd.origin; if (cd.qty != null) c.qty = cd.qty; if (cd.fx) c.fx = { ...(c.fx || {}), ...cd.fx };
+      }
+      if (V.name) vs(c, row)[v.vid] = V.name;
+      (row._imp = row._imp || []).push({ vid: v.vid, a: src === "notion" ? !!V.nad : V.vid === "A" });
+      const r0 = isNew ? "added" : before === snap() ? "unchanged" : "updated";
+      res[r0]++; res.lines.push({ op, r: r0, card: label, comp: row.name, vid: v.vid });
+    } catch (e) { console.error("[가져오기] 줄 실패", op, e); res.errors.push(`${op.where || op.key || "?"}: ${e.message || e}`); res.lines.push({ op, r: "error", why: String(e.message || e) }); }
   }
-  if (!partial) {   // 노션에서 사라진 견적 → 지우지 않고 표시만
+  if (src === "notion" && !opt.partial) {   // 노션에서 사라진 견적 → 지우지 않고 표시만
     live.forEach((c0) => (c0.rows || []).forEach((r0) => C.vendorsOf(r0).forEach((v0) => {
-      if (!v0.nid || seen.has(v0.nid) || v0.ndel) return;
+      if (!v0.nid || tryLines.has(v0.nid) || v0.ndel) return;
       const c = getCard(c0), r = c.rows.find((x) => x.id === r0.id), v = r && r.vendors.find((x) => x.vid === v0.vid);
       if (v) { v.ndel = true; res.deleted++; }
     })));
-    Object.keys(reg.unmatched).forEach((k) => { if (!seen.has(k)) delete reg.unmatched[k]; });
+    Object.keys(reg.unmatched).forEach((k) => { if ((reg.unmatched[k].src || "notion") === "notion" && !tryLines.has(k)) delete reg.unmatched[k]; });
   }
+  // 구성요소에 업체가 처음 들어왔으면: 노션 '채택' / 줄 목록 '업체 순위 A' → 적용 업체 (그 뒤엔 대시보드 선택이 먼저)
+  Object.values(work).forEach((c) => c.rows.forEach((r) => { if (r._fresh && r._imp && r._imp.length) { const p = r._imp.find((x) => x.a) || r._imp[0]; r.sel = p.vid; } delete r._fresh; delete r._imp; }));
+  res.newCards = Object.keys(work).filter((id) => !prevCards[id]).length;
+  if (dry) return res;
   // 저장: 바뀐 카드만 · 카드 + 실제 이름(견적서·노션 주소) + 요약 + 가칭표 + 실행 기록
-  const amap = { ...(S.alias || {}) }, before = stable(amap), al = makeAliaser(amap, S.mfgList), ops = [];
+  const amap = { ...(S.alias || {}) }, before = stable(amap), al = makeAliaser(amap, S.mfgList), ops2 = [], tag = src === "sheet" ? "줄 목록 올리기" : "노션 동기화";
   let changed = 0;
   Object.keys(work).forEach((id) => {
     const c = work[id], pv = prevCards[id], nmw = wnames[id];
@@ -967,21 +1064,32 @@ async function applyNotionImport(ctx, payload, opt = {}) {
     const what = C.diffCard(pv, c), pn = namesInit(prevNames[id], pv ? pv.rows : []);
     const nk = (rows) => stable((rows || []).map((r) => C.vendorsOf(r).map((v) => [r.id, v.vid, v.nid || "", ...NOTION_OWN.map((k) => v[k] ?? "")])));
     if (pv) c.rows.forEach((r) => { const o = (pv.rows || []).find((x) => x.id === r.id); r.vendors.forEach((v) => { const ov = o && C.vendorsOf(o).find((x) => x.vid === v.vid); if (v.ndel && !(ov && ov.ndel)) what.push(`${r.name || r.kind} ${v.vid}업체 노션에서 삭제됨`); }); });
+    if (stable((pv && pv.nsamples) || []) !== stable(c.nsamples || [])) what.push(`샘플 ${(c.nsamples || []).length}건`);
     const nch = nk(pv && pv.rows) !== nk(c.rows) || stable(cleanF(pn.vfiles)) !== stable(cleanF(nmw.vfiles)) || stable(cleanV(pn.vsup)) !== stable(cleanV(nmw.vsup)) || stable(cleanU(pn.vurl)) !== stable(cleanU(nmw.vurl));
     if (pv && !what.length && !nch) return;
     changed++;
     const { id: _drop, history: _h, ...body } = c;
-    const history = [{ at, by, what: `노션 동기화: ${joinWhat(what.length ? what : ["견적서·업체 이름·노션 주소"])}`, why: "노션" }, ...((pv && pv.history) || [])].slice(0, 100);
+    const history = [{ at, by, what: `${tag}: ${joinWhat(what.length ? what : ["견적서·업체 이름·노션 주소"])}`, why: opt.file ? `${tag} · ${opt.file}` : SRC_NAME[src] }, ...((pv && pv.history) || [])].slice(0, 100);
     const doc = { ...body, history, deleted: false, createdAt: (pv && pv.createdAt) || at, createdBy: (pv && pv.createdBy) || by, updatedAt: at, updatedBy: by };
     const nmDoc = { mfg: nmw.mfg || (prevNames[id] || {}).mfg || "", sup, vsup: cleanV(nmw.vsup), vfiles: packF(nmw.vfiles), vurl: cleanU(nmw.vurl), updatedAt: at, updatedBy: by };
-    ops.push((b) => b.set(cardsCol().doc(id), doc), (b) => b.set(namesCol().doc(id), nmDoc), (b) => b.set(refDoc("cards"), { map: { [id]: C.summaryOf(doc) }, at }, { merge: true }));
+    ops2.push((b) => b.set(cardsCol().doc(id), doc), (b) => b.set(namesCol().doc(id), nmDoc), (b) => b.set(refDoc("cards"), { map: { [id]: C.summaryOf(doc) }, at }, { merge: true }));
   });
-  if (stable(amap) !== before) ops.push((b) => b.set(namesCol().doc("_alias"), { map: amap, updatedAt: at, updatedBy: by }, { merge: true }));
-  const run = { at, by, added: res.added, updated: res.updated, unchanged: res.unchanged, deleted: res.deleted, unmatched: res.unmatched.length, errors: res.errors.length, cards: changed, partial, syncedAt: str(payload.syncedAt) };
-  ops.push((b) => b.set(notionDoc(), { links: reg.links, unmatched: reg.unmatched, runs: [run, ...(reg.runs || [])].slice(0, 30), lastAt: partial ? reg.lastAt || "" : at, lastSyncedAt: partial ? reg.lastSyncedAt || "" : str(payload.syncedAt), updatedAt: at, updatedBy: by }));
-  for (let i = 0; i < ops.length; i += 400) { const b = db.batch(); ops.slice(i, i + 400).forEach((f) => f(b)); await b.commit(); }
-  console.log(`[노션 가져오기] 추가 ${res.added} · 바뀜 ${res.updated} · 그대로 ${res.unchanged} · 삭제 표시 ${res.deleted} · 연결 필요 ${res.unmatched.length} · 오류 ${res.errors.length} · 카드 ${changed}장 저장`);
+  if (stable(amap) !== before) ops2.push((b) => b.set(namesCol().doc("_alias"), { map: amap, updatedAt: at, updatedBy: by }, { merge: true }));
+  const run = { src, at, by, added: res.added, updated: res.updated, unchanged: res.unchanged, deleted: res.deleted, unmatched: res.unmatched.length, errors: res.errors.length, cards: changed, newCards: res.newCards,
+    lines: ops.length, partial: !!opt.partial, file: opt.file || "", syncedAt: str(opt.syncedAt) };
+  const keep = src === "notion" && !opt.partial;
+  ops2.push((b) => b.set(notionDoc(), { links: reg.links, lineLinks: reg.lineLinks, keyLinks: reg.keyLinks, unmatched: reg.unmatched, ignore: reg.ignore, suppliers: reg.suppliers, runs: [run, ...(reg.runs || [])].slice(0, 30),
+    lastAt: keep ? at : reg.lastAt || "", lastSyncedAt: keep ? str(opt.syncedAt) : reg.lastSyncedAt || "", updatedAt: at, updatedBy: by }));
+  for (let i = 0; i < ops2.length; i += 400) { const b = db.batch(); ops2.slice(i, i + 400).forEach((f) => f(b)); await b.commit(); }
+  console.log(`[${tag}] 추가 ${res.added} · 바뀜 ${res.updated} · 그대로 ${res.unchanged} · 삭제 표시 ${res.deleted} · 새 카드 ${res.newCards} · 연결 필요 ${res.unmatched.length} · 오류 ${res.errors.length} · 카드 ${changed}장 저장`);
   return res;
+}
+async function applyNotionImport(ctx, payload, opt = {}) {
+  if (!payload || payload.source !== "notion" || !Array.isArray(payload.quotes)) return { added: 0, updated: 0, unchanged: 0, deleted: 0, unmatched: [], errors: ["payload 모양이 달라요 (source:'notion', quotes:[…])"] };
+  const suppliers = {};   // 공급사 정보(유형·지역·결제 조건·이동비 부담·점수 …) → 업체 칸에 보임 (마스터·경영 열람)
+  (payload.suppliers || []).forEach((s) => { if (s && s.notionId) suppliers[s.notionId] = clone({ name: str(s.name).trim(), region: str(s.region), type: str(s.type), pay: str(s.payTerms || s.pay), move: str(s.moveBy || s.move), quality: s.quality ?? "", onTime: s.onTime ?? "", moq: s.moq ?? "", moqUnit: str(s.moqUnit), lead: s.leadTime ?? "", items: str(s.items), note: str(s.note) }); });
+  const r = await applyLineOps(ctx, notionOps(payload), { ...opt, src: "notion", partial: payload.partial === true || opt.partial === true, syncedAt: payload.syncedAt, suppliers });
+  const { lines, newCards, ...out } = r; return out;
 }
 
 // ══ 같은 틀 (2026-11-25 송희님 "분해원가 디자인 통일") ══
@@ -1082,7 +1190,7 @@ function Main({ user, role }) {
     const vs = (c.rows || []).flatMap((r) => C.vendorsOf(r));
     return { c, x, p, pt, refl: reflOf(c, p, x.unit), need: !!c.need, st: C.cardStatus(c), vu, val: C.validity(vu, today), mfg: nameOf(c),
       chk: (c.rows || []).filter((r) => !C.rowEmpty(r) && C.rowCalc(r, c.qty, c.fx).st === "확인 필요").length, multi: (c.rows || []).filter((r) => C.vendorsOf(r).length > 1).length,
-      files: seeNames ? fileCount(S.names[c.id]) : 0, nt: vs.filter((v) => v.nid).length, ndel: vs.filter((v) => v.ndel).length };
+      files: seeNames ? fileCount(S.names[c.id]) : 0, nt: vs.filter((v) => v.nid).length, ndel: vs.filter((v) => v.ndel).length, samples: (c.nsamples || []).length };
   }), [S.cards, refMap, S.names, role]);
   const brands = useMemo(() => [...new Set(items.map((i) => i.c.brand || "브랜드 없음"))].sort(), [items]);
   const inTab = (i, t) => (t === "need" ? i.need : t === "diff" ? i.refl === "diff" && !i.need : t === "val" ? i.val === "over" || i.val === "soon" : t === "chk" ? i.chk > 0 : true);
@@ -1099,13 +1207,14 @@ function Main({ user, role }) {
     return l.sort(by[sort] || by.brand);
   }, [items, brand, q, tab, sort, mth, org]);
   const openCard = (id) => { setOkey((k) => k + 1); setOpen(id); };
-  const ctx = { S, user, role, isM, seeNames, refList, refMap, setToast, today };
+  const sRef = useRef(S); sRef.current = S;
+  const ctx = { S, user, role, isM, seeNames, refList, refMap, setToast, today, getS: () => sRef.current };
   const loading = S.cards === null && !S.err;
   const seedN = isM ? seedCandidates(S, refList).list.length : 0;
   const nUn = Object.keys((S.notion && S.notion.unmatched) || {}).length, lastRun = ((S.notion && S.notion.runs) || [])[0] || null;
   // 위쪽 한 줄 (대시보드 머리에 그림 · 따로 열면 이 화면 머리에)
   const kparts = [...TABS.map(([k, lb]) => ({ k, lb: k === "all" ? "카드" : lb, n: cnt[k], warn: k !== "all" && cnt[k] > 0, on: tab === k, t: k === "all" ? "분해원가 전체" : `${lb}만 보기` })),
-    ...(isM && nUn ? [{ k: "notion", lb: "노션 연결 필요", n: nUn, warn: true, t: "노션 견적 중 품목을 못 찾은 줄" }] : [])];
+    ...(isM && nUn ? [{ k: "notion", lb: "연결 필요", n: nUn, warn: true, t: "노션·줄 목록 중 품목·구성요소를 못 찾은 줄" }] : [])];
   const kKey = stable(kparts);
   useEffect(() => { if (!loading) toParent({ type: "pcc-kpi", parts: kparts }); }, [kKey, loading]);
   const pickK = (k) => { if (k === "notion") { setSheet("notion"); return; } setTab(k === tab ? "all" : k); };
@@ -1114,8 +1223,7 @@ function Main({ user, role }) {
     if (d.type === "pcc-filter" && d.k) { if (d.k === "notion") setSheet("notion"); else { setTab((t) => (d.k === t ? "all" : d.k)); setOpen(null); } }
     if (d.type === "pcc-open" && d.id) openCard(d.id); };
     window.addEventListener("message", f); return () => window.removeEventListener("message", f); }, []);
-  // 노션 가져오기 (Aside 가 부름) — 마스터 · 데이터가 다 온 뒤
-  const sRef = useRef(S); sRef.current = S;
+  // 노션 가져오기 (Aside 가 부름) · 줄 목록 — 마스터 · 데이터가 다 온 뒤
   useEffect(() => {
     const ready = () => { const s = sRef.current; return s.cards !== null && s.ref !== undefined && s.namesReady; };
     const wait = async () => { for (let i = 0; i < 100 && !ready(); i++) await new Promise((r) => setTimeout(r, 200)); return ready(); };
@@ -1126,6 +1234,13 @@ function Main({ user, role }) {
         if (!(await wait())) return { added: 0, updated: 0, unchanged: 0, deleted: 0, unmatched: [], errors: ["분해원가 데이터를 아직 못 불러왔어요"] };
         try { return await applyNotionImport({ S: sRef.current, user }, payload, opt || {}); }
         catch (e) { console.error("[노션 가져오기] 실패", e); return { added: 0, updated: 0, unchanged: 0, deleted: 0, unmatched: [], errors: [String(e.code || e.message || e)] }; }
+      },
+      // 줄 목록(2차원 배열: 첫 줄 = 칸 이름) — opt.dry = 미리 보기만
+      async applyLines(aoa, opt) {
+        if (!isM) return { errors: ["마스터 계정으로 로그인해야 해요"] };
+        if (!(await wait())) return { errors: ["분해원가 데이터를 아직 못 불러왔어요"] };
+        const r = sheetOps(aoa); if (r.err) return { errors: [r.err] };
+        const out = await applyLineOps({ S: sRef.current, user }, r.ops, { src: "sheet", dry: !!(opt && opt.dry), file: (opt && opt.file) || "applyLines" }); const { lines, ...rest } = out; return rest;
       },
     };
     return () => { delete window.costImport; };
@@ -1151,10 +1266,12 @@ function Main({ user, role }) {
         ${isM && html`<button class="tbtn" onClick=${() => setSheet("import")}>📥 엑셀 올리기</button>`}
         <button class="tbtn" disabled=${!items.length} onClick=${() => exportXlsx(ctx, items).then(() => setToast("엑셀을 받았어요")).catch((e) => { console.error("[엑셀 받기] 실패", e); setToast("엑셀 못 받았어요: " + (e.message || e)); })}>📤 엑셀 받기</button>
         ${isM && seedN > 0 && html`<button class="tbtn" onClick=${() => setSheet("seed")}>🧩 기존 제품 카드 만들기 (${seedN})</button>`}
-        ${seeNames && (S.notion || isM) && html`<button class="tbtn" onClick=${() => setSheet("notion")}>노션 ${nUn ? html`<b style=${{ color: "var(--gd)" }}>연결 필요 ${nUn}</b>` : "가져오기"}</button>`}
+        ${isM && html`<button class="tbtn" onClick=${() => setSheet("lines")}>📋 줄 목록 올리기</button>`}
+        ${isM && html`<button class="tbtn" onClick=${() => downloadLinesTemplate("xlsx").catch((e) => setToast("양식 못 받았어요: " + (e.message || e)))}>줄 목록 양식 받기</button>`}
+        ${seeNames && (S.notion || isM) && html`<button class="tbtn" onClick=${() => setSheet("notion")}>${nUn ? html`<b style=${{ color: "var(--gd)" }}>연결 필요 ${nUn}</b>` : "가져오기 기록"}</button>`}
         ${isM && html`<button class="tbtn" onClick=${() => setSheet("trash")}>🗑 휴지통 ${(S.cards || []).filter((c) => c.deleted).length || ""}</button>`}
       </div>
-      ${lastRun && seeNames && html`<div class="pl-line"><b>노션 동기화</b> ${whenTxt(lastRun.at)} <i>·</i> 추가 ${lastRun.added} <i>·</i> 바뀜 ${lastRun.updated} <i>·</i> 그대로 ${lastRun.unchanged}${lastRun.deleted ? html` <i>·</i> 노션에서 삭제됨 ${lastRun.deleted}` : ""}${lastRun.unmatched ? html` <i>·</i> <button class="lnk" onClick=${() => setSheet("notion")}>연결 필요 ${nUn}</button>` : ""}${lastRun.errors ? html` <i>·</i> <span style=${{ color: "var(--red)" }}>오류 ${lastRun.errors}</span>` : ""}</div>`}
+      ${lastRun && seeNames && html`<div class="pl-line"><b>${lastRun.src === "sheet" ? "줄 목록 올리기" : "노션 동기화"}</b> ${whenTxt(lastRun.at)} <i>·</i> 추가 ${lastRun.added} <i>·</i> 바뀜 ${lastRun.updated} <i>·</i> 그대로 ${lastRun.unchanged}${lastRun.deleted ? html` <i>·</i> 노션에서 삭제됨 ${lastRun.deleted}` : ""}${lastRun.unmatched ? html` <i>·</i> <button class="lnk" onClick=${() => setSheet("notion")}>연결 필요 ${nUn}</button>` : ""}${lastRun.errors ? html` <i>·</i> <span style=${{ color: "var(--red)" }}>오류 ${lastRun.errors}</span>` : ""}</div>`}
       ${!shown.length ? html`<div class="empty">${items.length ? "조건에 맞는 카드가 없어요." : isM ? "아직 분해원가 카드가 없어요. 위 [엑셀 올리기] · [기존 제품 카드 만들기] · [＋ 새 품목]으로 시작해요." : "아직 분해원가 카드가 없어요."}</div>`
         : html`<${GridTable} items=${shown} open=${openCard} grouped=${sort === "brand"} seeNames=${seeNames} />`}
       <p class="foot">· 완제품 원가 = 구성요소 개당 금액 합(부가세 별도 · 구성요소마다 '적용' 업체 단가) · 확정 = 모든 줄 근거(견적일·출처) 있음 · 견적 유효기간 = 카드·적용 업체 중 가장 빠른 날
@@ -1164,7 +1281,8 @@ function Main({ user, role }) {
     ${sheet === "import" && html`<${ImportSheet} ctx=${ctx} onClose=${() => setSheet("")} />`}
     ${sheet === "seed" && html`<${SeedSheet} ctx=${ctx} onClose=${() => setSheet("")} />`}
     ${sheet === "trash" && html`<${TrashSheet} ctx=${ctx} onClose=${() => setSheet("")} />`}
-    ${sheet === "notion" && html`<${NotionSheet} ctx=${ctx} onClose=${() => setSheet("")} openCard=${(id) => { setSheet(""); openCard(id); }} />`}
+    ${sheet === "notion" && html`<${LinkSheet} ctx=${ctx} onClose=${() => setSheet("")} />`}
+    ${sheet === "lines" && html`<${LinesSheet} ctx=${ctx} onClose=${() => setSheet("")} openLinks=${() => setSheet("notion")} />`}
     ${toast && html`<div class="toast" role="status">${toast}</div>`}
   </div>`;
 }
@@ -1185,7 +1303,7 @@ function GridTable({ items, open, grouped, seeNames }) {
       if (m !== lm) { rows.push(html`<tr class="l2" key=${"m" + b + m}><td colspan="8">▸ ${m}<span class="n">${items.filter((x) => (x.c.brand || "브랜드 없음") === b && (C.methodName(x.c.method) || "생산 방식 미정") === m).length}</span></td></tr>`); lm = m; }
     }
     rows.push(html`<tr key=${i.c.id} class="go" onClick=${() => open(i.c.id)}>
-      <td class="stk" style=${{ minWidth: 190 }}><div class="pname">${i.c.item || "(품목 없음)"}</div><div class="pspec">${[i.c.spec, i.c.round, !grouped ? i.c.brand : "", i.mfg].filter(Boolean).join(" · ")} ${i.need ? html`<span class="tag need">분해 필요</span>` : ""}${i.nt ? html` <span class="tag nt">노션</span>` : ""}${i.ndel ? html` <span class="tag ndel">노션 삭제 ${i.ndel}</span>` : ""}</div></td>
+      <td class="stk" style=${{ minWidth: 190 }}><div class="pname">${i.c.item || "(품목 없음)"}</div><div class="pspec">${[i.c.spec, i.c.round, !grouped ? i.c.brand : "", i.mfg].filter(Boolean).join(" · ")} ${i.need ? html`<span class="tag need">분해 필요</span>` : ""}${i.nt ? html` <span class="tag nt">노션</span>` : ""}${i.ndel ? html` <span class="tag ndel">노션 삭제 ${i.ndel}</span>` : ""}${i.samples ? html` <span class="tag need">샘플 ${i.samples}</span>` : ""}</div></td>
       <td class="nw hm">${C.methodName(i.c.method) || html`<span class="dim">미정</span>`}</td>
       <td class="nw hm">${i.c.origin || html`<span class="dim">—</span>`}</td>
       <td class="num"><b>${W(i.x.unit)}</b><div class="sub">${reflTag(i)}</div></td>
@@ -1299,7 +1417,7 @@ function CardSheet({ id, ctx, onClose, onSaved }) {
   const tplMissing = d.method ? C.templateRows(d.method, d.origin).filter((t) => !d.rows.some((r) => String(r.name).trim() === t.name)).length : 0;
   // 기존 값 줄(가격정책표 매입원가 1줄)과 노션 구성요소가 같이 있으면 두 번 더해짐 → 안내 + 한 번에 빼기
   const seedRow = d.rows.findIndex((r) => r.id === "seed" && r.vendors.some((v) => /가격정책표 기존 값/.test(v.qd || "")));
-  const hasNotion = d.rows.some((r) => r.vendors.some((v) => isNotion(v)));
+  const hasNotion = d.rows.some((r) => r.id !== "seed" && !C.rowEmpty(C.syncRow(r)));   // 기존 값 줄 말고 다른 구성요소가 있음(노션·줄 목록·손으로)
   const nv = useMemo(() => namesInit(names, card ? card.rows : []), [namesKey]);
   const NM = isM ? nm : nv;   // 이름·견적서·노션 주소: 마스터 = 고치는 값 · 경영 열람 = 저장된 값 · 부마스터 = 안 씀
   const vName = (r, v) => (seeNames ? ((NM.vsup || {})[r.id] || {})[v.vid] || (isM ? "" : v.alias || "") : v.alias || "");
@@ -1342,13 +1460,15 @@ function CardSheet({ id, ctx, onClose, onSaved }) {
     if (k === "vu") return inp(C.parseDate(v.vu) || v.vu, (x) => setV(i, v.vid, "vu", x), { type: ro || lock ? "text" : "date", al: v.vid + " 유효기간", lock });
     return inp(v[k], (x) => setV(i, v.vid, k, x), { ...o, lock }); };
   const nameIn = (r, i, v) => (isM && !isNotion(v) ? inp(vName(r, v), (x) => setVName(r, v.vid, x), { list: "pccNames", ph: "업체 이름", al: v.vid + " 업체 이름" }) : html`<span class="vnm" title=${isNotion(v) ? "노션 공급업체" : ""}>${vName(r, v) || "—"}</span>`);
-  const nTags = (r, v) => html`${isNotion(v) ? html` <span class="tag nt" title=${v.nno ? "노션 견적 " + v.nno : "노션 견적"}>노션</span>` : ""}${v.ndel ? html` <span class="tag ndel" title="노션에서 지운 견적 — 계산엔 그대로(빼려면 ✕)">노션에서 삭제됨</span>` : ""}${isNotion(v) && vUrl(r, v) ? html` <a class="lnk" style=${{ fontSize: 11 }} href=${vUrl(r, v)} target="_blank" rel="noopener">노션에서 고치기 ↗</a>` : ""}`;
+  const supI = (v) => { const x = seeNames && v.nsid && S.notion && (S.notion.suppliers || {})[v.nsid]; if (!x) return "";
+    const st = (n) => (n === "" || n == null ? "" : "★" + n); return [x.type, x.region, x.pay && "결제 " + x.pay, x.move && "이동비 " + x.move, st(x.quality) && "품질 " + st(x.quality), st(x.onTime) && "납기 " + st(x.onTime)].filter(Boolean).join(" · "); };
+  const nTags = (r, v) => html`${v.nst === "탈락" ? html` <span class="tag off">탈락</span>` : v.nad ? html` <span class="tag has" title="노션에서 채택한 견적">채택</span>` : v.nst ? html` <span class="tag off">${v.nst}</span>` : ""}${isNotion(v) ? html` <span class="tag nt" title=${v.nno ? "노션 견적 " + v.nno : "노션 견적"}>노션</span>` : ""}${v.ndel ? html` <span class="tag ndel" title="노션에서 지운 견적 — 계산엔 그대로(빼려면 ✕)">노션에서 삭제됨</span>` : ""}${isNotion(v) && vUrl(r, v) ? html` <a class="lnk" style=${{ fontSize: 11 }} href=${vUrl(r, v)} target="_blank" rel="noopener">노션에서 고치기 ↗</a>` : ""}`;
   const fileBtn = (r, v) => { if (!seeNames) return html`<span class="dim" title="견적서는 마스터·경영 열람만">—</span>`; const n = vFiles(r, v).length;
     return html`<button type="button" class="tbtn sm" onClick=${() => setFilesFor({ rid: r.id, vid: v.vid, lb: `${r.name || r.kind || "구성요소"} · ${v.vid} ${vName(r, v) || ""}` })} title="견적서 (PDF·이미지·노션)">📎 ${n || (isM ? "＋" : 0)}</button>`; };
   const vbtn = (r) => { const a = av(r), k = r.vendors.indexOf(a), on = !!openV[r.id];
     return html`<button type="button" class=${"vbtn" + (on ? " on" : "")} onClick=${() => setOpenV((o) => ({ ...o, [r.id]: !o[r.id] }))} aria-expanded=${on} title="업체 여러 곳 · 단가 비교">${vLabel(a, k)}${r.vendors.length > 1 ? html` <b>${r.vendors.length}곳</b>` : ""} ${on ? "▴" : "▾"}</button>`; };
   const priceIn = (r, i) => { const a = av(r); return html`<div class="pcur">${vin(i, a, "price", { num: true, ph: "0", al: "견적 단가" })}${a.cur ? html`<span class="cu">${a.cur}</span>` : ""}</div>`; };
-  const vProps = { ro, isM, seeNames, vin, nameIn, nTags, fileBtn, pickV, addV, rmV };
+  const vProps = { ro, isM, seeNames, vin, nameIn, nTags, fileBtn, pickV, addV, rmV, supI };
   const bar = isM ? html`<div class="bar"><div class="in2">
       <span class="st">${dirty ? "● 저장 안 됨" : "저장됨"}</span>
       <input class="in why" placeholder="바꾼 이유 (선택 · 이력에 남아요)" value=${why} onInput=${(e) => setWhy(e.target.value)} aria-label="바꾼 이유" />
@@ -1360,7 +1480,8 @@ function CardSheet({ id, ctx, onClose, onSaved }) {
       right=${isM && card ? html`<button type="button" class="tbtn red" onClick=${del}>휴지통</button>` : ""}>
     ${tab === "cost" && html`<${React.Fragment}>
       <${ResultBar} ctx=${ctx} card=${card} d=${d} setD=${setD} live=${live} x=${x} prod=${prod} pt=${pt} ro=${ro} dirty=${dirty} cheap=${cheap} multiN=${multiN} goCmp=${() => setTab("cmp")} />
-      ${seedRow >= 0 && hasNotion && html`<div class="pl-line" style=${{ background: "#fff" }}>노션 견적 구성요소가 들어왔어요. 처음 넣은 <b>'완제품 매입'(가격정책표 기존 값)</b> 줄이 같이 있으면 두 번 더해져요.${isM ? html` <button type="button" class="tbtn sm" onClick=${() => rmRow(seedRow)}>그 줄 빼기</button> (뺀 뒤 [저장])` : ""}</div>`}
+      ${card && (card.nsamples || []).length > 0 && html`<div class="pl-line" style=${{ background: "#fff" }}><b>샘플 ${card.nsamples.length}건</b> <span class="dim">원가에 안 들어가요</span>${card.nsamples.map((sm, k) => html`<${React.Fragment} key=${k}><i>·</i><span>${sm.name} ${sm.price === "" || sm.price == null ? "" : fmt(sm.price, 4) + (sm.cur ? " " + sm.cur : "원")}${seeNames && sm.nsid && S.notion && (S.notion.suppliers || {})[sm.nsid] ? ` (${S.notion.suppliers[sm.nsid].name})` : ""}</span><//>`)}</div>`}
+      ${seedRow >= 0 && hasNotion && html`<div class="pl-line" style=${{ background: "#fff" }}>구성요소가 들어왔어요. 처음 넣은 <b>'완제품 매입'(가격정책표 기존 값)</b> 줄이 같이 있으면 두 번 더해져요.${isM ? html` <button type="button" class="tbtn sm" onClick=${() => rmRow(seedRow)}>그 줄 빼기</button> (뺀 뒤 [저장])` : ""}</div>`}
       <div class="panel"><div class="ph">기본 정보<span class="rt">${!seeNames ? "업체는 가칭" : ""}</span></div><div class="pb">
         <div class="fg">
           <div class="fld"><label>브랜드</label>${inp(d.brand, (v) => set("brand", v), { list: "pccBrands", ph: "예: 바라스데이", al: "브랜드" })}</div>
@@ -1446,7 +1567,7 @@ function CardSheet({ id, ctx, onClose, onSaved }) {
         <${QtyCompare} live=${live} />
       </div></details>
     <//>`}
-    ${tab === "cmp" && html`<${CompareTab} live=${live} x=${x} cmp=${cmp} cheap=${cheap} ro=${ro} vName=${vName} nTags=${nTags} fileBtn=${fileBtn} onPick=${(rid, vid) => { const i = rowIdx(rid); if (i >= 0) pickV(i, vid); }}
+    ${tab === "cmp" && html`<${CompareTab} live=${live} x=${x} cmp=${cmp} cheap=${cheap} ro=${ro} vName=${vName} nTags=${nTags} fileBtn=${fileBtn} supI=${supI} onPick=${(rid, vid) => { const i = rowIdx(rid); if (i >= 0) pickV(i, vid); }}
       onAll=${() => setD((o) => ({ ...o, rows: o.rows.map((r) => { const c = cmp.find((y) => y && y.r.id === r.id); return c && c.best && !c.best.on ? { ...r, sel: c.best.v.vid } : r; }) }))}
       goRow=${(rid) => { setOpenV((o) => ({ ...o, [rid]: true })); setTab("cost"); }} dirty=${dirty} />`}
     ${tab === "hist" && html`<div class="panel"><div class="ph">변경 이력 <span class="rt">누가 · 언제 · 무엇을 · 이유 (최근 100건)</span></div><div class="pb flush">
@@ -1459,14 +1580,14 @@ function CardSheet({ id, ctx, onClose, onSaved }) {
   <//>`;
 }
 // 구성요소 1줄의 업체들 — PC: 표 (A 주 · B 서브 · C…) · 적용 1곳
-function VendorTable({ r, i, cx, ro, vin, nameIn, nTags, fileBtn, pickV, addV, rmV }) {
+function VendorTable({ r, i, cx, ro, vin, nameIn, nTags, fileBtn, pickV, addV, rmV, supI }) {
   const nextL = C.nextVid(r.vendors), nextK = r.vendors.length;
   return html`<div style=${{ overflowX: "auto", paddingRight: 8 }}><table class="vt"><thead><tr><th>적용</th><th>업체</th><th style=${{ minWidth: 150 }}>업체 이름</th><th>통화</th><th style=${{ width: 90 }}>견적 단가</th><th style=${{ width: 84 }}>부가세</th><th style=${{ width: 78 }}>MOQ</th><th style=${{ width: 72 }}>리드타임</th><th style=${{ width: 96 }}>견적일·출처</th><th style=${{ width: 118 }}>유효기간</th><th style=${{ minWidth: 110 }}>메모</th><th>견적서</th><th class="num">단가(V-, 원)</th><th class="num">개당</th><th class="num">적용보다</th>${!ro && html`<th></th>`}</tr></thead>
     <tbody>${r.vendors.map((v, k) => { const l = cx && cx.list.find((y) => y.v.vid === v.vid), on = v.vid === r.sel, best = cx && cx.best && cx.best.v.vid === v.vid && cx.list.filter((y) => y.priced).length > 1;
-      return html`<tr key=${v.vid} class=${on ? "on" : ""}>
+      return html`<tr key=${v.vid} class=${on ? "on" : ""} style=${v.nst === "탈락" ? { opacity: 0.55 } : null}>
         <td><input type="radio" name=${"sel-" + r.id} checked=${on} disabled=${ro} onChange=${() => pickV(i, v.vid)} aria-label=${v.vid + " 적용"} /></td>
         <td class="nw"><b>${vLabel(v, k)}</b>${best ? html` <span class="tag has">최저</span>` : ""}${nTags(r, v)}</td>
-        <td>${nameIn(r, i, v)}</td>
+        <td>${nameIn(r, i, v)}${supI(v) ? html`<div class="sub" style=${{ whiteSpace: "normal" }}>${supI(v)}</div>` : ""}</td>
         <td>${vin(i, v, "cur")}</td><td>${vin(i, v, "price", { num: true, ph: "0", al: v.vid + " 견적 단가" })}</td><td>${vin(i, v, "vat")}</td>
         <td>${vin(i, v, "moq", { num: true, al: v.vid + " MOQ" })}</td><td>${vin(i, v, "lead", { ph: "예: 3주", al: v.vid + " 리드타임" })}</td>
         <td>${vin(i, v, "qd", { ph: "견적서 날짜", al: v.vid + " 견적일" })}</td><td>${vin(i, v, "vu")}</td>
@@ -1480,15 +1601,15 @@ function VendorTable({ r, i, cx, ro, vin, nameIn, nTags, fileBtn, pickV, addV, r
     ${!ro && html`<button type="button" class="vadd" onClick=${() => addV(i)}>＋ 업체 ${nextL}${C.vRole(nextK) ? " " + C.vRole(nextK) : ""} 추가 <span class="dim" style=${{ fontWeight: 500 }}>— 같은 구성요소를 다른 업체 견적으로</span></button>`}</div>`;
 }
 // 폰: 업체 한 곳씩
-function VendorCards({ r, i, cx, ro, vin, nameIn, nTags, fileBtn, pickV, addV, rmV }) {
+function VendorCards({ r, i, cx, ro, vin, nameIn, nTags, fileBtn, pickV, addV, rmV, supI }) {
   const nextL = C.nextVid(r.vendors), nextK = r.vendors.length;
   return html`<div>${r.vendors.map((v, k) => { const l = cx && cx.list.find((y) => y.v.vid === v.vid), on = v.vid === r.sel, best = cx && cx.best && cx.best.v.vid === v.vid && cx.list.filter((y) => y.priced).length > 1;
-    return html`<div key=${v.vid} class=${"vc" + (on ? " on" : "")}>
+    return html`<div key=${v.vid} class=${"vc" + (on ? " on" : "")} style=${v.nst === "탈락" ? { opacity: 0.55 } : null}>
       <div class="vh"><label style=${{ display: "flex", gap: 5, alignItems: "center", fontWeight: 800 }}><input type="radio" name=${"sel-" + r.id} checked=${on} disabled=${ro} onChange=${() => pickV(i, v.vid)} aria-label=${v.vid + " 적용"} />${vLabel(v, k)}</label>
         ${on ? html`<span class="tag ok">적용</span>` : ""}${best ? html`<span class="tag has">최저</span>` : ""}${nTags(r, v)}<span class="sp"></span>${fileBtn(r, v)}
         ${!ro && r.vendors.length > 1 && html`<button class="rmv" style=${{ border: 0, background: "none", color: "var(--mute)", fontSize: 15 }} title="업체 빼기" onClick=${() => rmV(i, v.vid)} aria-label=${v.vid + " 업체 빼기"}>✕</button>`}</div>
       <div class="vf">
-        <div class="fld w2"><label>업체 이름</label>${nameIn(r, i, v)}</div>
+        <div class="fld w2"><label>업체 이름</label>${nameIn(r, i, v)}${supI(v) ? html`<div class="sub">${supI(v)}</div>` : ""}</div>
         <div class="fld"><label>통화</label>${vin(i, v, "cur")}</div><div class="fld"><label>견적 단가</label>${vin(i, v, "price", { num: true, ph: "0", al: v.vid + " 견적 단가" })}</div>
         <div class="fld"><label>부가세</label>${vin(i, v, "vat")}</div><div class="fld"><label>MOQ</label>${vin(i, v, "moq", { num: true, al: v.vid + " MOQ" })}</div>
         <div class="fld"><label>리드타임</label>${vin(i, v, "lead", { ph: "예: 3주", al: v.vid + " 리드타임" })}</div><div class="fld"><label>견적일·출처</label>${vin(i, v, "qd", { ph: "견적서 날짜", al: v.vid + " 견적일" })}</div>
@@ -1499,7 +1620,7 @@ function VendorCards({ r, i, cx, ro, vin, nameIn, nTags, fileBtn, pickV, addV, r
     ${!ro && html`<button type="button" class="vadd" style=${{ width: "100%" }} onClick=${() => addV(i)}>＋ 업체 ${nextL}${C.vRole(nextK) ? " " + C.vRole(nextK) : ""} 추가</button>`}</div>`;
 }
 // 업체 비교 — 표 하나: 구성요소(초록 줄)마다 업체 나란히
-function CompareTab({ live, x, cmp, cheap, ro, vName, nTags, fileBtn, onPick, onAll, goRow, dirty }) {
+function CompareTab({ live, x, cmp, cheap, ro, vName, nTags, fileBtn, supI, onPick, onAll, goRow, dirty }) {
   const multi = cmp.filter((c) => c && c.n > 1), single = cmp.filter((c) => c && c.n === 1), diff = cheap - x.unit;
   return html`<${React.Fragment}>
     <div class="pl-line"><span>지금 적용 원가 <b class="big">${W(x.unit)}</b></span><i>·</i><span>모두 최저가로 고르면 <b class=${"big " + (diff < -0.005 ? "minus" : "")}>${W(cheap)}</b> ${Math.abs(diff) < 0.005 ? "(지금이 최저)" : `(${sgn(diff)})`}</span><i>·</i><span>업체 2곳 이상 <b>${multi.length}</b> / ${x.n}줄</span>
@@ -1509,14 +1630,14 @@ function CompareTab({ live, x, cmp, cheap, ro, vName, nTags, fileBtn, onPick, on
       <tbody>${multi.map((c) => html`<${React.Fragment} key=${c.r.id}>
         <tr class="l2"><td colspan="11">▸ ${c.r.name || c.r.kind || "구성요소"}<span class="n">${c.r.kind || ""}${c.r.per === "1회" ? " · 1회 비용(÷ 생산 수량)" : ""}</span> <button type="button" class="lnk" style=${{ marginLeft: 10 }} onClick=${() => goRow(c.r.id)}>업체 고치기</button></td></tr>
         ${c.list.map((l) => { const bst = c.best && c.best.v.vid === l.v.vid;
-          return html`<tr key=${l.v.vid} style=${l.on ? { fontWeight: 700 } : null}>
+          return html`<tr key=${l.v.vid} style=${{ ...(l.on ? { fontWeight: 700 } : {}), ...(l.v.nst === "탈락" ? { opacity: 0.55 } : {}) }}>
             <td class="stk nw" style=${l.on ? { background: "var(--gl)" } : bst ? { background: "var(--gl2)" } : null}>${vLabel(l.v, l.k)} ${l.on ? html`<span class="tag ok">적용</span>` : ""}${bst ? html` <span class="tag has">최저</span>` : ""}${nTags(c.r, l.v)}</td>
-            <td>${vName(c.r, l.v) || html`<span class="dim">—</span>`}</td>
+            <td>${vName(c.r, l.v) || html`<span class="dim">—</span>`}${supI(l.v) ? html`<div class="sub" style=${{ whiteSpace: "normal" }}>${supI(l.v)}</div>` : ""}</td>
             <td class="num">${l.priced ? html`${l.v.cur ? html`<span class="dim" style=${{ fontWeight: 500 }}>${fmt(C.num(l.v.price), 4)} ${l.v.cur} → </span>` : ""}${fmt(l.m.unitV)}` : html`<span class="dim">${l.v.cur && C.num(l.v.price) != null ? "환율 필요" : "단가 없음"}</span>`}</td>
             <td class="num">${l.priced ? html`<b>${fmt(l.m.per)}</b>` : "—"}</td>
             <td class="num">${l.on ? html`<span class="dim">적용 중</span>` : l.priced ? html`<span class=${sgnCls(l.dPer)}>${sgn(l.dPer)}</span>` : "—"}</td>
             <td class="num">${!l.on && l.priced && Math.abs(l.dFirst - l.dPer) >= 0.005 ? html`<span class=${sgnCls(l.dFirst)} title="MOQ 차이로 첫 생산 때 남는 비용">${sgn(l.dFirst)}</span>` : html`<span class="dim">—</span>`}</td>
-            <td class="num">${C.num(l.v.moq) != null ? won(C.num(l.v.moq)) : "—"}</td>
+            <td class="num">${C.num(l.v.moq) != null ? won(C.num(l.v.moq)) + (l.v.unit ? l.v.unit : "") : "—"}</td>
             <td class="nw">${l.v.lead || html`<span class="dim">—</span>`}</td>
             <td class="nw">${l.v.vu ? dTxt(l.v.vu) : html`<span class="dim">—</span>`}</td>
             <td>${fileBtn(c.r, l.v)}</td>
@@ -1647,38 +1768,136 @@ function FilesModal({ title, files, canEdit, notionUrl, onChange, onClose, user 
         ${/^image\//.test(pv.type) ? html`<img src=${pv.u} alt=${pv.name} style=${{ maxWidth: "100%" }} />` : html`<iframe class="pv" src=${pv.u} title=${pv.name}></iframe>`}</div>`}
     </div></div></div>`;
 }
-// ── 노션 가져오기: 실행 기록 · 연결 필요(품목을 못 찾은 줄 → 한 번 고르면 기억) ──
-function NotionSheet({ ctx, onClose, openCard }) {
-  const { S, isM, refList, setToast } = ctx;
-  const reg = S.notion || {}, runs = reg.runs || [], un = Object.values(reg.unmatched || {}).sort((a, b) => String(a.supplier).localeCompare(String(b.supplier)));
-  const opts = useMemo(() => [...(S.cards || []).filter((c) => !c.deleted).map((c) => ({ v: c.id, lb: `카드 · ${c.item} ${c.spec || ""} · ${c.brand || ""} · ${c.round || ""}`.replace(/\s+/g, " ") })),
-    ...refList.filter((p) => p.type !== "세트").map((p) => ({ v: "p:" + p.k, lb: `가격표 · ${p.name} ${p.spec && p.spec !== "-" ? p.spec : ""} · ${(p.brand || []).join("/")}`.replace(/\s+/g, " ") }))], [S.cards, refList]);
-  const [pick, setPick] = useState({}), [busy, setBusy] = useState("");
-  const link = async (u) => {
-    const o = opts.find((x) => x.lb === (pick[u.lineId] || "").trim()); if (!o) { setToast("목록에서 골라 주세요"); return; }
-    if (!window.costImport) { setToast("마스터로 열어야 해요"); return; }
-    setBusy(u.lineId);
-    const r = await window.costImport.applyNotion({ source: "notion", partial: true, suppliers: [u.s || {}], quotes: [u.q] }, { links: { [matchKeyOf(u.product)]: o.v } });
-    setBusy(""); setToast(r.errors.length ? "연결 못 했어요: " + r.errors[0] : `연결했어요 · 추가 ${r.added} · 바뀜 ${r.updated} — 다음부터 자동`);
+// ── 줄 목록 올리기 (AI 소싱 팀장 표: 한 줄 = 품목 1개의 구성요소 1개 × 업체 1곳 · xlsx/CSV) ──
+const LS_EX = [
+  ["P-0001", "예시 핸드워시", "500ml", "국내 OEM", "국내", "OEM 단가", "OEM 단가", "내용물+용기+충진", "가짜제조 하나", "A 주", 1650, "KRW", "", "V-", "개당", 1, 10000, 10000, "20", "2026-11-20", "2027-03-31", 10000, "하이웍스 품의 2026-123", "", "확정", "예시 줄 — 지우고 쓰세요"],
+  ["P-0001", "예시 핸드워시", "500ml", "", "", "라벨", "라벨", "앞면 라벨", "가짜라벨 인쇄", "A 주", 55, "KRW", "", "V-", "개당", 1, 10000, 10000, "", "2026-11-20", "", "", "하이웍스 품의 2026-123", "", "", ""],
+  ["", "예시 수입 세제", "1L", "해외 OEM·수입", "수입", "OEM 단가", "해외 단가", "완제품", "가짜해외 셋", "A 주", 1.2, "USD", 1385, "V-", "개당", 1, 6000, 5000, "45", "2026-11-18", "2027-01-31", 6000, "알리바바 주문", "", "임시", ""],
+  ["", "예시 수입 세제", "1L", "", "", "수입 물류", "해상 운임", "컨테이너 1회", "가짜포워더", "A 주", 1200000, "KRW", "", "V-", "1회", 1, "", "", "", "2026-11-18", "", "", "포워더 견적", "", "", ""],
+];
+const LS_HELP = [["자체상품코드", "가격정책표 자체상품코드 — 있으면 이걸로 품목을 찾아요(가장 정확)"], ["품목 · 규격", "코드가 없으면 품목+규격으로 찾아요 · 못 찾으면 '연결 필요'(한 번 고르면 기억) · 가격표에도 카드에도 없으면 새 카드"],
+  ["생산 방식", "자체생산 / 국내 OEM / 해외 OEM·수입 / 완제품 매입 — 칸에 값이 있으면 카드에 넣음"], ["국내·수입", "국내 / 수입"], ["구분", "분해원가 구분(내용물·충전 · 용기 · 캡 · 라벨 · 단상자 · OEM 단가 · 공임 · 간접비 · 1회 비용 · 입고 이동 · 수입 물류 · 관세 · 기타 …)"],
+  ["구성요소", "구성요소 이름 — 같은 품목·구분·구성요소·업체 줄은 새로 안 만들고 덮어써요"], ["업체 · 업체 순위", "업체 실명(마스터·경영 열람만 봄) · A 주 / B 서브 / C — 구성요소에 업체가 처음 들어오면 A 를 '적용' 업체로"],
+  ["단가 · 통화 · 환율", "외화(USD·CNY)는 환율 칸 값으로 원화 환산 · 환율이 비면 그 줄 '확인 필요'"], ["부가세", "V+ 포함 / V- 별도 / V? 확인 필요"], ["개당/1회 · 사용량·횟수", "1회 = 운임·목형처럼 한 번 내는 돈 → 생산 수량으로 나눔"],
+  ["구매 수량 · MOQ", "첫 생산 남는 비용 계산엔 구매 수량(없으면 MOQ)"], ["리드타임", "숫자만 쓰면 영업일"], ["날짜 · 견적 유효기간", "2026-11-20 · 2026.11.20 모두 됨"], ["생산 수량", "값이 있으면 카드 생산 수량으로"],
+  ["출처 · 출처 링크", "품의 번호·주문 번호 · 링크는 견적서 칸(📎)에"], ["상태", "확정 / 임시 / 확인 필요 (비우면 자동)"], ["안 바꾸는 것", "이미 고른 적용 업체 · 가격정책표 반영(자동 반영 없음)"]];
+async function downloadLinesTemplate(kind) {
+  const head = LS_COLS.map((x) => x[1]), name = `분해원가_줄목록_양식.${kind === "csv" ? "csv" : "xlsx"}`;
+  let blob;
+  if (kind === "csv") { const e = (v) => (/[",\r\n]/.test(String(v)) ? '"' + String(v).replace(/"/g, '""') + '"' : String(v)); blob = new Blob(["﻿" + [head, ...LS_EX].map((r) => r.map(e).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" }); }
+  else { const X = await loadXLSX(), wb = X.utils.book_new(), ws = X.utils.aoa_to_sheet([head, ...LS_EX]); ws["!cols"] = head.map((h) => ({ wch: Math.max(8, Math.min(22, h.length * 2)) }));
+    X.utils.book_append_sheet(wb, ws, "줄 목록"); const hs = X.utils.aoa_to_sheet([["칸", "설명"], ...LS_HELP]); hs["!cols"] = [{ wch: 22 }, { wch: 90 }]; X.utils.book_append_sheet(wb, hs, "설명");
+    blob = new Blob([X.write(wb, { bookType: "xlsx", type: "array" })], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }); }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+}
+async function readLinesFile(f) {
+  const X = await loadXLSX();
+  let wb;
+  if (/\.csv$/i.test(f.name) || /csv/.test(f.type)) wb = X.read((await f.text()).replace(/^﻿/, ""), { type: "string", raw: true });
+  else wb = X.read(await f.arrayBuffer(), { type: "array", cellDates: true });
+  let last = { ops: [], err: "줄 목록 시트를 못 찾았어요" };
+  for (const n of wb.SheetNames) { const r = sheetOps(X.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: true, defval: "" })); if (!r.err) return r; last = r; }
+  return last;
+}
+const RES_TXT = { added: ["tag ok", "추가"], updated: ["tag diff", "바뀜"], unchanged: ["tag off", "그대로"], unmatched: ["tag tmp", "연결 필요"], error: ["tag chk", "오류"], ignored: ["tag off", "무시"] };
+function LinesSheet({ ctx, onClose, openLinks }) {
+  const { user, setToast, getS } = ctx;
+  const [st, setSt] = useState({ file: "", ops: null, res: null, busy: "", err: "", done: null });
+  const read = async (f) => {
+    if (!f) return; setSt({ file: f.name, ops: null, res: null, busy: "읽는 중…", err: "", done: null });
+    try { const r = await readLinesFile(f); if (r.err) { setSt((s) => ({ ...s, busy: "", err: r.err })); return; }
+      const res = await applyLineOps({ S: getS(), user }, r.ops, { src: "sheet", dry: true, file: f.name });
+      console.log(`[줄 목록] ${f.name} · ${r.ops.length}줄 미리 보기`, res); setSt((s) => ({ ...s, ops: r.ops, res, busy: "" })); }
+    catch (e) { console.error("[줄 목록] 읽기 실패", e); setSt((s) => ({ ...s, busy: "", err: "파일을 못 읽었어요: " + (e.message || e) })); }
   };
-  return html`<${Frame} title="노션 가져오기" label="노션 가져오기" close=${onClose} meta=${html`<span>노션 견적 → 분해원가 업체 단가 · 매일 19:00 (Aside · 마스터 로그인 화면에서)</span>`}>
-    <div class="panel"><div class="ph">연결 필요 <span class="rt">${un.length}줄 · 품목을 못 찾은 노션 견적 줄 — 한 번 고르면 기억해서 다음부터 자동</span></div><div class="pb flush">
-      ${un.length ? html`<div class="gridwrap"><table class="grid" style=${{ minWidth: 900 }}><thead><tr><th>공급업체</th><th>견적</th><th>노션 제품 (코드 · 이름 · 규격)</th><th>구성요소</th><th class="num">단가</th><th style=${{ minWidth: 280 }}>분해원가 품목 고르기</th><th></th></tr></thead><tbody>
-        ${un.map((u) => html`<tr key=${u.lineId}><td class="nw">${u.supplier || "—"}</td><td class="nw">${u.quoteNo || "—"}</td><td>${[u.product.code, u.product.name, u.product.spec].filter(Boolean).join(" · ")}</td><td>${[u.component.kind, u.component.name].filter(Boolean).join(" · ")}</td>
-          <td class="num">${u.unitPrice === "" ? "—" : fmt(C.num(u.unitPrice), 4)} ${u.currency || ""}</td>
-          <td>${isM ? html`<input class="in" list="pccNotionPick" value=${pick[u.lineId] || ""} placeholder="카드 또는 가격표 제품" onInput=${(e) => setPick((p) => ({ ...p, [u.lineId]: e.target.value }))} aria-label="품목 고르기" />` : html`<span class="dim">마스터가 골라요</span>`}</td>
-          <td>${isM && html`<button type="button" class="tbtn primary sm" disabled=${busy === u.lineId} onClick=${() => link(u)}>${busy === u.lineId ? "…" : "연결"}</button>`}</td></tr>`)}</tbody></table></div>
-        <datalist id="pccNotionPick">${opts.map((o) => html`<option key=${o.v} value=${o.lb} />`)}</datalist>` : html`<div class="empty">연결 필요한 줄이 없어요 ✓</div>`}
+  const apply = async () => {
+    if (!st.ops || !confirm(`줄 ${st.ops.length}개를 분해원가에 넣을까요?\n\n· 새 카드 ${st.res.newCards} · 바뀌는 줄 ${st.res.added + st.res.updated} · 연결 필요 ${st.res.unmatched.length} · 오류 ${st.res.errors.length}\n· 가격정책표 원가는 바꾸지 않아요`)) return;
+    setSt((s) => ({ ...s, busy: "넣는 중…" }));
+    try { const done = await applyLineOps({ S: getS(), user }, st.ops, { src: "sheet", file: st.file }); setSt((s) => ({ ...s, busy: "", done }));
+      setToast(`줄 목록 올리기 ${st.ops.length}줄 · 추가 ${done.added} · 바뀜 ${done.updated} · 새 카드 ${done.newCards}${done.unmatched.length ? ` · 연결 필요 ${done.unmatched.length}` : ""}`); }
+    catch (e) { console.error("[줄 목록] 넣기 실패", e); setSt((s) => ({ ...s, busy: "", err: "넣다 멈췄어요: " + (e.code || e.message) })); }
+  };
+  const R = st.done || st.res;
+  return html`<${Frame} title="📋 줄 목록 올리기" close=${onClose} meta=${html`<span>한 줄 = 품목 1개의 구성요소 1개 × 업체 1곳 · xlsx · CSV(UTF-8)</span>`}
+      right=${html`<button type="button" class="tbtn" onClick=${() => downloadLinesTemplate("xlsx")}>양식 받기 (xlsx)</button><button type="button" class="tbtn" onClick=${() => downloadLinesTemplate("csv")}>양식 받기 (CSV)</button>`}>
+    <div class="panel"><div class="pb"><label class="dropz">
+      <input type="file" accept=".xlsx,.xls,.csv,text/csv" style=${{ display: "none" }} onChange=${(e) => { read(e.target.files && e.target.files[0]); e.target.value = ""; }} aria-label="줄 목록 파일" />
+      <b style=${{ color: "var(--gd)" }}>줄 목록 파일 고르기</b><div class="note">${st.file ? `고른 파일: ${st.file}` : "첫 줄 = 칸 이름(자체상품코드 | 품목 | 규격 | … | 메모) · 양식 그대로"}</div></label>
+      ${st.busy && html`<div class="ld" style=${{ padding: 16 }}>${st.busy}</div>`}
+      ${st.err && html`<div class="err" style=${{ borderRadius: 6, marginTop: 8 }}>${st.err}</div>`}
     </div></div>
-    <div class="panel"><div class="ph">실행 기록 <span class="rt">최근 30번</span></div><div class="pb flush">
-      ${runs.length ? html`<div class="gridwrap"><table class="grid" style=${{ minWidth: 700 }}><thead><tr><th>언제</th><th>누가</th><th class="num">추가</th><th class="num">바뀜</th><th class="num">그대로</th><th class="num">노션에서 삭제됨</th><th class="num">연결 필요</th><th class="num">오류</th><th class="num">저장한 카드</th></tr></thead><tbody>
-        ${runs.map((r, k) => html`<tr key=${k}><td class="nw">${whenTxt(r.at)}${r.partial ? html` <span class="tag off">일부</span>` : ""}</td><td class="nw">${who(r.by)}</td><td class="num">${r.added}</td><td class="num">${r.updated}</td><td class="num">${r.unchanged}</td><td class="num">${r.deleted || 0}</td><td class="num">${r.unmatched}</td><td class="num">${r.errors ? html`<span style=${{ color: "var(--red)" }}>${r.errors}</span>` : 0}</td><td class="num">${r.cards}</td></tr>`)}</tbody></table></div>`
-        : html`<div class="empty">아직 노션에서 가져온 적이 없어요.</div>`}
-    </div></div>
-    <p class="foot">· 가져오기 = 이 화면(마스터 로그인)에서 <code>window.costImport.applyNotion(payload)</code> → {added, updated, unchanged, unmatched[], errors[]} · 같은 노션 id 는 여러 번 돌려도 같은 결과
-      <br />· 노션이 원본: 업체 단가·통화·부가세·MOQ·리드타임·견적일·유효기간·견적서 · 여기서만 정함: 적용 업체·사용량·1회 비용 배분·가격정책표 반영(자동 반영 안 함) · 노션에서 사라진 견적은 '노션에서 삭제됨'만 표시</p>
+    ${R && html`<${React.Fragment}>
+      <div class="pl-line"><b>${st.done ? "넣었어요" : "미리 보기"}</b> <span>줄 <b>${st.ops.length}</b></span><i>·</i><span>새 카드 <b>${R.newCards}</b></span><i>·</i><span>바뀌는 줄 <b>${R.added + R.updated}</b> <span class="dim">(추가 ${R.added} · 바뀜 ${R.updated})</span></span><i>·</i><span>그대로 ${R.unchanged}</span><i>·</i>
+        <span>연결 필요 <b>${R.unmatched.length}</b></span><i>·</i><span style=${R.errors.length ? { color: "var(--red)" } : null}>오류 <b>${R.errors.length}</b></span><span style=${{ flex: 1 }}></span>
+        ${st.done ? (R.unmatched.length ? html`<button type="button" class="tbtn primary" onClick=${openLinks}>연결 필요 ${R.unmatched.length} 고르기</button>` : "") : html`<button type="button" class="tbtn primary" disabled=${!!st.busy || !(R.added + R.updated + R.newCards + R.unmatched.length)} onClick=${apply}>적용</button>`}</div>
+      <div class="panel"><div class="pb flush"><div class="gridwrap" style=${{ maxHeight: "60vh" }}><table class="grid" style=${{ minWidth: 860 }}><thead><tr><th>행</th><th>결과</th><th>품목 · 규격</th><th>구분 · 구성요소</th><th>업체 (순위)</th><th class="num">단가</th><th>이유 · 붙은 곳</th></tr></thead>
+        <tbody>${R.lines.slice(0, 500).map((l, k) => { const o = l.op || {}, v = o.vendor || {}, [cl, t] = RES_TXT[l.r] || ["", l.r]; return html`<tr key=${k}>
+          <td class="nw">${o.n || ""}</td><td class="nw"><span class=${cl}>${t}</span></td><td>${o.product ? [o.product.code, o.product.name, o.product.spec].filter(Boolean).join(" · ") : ""}</td>
+          <td>${o.comp ? [o.comp.kind, o.comp.name].filter(Boolean).join(" · ") : ""}</td><td class="nw">${v.name || ""}${v.vid ? ` (${v.vid})` : ""}</td>
+          <td class="num">${v.price === "" || v.price == null ? "—" : fmt(v.price, 4)} ${v.cur || ""}</td><td class="dim">${l.why || (l.card ? `${l.card} › ${l.comp || ""}${l.vid ? " › " + l.vid : ""}` : "")}</td></tr>`; })}</tbody></table></div></div></div>
+      <p class="foot">· 같은 품목·구분·구성요소·업체 줄은 덮어써요(새로 안 만듦) · 칸이 빈 곳은 그대로 둬요 · 이미 고른 적용 업체와 가격정책표 원가는 안 바꿔요(구성요소에 업체가 처음 들어오면 '업체 순위 A'를 적용)
+        <br />· 노션에서 온 업체 칸은 노션에서 고쳐요 · 기록: 가져오기 기록(노션 · 줄 목록)에 '줄 목록 올리기 ○줄'</p>
+    <//>`}
   <//>`;
 }
+// ── 가져오기 (노션 · 줄 목록): 연결 필요 = '이 줄 = 이 품목의 이 구성요소(구분)' 한 번 고르면 기억 · 실행 기록 ──
+function LinkSheet({ ctx, onClose }) {
+  const { S, isM, refList, setToast, user, getS } = ctx;
+  const reg = S.notion || {}, runs = reg.runs || [], sups = reg.suppliers || {};
+  const un = Object.values(reg.unmatched || {}).sort((a, b) => String(a.src).localeCompare(String(b.src)) || String(a.supplier).localeCompare(String(b.supplier)) || String(a.title).localeCompare(String(b.title)));
+  const live = (S.cards || []).filter((c) => !c.deleted);
+  const opts = useMemo(() => [...live.map((c) => ({ v: c.id, lb: `카드 · ${c.item} ${c.spec || ""} · ${c.brand || ""} · ${c.round || ""}`.replace(/\s+/g, " ") })),
+    ...refList.filter((p) => p.type !== "세트" && !live.some((c) => c.prodKey === p.k)).map((p) => ({ v: "p:" + p.k, lb: `가격표(카드 없음) · ${p.name} ${p.spec && p.spec !== "-" ? p.spec : ""} · ${(p.brand || []).join("/")}`.replace(/\s+/g, " ") }))], [S.cards, refList]);
+  const [pick, setPick] = useState({}), [busy, setBusy] = useState("");
+  const P = (u) => pick[u.key] || { t: u.suggest ? (opts.find((o) => o.v === u.suggest) || {}).lb || "" : "", row: "", rname: u.comp.name || u.title || "", kind: u.comp.kind || "" };
+  const setP = (u, p) => setPick((o) => ({ ...o, [u.key]: { ...P(u), ...p } }));
+  const tOf = (u) => { const lb = (P(u).t || "").trim(); if (lb === "＋ 새 카드") return "new"; const o = opts.find((x) => x.lb === lb); return o ? o.v : ""; };
+  const rowsOf = (t) => (t && !t.startsWith("p:") && t !== "new" ? ((live.find((c) => c.id === t) || {}).rows || []).filter((r) => !C.rowEmpty(r)) : []);
+  const link = async (u) => {
+    const t = tOf(u), p = P(u); if (!t) { setToast("품목을 목록에서 골라 주세요"); return; }
+    const needRow = !u.sample && !u.rowCreate, rows = rowsOf(t), row = rows.find((r) => r.id === p.row);
+    if (needRow && !row && !String(p.rname).trim()) { setToast("구성요소를 고르거나 새 이름을 넣어 주세요"); return; }
+    const L = { t, row: row ? row.id : "", rname: row ? row.name : needRow ? String(p.rname).trim() : "", kind: row ? row.kind || "" : needRow ? p.kind || "" : "" };
+    if (t === "new") L.newCard = { item: u.product.name || u.title || "", spec: u.product.spec || "" };
+    setBusy(u.key);
+    // 같은 품목(줄 목록) · 같은 업체+제목(노션)으로 기다리는 다른 줄도 같이 (같은 출처만)
+    const same = un.filter((x) => x.key !== u.key && x.src === u.src && u.ck && x.ck === u.ck).map((x) => x.op);
+    try { const r = await applyLineOps({ S: getS(), user }, [u.op, ...same], { src: u.src, partial: true, lineLinks: { [u.key]: L }, keyLinks: u.ck ? { [u.ck]: u.src === "sheet" ? { t: L.t, newCard: L.newCard } : L } : {} });
+      setToast(r.errors.length ? "연결 못 했어요: " + r.errors[0] : r.unmatched.length ? "아직 연결 안 됐어요 — 구성요소를 골라 주세요" : `연결했어요 · 추가 ${r.added} · 바뀜 ${r.updated} — 다음부터 자동`); }
+    catch (e) { console.error("[연결] 실패", e); setToast("연결 못 했어요: " + (e.code || e.message)); }
+    setBusy("");
+  };
+  const ignore = async (u) => { if (!confirm(`'${u.title || u.where}' 줄을 무시할까요? (다음 가져오기 때도 건너뜀)`)) return;
+    try { await notionDoc().set({ ignore: { [u.key]: true }, unmatched: { [u.key]: FV.delete() }, updatedAt: new Date().toISOString(), updatedBy: user.email || "" }, { merge: true }); setToast("무시했어요"); }
+    catch (e) { console.error("[무시] 실패", e); setToast("못 했어요: " + (e.code || e.message)); } };
+  const KIND_OPTS = [["", "구분 고르기"], ...C.KINDS.map((k) => [k, k])];
+  return html`<${Frame} title="가져오기 · 연결 필요" label="가져오기 연결 필요" close=${onClose} meta=${html`<span>노션 견적(매일 19:00) · 줄 목록 엑셀 → 분해원가 업체 단가</span>`}>
+    <div class="panel"><div class="ph">연결 필요 <span class="rt">${un.length}줄 · '이 줄 = 이 품목의 이 구성요소(구분)'를 한 번 고르면 기억해서 다음부터 자동 (같은 업체·같은 제목 줄도)</span></div><div class="pb flush">
+      ${un.length ? html`<div class="gridwrap"><table class="grid" style=${{ minWidth: 1180 }}><thead><tr><th>출처</th><th>업체</th><th style=${{ minWidth: 160 }}>줄 (제목 · 노션 구분)</th><th>제품</th><th class="num">단가</th><th style=${{ minWidth: 260 }}>분해원가 품목</th><th style=${{ minWidth: 260 }}>구성요소 (구분)</th><th></th></tr></thead><tbody>
+        ${un.map((u) => { const p = P(u), t = tOf(u), rows = rowsOf(t), needRow = !u.sample && !u.rowCreate, isNewRow = needRow && !rows.some((r) => r.id === p.row);
+          return html`<tr key=${u.key}>
+          <td class="nw"><span class="tag off">${SRC_NAME[u.src] || u.src}</span></td><td class="nw">${u.supplier || "—"}</td>
+          <td>${u.title || [u.comp.kind, u.comp.name].filter(Boolean).join(" · ")}${u.noteKind ? html` <span class=${"tag " + (u.sample ? "need" : "off")}>${u.noteKind}</span>` : ""}<div class="sub">${u.where}</div></td>
+          <td>${[u.product.code, u.product.name, u.product.spec].filter(Boolean).join(" · ") || html`<span class="dim">—</span>`}</td>
+          <td class="num">${u.unitPrice === "" || u.unitPrice == null ? "—" : fmt(u.unitPrice, 4)} ${u.currency || ""}</td>
+          <td>${isM ? html`<input class="in" list="pccLinkPick" value=${p.t} placeholder="카드 · 가격표 제품 · ＋ 새 카드" onInput=${(e) => setP(u, { t: e.target.value, row: "" })} aria-label="품목 고르기" />` : html`<span class="dim">마스터가 골라요</span>`}</td>
+          <td>${!isM ? "" : u.sample ? html`<span class="dim">샘플 — 원가에 안 넣고 카드에 '샘플'로</span>` : u.rowCreate ? html`<span class="dim">${[u.comp.kind, u.comp.name].filter(Boolean).join(" · ")} (그대로)</span>` : html`<div style=${{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+              <select class="in" style=${{ width: "100%" }} value=${rows.some((r) => r.id === p.row) ? p.row : "__new"} onChange=${(e) => setP(u, { row: e.target.value === "__new" ? "" : e.target.value })} aria-label="구성요소 고르기">
+                ${rows.map((r) => html`<option key=${r.id} value=${r.id}>${r.kind || "구분 없음"} · ${r.name}</option>`)}<option value="__new">＋ 새 구성요소</option></select>
+              ${isNewRow && html`<input class="in" style=${{ flex: "1 1 120px" }} value=${p.rname} placeholder="새 구성요소 이름" onInput=${(e) => setP(u, { rname: e.target.value })} aria-label="새 구성요소 이름" /><select class="in" style=${{ flex: "1 1 100px" }} value=${p.kind} onChange=${(e) => setP(u, { kind: e.target.value })} aria-label="새 구성요소 구분">${KIND_OPTS.map(([a, b]) => html`<option key=${a} value=${a}>${b}</option>`)}</select>`}</div>`}</td>
+          <td class="nw">${isM && html`<button type="button" class="tbtn primary sm" disabled=${busy === u.key} onClick=${() => link(u)}>${busy === u.key ? "…" : "연결"}</button> <button type="button" class="tbtn sm" onClick=${() => ignore(u)}>무시</button>`}</td></tr>`; })}</tbody></table></div>
+        <datalist id="pccLinkPick"><option value="＋ 새 카드" />${opts.map((o) => html`<option key=${o.v} value=${o.lb} />`)}</datalist>` : html`<div class="empty">연결 필요한 줄이 없어요 ✓</div>`}
+    </div></div>
+    <div class="panel"><div class="ph">가져오기 기록 <span class="rt">최근 30번 · 노션 동기화 / 줄 목록 올리기</span></div><div class="pb flush">
+      ${runs.length ? html`<div class="gridwrap"><table class="grid" style=${{ minWidth: 860 }}><thead><tr><th>종류</th><th>언제</th><th>누가</th><th class="num">줄</th><th class="num">추가</th><th class="num">바뀜</th><th class="num">그대로</th><th class="num">노션에서 삭제됨</th><th class="num">새 카드</th><th class="num">연결 필요</th><th class="num">오류</th><th>파일</th></tr></thead><tbody>
+        ${runs.map((r, k) => html`<tr key=${k}><td class="nw">${r.src === "sheet" ? "줄 목록 올리기" : "노션 동기화"}${r.partial ? html` <span class="tag off">일부</span>` : ""}</td><td class="nw">${whenTxt(r.at)}</td><td class="nw">${who(r.by)}</td><td class="num">${r.lines ?? ""}</td><td class="num">${r.added}</td><td class="num">${r.updated}</td><td class="num">${r.unchanged}</td><td class="num">${r.deleted || 0}</td><td class="num">${r.newCards || 0}</td><td class="num">${r.unmatched}</td><td class="num">${r.errors ? html`<span style=${{ color: "var(--red)" }}>${r.errors}</span>` : 0}</td><td class="dim">${r.file || ""}</td></tr>`)}</tbody></table></div>`
+        : html`<div class="empty">아직 가져온 적이 없어요.</div>`}
+    </div></div>
+    ${Object.keys(sups).length > 0 && html`<p class="foot">노션 공급사 ${Object.keys(sups).length}곳 정보(유형·지역·결제 조건·이동비 부담·점수)는 품목 화면 업체 칸에 보여요.</p>`}
+    <p class="foot">· 노션: <code>window.costImport.applyNotion(payload)</code> · 줄 목록: 도구줄 [📋 줄 목록 올리기] (또는 <code>window.costImport.applyLines(표)</code>) · 둘 다 마스터 · 가격정책표 원가는 자동으로 안 바꿈</p>
+  <//>`;
+}
+
 // ── 기존 제품 → 카드 자동 생성 (2026-11-25 송희님 4번: 판매중·준비중 전부(세트 제외) · 공급업체 넷폼 = 자체생산 · 그 밖 = 국내 OEM · 모두 임시) ──
 function seedCandidates(S, refList) {
   const have = new Set((S.cards || []).map((c) => c.prodKey).filter(Boolean)), ids = new Set((S.cards || []).map((c) => c.id));

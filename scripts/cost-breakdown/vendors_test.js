@@ -22,6 +22,8 @@ ok("MOQ 차이 → 첫 생산 원가 차이 (A: 300 + (3000−1000)×300÷1000 =
 ok("이력: 적용 업체만 바꾸면 '적용 업체 B→A' 한 줄", () => { const b = { ...card, rows: [C.syncRow({ ...card.rows[0], sel: "A" }), card.rows[1], card.rows[2]] }; assert.deepEqual([...C.diffCard(card, b)], ["용기 적용 업체 B→A"]); });
 ok("예전 카드(업체 칸 없음) = A 업체 하나로 읽음 · 계산 같음", () => { const old = { qty: 100, rows: [{ id: "x", kind: "용기", name: "용기", inMfg: "별도", price: 110, vat: "V+", per: "개당", usage: 2, moq: "", src: "견적", st: "" }] };
   assert.equal(C.vendorsOf(old.rows[0])[0].vid, "A"); assert.ok(near(C.cardCalc(old).unit, 200)); assert.ok(near(C.cardCalc({ ...old, rows: [C.syncRow(old.rows[0])] }).unit, 200)); });
+ok("노션 '탈락' 견적은 비교엔 보이되 최저가 후보에서 빠짐", () => { const t = { ...card, rows: [card.rows[0], C.syncRow({ ...card.rows[1], vendors: [...card.rows[1].vendors.slice(0, 1), { ...card.rows[1].vendors[1], nst: "탈락" }] }), card.rows[2]] };
+  const c = C.vendorCompare(t)[1]; assert.equal(c.best.v.vid, "A"); assert.equal(c.list[1].priced, true); assert.ok(near(C.cardCalc(C.cheapestCard(t)).unit, C.cardCalc({ ...t, rows: [C.syncRow({ ...t.rows[0], sel: "B" }), t.rows[1], t.rows[2]] }).unit)); });
 console.log("■ 카드 상태·요약·기본 줄");
 ok("근거 없는 줄 있으면 '임시', 모두 확정이면 '확정'", () => { assert.equal(C.cardStatus(card), "확정"); const t = { ...card, rows: [...card.rows, C.syncRow({ id: "d", kind: "간접비", name: "공장 간접비", per: "개당", usage: 1, sel: "A", vendors: [V("A", "", { qd: "" })] })] }; assert.equal(C.cardStatus(t), "임시"); });
 ok("견적 유효기간 = 카드·적용 업체 중 가장 빠른 날", () => assert.equal(C.validFirst({ validUntil: "2026-12-31", rows: [{ name: "x", sel: "B", vendors: [V("A", 1, { vu: "2026-11-01" }), V("B", 1, { vu: "2026-12-15" })] }] }), "2026-12-15"));

@@ -252,6 +252,8 @@ table.vt{border-collapse:separate;border-spacing:0;font-size:12px;background:#ff
   .rb{padding:calc(8px + env(safe-area-inset-top)) 12px 8px}
   .qc{grid-template-columns:1fr}
   .grid td{height:34px}
+  .grid.lst{min-width:640px!important}.grid.lst .hm{display:none}   /* 폰 목록: 생산 방식·국내/수입은 초록 묶음 줄로 보임 → 완제품 원가가 첫 화면에 */
+  .grid.lst td.stk{min-width:150px!important;max-width:170px}
 }
 </style>
 </head>
@@ -1184,16 +1186,16 @@ function GridTable({ items, open, grouped, seeNames }) {
     }
     rows.push(html`<tr key=${i.c.id} class="go" onClick=${() => open(i.c.id)}>
       <td class="stk" style=${{ minWidth: 190 }}><div class="pname">${i.c.item || "(품목 없음)"}</div><div class="pspec">${[i.c.spec, i.c.round, !grouped ? i.c.brand : "", i.mfg].filter(Boolean).join(" · ")} ${i.need ? html`<span class="tag need">분해 필요</span>` : ""}${i.nt ? html` <span class="tag nt">노션</span>` : ""}${i.ndel ? html` <span class="tag ndel">노션 삭제 ${i.ndel}</span>` : ""}</div></td>
-      <td class="nw">${C.methodName(i.c.method) || html`<span class="dim">미정</span>`}</td>
-      <td class="nw">${i.c.origin || html`<span class="dim">—</span>`}</td>
+      <td class="nw hm">${C.methodName(i.c.method) || html`<span class="dim">미정</span>`}</td>
+      <td class="nw hm">${i.c.origin || html`<span class="dim">—</span>`}</td>
       <td class="num"><b>${W(i.x.unit)}</b><div class="sub">${reflTag(i)}</div></td>
       <td class="nw">${stTag2(i.st)}${i.chk ? html` <span class="tag chk">확인 ${i.chk}</span>` : ""}</td>
       <td class="nw">${valCell(i)}</td>
       <td class="nw">${i.multi ? html`<span>비교 ${i.multi}줄</span>` : html`<span class="dim">—</span>`}</td>
       <td class="nw">${seeNames ? (i.files ? html`<span title="견적서">📎 ${i.files}</span>` : html`<span class="dim">—</span>`) : html`<span class="dim" title="견적서는 마스터·경영 열람만">—</span>`}</td></tr>`);
   });
-  return html`<div class="gridwrap"><table class="grid" style=${{ minWidth: 900 }}><thead><tr>
-    <th class="stk">품목 · 규격</th><th>생산 방식</th><th>국내/수입</th><th class="num">완제품 원가</th><th>확정/임시</th><th>견적 유효기간</th><th>업체</th><th>견적서</th></tr></thead>
+  return html`<div class="gridwrap"><table class="grid lst" style=${{ minWidth: 900 }}><thead><tr>
+    <th class="stk">품목 · 규격</th><th class="hm">생산 방식</th><th class="hm">국내/수입</th><th class="num">완제품 원가</th><th>확정/임시</th><th>견적 유효기간</th><th>업체</th><th>견적서</th></tr></thead>
     <tbody>${rows}</tbody></table></div>`;
 }
 

@@ -1,45 +1,67 @@
-# 분해원가 파일 보관 — Cloudflare R2 (2026-11-25 송희님 '① R2 확정')
+# 분해원가 파일 보관 — Cloudflare Workers KV (2026-11-25 송희님 'KV 확정' · 카드 등록 없음)
 
 | 무엇 | 어디에 | 보기 | 올리기·지우기 |
 |---|---|---|---|
-| 견적서 파일 (PDF·이미지) | R2 `quote/…` · 목록(이름·열쇠)은 `cost-names/{카드}.vfiles[줄][업체]` | 마스터·경영 열람 | 마스터 |
-| 사진 원본 (이미지) | R2 `photo/…` · 열쇠는 카드 `imgOrig` (줄·업체도) | 마스터·부마스터·경영 열람 | 마스터 |
+| 견적서 파일 (PDF·이미지) | KV `quote/<sha256>.<ext>` · 목록(이름·열쇠)은 `cost-names/{카드}.vfiles[줄][업체]` | 마스터·경영 열람 | 마스터 |
+| 노션 견적서 파일 | 서버가 노션 임시 주소에서 받아 KV `quote/…` · 목록은 `vfiles` (kind notion + key) | 마스터·경영 열람 | 마스터(노션 가져오기) |
+| 사진 원본 (이미지) | KV `photo/<sha256>.<ext>` · 열쇠는 카드 `imgOrig` (줄·업체도) | 마스터·부마스터·경영 열람 | 마스터 |
 | 사진 썸네일 (긴 변 320px · 30KB 이하) | 지금처럼 카드 문서 안 (`img`) | 원가 볼 수 있는 사람 | 마스터 |
-| 노션 견적서 링크 | `vfiles` (kind link · notion) | 마스터·경영 열람 | 마스터 · 노션에서 온 것은 노션에서 |
 
-- 서버: `functions/api/cost-files/[[path]].js` (Cloudflare Pages Functions — 같은 사이트 주소 `/api/cost-files/…`)
-- 화면: `pourstore-cost.html` 의 `FILE_STORE` (켜졌는지는 `/api/cost-files/status` 로 확인)
-- **버킷 연결 전** = 화면엔 '📦 파일 보관 준비 중'만 보이고, 원가·일정·사진 썸네일·노션 링크 등 다른 기능은 그대로
+- 서버: `functions/api/cost-files/[[path]].js` (Pages Functions · 주소 `/api/cost-files/…`) · 화면: `pourstore-cost.html` 의 `FILE_STORE`
+- **KV 연결 전** = 화면엔 '📦 파일 보관 준비 중'만 · 원가·일정·사진 썸네일·노션 링크 등 다른 기능은 그대로
 - Firestore 보안 규칙 변경 없음
 
-## Cloudflare 에서 할 일 (송희님 또는 브라우저로 · 한 번만)
+## KV 무료 한도에 맞춘 것
 
-1. **R2 켜기** — Cloudflare 대시보드 왼쪽 **R2 개체 저장소(R2 Object Storage)** › [R2 시작/구매]
-   - ⚠️ 이때 **결제 수단(카드 또는 PayPal) 등록 화면이 나올 가능성이 큽니다.** 공식 문서엔 분명히 적혀 있지 않지만, 사용자들은 무료 한도만 써도 등록을 요구받았다고 합니다(무료 한도를 넘으면 자동 청구라서). 무료 한도 안이면 청구액은 0원입니다.
-2. **버킷 만들기** — [버킷 만들기] → 이름 `pour-quote-files` · 위치 자동 · 공개 접근 **끈 그대로** → [만들기]
-3. **사이트에 연결** — Workers & Pages › `pour-construction-form` › **설정** › **바인딩** › [추가] › **R2 버킷**
-   - 변수 이름 `QUOTE_FILES` · 버킷 `pour-quote-files` → 저장. **프로덕션·미리보기 두 환경 모두** (화면 위쪽에서 환경을 바꿔 한 번 더)
-4. **변수** — 같은 설정 › **변수 및 비밀** › [추가] → 이름 `FIREBASE_PROJECT_ID` · 값 `pourstoreproject` (프로덕션·미리보기)
-5. **다시 배포** — Workers & Pages › `pour-construction-form` › 배포 › 최신 배포 ⋯ › [다시 시도] (바인딩은 새 배포부터 적용)
-6. (권장) **휴지통 자동 정리 규칙** — R2 › `pour-quote-files` › 설정 › **개체 수명 주기 규칙** › [추가] → 이름 `trash-30d` · 접두사 `trash/` · **30일 후 삭제**
-   - 안 해도 서버가 지우기·되살리기 때 30일 지난 것을 같이 정리하지만, 규칙이 있으면 확실합니다
-7. 확인 — 미리보기 주소에서 분해원가 › 품목 › 📎 → '파일 고르기'가 보이면 켜진 것 (안 보이고 '준비 중'이면 3·5번 확인)
+| KV 무료 한도 | 맞춘 것 |
+|---|---|
+| 값 1개 25MiB | 파일당 **20MB** |
+| 저장 1GB | 견적서 창에 '보관 용량 ○MB / 1GB (○%) · 남은 ○' · **80% 넘으면 빨간 경고** · 꽉 차면 올리기 거절(507) |
+| 쓰기 하루 1,000번 (UTC 0시 = 한국 오전 9시에 풀림) | '오늘 쓰기 ○/1,000번' · 900번 넘으면 경고 · 넘으면 '오전 9시에 다시 돼요'(429) |
+| 같은 내용 | 열쇠 = 내용의 SHA-256 → 같은 파일은 한 번만 보관(쓰기도 안 씀) |
+| 메타데이터 1KB | 이름은 앞 60자만 (전체 이름은 Firestore 목록에) |
+
+- 올리기 1번 ≈ 쓰기 2번(파일 + 용량 장부) · 지우기 ≈ 쓰기 2번 + 지우기 1번 · 휴지통은 KV 의 **30일 뒤 자동 삭제**(expirationTtl)로 정리
+- 용량 장부(`meta/usage`)가 어긋나면 마스터가 `POST /api/cost-files/recount` (목록으로 다시 셈)
+
+## Cloudflare 에서 할 일 (네임스페이스는 이미 있음)
+
+- 네임스페이스: **pourstore-pricing-files** · id `f0e6bcdb6c4e43b087515ee42eab1231` (새로 만들지 않음)
+1. Pages 프로젝트 `pour-construction-form` 에 **KV 바인딩**: 변수 이름 `QUOTE_KV` → 위 네임스페이스 — **preview·production 둘 다**
+   - API: `PATCH /accounts/{계정 id}/pages/projects/pour-construction-form`
+     ```json
+     { "deployment_configs": {
+         "preview":    { "kv_namespaces": { "QUOTE_KV": { "namespace_id": "f0e6bcdb6c4e43b087515ee42eab1231" } }, "env_vars": { "FIREBASE_PROJECT_ID": { "type": "plain_text", "value": "pourstoreproject" } } },
+         "production": { "kv_namespaces": { "QUOTE_KV": { "namespace_id": "f0e6bcdb6c4e43b087515ee42eab1231" } }, "env_vars": { "FIREBASE_PROJECT_ID": { "type": "plain_text", "value": "pourstoreproject" } } } } }
+     ```
+   - (대시보드라면: Workers & Pages › pour-construction-form › 설정 › 바인딩 › [추가] › KV 네임스페이스)
+2. **변수** `FIREBASE_PROJECT_ID` = `pourstoreproject` (위 API 에 같이 · 비어도 서버가 pourstoreproject 로 씀)
+3. **다시 배포** — 바인딩은 새 배포부터 적용 (이 브랜치에 다음 푸시가 오거나 배포 › [다시 시도])
+4. 확인 — 미리보기 주소에서 분해원가 › 품목 › 📎 → '보관 용량 … / 1GB' 와 [파일 고르기] 가 보이면 켜진 것
+   - 또는 `https://<미리보기 주소>/api/cost-files/status` → `"ready": true`
+
+### wrangler 설정 파일로 넣을까? → **지금처럼 API(또는 대시보드)로 넣는 것을 권장**
+- 저장소에 Pages 용 `wrangler.toml`(`pages_build_output_dir`)을 두면 **그 파일이 프로젝트 설정의 원본**이 되어, 대시보드·API 로 넣은 바인딩·일반 변수는 그 파일 내용으로 바뀝니다(대시보드에서 못 고침).
+- 이 프로젝트는 이미 대시보드에 문자·AI 등 변수·비밀이 여러 개라, 파일로 바꾸려면 그것들을 모두 옮겨 적어야 하고 빠뜨리면 다른 기능이 멈출 수 있음 → 이번엔 API 로 KV 바인딩만 더하는 쪽이 안전.
+- (비밀 키는 어느 쪽이든 파일에 안 적고 대시보드 '비밀'로)
 
 ## 무엇이 어떻게 되나
 
-- **올리기**: 마스터만 · PDF·JPG·PNG·GIF·WebP·HEIC (파일 첫 바이트로 확인 · 이름만 바꾼 다른 파일은 거절) · 파일당 **20MB**
-- **같은 파일 두 번** = 내용이 같으면 하나로 (열쇠 = 내용의 SHA-256) · 화면에 '이미 있는 파일과 같아요'
-- **빼기**(견적서): 목록에서 '뺀 파일'로 내려가고 **[저장]하면** R2 휴지통(`trash/`)으로 → **30일 동안 [되살리기]** · 30일 지나면 정리
-  - 다른 카드가 같은 파일을 쓰고 있으면 휴지통으로 보내지 않음
-- **사진**: 넣으면 썸네일은 카드 안, 원본은 R2 · 사진 크게 보기 › [원본 보기]·[내려받기] · 사진을 바꾸거나 빼고 [저장]하면 안 쓰는 원본은 휴지통으로
-  - 파일 보관을 켜기 전에 넣은 사진은 썸네일만 있음('원본 없음')
-- **로그인 확인**: 요청마다 Firebase 로그인 토큰을 구글 공개키로 확인(프로젝트 `pourstoreproject`·만료) → 그 사람 토큰으로 `config/access` 를 읽어 보안 규칙과 같은 식으로 역할 판정(이메일 인증 필요)
-- **비용**: 무료 한도 = 저장 10GB/월 · 쓰기 100만 번/월 · 읽기 1,000만 번/월 · 내려받기 전송 무료 → 견적서 PDF·사진 수천 장 수준이면 0원
+- **올리기**: 마스터만 · PDF·JPG·PNG·GIF·WebP·HEIC (파일 첫 바이트로 확인) · 파일당 20MB
+- **같은 파일 두 번** = 하나로 · 화면에 '이미 있는 파일과 같아요'
+- **빼기**(견적서): '뺀 파일'로 내려가고 [저장]하면 휴지통으로 → 30일 동안 [되살리기] · 다른 카드가 같은 파일을 쓰면 휴지통으로 안 보냄
+- **사진**: 썸네일은 카드 안, 원본은 KV · 크게 보기 › [원본 보기]·[내려받기] · 바꾸거나 빼고 [저장]하면 안 쓰는 원본은 휴지통으로
+- **노션 파일**: 노션 파일 주소는 1시간짜리 임시 주소 → 서버가 노션 파일 서버에서 직접 받아 보관(브라우저 CORS 없음)
+  - 받는 주소: `https://file.notion.so` · `https://prod-files-secure.s3.<지역>.amazonaws.com` · `https://s3.<지역>.amazonaws.com/secure.notion-static.com/…` 만 (넘김(redirect)도 매번 검사) · 마스터만
+  - `window.costImport.copyNotionFile({ quoteNotionId, name, url })` → `{ fileId, size, dedup }`
+  - `applyNotion(payload)` 의 `quotes[].files[].url`(임시 주소)이 있으면 자동으로 복사해 그 견적의 📎 에 연결 · 임시 주소는 저장 안 함(노션 페이지 주소 + 보관 열쇠만) · 다음 동기화 때 같은 파일(주소의 ? 앞부분이 같음)은 다시 안 받음
+  - 결과 `r.files = { copied, dedup, reused, skipped, failed, errors }` · 파일 보관이 꺼져 있으면 skipped(노션 링크만)
+- **로그인 확인**: 요청마다 Firebase 토큰을 구글 공개키로 확인(프로젝트 `pourstoreproject`·만료) → 그 사람 토큰으로 `config/access` 를 읽어 보안 규칙과 같은 식으로 역할 판정(이메일 인증 필요)
 
-## 시험 (가짜 키·가짜 버킷 — 실제 Cloudflare·Firebase 안 씀)
+## 시험 (가짜 키·가짜 KV·가짜 노션 서버 — 실제 Cloudflare·Firebase·노션 안 씀)
 
 ```bash
-node files_test.mjs        # 서버 함수 18가지: 권한·로그인 위조·크기·종류·같은 파일·휴지통·되살리기·30일 정리
+node files_test.mjs        # 서버 26가지: 권한·로그인 위조·크기·종류·같은 파일·휴지통(30일 자동 삭제)·되살리기·용량 80%·꽉 참·하루 쓰기 한도·노션 복사(주소 제한·넘김·만료·20MB)
 ```
 
-- 실제 Cloudflare 실행기(wrangler pages dev · 로컬 R2)에서도 같은 흐름 + 화면 끝까지(올리기·미리보기·빼기→휴지통·되살리기·사진 원본·경영 열람·부마스터) 확인함 (2026-11-25)
+- 실제 Cloudflare 실행기(wrangler pages dev · 로컬 KV)에서도 화면 끝까지 확인(2026-11-25): 올리기·같은 파일·미리보기·빼기→휴지통·되살리기·사진 원본·경영 열람/부마스터 보기·노션 복사·applyNotion 파일 연결·용량 줄·KV 없을 때 '준비 중'

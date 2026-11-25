@@ -23,10 +23,11 @@ const r = await window.costImport.applyNotion(payload);
 { source: "notion", syncedAt: "2026-11-25T19:00:00+09:00", partial: false,   // partial true = 일부만 보냄('노션에서 삭제됨' 표시 안 함)
   suppliers: [{ notionId, name, region: "국내" | "해외", type, payTerms, moveBy, quality, onTime, moq, moqUnit, leadTime, items, note }],   // 공급사 표 (유형·결제 조건·이동비 부담·점수는 선택 — 업체 칸에 보임)
   quotes: [{ notionId, supplierNotionId, title, quoteNo, quoteDate, validUntil, currency, vat, leadTime, status, adopted, notionUrl,   // 견적서 표 1행
-             files: [{ name, notionUrl }], originUrl,   // 파일은 이름 + 노션 페이지 주소만(파일 주소는 1시간이면 만료) · 원본 링크(url)
+             files: [{ name, notionUrl, url }], originUrl,   // 파일 이름 + 노션 페이지 주소 + url(노션 파일 임시 주소 · 1시간) → 서버가 받아 파일 보관(KV)에 복사 후 📎 연결 · 원본 링크(url)
              lines: [{ notionId, title, product: { name, code?, spec? }, noteKind, unitPrice, currency, qty, unit, moq, vat, leadTime, adopted, note }] }] }   // 견적 품목 표 행
 ```
 
+- **노션 파일 복사**(2026-11-25 KV): `files[].url` 이 노션 파일 서버 주소면 서버(`/api/cost-files/notion-copy`)가 직접 받아 보관 → 견적서 📎 에 '노션 · 보관'으로 [미리보기]·[내려받기] · 임시 주소는 저장 안 함 · 다음 동기화 때 같은 파일은 다시 안 받음 · 결과 `r.files` · 따로 1개만: `window.costImport.copyNotionFile({ quoteNotionId, name, url })` → `{ fileId, size, dedup }` · 자세히 QUOTE_FILES.md
 - 견적 품목이 없는 견적서 = 견적서 자체(단가·수량·단위)를 한 줄로 넘김 (`lines` 를 비우면 화면이 견적서 값으로 한 줄을 만듦)
 - 값은 노션 선택지 글자 그대로: 통화 KRW/USD/CNY · 부가세 'V+ 포함'→V+ · 'V- 별도'→V- · 'V? 확인 필요'→V? · 리드타임·납기(영업일) = 숫자 그대로(영업일 · '2주'·'10일' 같은 글자도 숫자로 바꿈 · 못 읽으면 글자 그대로 = 일정 '확인 필요') → 일정 탭 계산 · 단위(개/장/롤/팩/세트/kg/L/EA/건/회/CBM)는 표시만
 - `status`(받음·검토 중/채택/보류/탈락) · `adopted`(채택 여부 체크) — 줄의 `adopted` 가 있으면 그 값

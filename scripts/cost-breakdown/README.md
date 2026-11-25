@@ -46,7 +46,7 @@ node vendors_test.js
 
 ## 4. 견적서 파일 · 노션 가져오기 (2026-11-25 밤)
 
-- 견적서·사진 원본 파일 보관(Cloudflare R2 · 확정) · Cloudflare 에서 할 일: [QUOTE_FILES.md](QUOTE_FILES.md) · 서버 함수 시험 `node files_test.mjs` (가짜 키·가짜 버킷)
+- 견적서·사진 원본 파일 보관(Cloudflare Workers KV · 확정) · Cloudflare 에서 할 일: [QUOTE_FILES.md](QUOTE_FILES.md) · 서버 함수 시험 `node files_test.mjs` (가짜 키·가짜 KV·가짜 노션 서버)
 - 노션 → 분해원가 `window.costImport.applyNotion(payload)` · 줄 목록 엑셀/CSV 올리기 — 모양·규칙: [NOTION_IMPORT.md](NOTION_IMPORT.md)
 
 ## 5. 일정 · 사진 (2026-11-25 밤)

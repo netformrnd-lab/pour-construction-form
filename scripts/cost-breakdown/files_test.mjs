@@ -1,4 +1,4 @@
-// 분해원가 파일 보관(R2) 서버 함수 시험 — 가짜 로그인 키 · 가짜 버킷 · 가짜 config/access (실제 Cloudflare·Firebase 안 씀)
+// 분해원가 파일 보관(Workers KV) 서버 함수 시험 — 가짜 로그인 키 · 가짜 KV · 가짜 config/access · 가짜 노션 파일 서버 (실제 Cloudflare·Firebase·노션 안 씀)
 // 사용: node files_test.mjs [functions/api/cost-files/[[path]].js]
 import fs from "node:fs"; import os from "node:os"; import path from "node:path"; import assert from "node:assert"; import { fileURLToPath, pathToFileURL } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -33,28 +33,42 @@ globalThis.fetch = async (url, init = {}) => {
     assert.ok(/^Bearer .+\..+\..+$/.test((init.headers || {}).Authorization || ""), "config/access 는 그 사람 토큰으로 읽음");
     return new Response(JSON.stringify(ACCESS), { status: 200 });
   }
+  const u = new URL(url);
+  if (/notion|amazonaws/.test(u.hostname) || u.hostname === "evil.example.com") {
+    notionHits.push(u.hostname + u.pathname);
+    if (u.pathname.includes("/expired/")) return new Response("<Error>AccessDenied</Error>", { status: 403 });
+    if (u.pathname.includes("/to-evil/")) return new Response(null, { status: 302, headers: { Location: "https://evil.example.com/steal" } });
+    if (u.pathname.includes("/to-s3/")) return new Response(null, { status: 302, headers: { Location: "https://prod-files-secure.s3.us-west-2.amazonaws.com/space/file-1/" + encodeURIComponent("견적.pdf") + "?X-Amz-Signature=x" } });
+    if (u.pathname.includes("/huge/")) return new Response(new Uint8Array(21 * 1024 * 1024).fill(37), { status: 200 });
+    if (u.hostname === "evil.example.com") return new Response("secret", { status: 200 });
+    return new Response(NOTION_PDF, { status: 200, headers: { "Content-Type": "application/pdf" } });
+  }
   throw new Error("예상 밖 fetch " + url);
 };
-// ── 가짜 R2 버킷 (R2 API 모양: put/get/head/delete/list)
-class MemR2 {
-  constructor() { this.m = new Map(); }
-  _o(key, v, body) { return { key, size: v.data.byteLength, uploaded: v.uploaded, httpMetadata: v.httpMetadata, customMetadata: v.customMetadata, etag: "e" + key.length,
-    writeHttpMetadata: (h) => { if (v.httpMetadata && v.httpMetadata.contentType) h.set("Content-Type", v.httpMetadata.contentType); },
-    ...(body ? { body: new Blob([v.data]).stream(), arrayBuffer: async () => v.data.buffer.slice(v.data.byteOffset, v.data.byteOffset + v.data.byteLength) } : {}) }; }
-  async put(key, data, o = {}) { const u8 = data instanceof ArrayBuffer ? new Uint8Array(data.slice(0)) : new Uint8Array(await new Response(data).arrayBuffer());
-    if (o.sha256) { const h = Buffer.from(await crypto.subtle.digest("SHA-256", u8)).toString("hex"); assert.equal(h, o.sha256, "put sha256 확인"); }
-    this.m.set(key, { data: u8, uploaded: new Date(), httpMetadata: o.httpMetadata || {}, customMetadata: o.customMetadata || {} }); return this._o(key, this.m.get(key)); }
-  async get(key) { const v = this.m.get(key); return v ? this._o(key, v, true) : null; }
-  async head(key) { const v = this.m.get(key); return v ? this._o(key, v) : null; }
-  async delete(keys) { [].concat(keys).forEach((k) => this.m.delete(k)); }
-  async list(o = {}) { const objects = [...this.m.keys()].filter((k) => k.startsWith(o.prefix || "")).sort().slice(0, o.limit || 1000).map((k) => this._o(k, this.m.get(k))); return { objects, truncated: false }; }
+const notionHits = [];
+const NOTION_PDF = new TextEncoder().encode("%PDF-1.5\n노션 견적서\n%%EOF");
+// ── 가짜 KV (Workers KV 모양: get(type)·getWithMetadata·put(metadata·expirationTtl)·delete·list) + 하루 쓰기 한도 흉내
+class MemKV {
+  constructor() { this.m = new Map(); this.failPut = false; this.puts = 0; }
+  _live(k) { const v = this.m.get(k); if (!v) return null; if (v.exp && v.exp * 1000 < Date.now()) { this.m.delete(k); return null; } return v; }
+  _as(v, type) { if (!v) return null; const u8 = v.data; if (type === "stream") return new Blob([u8]).stream(); if (type === "arrayBuffer") return u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength);
+    const t = new TextDecoder().decode(u8); return type === "json" ? JSON.parse(t) : t; }
+  async get(k, o = {}) { return this._as(this._live(k), typeof o === "string" ? o : o.type); }
+  async getWithMetadata(k, o = {}) { const v = this._live(k); return { value: this._as(v, typeof o === "string" ? o : o.type), metadata: v ? v.md : null }; }
+  async put(k, val, o = {}) { if (this.failPut) throw new Error("KV put() limit exceeded for the day."); this.puts++;
+    const u8 = typeof val === "string" ? new TextEncoder().encode(val) : val instanceof ArrayBuffer ? new Uint8Array(val.slice(0)) : new Uint8Array(await new Response(val).arrayBuffer());
+    if (u8.byteLength > 25 * 1024 * 1024) throw new Error("value too large"); if (o.metadata && JSON.stringify(o.metadata).length > 1024) throw new Error("metadata too large");
+    this.m.set(k, { data: u8, md: o.metadata || null, exp: o.expirationTtl ? Math.floor(Date.now() / 1000) + o.expirationTtl : 0 }); }
+  async delete(k) { this.m.delete(k); }
+  async list(o = {}) { const keys = [...this.m.keys()].filter((k) => k.startsWith(o.prefix || "") && this._live(k)).sort().slice(0, o.limit || 1000).map((k) => ({ name: k, metadata: this.m.get(k).md, ...(this.m.get(k).exp ? { expiration: this.m.get(k).exp } : {}) }));
+    return { keys, list_complete: true }; }
 }
-let R2 = new MemR2(), waits = [];
+let R2 = new MemKV(), waits = [];
 const BASE = "https://x.pour-construction-form.pages.dev/api/cost-files/";
 async function call(p, { method = "GET", tok, body, headers = {}, bind = true, env = {} } = {}) {
   const [pth, qs] = p.split("?");
   const req = new Request(BASE + p, { method, body, headers: { ...(tok ? { Authorization: "Bearer " + tok } : {}), ...headers } });
-  const res = await onRequest({ request: req, env: { ...(bind ? { QUOTE_FILES: R2 } : {}), FIREBASE_PROJECT_ID: PROJECT, ...env }, params: { path: pth.split("/").filter(Boolean) }, waitUntil: (pr) => waits.push(pr) });
+  const res = await onRequest({ request: req, env: { ...(bind ? { QUOTE_KV: R2 } : {}), FIREBASE_PROJECT_ID: PROJECT, ...env }, params: { path: pth.split("/").filter(Boolean) }, waitUntil: (pr) => waits.push(pr) });
   const ct = res.headers.get("Content-Type") || ""; const data = /json/.test(ct) ? await res.json() : new Uint8Array(await res.arrayBuffer());
   return { s: res.status, d: data, h: res.headers };
 }
@@ -64,13 +78,14 @@ const PNG = new Uint8Array([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0
 const HEIC = new Uint8Array([0, 0, 0, 24, ...new TextEncoder().encode("ftypheic"), 0, 0, 0, 0]);
 const T = { owner: await token("owner@test.kr"), m2: await token("m2@test.kr"), sub: await token("sub@test.kr"), mgmt: await token("mgmt@test.kr"), team: await token("team@test.kr"), reader: await token("reader@test.kr"),
   unver: await token("owner@test.kr", { verified: false }), forged: await token("owner@test.kr", { signWith: K9 }), otherProj: await token("owner@test.kr", { proj: "other-app" }), expired: await token("owner@test.kr", { exp: Math.floor(Date.now() / 1000) - 600 }), badKid: await token("owner@test.kr", { kid: "zz" }) };
+const files = () => [...R2.m.keys()].filter((k) => /^(quote|photo)\//.test(k)).length;
 const up = (kind, tok, body, name = "견적서 11월.pdf") => call("upload?kind=" + kind, { method: "POST", tok, body, headers: { "X-File-Name": encodeURIComponent(name) } });
 
 console.log("■ 준비 상태 (버킷 연결 전·후)");
 await ok("연결 전: status ready=false · 올리기 = 503 '파일 보관 준비 중' (로그인 확인도 안 함)", async () => {
   const s = await call("status", { bind: false }); assert.equal(s.s, 200); assert.equal(s.d.ready, false);
   const u = await call("upload?kind=quote", { method: "POST", bind: false, tok: T.owner, body: PDF }); assert.equal(u.s, 503); assert.match(u.d.error, /준비 중/); });
-await ok("연결 후: status ready=true · 20MB · 휴지통 30일", async () => { const s = await call("status"); assert.equal(s.d.ready, true); assert.equal(s.d.maxMB, 20); assert.equal(s.d.trashDays, 30); });
+await ok("연결 후: status ready=true · KV · 20MB · 1GB · 하루 쓰기 1,000번 · 휴지통 30일", async () => { const s = await call("status"); assert.equal(s.d.ready, true); assert.equal(s.d.store, "kv"); assert.equal(s.d.maxMB, 20); assert.equal(s.d.trashDays, 30); assert.equal(s.d.limitMB, 1024); assert.equal(s.d.dayWrites, 1000); });
 
 console.log("■ 로그인 확인");
 await ok("토큰 없음·서명 위조·다른 프로젝트·만료·모르는 키 = 401", async () => {
@@ -81,11 +96,11 @@ console.log("■ 견적서 (보기 = 마스터·경영 열람 · 올리기·지�
 let qkey;
 await ok("마스터(소유자) 올리기 → quote/<sha256>.pdf · 이름 그대로", async () => {
   const r = await up("quote", T.owner, PDF); assert.equal(r.s, 200, JSON.stringify(r.d)); qkey = r.d.key;
-  assert.match(qkey, /^quote\/[0-9a-f]{64}\.pdf$/); assert.equal(r.d.dup, false); assert.equal(r.d.type, "application/pdf"); assert.equal(r.d.name, "견적서 11월.pdf"); assert.equal(R2.m.size, 1); });
+  assert.match(qkey, /^quote\/[0-9a-f]{64}\.pdf$/); assert.equal(r.d.dup, false); assert.equal(r.d.type, "application/pdf"); assert.equal(r.d.name, "견적서 11월.pdf"); assert.equal(files(), 1); assert.equal(R2.m.get(qkey).md.t, "application/pdf"); });
 await ok("같은 파일 두 번 = 하나로 (dup true · 버킷 1개) · 추가 마스터도 올리기 됨", async () => {
-  const r = await up("quote", T.m2, PDF, "다른 이름.pdf"); assert.equal(r.s, 200); assert.equal(r.d.key, qkey); assert.equal(r.d.dup, true); assert.equal(R2.m.size, 1); });
+  const r = await up("quote", T.m2, PDF, "다른 이름.pdf"); assert.equal(r.s, 200); assert.equal(r.d.key, qkey); assert.equal(r.d.dup, true); assert.equal(files(), 1); });
 await ok("부마스터·경영 열람·팀원·허용목록·이메일 미인증 마스터 = 올리기 403", async () => {
-  for (const t of [T.sub, T.mgmt, T.team, T.reader, T.unver]) { const r = await up("quote", t, PDF2); assert.equal(r.s, 403); } assert.equal(R2.m.size, 1); });
+  for (const t of [T.sub, T.mgmt, T.team, T.reader, T.unver]) { const r = await up("quote", t, PDF2); assert.equal(r.s, 403); } assert.equal(files(), 1); });
 await ok("보기: 마스터·경영 열람 200 (PDF · nosniff · 이름) / 부마스터·팀원 403", async () => {
   for (const t of [T.owner, T.mgmt]) { const r = await call("file/" + qkey, { tok: t }); assert.equal(r.s, 200); assert.deepEqual([...r.d], [...PDF]);
     assert.equal(r.h.get("Content-Type"), "application/pdf"); assert.equal(r.h.get("X-Content-Type-Options"), "nosniff"); assert.match(r.h.get("Content-Disposition"), /filename\*=UTF-8''%EA%B2%AC/); }
@@ -93,7 +108,7 @@ await ok("보기: 마스터·경영 열람 200 (PDF · nosniff · 이름) / 부�
 await ok("PDF·이미지 아닌 파일 = 415 · 20MB 넘음 = 413 · 빈 파일 = 400", async () => {
   assert.equal((await up("quote", T.owner, new TextEncoder().encode("<html><script>alert(1)</script>"), "x.pdf")).s, 415);
   assert.equal((await up("quote", T.owner, new Uint8Array(20 * 1024 * 1024 + 1).fill(37))).s, 413);
-  assert.equal((await up("quote", T.owner, new Uint8Array(0))).s, 400); assert.equal(R2.m.size, 1); });
+  assert.equal((await up("quote", T.owner, new Uint8Array(0))).s, 400); assert.equal(files(), 1); });
 await ok("이상한 열쇠(경로 바꾸기·휴지통 직접·다른 모양) = 400", async () => {
   for (const k of ["file/quote/../photo/x.pdf", "file/trash/" + qkey, "file/quote/abc.pdf", "file/quote/" + "a".repeat(64) + ".exe"]) assert.equal((await call(k, { tok: T.owner })).s, 400, k); });
 
@@ -101,7 +116,8 @@ console.log("■ 지우기 → 휴지통 30일 → 되살리기");
 await ok("경영 열람은 지우기 403 · 마스터 지우기 → trash/ 로 옮김 · 보면 410", async () => {
   assert.equal((await call("file/" + qkey, { method: "DELETE", tok: T.mgmt })).s, 403);
   const r = await call("file/" + qkey, { method: "DELETE", tok: T.owner }); assert.equal(r.s, 200); assert.equal(r.d.trashed, true);
-  assert.ok(!R2.m.has(qkey)); assert.ok(R2.m.has("trash/" + qkey)); assert.equal(R2.m.get("trash/" + qkey).customMetadata.deletedBy, "owner@test.kr");
+  assert.ok(!R2.m.has(qkey)); assert.ok(R2.m.has("trash/" + qkey)); assert.equal(R2.m.get("trash/" + qkey).md.dby, "owner@test.kr");
+  const ttl = R2.m.get("trash/" + qkey).exp - Math.floor(Date.now() / 1000); assert.ok(ttl > 29.9 * 86400 && ttl <= 30 * 86400, "30일 뒤 KV 가 스스로 지움");
   const g = await call("file/" + qkey, { tok: T.owner }); assert.equal(g.s, 410); assert.match(g.d.error, /30일/); await Promise.all(waits); });
 await ok("휴지통 목록 = 마스터만 (이름·지운 사람·정리 날짜)", async () => {
   const l = await call("trash", { tok: T.owner }); assert.equal(l.s, 200); assert.equal(l.d.files.length, 1); assert.equal(l.d.files[0].key, qkey); assert.equal(l.d.files[0].name, "견적서 11월.pdf");
@@ -109,12 +125,11 @@ await ok("휴지통 목록 = 마스터만 (이름·지운 사람·정리 날짜)
 await ok("되살리기 = 마스터만 → 다시 보임 · 휴지통에서 빠짐", async () => {
   assert.equal((await call("restore/" + qkey, { method: "POST", tok: T.mgmt })).s, 403);
   const r = await call("restore/" + qkey, { method: "POST", tok: T.owner }); assert.equal(r.s, 200); assert.ok(R2.m.has(qkey)); assert.ok(!R2.m.has("trash/" + qkey));
-  assert.equal((await call("file/" + qkey, { tok: T.mgmt })).s, 200); assert.equal(R2.m.get(qkey).customMetadata.deletedAt, undefined); });
-await ok("30일 지난 휴지통 파일은 지울 때 같이 정리 · 29일 된 것은 남김", async () => {
-  R2.m.set("trash/quote/" + "1".repeat(64) + ".pdf", { data: PDF, uploaded: new Date(Date.now() - 31 * 864e5), httpMetadata: {}, customMetadata: {} });
-  R2.m.set("trash/quote/" + "2".repeat(64) + ".pdf", { data: PDF, uploaded: new Date(Date.now() - 29 * 864e5), httpMetadata: {}, customMetadata: {} });
-  waits = []; await call("file/" + qkey, { method: "DELETE", tok: T.owner }); await Promise.all(waits);
-  assert.ok(!R2.m.has("trash/quote/" + "1".repeat(64) + ".pdf")); assert.ok(R2.m.has("trash/quote/" + "2".repeat(64) + ".pdf")); assert.ok(R2.m.has("trash/" + qkey)); });
+  assert.equal((await call("file/" + qkey, { tok: T.mgmt })).s, 200); assert.equal(R2.m.get(qkey).md.del, undefined); assert.equal(R2.m.get(qkey).exp, 0); });
+await ok("휴지통 30일이 지나면 KV 가 지움 → 목록·되살리기에서 빠짐", async () => {
+  await call("file/" + qkey, { method: "DELETE", tok: T.owner }); R2.m.get("trash/" + qkey).exp = Math.floor(Date.now() / 1000) - 1;
+  assert.equal((await call("trash", { tok: T.owner })).d.files.length, 0); assert.equal((await call("restore/" + qkey, { method: "POST", tok: T.owner })).s, 404);
+  assert.equal((await up("quote", T.owner, PDF)).s, 200); });
 
 console.log("■ 사진 원본 (보기 = 마스터·부마스터·경영 열람 · 올리기 = 마스터)");
 let pkey;
@@ -128,4 +143,40 @@ await ok("사진 보기: 마스터·부마스터·경영 열람 200 / 팀원·�
   const q = await up("quote", T.owner, PDF2); assert.equal((await call("file/" + q.d.key, { tok: T.sub })).s, 403); });
 await ok("같은 내용이라도 견적서·사진은 따로 (quote/ · photo/)", async () => { const a = await up("quote", T.owner, PNG, "견적 캡처.png"); assert.match(a.d.key, /^quote\//); assert.notEqual(a.d.key, pkey); });
 await ok("사진 지우기 = 마스터만", async () => { assert.equal((await call("file/" + pkey, { method: "DELETE", tok: T.sub })).s, 403); assert.equal((await call("file/" + pkey, { method: "DELETE", tok: T.owner })).s, 200); });
-console.log(`✓ ${n}가지 모두 통과 (가짜 키·가짜 버킷 · 바깥 요청 ${fetches}번 모두 가짜)`);
+console.log("■ KV 한도 (용량 1GB · 하루 쓰기 1,000번)");
+await ok("용량: 쓴 것·휴지통·남은 것 · 원가 볼 수 있는 사람만 (팀원 403)", async () => {
+  const u = await call("usage", { tok: T.mgmt }); assert.equal(u.s, 200); assert.equal(u.d.limitBytes, 1024 ** 3); assert.ok(u.d.live.files >= 3); assert.ok(u.d.usedBytes > 0); assert.equal(u.d.warn, false);
+  assert.ok(u.d.today.writes > 0); assert.equal((await call("usage", { tok: T.team })).s, 403); });
+await ok("80% 넘으면 경고(warn) · 꽉 차면 올리기 507", async () => {
+  const meta = JSON.parse(new TextDecoder().decode(R2.m.get("meta/usage").data)); meta.live.bytes = Math.floor(0.85 * 1024 ** 3); R2.m.get("meta/usage").data = new TextEncoder().encode(JSON.stringify(meta));
+  const u = await call("usage", { tok: T.owner }); assert.equal(u.d.warn, true); assert.ok(u.d.pct >= 85);
+  meta.live.bytes = 1024 ** 3 - 10; R2.m.get("meta/usage").data = new TextEncoder().encode(JSON.stringify(meta));
+  const r = await up("quote", T.owner, new TextEncoder().encode("%PDF-1.4 새 파일 하나")); assert.equal(r.s, 507); assert.match(r.d.error, /용량/);
+  const rc = await call("recount", { method: "POST", tok: T.owner }); assert.equal(rc.s, 200); assert.ok(rc.d.usedBytes < 1024 * 1024); assert.equal((await call("recount", { method: "POST", tok: T.mgmt })).s, 403); });
+await ok("하루 쓰기 한도: 장부가 1,000번이면 미리 429 · KV 가 한도 오류를 내도 429 + 안내", async () => {
+  const meta = JSON.parse(new TextDecoder().decode(R2.m.get("meta/usage").data)); meta.w = 1000; R2.m.get("meta/usage").data = new TextEncoder().encode(JSON.stringify(meta));
+  let r = await up("quote", T.owner, new TextEncoder().encode("%PDF-1.4 한도 시험 1")); assert.equal(r.s, 429); assert.match(r.d.error, /오전 9시/); assert.equal((await call("usage", { tok: T.owner })).d.today.warn, true);
+  meta.w = 3; R2.m.get("meta/usage").data = new TextEncoder().encode(JSON.stringify(meta)); R2.failPut = true;
+  r = await up("quote", T.owner, new TextEncoder().encode("%PDF-1.4 한도 시험 2")); R2.failPut = false; assert.equal(r.s, 429); assert.equal(r.d.limit, "day-writes"); });
+await ok("이름이 아주 길어도 KV 메타데이터(1KB) 안에", async () => { const r = await up("quote", T.owner, new TextEncoder().encode("%PDF-1.4 긴 이름"), "아주긴한글이름".repeat(40) + ".pdf"); assert.equal(r.s, 200); });
+
+console.log("■ 노션 파일 복사 (서버가 노션 임시 주소에서 직접 받음 · 마스터만)");
+const nc = (tok, body) => call("notion-copy", { method: "POST", tok, body: JSON.stringify(body), headers: { "Content-Type": "application/json" } });
+await ok("prod-files-secure.s3…amazonaws.com · file.notion.so → 견적서로 보관 · 같은 파일 두 번 = dedup", async () => {
+  const a = await nc(T.owner, { quoteNotionId: "q1", name: "용기 견적.pdf", url: "https://prod-files-secure.s3.us-west-2.amazonaws.com/space/file-1/견적.pdf?X-Amz-Signature=abc" });
+  assert.equal(a.s, 200, JSON.stringify(a.d)); assert.match(a.d.fileId, /^quote\/[0-9a-f]{64}\.pdf$/); assert.equal(a.d.dedup, false); assert.equal(a.d.size, NOTION_PDF.byteLength);
+  const b = await nc(T.owner, { quoteNotionId: "q1", name: "용기 견적.pdf", url: "https://file.notion.so/f/f/space/file-1/견적.pdf?id=1&signature=x" }); assert.equal(b.d.fileId, a.d.fileId); assert.equal(b.d.dedup, true);
+  const g = await call("file/" + a.d.key, { tok: T.mgmt }); assert.equal(g.s, 200); assert.deepEqual([...g.d], [...NOTION_PDF]); });
+await ok("file.notion.so → S3 로 넘김(redirect)은 따라감 · 다른 주소로 넘기면 400", async () => {
+  assert.equal((await nc(T.owner, { url: "https://file.notion.so/f/to-s3/x.pdf" })).s, 200);
+  const r = await nc(T.owner, { url: "https://file.notion.so/f/to-evil/x.pdf" }); assert.equal(r.s, 400); assert.ok(!notionHits.some((h) => h.startsWith("evil.example.com"))); });
+await ok("노션 파일 서버가 아닌 주소 · http · 다른 버킷 = 400 (받으러 가지도 않음)", async () => {
+  const before = notionHits.length;
+  for (const u of ["https://evil.example.com/a.pdf", "http://file.notion.so/a.pdf", "https://other-bucket.s3.us-west-2.amazonaws.com/a.pdf", "https://s3.us-west-2.amazonaws.com/other/a.pdf", "https://file.notion.so.evil.com/a.pdf", "https://user:pw@file.notion.so/a.pdf"])
+    assert.equal((await nc(T.owner, { url: u })).s, 400, u);
+  assert.equal(notionHits.length, before); });
+await ok("만료된 임시 주소 = 410 안내 · 20MB 넘는 노션 파일 = 413 · 마스터 아니면 403", async () => {
+  const e = await nc(T.owner, { url: "https://file.notion.so/f/expired/x.pdf" }); assert.equal(e.s, 410); assert.match(e.d.error, /만료/);
+  assert.equal((await nc(T.owner, { url: "https://file.notion.so/f/huge/x.pdf" })).s, 413);
+  for (const t of [T.mgmt, T.sub, undefined]) assert.notEqual((await nc(t, { url: "https://file.notion.so/f/a/x.pdf" })).s, 200); });
+console.log(`✓ ${n}가지 모두 통과 (가짜 키·가짜 KV · 바깥 요청 ${fetches}번 모두 가짜)`);

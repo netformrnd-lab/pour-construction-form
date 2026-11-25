@@ -2120,7 +2120,7 @@ function CardSheet({ id, ctx, onClose, onSaved }) {
         </details>
       </div></div>
       <div class="panel"><div class="ph">구성요소 <span class="rt">${d.rows.length}줄 · 업체 단추(A 주 ▾)를 누르면 업체 여러 곳</span><span class="sp"></span>
-          ${!ro && d.method && tplMissing > 0 && html`<button type="button" class="tbtn sm" onClick=${addTpl}>＋ ${C.methodName(d.method)} 기본 줄 ${tplMissing}개</button>`}${!ro && html`<button type="button" class="tbtn sm" onClick=${addRow}>＋ 줄 추가</button>`}</div>
+          ${!ro && !cc && d.method && tplMissing > 0 && html`<button type="button" class="tbtn sm" onClick=${addTpl}>＋ ${C.methodName(d.method)} 기본 줄 ${tplMissing}개</button>`}${!ro && html`<button type="button" class="tbtn sm" onClick=${addRow}>＋ 줄 추가</button>`}</div>
         <div class="pb flush">
         ${!d.method && !ro && html`<div class="note" style=${{ padding: "6px 10px 0" }}>기본 정보에서 생산 방식을 고르면 그 방식의 기본 줄(예: 자체생산 = 원료·용기·캡·라벨·단상자·공임·간접비)이 들어가요.</div>`}
         ${wide ? html`<div class="gridwrap"><table class="grid ed"><thead><tr>

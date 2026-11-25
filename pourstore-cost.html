@@ -222,6 +222,14 @@ table.vt{border-collapse:separate;border-spacing:0;font-size:12px;background:#ff
 .qc .s{font-size:11px;color:var(--ink2)}
 .dropz{border:2px dashed var(--grid);border-radius:8px;padding:22px 14px;text-align:center;color:var(--ink2);background:#fff;display:block;cursor:pointer}
 .hist td{height:auto;padding:6px 8px;line-height:1.5}
+/* 썸네일 (2026-11-25) — 누르면 크게 · 끌어다 놓기 · 누른 뒤 Ctrl+V */
+.thumb{display:inline-flex;align-items:center;justify-content:center;flex:none;border:1px dashed #B9C2CC;border-radius:5px;background:#fff;overflow:hidden;cursor:pointer;vertical-align:middle;color:var(--mute);font-size:13px;font-weight:700;line-height:1}
+.thumb.has{border-style:solid;border-color:var(--grid)}
+.thumb.nopic:hover,.thumb:focus{border-color:var(--g);color:var(--g);outline:none;box-shadow:0 0 0 2px var(--gl)}
+.thumb.over{border-color:var(--g);background:var(--gl)}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb.faded{opacity:.55}
+.dhead .meta .thumb{margin-right:2px}
 /* 견적서 창 */
 .modal{position:fixed;inset:0;z-index:90;background:rgba(15,23,42,.38);display:flex;align-items:center;justify-content:center;padding:16px}
 .modal .box{background:#fff;border-radius:10px;width:620px;max-width:100%;max-height:88vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
@@ -590,7 +598,7 @@ table.vt{border-collapse:separate;border-spacing:0;font-size:12px;background:#ff
   // 바뀐 것 한 줄 (이력용 — 실제 업체 이름은 넣지 않음, 가칭만)
   const F_LB = { brand: "브랜드", round: "차수", item: "품목", spec: "규격", method: "생산 방식", origin: "국내·수입", scope: "완제품 범위", qty: "생산 수량", validUntil: "견적 유효기간", include: "합계 포함", prodKey: "가격정책표 연결", need: "분해 필요", mfgAlias: "완제품 제조사" };
   const R_LB = { kind: "구분", name: "구성요소", use: "쓰임", supAlias: "공급처", inMfg: "제조 단가 포함", price: "견적 단가", cur: "통화", vat: "부가세", per: "개당/1회", usage: "사용량", moq: "MOQ", src: "출처", st: "상태" };
-  const V_LB = { alias: "이름", price: "단가", vat: "부가세", cur: "통화", moq: "MOQ", lead: "리드타임", qd: "견적일", vu: "유효기간", memo: "메모" };
+  const V_LB = { alias: "이름", price: "단가", vat: "부가세", cur: "통화", moq: "MOQ", lead: "리드타임", ship: "해상·통관", qd: "견적일", vu: "유효기간", memo: "메모" };
   const show = (v) => (v === true ? "포함" : v === false ? "제외" : v === "" || v == null ? "빈칸" : typeof v === "number" ? v.toLocaleString("ko-KR") : String(v));
   function diffCard(a, b) {
     const out = [];
@@ -613,7 +621,8 @@ table.vt{border-collapse:separate;border-spacing:0;font-size:12px;background:#ff
       Object.keys(R_LB).forEach((k) => { if (sa !== sb && MIR.includes(k)) return; if (String(o[k] ?? "") !== String(r[k] ?? "")) out.push(`${nm} ${R_LB[k]} ${show(o[k])}→${show(r[k])}`); });
       if (sa !== sb) out.push(`${nm} 적용 업체 ${sa}→${sb}`);
       vb.forEach((v) => { const p = va.find((x) => x.vid === v.vid); if (!p) { out.push(`${nm} 업체 ${v.vid} 추가`); return; }
-        Object.keys(V_LB).forEach((k) => { if (sa === sb && v.vid === sb && ["alias", "price", "vat", "cur", "moq", "qd"].includes(k)) return; if (String(p[k] ?? "") !== String(v[k] ?? "")) out.push(`${nm} ${v.vid}업체 ${V_LB[k]} ${show(p[k])}→${show(v[k])}`); }); });
+        Object.keys(V_LB).forEach((k) => { if (sa === sb && v.vid === sb && ["alias", "price", "vat", "cur", "moq", "qd"].includes(k)) return; if (k === "lead" && leadDays(p[k]) != null && leadDays(p[k]) === leadDays(v[k])) return;   /* '2주' → 10 처럼 같은 영업일로 바뀐 것만은 이력에 안 적음 */
+          if (String(p[k] ?? "") !== String(v[k] ?? "")) out.push(`${nm} ${v.vid}업체 ${V_LB[k]} ${show(p[k])}→${show(v[k])}${(k === "lead" || k === "ship") && typeof v[k] === "number" ? "영업일" : ""}`); }); });
       va.forEach((v) => { if (!vb.some((x) => x.vid === v.vid)) out.push(`${nm} 업체 ${v.vid} 뺌`); });
     });
     (a.rows || []).forEach((r) => { if (!rb.has(r.id)) out.push(`줄 뺌: ${r.name || r.kind || "줄"}`); });
@@ -631,7 +640,109 @@ table.vt{border-collapse:separate;border-spacing:0;font-size:12px;background:#ff
   }
   const seedId = (key) => { let h = 2166136261; const s = String(key); for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return "seed-" + (h >>> 0).toString(36); };
 
+
+  // ══ 일정 (2026-11-25 송희님) — 영업일 기준 · 한국 공휴일 제외 ══
+  //  원자재 입고 = 발주일 + 적용 업체 리드타임 + 해상·통관(영업일) → 가장 늦은 것 = 병목
+  //  라벨·단상자 = 원자재가 아니라 인쇄 단계(신고번호·디자인 뒤) — 그 업체 리드타임이 인쇄 기간 (단계에서 직접 고치면 직접 값)
+  //  단계(골든 샘플 → 서류 → 인증 → 신고번호 → 디자인 → 라벨·단상자 인쇄): [시작함]이면 그 시작일, 아니면 앞 단계 끝난 다음 영업일(예상)
+  //  생산 시작 = 가장 늦은 날(패키지 준비 · 원자재 병목 입고 · 골든 샘플 확정) → 발주상차 가능일 = 생산 시작 + 생산 기간 + 로스 + 입고 (영업일)
+  const HOLIDAYS_KR = {   // 2026·2027 (대체공휴일 포함) — 설정에서 고침
+    "2026-01-01": "신정", "2026-02-16": "설날", "2026-02-17": "설날", "2026-02-18": "설날", "2026-03-01": "삼일절", "2026-03-02": "대체공휴일(삼일절)", "2026-05-05": "어린이날",
+    "2026-05-24": "부처님오신날", "2026-05-25": "대체공휴일(부처님오신날)", "2026-06-03": "전국동시지방선거", "2026-06-06": "현충일", "2026-08-15": "광복절", "2026-08-17": "대체공휴일(광복절)",
+    "2026-09-24": "추석", "2026-09-25": "추석", "2026-09-26": "추석", "2026-10-03": "개천절", "2026-10-05": "대체공휴일(개천절)", "2026-10-09": "한글날", "2026-12-25": "성탄절",
+    "2027-01-01": "신정", "2027-02-06": "설날", "2027-02-07": "설날", "2027-02-08": "설날", "2027-02-09": "대체공휴일(설날)", "2027-03-01": "삼일절", "2027-05-05": "어린이날",
+    "2027-05-13": "부처님오신날", "2027-06-06": "현충일", "2027-08-15": "광복절", "2027-08-16": "대체공휴일(광복절)", "2027-09-14": "추석", "2027-09-15": "추석", "2027-09-16": "추석",
+    "2027-10-03": "개천절", "2027-10-04": "대체공휴일(개천절)", "2027-10-09": "한글날", "2027-10-11": "대체공휴일(한글날)", "2027-12-25": "성탄절", "2027-12-27": "대체공휴일(성탄절)" };
+  const CERT_OPTS = [["안전확인 신규", 20], ["변경신고·VOC 검사", 15]];
+  const STEP_TPL = [
+    { id: "gs", name: "골든 샘플 확정", days: 0, after: [], gate: true },
+    { id: "docs", name: "서류 준비", days: 5, after: ["gs"] },
+    { id: "cert", name: "인증", days: 20, after: ["docs"], opt: 0 },
+    { id: "no", name: "신고번호", days: 0, after: ["cert"] },
+    { id: "design", name: "디자인 (라벨·단상자)", days: 10, after: ["gs"] },
+    { id: "label", name: "라벨 인쇄", days: 10, after: ["no", "design"], gate: true, pkg: "라벨" },
+    { id: "box", name: "단상자 인쇄", days: 15, after: ["no", "design"], gate: true, pkg: "단상자" } ];
+  const SCHED_DEF = { loss: 10, inbound: 3, mfg: 15 };
+  const PROD_KINDS = ["OEM 단가", "공임"], NONMAT_KINDS = ["1회 비용", "간접비", "입고 이동", "수입 물류", "관세"];
+  // 리드타임 글자 → 영업일 숫자 ('15' · '15영업일' · '2주'=10 · '10일'=10 · '1개월'=21 · '10~15'=15) · 못 읽으면 null(확인 필요)
+  function leadDays(v) {
+    if (v == null || v === "") return null;
+    if (typeof v === "number") return isFinite(v) && v >= 0 ? Math.round(v) : null;
+    const s = String(v).replace(/[\s,]/g, ""); let m;
+    if ((m = s.match(/^(\d+(?:\.\d+)?)(?:영업일|bd|d)?$/i))) return Math.round(+m[1]);
+    if ((m = s.match(/(\d+(?:\.\d+)?)[~\-](\d+(?:\.\d+)?)(영업일|일|주|개월|달)?/))) return leadDays(m[2] + (m[3] || ""));
+    if ((m = s.match(/(\d+(?:\.\d+)?)영업일/))) return Math.round(+m[1]);
+    if ((m = s.match(/(\d+(?:\.\d+)?)주/))) return Math.round(+m[1] * 5);
+    if ((m = s.match(/(\d+(?:\.\d+)?)(?:개월|달)/))) return Math.round(+m[1] * 21);
+    if ((m = s.match(/(\d+(?:\.\d+)?)(?:일|days?)/i))) return Math.round(+m[1]);
+    return null;
+  }
+  function bdCal(holidays) {
+    const H = holidays || HOLIDAYS_KR;
+    const toD = (s) => new Date(s + "T00:00:00Z"), toS = (d) => d.toISOString().slice(0, 10);
+    const mv = (s, k) => { const d = toD(s); d.setUTCDate(d.getUTCDate() + k); return toS(d); };
+    const isBD = (s) => { const w = toD(s).getUTCDay(); return w !== 0 && w !== 6 && !H[s]; };
+    const next = (s) => { let d = mv(s, 1), g = 0; while (!isBD(d) && g++ < 60) d = mv(d, 1); return d; };
+    const prev = (s) => { let d = mv(s, -1), g = 0; while (!isBD(d) && g++ < 60) d = mv(d, -1); return d; };
+    const on = (s) => (isBD(s) ? s : next(s));
+    const add = (s, n) => { let d = s; for (let i = 0; i < n; i++) d = next(d); return n > 0 ? d : on(s); };   // n 영업일 뒤
+    const end = (s, n) => { let d = on(s); for (let i = 1; i < n; i++) d = next(d); return d; };              // s 부터 n 영업일(그날 포함) 끝나는 날
+    const diff = (a, b) => { if (!a || !b || a === b) return 0; let k = 0, d = a, g = 0;                     // a → b 영업일 수 (뒤면 −)
+      if (a < b) { while (g++ < 3000) { d = next(d); if (d > b) break; k++; } return k; }
+      while (g++ < 3000) { d = prev(d); if (d < b) break; k--; } return k; };
+    return { isBD, next, prev, on, add, end, diff, name: (s) => H[s] || "" };
+  }
+  // 카드의 단계 (저장 안 했으면 기본 양식 · 라벨·단상자 인쇄는 그 구성요소가 있을 때만 '씀')
+  function schedSteps(card, set) {
+    const sv = card && card.sched && Array.isArray(card.sched.steps) && card.sched.steps.length ? card.sched.steps : null;
+    if (sv) return sv;
+    const sd = (set && set.stepDays) || {}, has = (re) => ((card && card.rows) || []).some((r) => !rowEmpty(r) && (re.test(r.kind || "") || re.test(r.name || "")));
+    return STEP_TPL.map((t) => ({ ...t, after: [...t.after], days: sd[t.id] != null && sd[t.id] !== "" ? +sd[t.id] : t.days, use: t.pkg === "라벨" ? has(/라벨/) : t.pkg === "단상자" ? has(/단상자/) : true, started: false, start: "" }));
+  }
+  const pkgOfRow = (r) => { const t = (r.kind || "") + " " + (r.name || ""); return /단상자/.test(t) ? "단상자" : /라벨/.test(t) ? "라벨" : ""; };
+  function schedule(card, set, today) {
+    const S = { ...SCHED_DEF, ...(set || {}) }, cal = bdCal(S.holidays || HOLIDAYS_KR), T = parseDate(today) || today, sc = (card && card.sched) || {};
+    const T0 = cal.on(T), po = parseDate(sc.po) || T;
+    const mats = [], prods = [], unknown = [], pkgLead = {};
+    const steps = schedSteps(card, S).map((x) => ({ ...x, after: [...(x.after || [])] })), by = {};
+    // 라벨·단상자 줄 = 인쇄 단계로 계산 (신고번호·디자인 뒤에만 인쇄) — 적용 업체 리드타임이 숫자면 그 단계 기간 = 그 값
+    const pkgUsed = steps.filter((st) => st.pkg && st.use !== false).map((st) => st.pkg);
+    ((card && card.rows) || []).forEach((r) => {
+      if (rowEmpty(r)) return; const kind = r.kind || ""; if (NONMAT_KINDS.includes(kind)) return;
+      const sel = selOf(r), v = vendorsOf(r).find((x) => x.vid === sel) || {}, ld = leadDays(v.lead), sh = leadDays(v.ship) || 0;
+      const it = { id: r.id, name: r.name || kind, kind, vid: sel, lead: ld, ship: sh, unknown: ld == null };
+      const pg = pkgOfRow(r);
+      if (pg && pkgUsed.includes(pg)) { it.via = pg; it.unknown = false; if (ld != null) pkgLead[pg] = Math.max(pkgLead[pg] ?? 0, ld + sh); mats.push(it); return; }
+      if (PROD_KINDS.includes(kind)) prods.push(it); else { it.arr = cal.add(po, (ld || 0) + sh); mats.push(it); }
+      if (ld == null) unknown.push(it.name);
+    });
+    const pk = prods.filter((p) => !p.unknown), mfgDef = !pk.length, mfg = mfgDef ? +(num(S.mfg) ?? 15) : Math.max(...pk.map((p) => p.lead + p.ship));
+    steps.forEach((st) => {
+      st.fromV = !!(st.pkg && st.byV !== false && pkgLead[st.pkg] != null);
+      const d = st.fromV ? pkgLead[st.pkg] : Math.max(0, Math.round(num(st.days) ?? 0)), deps = st.after.map((id) => by[id]).filter((x) => x && x.e), depEnd = deps.length ? deps.map((x) => x.e).sort().pop() : null;
+      if (st.use === false) { st.skip = true; st.e = depEnd; by[st.id] = st; return; }
+      let s;
+      if (st.started && parseDate(st.start)) { s = cal.on(parseDate(st.start)); st.est = false; }
+      else { s = depEnd ? cal.next(depEnd) : T0; if (s < T0) s = T0; st.est = true; }
+      st.s = s; st.d = d; st.e = d > 0 ? cal.end(s, d) : s; st.done = !st.est && st.e < T0; by[st.id] = st;
+    });
+    const cand = [];
+    steps.filter((st) => st.gate && !st.skip && st.e).forEach((st) => cand.push({ t: "step", id: st.id, name: st.name, date: st.e, est: st.est }));
+    const km = mats.filter((m) => !m.unknown && !m.via);
+    if (km.length) { const b = km.reduce((a, m) => (m.arr > a.arr ? m : a)); b.bottle = true; cand.push({ t: "mat", id: b.id, name: b.name, vid: b.vid, date: b.arr }); }
+    const bott = cand.length ? cand.reduce((a, c) => (c.date > a.date ? c : a)) : { t: "none", name: "", date: T0 };
+    const prodStart = bott.date < T0 ? T0 : bott.date, loss = +(num(S.loss) ?? 10), inbound = +(num(S.inbound) ?? 3);
+    const ready = cal.add(prodStart, mfg + loss + inbound);
+    mats.forEach((m) => { if (m.via) { const st = steps.find((x) => x.pkg === m.via && !x.skip); m.step = st ? { id: st.id, name: st.name, d: st.d, e: st.e, fromV: st.fromV } : null; } });
+    return { today: T, po, steps, mats, prods, pkgLead, mfg, mfgDef, loss, inbound, prodStart, bottleneck: bott, ready, left: cal.diff(T, ready), unknown, est: steps.some((st) => !st.skip && st.est && st.gate), cal };
+  }
+  // 업체를 바꾸면 상차 가능일이 몇 영업일 바뀌나 (+ 늦어짐)
+  function swapDays(card, set, today, rowId, vid) {
+    const a = schedule(card, set, today), b = schedule({ ...card, rows: ((card && card.rows) || []).map((r) => (r.id === rowId ? syncRow({ ...r, vendors: vendorsOf(r), sel: vid }) : r)) }, set, today);
+    return { days: a.cal.diff(a.ready, b.ready), ready: b.ready };
+  }
   G.PCC = { KINDS, METHODS, ORIGINS, CURS, methodName, VATS, ROW_ST, BADGE, SALE_CH, SALE_MARGINS, LOGI, num, z, has, ceil100, normBrand, vatOf, perOf, inMfgOf, kindOf, rowStatus, rowEmpty, rowCalc, fragNeed, cardCalc, qtyCompare,
+    HOLIDAYS_KR, CERT_OPTS, STEP_TPL, SCHED_DEF, PROD_KINDS, NONMAT_KINDS, leadDays, bdCal, schedSteps, schedule, swapDays,
     VF, vRole, nextVid, vendorsOf, selOf, withVendor, syncRow, vendorPriced, vendorCompare, cheapestCard, cardStatus, validFirst, templateRows,
     parseDate, days, validity, roundNo, summaryOf, pickForProduct, badgeOf, aliasNext, logiCalc, salePrice, marginCalc, parseV7, compareXl, sheetSkip, diffCard, seedCard, seedId };
 })(typeof window !== "undefined" ? window : globalThis);
@@ -691,10 +802,10 @@ function roleOf(a, email, verified) {
 // ── 편집 모양 ↔ 저장 모양 (숫자 칸은 편집 중엔 글자 그대로, 저장할 때 숫자로) ──
 //  줄 = 구분·구성요소·쓰임·개당/1회·사용량 + 업체 여러 곳(vendors: A 주 · B 서브 · C…) · sel = 적용 업체
 //  저장할 때 적용 업체 값(단가·부가세·통화·MOQ·견적일·가칭)을 줄에도 그대로 적음(C.syncRow) → 계산·엑셀 식은 예전 그대로
-const newVendor = (vid) => ({ vid: vid || "A", alias: "", price: "", vat: "V-", cur: "", moq: "", lead: "", qd: "", vu: "", memo: "" });
-const newRow = (o) => ({ id: uid(), kind: "", name: "", use: "", inMfg: "별도", per: "개당", usage: "1", st: "", sel: "A", vendors: [newVendor("A")], ...(o || {}) });
+const newVendor = (vid) => ({ vid: vid || "A", alias: "", price: "", vat: "V-", cur: "", moq: "", lead: "", ship: "", qd: "", vu: "", memo: "", img: "" });
+const newRow = (o) => ({ id: uid(), kind: "", name: "", use: "", inMfg: "별도", per: "개당", usage: "1", st: "", img: "", sel: "A", vendors: [newVendor("A")], ...(o || {}) });
 const tplRow = (t) => newRow({ kind: t.kind, name: t.name, use: t.use || "", inMfg: t.inMfg || "별도", per: t.per || "개당", usage: str(t.usage ?? 1), vendors: [{ ...newVendor("A"), vat: t.vat || "V-", cur: t.cur || "" }] });
-const blankCard = () => ({ brand: "", round: "1차", item: "", spec: "", method: "", origin: "", scope: "", qty: "", validUntil: "", include: true, need: false, prodKey: "", prodLabel: "", mfgAlias: "", seed: "manual", fx: {}, frag: { name: "", ratio: "", batchKg: "", directKg: "" }, rows: [newRow()], sale: {} });
+const blankCard = () => ({ brand: "", round: "1차", item: "", spec: "", method: "", origin: "", scope: "", qty: "", validUntil: "", include: true, need: false, prodKey: "", prodLabel: "", mfgAlias: "", seed: "manual", fx: {}, frag: { name: "", ratio: "", batchKg: "", directKg: "" }, rows: [newRow()], sale: {}, img: "", sched: null });
 const av = (r) => r.vendors.find((v) => v.vid === r.sel) || r.vendors[0];   // 적용 업체 (편집 중)
 // 노션에서 가져온 업체 칸 표시 (nid 노션 줄 · nq 견적 · nsid 공급업체 · nno 견적 번호 · nnote 노션 비고 · ndel 노션에서 삭제됨) — 편집해도 그대로
 const N_KEYS = ["nid", "nq", "nsid", "nno", "nnote", "ndel", "nst", "nad", "unit", "qq"];   // + 노션 상태(탈락 등)·채택·단위·견적 수량
@@ -710,12 +821,14 @@ function toEdit(c) {
   d.frag = { name: str(f.name), ratioPct: pctStr(f.ratio), batchKg: str(f.batchKg), directKg: str(f.directKg) };
   d.fx = {}; Object.entries((c && c.fx) || {}).forEach(([k, v]) => { d.fx[k] = str(v); });
   d.rows = ((c && c.rows) || []).map((r) => {
-    const vs = C.vendorsOf(r).map((v) => ({ ...newVendor(v.vid), ...pickN(v), vid: v.vid, alias: v.alias || "", price: str(v.price), vat: v.vat || "", cur: v.cur || "", moq: str(v.moq), lead: str(v.lead), qd: str(v.qd), vu: str(v.vu), memo: str(v.memo) }));
-    return { id: r.id || uid(), kind: r.kind || "", name: str(r.name), use: str(r.use), inMfg: r.inMfg || "", per: r.per || "", usage: str(r.usage), st: r.st || "", sel: C.selOf({ ...r, vendors: vs }), vendors: vs };
+    const vs = C.vendorsOf(r).map((v) => ({ ...newVendor(v.vid), ...pickN(v), vid: v.vid, alias: v.alias || "", price: str(v.price), vat: v.vat || "", cur: v.cur || "", moq: str(v.moq), lead: str(v.lead), ship: str(v.ship), qd: str(v.qd), vu: str(v.vu), memo: str(v.memo), img: v.img || "" }));
+    return { id: r.id || uid(), kind: r.kind || "", name: str(r.name), use: str(r.use), inMfg: r.inMfg || "", per: r.per || "", usage: str(r.usage), st: r.st || "", img: r.img || "", sel: C.selOf({ ...r, vendors: vs }), vendors: vs };
   });
   if (!d.rows.length) d.rows = [newRow()];
   const s = (c && c.sale) || {};
   d.sale = { price: str(s.price), ch: str(s.ch), chName: str(s.chName), feePct: pctStr(s.fee), logi: str(s.logi) };
+  d.img = (c && c.img) || "";
+  d.sched = c && c.sched && Array.isArray(c.sched.steps) ? { po: str(c.sched.po), steps: c.sched.steps.map((st) => ({ ...st, after: [...(st.after || [])], days: str(st.days), start: str(st.start), started: !!st.started })) } : null;
   ["history", "deleted", "deletedAt", "deletedBy", "createdAt", "createdBy", "updatedAt", "updatedBy", "id", "applied"].forEach((k) => delete d[k]);
   return d;
 }
@@ -727,8 +840,10 @@ function fromEdit(d) {
     validUntil: C.parseDate(d.validUntil) || T(d.validUntil), include: d.include !== false, need: !!d.need,
     prodKey: d.prodKey || "", prodLabel: T(d.prodLabel), mfgAlias: d.mfgAlias || "", seed: d.seed || "manual", fx,
     frag: { name: T(f.name), ratio: fromPct(f.ratioPct), batchKg: N(f.batchKg), directKg: N(f.directKg) },
-    rows: (d.rows || []).filter((r) => !C.rowEmpty(C.syncRow(r))).map((r) => C.syncRow({ id: r.id, kind: r.kind || "", name: T(r.name), use: T(r.use), inMfg: r.inMfg || "", per: r.per || "", usage: N(r.usage), st: r.st || "", sel: r.sel,
-      vendors: r.vendors.map((v) => ({ ...pickN(v), vid: v.vid, alias: v.alias || "", price: N(v.price), vat: v.vat || "", cur: v.cur || "", moq: N(v.moq), lead: T(v.lead), qd: T(v.qd), vu: C.parseDate(v.vu) || T(v.vu), memo: T(v.memo) })) })),
+    rows: (d.rows || []).filter((r) => !C.rowEmpty(C.syncRow(r))).map((r) => C.syncRow({ id: r.id, kind: r.kind || "", name: T(r.name), use: T(r.use), inMfg: r.inMfg || "", per: r.per || "", usage: N(r.usage), st: r.st || "", sel: r.sel, ...(r.img ? { img: r.img } : {}),
+      vendors: r.vendors.map((v) => ({ ...pickN(v), vid: v.vid, alias: v.alias || "", price: N(v.price), vat: v.vat || "", cur: v.cur || "", moq: N(v.moq), lead: C.leadDays(v.lead) ?? T(v.lead), ship: N(v.ship), qd: T(v.qd), vu: C.parseDate(v.vu) || T(v.vu), memo: T(v.memo), ...(v.img ? { img: v.img } : {}) })) })),
+    img: d.img || "",
+    sched: d.sched ? { po: C.parseDate(d.sched.po) || "", steps: (d.sched.steps || []).map((st) => ({ id: st.id, name: T(st.name), days: C.num(st.days) == null ? 0 : Math.max(0, Math.round(C.num(st.days))), after: [...(st.after || [])], gate: !!st.gate, pkg: st.pkg || "", use: st.use !== false, started: !!st.started, start: st.started ? C.parseDate(st.start) || "" : "", ...(st.opt != null ? { opt: st.opt } : {}), ...(st.byV === false ? { byV: false } : {}) })) } : null,
     sale: { price: N(s.price), ch: s.ch || "", chName: T(s.chName), fee: fromPct(s.feePct), logi: N(s.logi) },
   };
 }
@@ -765,6 +880,8 @@ async function saveCard(ctx, { id, prev, prevNames, d, nm, why }) {
   });
   if (prev && prev.applied) card.applied = prev.applied;
   const what = C.diffCard(prev || null, card);
+  if (prev && stable(prev.sched || null) !== stable(card.sched || null)) what.push(schedWhat(prev.sched, card.sched, C.schedSteps({ ...prev, sched: null }, LAST_SET)));
+  if (prev && imgKey(prev) !== imgKey(card)) what.push("사진 바뀜");
   const sk = (x) => { const o = x || {}; return stable({ price: o.price ?? "", ch: o.ch || "", fee: o.fee ?? "", logi: o.logi ?? "" }); };
   if (prev && sk(prev.sale) !== sk(card.sale)) what.push(`판매가 계산 바뀜 (${card.sale.price === "" ? "판매가 없음" : "판매가 " + won(card.sale.price)}${card.sale.chName ? " · " + card.sale.chName : ""})`);
   const pn = namesInit(prevNames, prev ? prev.rows : []);
@@ -774,6 +891,7 @@ async function saveCard(ctx, { id, prev, prevNames, d, nm, why }) {
   id = id || cardsCol().doc().id;
   const history = [{ at, by, what: joinWhat(what.length ? what : ["업체 이름 고침"]), why: String(why || "").trim().slice(0, 200) }, ...((prev && prev.history) || [])].slice(0, 100);
   const doc = { ...card, history, deleted: false, createdAt: (prev && prev.createdAt) || at, createdBy: (prev && prev.createdBy) || by, updatedAt: at, updatedBy: by };
+  const bytes = docBytes(doc); if (bytes > CARD_MAX) throw new Error(`카드 한 장 용량 ${Math.round(bytes / 1024)}KB — Firestore 한도(1MB)를 넘어요. 사진을 몇 장 빼 주세요`);
   const b = db.batch();
   b.set(cardsCol().doc(id), doc);
   b.set(namesCol().doc(id), { mfg, sup, vsup, vfiles, vurl, updatedAt: at, updatedBy: by });
@@ -805,6 +923,20 @@ async function applyToPriceTable(user, card, prod, unit, pt) {
   });
   console.log(`[prod-cost] 분해원가 반영 ${k}: ${from} → ${unit}`);
   return from;
+}
+// 카드 용량 (Firestore 문서 1MB 한도) · 사진 바뀜 · 일정 바뀜 이력 한 줄
+const CARD_MAX = 1000000, CARD_WARN = 750000;
+const docBytes = (o) => new Blob([JSON.stringify(o)]).size;
+const imgKey = (c) => stable([(c && c.img) || "", ((c && c.rows) || []).map((r) => [r.img || "", C.vendorsOf(r).map((v) => v.img || "")])]);
+let LAST_SET = null;   /* 일정 설정(cost-ref/schedule) 마지막 값 — 저장 이력에서 기본 양식과 비교할 때 */
+function schedWhat(a, b, tplSteps) {
+  /* 처음 일정을 고칠 때(a 없음) = 기본 양식과 비교 — '단계 추가' 가 양식 단계마다 적히지 않게 */
+  if (!a && tplSteps) a = { po: "", steps: tplSteps };
+  const sa = new Map(((a && a.steps) || []).map((x) => [x.id, x])), out = [];
+  ((b && b.steps) || []).forEach((x) => { const o = sa.get(x.id); if (x.started && (!o || !o.started || o.start !== x.start)) out.push(`${x.name} 시작 ${dTxt(x.start)}`); if (o && o.started && !x.started) out.push(`${x.name} 시작 취소`); if (o && String(o.days) !== String(x.days)) out.push(`${x.name} ${o.days}→${x.days}영업일`); if (!o) out.push(`단계 추가: ${x.name}`); });
+  ((a && a.steps) || []).forEach((x) => { if (!((b && b.steps) || []).some((y) => y.id === x.id)) out.push(`단계 뺌: ${x.name}`); });
+  if (((a && a.po) || "") !== ((b && b.po) || "")) out.push(`발주일 ${dTxt(b && b.po) || "오늘"}`);
+  return "일정: " + (out.length ? out.slice(0, 6).join(" · ") : "바뀜");
 }
 async function setDeleted(user, c, del) {
   const at = new Date().toISOString(), by = user.email || "";
@@ -849,6 +981,7 @@ function useCostData(user, role) {
       s.docs.forEach((d) => { if (d.id === "_alias") alias = d.data().map || {}; else if (d.id === "_ref") refNames = d.data().map || {}; else if (d.id === "_notion") notion = d.data(); else names[d.id] = d.data(); });
       console.log(`[cost-names] ${Object.keys(names).length}장`); set({ names, alias, refNames, notion, namesReady: true });
     }, fail("cost-names")));
+    off.push(refDoc("schedule").onSnapshot((d) => { LAST_SET = d.exists ? d.data() : null; set({ settings: LAST_SET }); }, (e) => { console.warn("[cost-ref/schedule] 읽기 실패 — 기본값으로", e.code || e); set({ settings: null }); }));
     off.push(refDoc("products").onSnapshot((d) => { const x = d.exists ? d.data() : null; console.log(`[cost-ref/products] 제품 ${x && x.list ? x.list.length : 0}개`); set({ ref: x }); }, fail("cost-ref/products", { ref: null })));
     if (role === "master" || role === "sub") off.push(draftDoc().onSnapshot((d) => set({ draft: d.exists ? d.data() : null }), (e) => { console.warn("[pricing-draft] 읽기 실패", e.code || e); set({ draft: null }); }));
     if (role === "master") {
@@ -902,7 +1035,7 @@ function notionOps(payload) {
       ops.push({ src: "notion", key: L.notionId, ck: "nt:" + nz(supName) + "|" + nz(title), title, noteKind: nk, sample, product: L.product || {}, where: [supName, q.quoteNo || q.title, title].filter(Boolean).join(" · "),
         comp: { kind, name: str(cmp.name || title).trim(), per: C.perOf(cmp.per) || (kindDef ? "1회" : "개당"), use: str(cmp.use).trim() }, rowCreate: !!kind,
         vendor: { name: supName, nid: L.notionId, nq: q.notionId || "", nsid: q.supplierNotionId || "", nno: str(q.quoteNo || q.title).trim(), price: C.num(L.unitPrice ?? q.unitPrice) ?? "",
-          cur: curOf(L.currency || q.currency), vat: C.vatOf(L.vat || q.vat) || "V?", moq: C.num(L.moq ?? q.moq) ?? "", lead: leadOf(L.leadTime ?? q.leadTime), qd: C.parseDate(q.quoteDate) || str(q.quoteDate).trim(),
+          cur: curOf(L.currency || q.currency), vat: C.vatOf(L.vat || q.vat) || "V?", moq: C.num(L.moq ?? q.moq) ?? "", lead: C.leadDays(L.leadTime ?? q.leadTime) ?? C.leadDays(sup.leadTime) ?? str(L.leadTime ?? q.leadTime ?? "").trim(), qd: C.parseDate(q.quoteDate) || str(q.quoteDate).trim(),
           vu: C.parseDate(q.validUntil) || "", nnote: str(L.note || "").trim(), nst: status, nad: !!(L.adopted ?? q.adopted) || status === "채택", unit: str(L.unit || q.unit).trim(), qq: C.num(L.qty ?? q.qty) ?? "", files, url: q.notionUrl || "" } });
     }
   }
@@ -931,7 +1064,7 @@ function sheetOps(aoa) {
     ops.push({ src: "sheet", n, where, key: "sh:" + hid([code, item, spec, T("kind"), comp, vendor].map(nz).join("|")), ck: "sh:" + (code ? "c:" + code : nz(item) + "|" + nz(spec)),
       product: { code, name: item, spec }, title: `${item} ${spec}`.trim(), rowCreate: true,
       comp: { kind: C.kindOf(T("kind")) || "", name: comp, use: T("use"), per: C.perOf(T("per")), usage: C.num(T("usage")), st: ["확정", "임시", "확인 필요"].includes(T("st")) ? T("st") : "" },
-      vendor: { name: vendor, vid, price: C.num(T("price")) ?? "", cur, curSet: !!T("cur"), vat: C.vatOf(T("vat")), moq: buyq ?? moq ?? "", lead: leadOf(T("lead")), qd: [d, srcTxt].filter(Boolean).join(" · "), vu: C.parseDate(g("vu")) || "",
+      vendor: { name: vendor, vid, price: C.num(T("price")) ?? "", cur, curSet: !!T("cur"), vat: C.vatOf(T("vat")), moq: buyq ?? moq ?? "", lead: C.leadDays(T("lead")) ?? T("lead"), qd: [d, srcTxt].filter(Boolean).join(" · "), vu: C.parseDate(g("vu")) || "",
         memo: [T("memo"), buyq != null && moq != null && buyq !== moq ? `MOQ ${moq.toLocaleString("ko-KR")}` : ""].filter(Boolean).join(" · "),
         files: /^https?:\/\//i.test(link) ? [{ id: "l" + hid(link), name: srcTxt || "출처 링크", kind: "link", url: link }] : [] },
       card: { method: methodOf(T("method")), origin: originOf(T("origin")), qty: C.num(T("qty")), fx: cur && fx != null ? { [cur]: fx } : null } });
@@ -1192,6 +1325,9 @@ function Main({ user, role }) {
       chk: (c.rows || []).filter((r) => !C.rowEmpty(r) && C.rowCalc(r, c.qty, c.fx).st === "확인 필요").length, multi: (c.rows || []).filter((r) => C.vendorsOf(r).length > 1).length,
       files: seeNames ? fileCount(S.names[c.id]) : 0, nt: vs.filter((v) => v.nid).length, ndel: vs.filter((v) => v.ndel).length, samples: (c.nsamples || []).length };
   }), [S.cards, refMap, S.names, role]);
+  const SETL = useMemo(() => effSet(S.settings), [S.settings]);
+  const schedOf = useMemo(() => { const m = {}; items.forEach((i) => { try { m[i.c.id] = C.schedule(i.c, SETL, today); } catch (e) { console.warn("[일정] 계산 실패", i.c.id, e); } }); return m; }, [items, SETL]);
+  items.forEach((i) => { i.sch = schedOf[i.c.id] || null; });
   const brands = useMemo(() => [...new Set(items.map((i) => i.c.brand || "브랜드 없음"))].sort(), [items]);
   const inTab = (i, t) => (t === "need" ? i.need : t === "diff" ? i.refl === "diff" && !i.need : t === "val" ? i.val === "over" || i.val === "soon" : t === "chk" ? i.chk > 0 : true);
   const cnt = Object.fromEntries(TABS.map(([k]) => [k, items.filter((i) => inTab(i, k)).length]));
@@ -1203,12 +1339,14 @@ function Main({ user, role }) {
     const mo = (m) => { const k = C.METHODS.findIndex((x) => x[0] === m); return k < 0 ? 9 : k; };
     const by = { brand: (a, b) => (a.c.brand || "~").localeCompare(b.c.brand || "~") || mo(a.c.method) - mo(b.c.method) || (a.c.item || "").localeCompare(b.c.item || "") || C.roundNo(a.c.round) - C.roundNo(b.c.round),
       cost: (a, b) => b.x.unit - a.x.unit, val: (a, b) => String(a.vu || "9999").localeCompare(String(b.vu || "9999")),
-      recent: (a, b) => String(b.c.updatedAt || "").localeCompare(String(a.c.updatedAt || "")) };
+      recent: (a, b) => String(b.c.updatedAt || "").localeCompare(String(a.c.updatedAt || "")),
+      ready: (a, b) => String((a.sch && a.sch.ready) || "9999").localeCompare(String((b.sch && b.sch.ready) || "9999")) };
     return l.sort(by[sort] || by.brand);
   }, [items, brand, q, tab, sort, mth, org]);
   const openCard = (id) => { setOkey((k) => k + 1); setOpen(id); };
   const sRef = useRef(S); sRef.current = S;
-  const ctx = { S, user, role, isM, seeNames, refList, refMap, setToast, today, getS: () => sRef.current };
+  const SET = useMemo(() => effSet(S.settings), [S.settings]);
+  const ctx = { S, user, role, isM, seeNames, refList, refMap, setToast, today, getS: () => sRef.current, SET };
   const loading = S.cards === null && !S.err;
   const seedN = isM ? seedCandidates(S, refList).list.length : 0;
   const nUn = Object.keys((S.notion && S.notion.unmatched) || {}).length, lastRun = ((S.notion && S.notion.runs) || [])[0] || null;
@@ -1260,7 +1398,7 @@ function Main({ user, role }) {
         <select class="in" value=${org} onChange=${(e) => setOrg(e.target.value)} aria-label="국내/수입">${ORIGIN_OPTS.map(([k, n]) => html`<option key=${k} value=${k}>${n}</option>`)}</select>
         <div class="seg" role="group" aria-label="브랜드">${["", ...brands].map((b) => html`<button key=${b || "all"} type="button" class=${brand === b ? "on" : ""} onClick=${() => setBrand(b)}>${b || "전체"}<span class="n">${b ? items.filter((i) => (i.c.brand || "브랜드 없음") === b).length : items.length}</span></button>`)}</div>
         <select class="in" value=${sort} onChange=${(e) => setSort(e.target.value)} aria-label="정렬">
-          <option value="brand">브랜드·생산 방식순</option><option value="cost">완제품 원가 높은 순</option><option value="val">유효기간 빠른 순</option><option value="recent">최근 바뀐 순</option></select>
+          <option value="brand">브랜드·생산 방식순</option><option value="cost">완제품 원가 높은 순</option><option value="val">유효기간 빠른 순</option><option value="recent">최근 바뀐 순</option><option value="ready">상차 가능일 빠른 순</option></select>
         <span class="sp"></span>
         ${isM && html`<button class="tbtn primary" onClick=${() => openCard("new")}>＋ 새 품목</button>`}
         ${isM && html`<button class="tbtn" onClick=${() => setSheet("import")}>📥 엑셀 올리기</button>`}
@@ -1269,6 +1407,7 @@ function Main({ user, role }) {
         ${isM && html`<button class="tbtn" onClick=${() => setSheet("lines")}>📋 줄 목록 올리기</button>`}
         ${isM && html`<button class="tbtn" onClick=${() => downloadLinesTemplate("xlsx").catch((e) => setToast("양식 못 받았어요: " + (e.message || e)))}>줄 목록 양식 받기</button>`}
         ${seeNames && (S.notion || isM) && html`<button class="tbtn" onClick=${() => setSheet("notion")}>${nUn ? html`<b style=${{ color: "var(--gd)" }}>연결 필요 ${nUn}</b>` : "가져오기 기록"}</button>`}
+        <button class="tbtn" onClick=${() => setSheet("settings")}>⚙ 일정 설정</button>
         ${isM && html`<button class="tbtn" onClick=${() => setSheet("trash")}>🗑 휴지통 ${(S.cards || []).filter((c) => c.deleted).length || ""}</button>`}
       </div>
       ${lastRun && seeNames && html`<div class="pl-line"><b>${lastRun.src === "sheet" ? "줄 목록 올리기" : "노션 동기화"}</b> ${whenTxt(lastRun.at)} <i>·</i> 추가 ${lastRun.added} <i>·</i> 바뀜 ${lastRun.updated} <i>·</i> 그대로 ${lastRun.unchanged}${lastRun.deleted ? html` <i>·</i> 노션에서 삭제됨 ${lastRun.deleted}` : ""}${lastRun.unmatched ? html` <i>·</i> <button class="lnk" onClick=${() => setSheet("notion")}>연결 필요 ${nUn}</button>` : ""}${lastRun.errors ? html` <i>·</i> <span style=${{ color: "var(--red)" }}>오류 ${lastRun.errors}</span>` : ""}</div>`}
@@ -1282,6 +1421,7 @@ function Main({ user, role }) {
     ${sheet === "seed" && html`<${SeedSheet} ctx=${ctx} onClose=${() => setSheet("")} />`}
     ${sheet === "trash" && html`<${TrashSheet} ctx=${ctx} onClose=${() => setSheet("")} />`}
     ${sheet === "notion" && html`<${LinkSheet} ctx=${ctx} onClose=${() => setSheet("")} />`}
+    ${sheet === "settings" && html`<${SchedSettingsSheet} ctx=${ctx} onClose=${() => setSheet("")} />`}
     ${sheet === "lines" && html`<${LinesSheet} ctx=${ctx} onClose=${() => setSheet("")} openLinks=${() => setSheet("notion")} />`}
     ${toast && html`<div class="toast" role="status">${toast}</div>`}
   </div>`;
@@ -1299,21 +1439,22 @@ function GridTable({ items, open, grouped, seeNames }) {
   items.forEach((i) => {
     if (grouped) {
       const b = i.c.brand || "브랜드 없음", m = C.methodName(i.c.method) || "생산 방식 미정";
-      if (b !== lb) { rows.push(html`<tr class="l1" key=${"b" + b}><td colspan="8">▣ ${b}<span class="n">${items.filter((x) => (x.c.brand || "브랜드 없음") === b).length}</span></td></tr>`); lb = b; lm = null; }
-      if (m !== lm) { rows.push(html`<tr class="l2" key=${"m" + b + m}><td colspan="8">▸ ${m}<span class="n">${items.filter((x) => (x.c.brand || "브랜드 없음") === b && (C.methodName(x.c.method) || "생산 방식 미정") === m).length}</span></td></tr>`); lm = m; }
+      if (b !== lb) { rows.push(html`<tr class="l1" key=${"b" + b}><td colspan="9">▣ ${b}<span class="n">${items.filter((x) => (x.c.brand || "브랜드 없음") === b).length}</span></td></tr>`); lb = b; lm = null; }
+      if (m !== lm) { rows.push(html`<tr class="l2" key=${"m" + b + m}><td colspan="9">▸ ${m}<span class="n">${items.filter((x) => (x.c.brand || "브랜드 없음") === b && (C.methodName(x.c.method) || "생산 방식 미정") === m).length}</span></td></tr>`); lm = m; }
     }
     rows.push(html`<tr key=${i.c.id} class="go" onClick=${() => open(i.c.id)}>
-      <td class="stk" style=${{ minWidth: 190 }}><div class="pname">${i.c.item || "(품목 없음)"}</div><div class="pspec">${[i.c.spec, i.c.round, !grouped ? i.c.brand : "", i.mfg].filter(Boolean).join(" · ")} ${i.need ? html`<span class="tag need">분해 필요</span>` : ""}${i.nt ? html` <span class="tag nt">노션</span>` : ""}${i.ndel ? html` <span class="tag ndel">노션 삭제 ${i.ndel}</span>` : ""}${i.samples ? html` <span class="tag need">샘플 ${i.samples}</span>` : ""}</div></td>
+      <td class="stk" style=${{ minWidth: 190 }}><div style=${{ display: "flex", gap: 8, alignItems: "center" }}><${ImgSlot} src=${i.c.img} ro=${true} size=${30} title=${i.c.item} /><div style=${{ minWidth: 0 }}><div class="pname">${i.c.item || "(품목 없음)"}</div><div class="pspec">${[i.c.spec, i.c.round, !grouped ? i.c.brand : "", i.mfg].filter(Boolean).join(" · ")} ${i.need ? html`<span class="tag need">분해 필요</span>` : ""}${i.nt ? html` <span class="tag nt">노션</span>` : ""}${i.ndel ? html` <span class="tag ndel">노션 삭제 ${i.ndel}</span>` : ""}${i.samples ? html` <span class="tag need">샘플 ${i.samples}</span>` : ""}</div></div></div></td>
       <td class="nw hm">${C.methodName(i.c.method) || html`<span class="dim">미정</span>`}</td>
       <td class="nw hm">${i.c.origin || html`<span class="dim">—</span>`}</td>
       <td class="num"><b>${W(i.x.unit)}</b><div class="sub">${reflTag(i)}</div></td>
       <td class="nw">${stTag2(i.st)}${i.chk ? html` <span class="tag chk">확인 ${i.chk}</span>` : ""}</td>
       <td class="nw">${valCell(i)}</td>
+      <td class="nw">${i.sch ? html`<span class=${i.sch.est ? "dim" : ""} style=${i.sch.est ? null : { fontWeight: 700 }}>${dW(i.sch.ready)}</span><div class="sub">${i.sch.left}영업일 · 병목 ${bottleTxt(i.sch) || "—"}${i.sch.est ? " · 예상" : ""}</div>` : html`<span class="dim">—</span>`}</td>
       <td class="nw">${i.multi ? html`<span>비교 ${i.multi}줄</span>` : html`<span class="dim">—</span>`}</td>
       <td class="nw">${seeNames ? (i.files ? html`<span title="견적서">📎 ${i.files}</span>` : html`<span class="dim">—</span>`) : html`<span class="dim" title="견적서는 마스터·경영 열람만">—</span>`}</td></tr>`);
   });
-  return html`<div class="gridwrap"><table class="grid lst" style=${{ minWidth: 900 }}><thead><tr>
-    <th class="stk">품목 · 규격</th><th class="hm">생산 방식</th><th class="hm">국내/수입</th><th class="num">완제품 원가</th><th>확정/임시</th><th>견적 유효기간</th><th>업체</th><th>견적서</th></tr></thead>
+  return html`<div class="gridwrap"><table class="grid lst" style=${{ minWidth: 1000 }}><thead><tr>
+    <th class="stk">품목 · 규격</th><th class="hm">생산 방식</th><th class="hm">국내/수입</th><th class="num">완제품 원가</th><th>확정/임시</th><th>견적 유효기간</th><th>상차 가능일</th><th>업체</th><th>견적서</th></tr></thead>
     <tbody>${rows}</tbody></table></div>`;
 }
 
@@ -1325,6 +1466,7 @@ async function exportXlsx(ctx, items) {
     "완제품 기준 원가": r2(i.x.unit), "확정/임시": i.st, "첫 생산 원가": r2(i.x.first), "생산 수량": i.x.qty, "첫 생산 금액": i.x.firstAmt == null ? "" : Math.round(i.x.firstAmt),
     "견적 유효기간": i.vu || "", "유효기간 상태": { over: "지남", soon: "30일 이내", ok: "" }[i.val] || "", "근거 확인 비율": i.x.okRatio == null ? "" : r2(i.x.okRatio * 100) + "%",
     "모두 최저가로 고르면": i.multi ? r2(C.cardCalc(C.cheapestCard(i.c)).unit) : "",
+    "발주상차 가능일": i.sch ? i.sch.ready : "", "상차까지 영업일": i.sch ? i.sch.left : "", "병목": i.sch ? bottleTxt(i.sch) : "", "일정 예상": i.sch && i.sch.est ? "예상" : "",
     "가격정책표 완제품 원가": i.pt == null ? "" : i.pt, "차이(분해−가격정책표)": i.pt == null ? "" : r2(i.x.unit - i.pt), "가격정책표 반영": i.c.applied ? `${won(i.c.applied.v)} (${dTxt(String(i.c.applied.at || "").slice(0, 10))} ${who(i.c.applied.by)})` : "",
     "합계 포함": i.c.include === false ? "제외" : "포함", "분해 필요": i.need ? "분해 필요" : "",
     "판매가(부가세 포함)": m ? sale.price : "", "채널": m ? sale.chName || "직접 입력" : "", "수수료": m && sale.fee !== "" ? r2(sale.fee * 100) + "%" : "", "물류비(개당)": m ? sale.logi : "",
@@ -1356,6 +1498,147 @@ async function exportXlsx(ctx, items) {
   console.log(`[엑셀 받기] ${name} · 카드 ${sum.length}장 · 구성요소 ${rows.length}줄 · 업체 ${vrows.length}줄`);
 }
 const r2 = (v) => (v == null || !isFinite(v) ? "" : Math.round(v * 100) / 100);
+
+// ══ 일정 (2026-11-25 송희님): 업체를 바꾸면 리드타임이 바뀌고 발주상차 가능일이 바로 다시 계산 ══
+const WD = ["일", "월", "화", "수", "목", "금", "토"];
+const dW = (s) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || "")); if (!m) return "—"; const w = new Date(s + "T00:00:00Z").getUTCDay(); return `${m[1].slice(2)}.${+m[2]}.${+m[3]} (${WD[w]})`; };
+const bdTxt = (n) => (n == null ? "—" : n === 0 ? "같음" : `${n > 0 ? "+" : "−"}${Math.abs(n)}영업일`);
+const bdCls = (n) => (!n ? "dim" : n > 0 ? "plus" : "minus");   // 늦어짐(+) = 진한 초록 테두리 · 빨라짐(−) = 초록
+/* 인증 선택지 = 저장은 [{name, days}] (Firestore 는 배열 안 배열을 못 받음) · 화면·계산은 [이름, 소요일] */
+const certPairs = (a) => (Array.isArray(a) && a.length ? a.map((o) => (Array.isArray(o) ? o : [o && o.name, o && o.days])).filter((o) => o[0]) : C.CERT_OPTS);
+const effSet = (s) => ({ ...C.SCHED_DEF, ...(s || {}), certOpts: certPairs(s && s.certOpts), holidays: s && s.holidays && Object.keys(s.holidays).length ? s.holidays : C.HOLIDAYS_KR });
+const bottleTxt = (x) => (!x || !x.bottleneck || x.bottleneck.t === "none" ? "" : x.bottleneck.t === "mat" ? `${x.bottleneck.name} 입고` : x.bottleneck.name);
+// 일정 탭
+function ScheduleTab({ ctx, d, setD, live, ro, setV, rowIdx, vName, rowImg }) {
+  const SET = ctx.SET, today = ctx.today;
+  const x = useMemo(() => C.schedule(live, SET, today), [live, SET, today]);
+  const tpl = () => ({ po: "", steps: C.schedSteps(live, SET).map((st) => ({ ...st, after: [...(st.after || [])], days: String(st.days ?? ""), start: st.start || "", started: !!st.started })) });
+  const steps = (d.sched && d.sched.steps) || tpl().steps;
+  const upS = (f) => setD((o) => ({ ...o, sched: f(clone(o.sched || tpl())) }));
+  const setStep = (i, p) => upS((sc) => { sc.steps[i] = { ...sc.steps[i], ...p }; return sc; });
+  const certOpts = (SET.certOpts && SET.certOpts.length ? SET.certOpts : C.CERT_OPTS);
+  const addStep = () => upS((sc) => { const last = sc.steps[sc.steps.length - 1]; sc.steps.push({ id: "s" + Date.now().toString(36), name: "", days: "5", after: last ? [last.id] : [], gate: true, use: true, started: false, start: "" }); return sc; });
+  const rmStep = (i) => upS((sc) => { const id = sc.steps[i].id; sc.steps.splice(i, 1); sc.steps.forEach((st) => { st.after = (st.after || []).filter((a) => a !== id); }); return sc; });
+  const reset = () => { if (confirm("단계를 기본 양식으로 되돌릴까요? (시작함 표시도 지워져요)")) setD((o) => ({ ...o, sched: { po: (o.sched && o.sched.po) || "", steps: tpl().steps } })); };
+  const nameOf = (id) => (steps.find((s) => s.id === id) || {}).name || id;
+  const inp = (v, on, o = {}) => html`<input class=${"in" + (o.num ? " num" : "") + (ro ? " ro" : "")} value=${v ?? ""} disabled=${ro || o.off} onInput=${(e) => on(e.target.value)} type=${o.type || "text"} inputmode=${o.num ? "numeric" : undefined} placeholder=${o.ph || ""} aria-label=${o.al || ""} style=${o.w ? { width: o.w } : null} />`;
+  const B = x.bottleneck;
+  return html`<${React.Fragment}>
+    <div class="pl-line" style=${{ alignItems: "baseline" }}><span>발주상차 가능일 <b class="big" style=${{ fontSize: 18 }}>${dW(x.ready)}</b></span><span><b>${x.left}영업일</b> 남음</span>
+      ${B.t !== "none" && html`<i>·</i><span>병목 <span class="tag diff">${bottleTxt(x)}</span> ${dW(B.date)}</span>`}${x.est ? html`<span class="tag tmp" title="시작함 체크 안 한 단계가 있어 예상으로 계산">예상</span>` : ""}
+      ${x.unknown.length ? html`<i>·</i><span class="tag chk" title="리드타임을 숫자(영업일)로 넣어 주세요">리드타임 확인 필요 ${x.unknown.length}</span>` : ""}</div>
+    <p class="foot" style=${{ marginTop: 6 }}>생산 시작 <b>${dW(x.prodStart)}</b> = 가장 늦은 날(패키지 준비 · 원자재 병목 입고 · 골든 샘플 확정) → + 생산 ${x.mfg}영업일${x.mfgDef ? "(기본값 — 제조사·충진 줄 리드타임이 없음)" : ""} + 로스 ${x.loss} + 입고 ${x.inbound} = <b>${dW(x.ready)}</b> · 영업일 = 주말·공휴일 뺌</p>
+    <div class="panel"><div class="ph">원자재 입고 <span class="rt">구성요소마다 '적용' 업체 리드타임(영업일) + 해상·통관 → 입고 예정일 · 업체를 바꾸면 바로 다시 계산 · 라벨·단상자 = 아래 인쇄 단계 기간</span><span class="sp"></span>
+        <span style=${{ fontWeight: 500, fontSize: 12 }}>발주일</span><span style=${{ width: 150 }}>${inp(C.parseDate(d.sched && d.sched.po) || "", (v) => upS((sc) => ({ ...sc, po: v })), { type: ro ? "text" : "date", al: "발주일" })}</span><span class="dim" style=${{ fontWeight: 500, fontSize: 11.5 }}>${d.sched && d.sched.po ? "" : "(비면 오늘)"}</span></div>
+      <div class="pb flush"><div class="gridwrap"><table class="grid" style=${{ minWidth: 760 }}><thead><tr><th></th><th>구성요소</th><th>적용 업체</th><th class="num">리드타임 (영업일)</th><th class="num">해상·통관 (영업일)</th><th>입고 예정일</th><th></th></tr></thead><tbody>
+        ${x.mats.map((m) => { const i = rowIdx(m.id), r = d.rows[i], v = r && r.vendors.find((y) => y.vid === m.vid); if (!r || !v) return ""; return html`<tr key=${m.id} style=${m.bottle ? { fontWeight: 700 } : null}>
+          <td style=${{ width: 40 }}>${rowImg(r, v)}</td><td>${m.name} <span class="dim" style=${{ fontWeight: 500 }}>${m.kind}</span></td><td class="nw">${m.vid} ${vName(r, v)}</td>
+          <td class="num" style=${{ width: 120 }}>${inp(v.lead, (val) => setV(i, v.vid, "lead", val), { num: true, ph: "예: 15", al: m.name + " 리드타임", off: isNotion(v) })}</td>
+          <td class="num" style=${{ width: 120 }}>${inp(v.ship, (val) => setV(i, v.vid, "ship", val), { num: true, ph: "수입이면", al: m.name + " 해상 통관" })}</td>
+          <td class="nw">${m.via ? html`<span class="dim">→ ${m.step ? m.step.name : m.via + " 인쇄"} ${m.step ? (m.lead == null ? `(리드타임 없음 → 단계 ${m.step.d}영업일)` : `${m.step.d}영업일`) : ""}</span>` : m.unknown ? html`<span class="tag chk">확인 필요</span>` : dW(m.arr)}</td><td class="nw">${m.bottle ? html`<span class="tag diff">병목</span>` : ""}</td></tr>`; })}
+        ${x.prods.map((m) => { const i = rowIdx(m.id), r = d.rows[i], v = r && r.vendors.find((y) => y.vid === m.vid); if (!r || !v) return ""; return html`<tr key=${m.id} style=${{ background: "var(--gl2)" }}>
+          <td>${rowImg(r, v)}</td><td>${m.name} <span class="tag ok">생산 기간</span></td><td class="nw">${m.vid} ${vName(r, v)}</td>
+          <td class="num">${inp(v.lead, (val) => setV(i, v.vid, "lead", val), { num: true, ph: "예: 20", al: m.name + " 생산 기간", off: isNotion(v) })}</td>
+          <td class="num">${inp(v.ship, (val) => setV(i, v.vid, "ship", val), { num: true, ph: "수입이면", al: m.name + " 해상 통관" })}</td>
+          <td class="nw dim">${m.unknown ? html`<span class="tag chk">확인 필요</span>` : `생산 ${m.lead + m.ship}영업일`}</td><td></td></tr>`; })}
+        ${!x.mats.length && !x.prods.length ? html`<tr><td colspan="7" class="dim" style=${{ padding: 12 }}>원자재 줄이 없어요 (1회 비용·간접비·운임·관세 줄은 입고 계산에서 빼요)</td></tr>` : ""}
+      </tbody></table></div></div></div>
+    <div class="panel"><div class="ph">진행 단계 <span class="rt">[시작함] 체크 → 시작일(오늘, 고칠 수 있음) → 끝나는 날 자동 · 체크 안 한 단계 = 앞 단계 끝난 다음 영업일 시작(회색 예상)</span><span class="sp"></span>
+        ${!ro && html`<button type="button" class="tbtn sm" onClick=${addStep}>＋ 단계</button><button type="button" class="tbtn sm" onClick=${reset}>기본 양식으로</button>`}</div>
+      <div class="pb flush"><div class="gridwrap"><table class="grid" style=${{ minWidth: 980 }}><thead><tr><th>시작함</th><th style=${{ minWidth: 170 }}>단계</th><th class="num">소요 (영업일)</th><th style=${{ minWidth: 150 }}>앞 단계</th><th>시작일</th><th>끝나는 날</th><th title="생산 시작 전에 끝나야 하는 단계">생산 전 필수</th><th title="이 품목에 쓰는 단계">씀</th>${!ro && html`<th></th>`}</tr></thead><tbody>
+        ${steps.map((st, i) => { const c = x.steps[i] || {}, est = c.est && !c.skip, off = st.use === false;
+          return html`<tr key=${st.id} style=${off ? { opacity: 0.5 } : null}>
+          <td><input type="checkbox" checked=${!!st.started} disabled=${ro || off} onChange=${(e) => setStep(i, { started: e.target.checked, start: e.target.checked ? st.start || today : "" })} aria-label=${(st.name || "단계") + " 시작함"} /></td>
+          <td>${ro ? st.name : inp(st.name, (v) => setStep(i, { name: v }), { al: "단계 이름", ph: "단계 이름" })}${st.id === "cert" && html`<div style=${{ marginTop: 3 }}><select class=${"in" + (ro ? " ro" : "")} disabled=${ro} value=${st.opt ?? 0} onChange=${(e) => { const k = +e.target.value; setStep(i, { opt: k, days: String(certOpts[k][1]) }); }} aria-label="인증 종류">${certOpts.map(([lb, dd], k) => html`<option key=${k} value=${k}>${lb} · 약 ${dd}영업일</option>`)}</select></div>`}</td>
+          <td class="num" style=${{ width: 104 }}>${inp(c.fromV ? String(c.d) : st.days, (v) => setStep(i, { days: v, ...(st.pkg ? { byV: false } : {}) }), { num: true, al: (st.name || "단계") + " 소요일" })}
+            ${c.fromV ? html`<div class="dim" style=${{ fontSize: 10.5, marginTop: 2 }} title="적용 업체 리드타임 — 업체를 바꾸면 같이 바뀜 · 직접 고치면 직접 값">업체 리드타임</div>`
+              : st.pkg && st.byV === false && x.pkgLead && x.pkgLead[st.pkg] != null && !ro ? html`<button type="button" class="lnk" style=${{ fontSize: 10.5, marginTop: 2, border: 0, background: "none", color: "var(--g)", cursor: "pointer", padding: 0 }} onClick=${() => setStep(i, { byV: true })}>업체 따라 (${x.pkgLead[st.pkg]})</button>` : ""}</td>
+          <td>${ro || i === 0 ? html`<span class="dim">${(st.after || []).map(nameOf).join(" + ") || "없음(바로)"}</span>` : html`<select class="in" value=${(st.after || []).length > 1 ? "__multi" : (st.after || [])[0] || ""} onChange=${(e) => e.target.value !== "__multi" && setStep(i, { after: e.target.value ? [e.target.value] : [] })} aria-label="앞 단계">
+              <option value="">없음(바로)</option>${(st.after || []).length > 1 ? html`<option value="__multi">${st.after.map(nameOf).join(" + ")}</option>` : ""}${steps.slice(0, i).map((p) => html`<option key=${p.id} value=${p.id}>${p.name || "(이름 없음)"}</option>`)}</select>`}</td>
+          <td class="nw" style=${{ width: 150 }}>${st.started && !ro ? inp(C.parseDate(st.start) || "", (v) => setStep(i, { start: v }), { type: "date", al: (st.name || "단계") + " 시작일" }) : html`<span class=${est ? "dim" : ""}>${off ? "안 씀" : dW(c.s)}</span>`}</td>
+          <td class="nw"><span class=${est ? "dim" : ""} style=${est ? null : { fontWeight: 700 }}>${off ? "—" : dW(c.e)}</span>${est && !off ? html` <span class="dim" style=${{ fontSize: 10.5 }}>예상</span>` : c.done ? html` <span class="tag ok">끝</span>` : ""}${B.t === "step" && B.id === st.id ? html` <span class="tag diff">병목</span>` : ""}</td>
+          <td><input type="checkbox" checked=${!!st.gate} disabled=${ro} onChange=${(e) => setStep(i, { gate: e.target.checked })} aria-label=${(st.name || "단계") + " 생산 전 필수"} /></td>
+          <td><input type="checkbox" checked=${!off} disabled=${ro} onChange=${(e) => setStep(i, { use: e.target.checked })} aria-label=${(st.name || "단계") + " 씀"} /></td>
+          ${!ro && html`<td><button class="rmv" style=${{ border: 0, background: "none", color: "var(--mute)", cursor: "pointer" }} title="단계 빼기" onClick=${() => rmStep(i)}>✕</button></td>`}</tr>`; })}
+      </tbody></table></div></div></div>
+    <p class="foot">· 라벨·단상자 인쇄는 신고번호·디자인이 끝난 뒤 · 패키지 준비 = 쓰는 인쇄 단계(씀 체크) 중 늦은 것 · 소요일 기본값·공휴일은 목록 화면 [⚙ 일정 설정] · [저장]해야 남아요</p>
+  <//>`;
+}
+// 일정 설정 — 기본 소요일 · 로스·입고 · 공휴일 (cost-ref/schedule · 마스터만 고침 · 원가 볼 수 있는 사람 모두 읽음)
+function SchedSettingsSheet({ ctx, onClose }) {
+  const { S, isM, user, setToast } = ctx, cur = S.settings || {};
+  const holToTxt = (h) => Object.keys(h).sort().map((k) => `${k} ${h[k]}`).join("\n");
+  const [f, setF] = useState(() => ({ loss: str(cur.loss ?? C.SCHED_DEF.loss), inbound: str(cur.inbound ?? C.SCHED_DEF.inbound), mfg: str(cur.mfg ?? C.SCHED_DEF.mfg),
+    stepDays: Object.fromEntries(C.STEP_TPL.map((t) => [t.id, str((cur.stepDays || {})[t.id] ?? t.days)])), certOpts: certPairs(cur.certOpts).map(([a, b]) => [a, str(b)]),
+    hol: holToTxt(cur.holidays && Object.keys(cur.holidays).length ? cur.holidays : C.HOLIDAYS_KR) }));
+  const [busy, setBusy] = useState(false);
+  const parseHol = (t) => { const o = {}, bad = []; String(t).split(/\n+/).forEach((l) => { const s = l.trim(); if (!s) return; const m = s.match(/^(\d{4}[-./]\d{1,2}[-./]\d{1,2})\s*(.*)$/); const dd = m && C.parseDate(m[1]); if (dd) o[dd] = m[2].trim() || "공휴일"; else bad.push(s); }); return { o, bad }; };
+  const ph = parseHol(f.hol), N = (v, d) => { const n = C.num(v); return n == null ? d : Math.max(0, Math.round(n)); };
+  const save = async () => {
+    if (ph.bad.length) { setToast(`공휴일 줄을 못 읽었어요: ${ph.bad[0]}`); return; }
+    setBusy(true);
+    try { await refDoc("schedule").set({ loss: N(f.loss, 10), inbound: N(f.inbound, 3), mfg: N(f.mfg, 15), stepDays: Object.fromEntries(Object.entries(f.stepDays).map(([k, v]) => [k, N(v, 0)])),
+        certOpts: f.certOpts.map(([a, b]) => ({ name: String(a).trim() || "인증", days: N(b, 15) })), holidays: ph.o, at: new Date().toISOString(), by: user.email || "" });
+      console.log(`[cost-ref/schedule] 일정 설정 저장 · 공휴일 ${Object.keys(ph.o).length}일`); setToast("일정 설정을 저장했어요 · 모든 품목 날짜가 다시 계산돼요"); onClose(); }
+    catch (e) { console.error("[cost-ref/schedule] 저장 실패", e); setToast("저장 못 했어요: " + (e.code || e.message)); }
+    setBusy(false);
+  };
+  const ro = !isM, inp = (v, on, al) => html`<input class=${"in num" + (ro ? " ro" : "")} disabled=${ro} value=${v} inputmode="numeric" onInput=${(e) => on(e.target.value)} aria-label=${al} />`;
+  const nextHol = Object.keys(ph.o).sort().filter((k) => k >= ctx.today).slice(0, 4).map((k) => `${dTxt(k)} ${ph.o[k]}`).join(" · ");
+  return html`<${Frame} title="⚙ 일정 설정" close=${onClose} meta=${html`<span>모든 품목의 기본 소요일 · 공휴일 (영업일 계산) ${ro ? "· 보기 전용" : ""}</span>`}
+      right=${isM ? html`<button type="button" class="tbtn primary" disabled=${busy} onClick=${save}>${busy ? "저장 중…" : "저장"}</button>` : ""}>
+    <div class="panel"><div class="ph">생산 뒤 <span class="rt">발주상차 가능일 = 생산 시작 + 생산 기간 + 로스 + 입고</span></div><div class="pb"><div class="fg">
+      <div class="fld"><label>로스 (영업일)</label>${inp(f.loss, (v) => setF((o) => ({ ...o, loss: v })), "로스")}</div>
+      <div class="fld"><label>입고 (영업일)</label>${inp(f.inbound, (v) => setF((o) => ({ ...o, inbound: v })), "입고")}</div>
+      <div class="fld w2"><label>생산 기간 기본값 (제조사·충진 줄 리드타임이 없을 때)</label>${inp(f.mfg, (v) => setF((o) => ({ ...o, mfg: v })), "생산 기간 기본값")}</div></div></div></div>
+    <div class="panel"><div class="ph">단계 기본 소요일 <span class="rt">새로 일정을 잡는 품목에 쓰여요 (이미 저장한 품목은 그 품목에서 고침)</span></div><div class="pb"><div class="fg">
+      ${C.STEP_TPL.map((t) => html`<div class="fld" key=${t.id}><label>${t.name}</label>${inp(f.stepDays[t.id], (v) => setF((o) => ({ ...o, stepDays: { ...o.stepDays, [t.id]: v } })), t.name + " 소요일")}</div>`)}
+      ${f.certOpts.map(([lb, dd], k) => html`<div class="fld" key=${"c" + k}><label>인증 · ${lb}</label>${inp(dd, (v) => setF((o) => ({ ...o, certOpts: o.certOpts.map((x, j) => (j === k ? [x[0], v] : x)) })), lb + " 소요일")}</div>`)}</div></div></div>
+    <div class="panel"><div class="ph">공휴일 <span class="rt">${Object.keys(ph.o).length}일 · 한 줄에 '2026-09-24 추석' · 주말은 자동으로 뺌 · 다음: ${nextHol || "—"}</span></div><div class="pb">
+      <textarea class="in" style=${{ height: 260, fontFamily: "inherit", fontSize: 13, lineHeight: 1.6 }} disabled=${ro} value=${f.hol} onInput=${(e) => setF((o) => ({ ...o, hol: e.target.value }))} aria-label="공휴일 목록"></textarea>
+      ${ph.bad.length ? html`<div class="note" style=${{ color: "var(--red)" }}>못 읽은 줄: ${ph.bad.slice(0, 3).join(" · ")}</div>` : ""}
+      <div class="note">2026·2027 한국 공휴일·대체공휴일(지방선거일 포함)을 미리 넣어 두었어요 — 새로 정해지는 임시공휴일은 여기에 한 줄 더하면 돼요.</div></div></div>
+  <//>`;
+}
+
+// ══ 썸네일 사진 (2026-11-25 송희님) — 화면에서 긴 변 320px · WebP/JPEG 30KB 이하로 줄여 카드 안에 같이 저장 (새 규칙 없음) ══
+const THUMB_MAX = 30 * 1024;
+const b64bytes = (u) => Math.floor((String(u).length - String(u).indexOf(",") - 1) * 3 / 4);
+async function makeThumb(file) {
+  if (!file || !/^image\//.test(file.type)) throw new Error("사진 파일만 넣을 수 있어요");
+  const src = await new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = () => no(new Error("사진을 못 읽었어요")); r.readAsDataURL(file); });
+  const img = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error("사진을 못 열었어요")); i.src = src; });
+  let side = 320;
+  for (let round = 0; round < 4; round++, side = Math.round(side * 0.75)) {
+    const sc = Math.min(1, side / Math.max(img.width, img.height)), w = Math.max(1, Math.round(img.width * sc)), h = Math.max(1, Math.round(img.height * sc));
+    const cv = document.createElement("canvas"); cv.width = w; cv.height = h; const g = cv.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, w, h); g.drawImage(img, 0, 0, w, h);
+    for (const [type, qs] of [["image/webp", [0.82, 0.7, 0.58, 0.46, 0.35]], ["image/jpeg", [0.8, 0.66, 0.52, 0.4, 0.3]]]) {
+      for (const q of qs) { const u = cv.toDataURL(type, q); if (!u.startsWith("data:" + type)) break; if (b64bytes(u) <= THUMB_MAX) { console.log(`[사진] ${w}×${h} ${type} ${Math.round(b64bytes(u) / 1024)}KB`); return u; } }
+    }
+  }
+  throw new Error("사진을 30KB 아래로 못 줄였어요");
+}
+function ImgSlot({ src, onSet, ro, size = 30, title, faded }) {
+  const [over, setOver] = useState(false), [big, setBig] = useState(false), [busy, setBusy] = useState(false), ref = useRef(null);
+  const take = async (f) => { if (!f || ro) return; setBusy(true); try { onSet(await makeThumb(f)); } catch (e) { alert(e.message || e); } setBusy(false); };
+  const pick = () => { if (ref.current) ref.current.click(); };
+  if (ro && !src) return html`<span class="thumb nopic" style=${{ width: size, height: size, cursor: "default" }} title=${title || ""}></span>`;
+  return html`<${React.Fragment}><span class=${"thumb" + (src ? " has" : " nopic") + (over ? " over" : "") + (faded ? " faded" : "")} style=${{ width: size, height: size }} tabIndex="0" role="button"
+      title=${src ? (title || "사진") + " · 누르면 크게" : `${title || "사진"} 넣기 — 누르기 · 끌어다 놓기 · 누른 뒤 Ctrl+V`} aria-label=${(title || "사진") + (src ? " 크게 보기" : " 넣기")}
+      onClick=${(e) => { e.stopPropagation(); if (src) setBig(true); else pick(); }} onKeyDown=${(e) => { if (e.key === "Enter") { e.preventDefault(); if (src) setBig(true); else pick(); } }}
+      onDragOver=${(e) => { if (ro) return; e.preventDefault(); e.stopPropagation(); setOver(true); }} onDragLeave=${() => setOver(false)}
+      onDrop=${(e) => { if (ro) return; e.preventDefault(); e.stopPropagation(); setOver(false); take([...((e.dataTransfer && e.dataTransfer.files) || [])].find((x) => /^image\//.test(x.type))); }}
+      onPaste=${(e) => { if (ro) return; const it = [...(((e.clipboardData || {}).items) || [])].find((x) => /^image\//.test(x.type)); if (it) { e.preventDefault(); take(it.getAsFile()); } }}>
+      ${busy ? "…" : src ? html`<img src=${src} alt="" />` : "＋"}</span>
+    ${!ro && html`<input ref=${ref} type="file" accept="image/*" style=${{ display: "none" }} onChange=${(e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; take(f); }} />`}
+    ${big && html`<div class="modal" role="dialog" aria-label="사진" onClick=${(e) => { e.stopPropagation(); if (e.target === e.currentTarget) setBig(false); }}><div class="box" style=${{ width: 460 }}>
+      <div class="mh">🖼 ${title || "사진"}<span class="sp"></span><button type="button" onClick=${() => setBig(false)}>닫기</button></div>
+      <div class="mb" style=${{ textAlign: "center" }} tabIndex="0" onPaste=${(e) => { const it = [...(((e.clipboardData || {}).items) || [])].find((x) => /^image\//.test(x.type)); if (it && !ro) { e.preventDefault(); take(it.getAsFile()); } }}>
+        <img src=${src} alt=${title || ""} style=${{ width: "100%", maxWidth: 420, maxHeight: "60vh", objectFit: "contain", borderRadius: 6, background: "#F7F8F9" }} />
+        <div class="note">썸네일(긴 변 320px · ${Math.round(b64bytes(src) / 1024)}KB) — 원본 큰 사진은 견적서 저장소가 정해지면 같이 둬요</div>
+        ${!ro && html`<div style=${{ display: "flex", gap: 8, justifyContent: "center", marginTop: 10 }}><button type="button" class="tbtn" onClick=${pick}>바꾸기</button><button type="button" class="tbtn red" onClick=${() => { onSet(""); setBig(false); }}>빼기</button></div><div class="note">[저장]해야 반영돼요 · 이 창에서 Ctrl+V 로 바꿀 수도 있어요</div>`}
+      </div></div></div>`}<//>`;
+}
 
 // ── 상세 화면 틀 (같은 틀 안 · 가격정책표 도구줄·탭 모양) ──
 function Frame({ title, meta, tabs, tab, setTab, right, close, rawClose, children, bar, label }) {
@@ -1468,15 +1751,22 @@ function CardSheet({ id, ctx, onClose, onSaved }) {
   const vbtn = (r) => { const a = av(r), k = r.vendors.indexOf(a), on = !!openV[r.id];
     return html`<button type="button" class=${"vbtn" + (on ? " on" : "")} onClick=${() => setOpenV((o) => ({ ...o, [r.id]: !o[r.id] }))} aria-expanded=${on} title="업체 여러 곳 · 단가 비교">${vLabel(a, k)}${r.vendors.length > 1 ? html` <b>${r.vendors.length}곳</b>` : ""} ${on ? "▴" : "▾"}</button>`; };
   const priceIn = (r, i) => { const a = av(r); return html`<div class="pcur">${vin(i, a, "price", { num: true, ph: "0", al: "견적 단가" })}${a.cur ? html`<span class="cu">${a.cur}</span>` : ""}</div>`; };
-  const vProps = { ro, isM, seeNames, vin, nameIn, nTags, fileBtn, pickV, addV, rmV, supI };
+  const SET = ctx.SET, sx = useMemo(() => C.schedule(live, SET, ctx.today), [live, SET]);
+  const swapOf = (rid, vid) => { try { return C.swapDays(live, SET, ctx.today, rid, vid).days; } catch (e) { return null; } };
+  const vImg = (i, v) => html`<${ImgSlot} src=${v.img} onSet=${(val) => setV(i, v.vid, "img", val)} ro=${ro} size=${26} title=${`${v.vid} 업체 사진`} />`;
+  const rowImg = (r, v) => html`<${ImgSlot} src=${(v && v.img) || r.img} ro=${true} size=${26} title=${r.name || "구성요소"} />`;
+  const leadBad = (v) => String(v.lead ?? "").trim() !== "" && C.leadDays(v.lead) == null;
+  const showShip = live.origin === "수입" || d.rows.some((r) => r.vendors.some((v) => v.cur || String(v.ship || "").trim()));
+  const bytes = useMemo(() => docBytes({ ...live, history: (card && card.history) || [] }), [live]);
+  const vProps = { ro, isM, seeNames, vin, nameIn, nTags, fileBtn, pickV, addV, rmV, supI, vImg, leadBad, showShip };
   const bar = isM ? html`<div class="bar"><div class="in2">
-      <span class="st">${dirty ? "● 저장 안 됨" : "저장됨"}</span>
+      <span class="st">${dirty ? "● 저장 안 됨" : "저장됨"}</span>${bytes > CARD_WARN ? html`<span class="tag chk" title="Firestore 문서 한도 1MB — 사진을 줄이거나 빼 주세요">용량 ${Math.round(bytes / 1024)}KB / 1MB</span>` : ""}
       <input class="in why" placeholder="바꾼 이유 (선택 · 이력에 남아요)" value=${why} onInput=${(e) => setWhy(e.target.value)} aria-label="바꾼 이유" />
       <button type="button" class="tbtn primary" style=${{ height: 32, padding: "0 18px" }} disabled=${busy || (!dirty && !!card)} onClick=${save}>${busy ? "저장 중…" : card ? "저장" : "만들기"}</button>
     </div></div>` : "";
-  const meta = html`<span>${live.brand || "브랜드 —"} · ${live.round || "차수 —"} · ${C.methodName(live.method) || "생산 방식 미정"}${live.origin ? " · " + live.origin : ""}</span>${stTag2(cst)}${live.need ? html`<span class="tag need">분해 필요</span>` : ""}${ro ? html`<span class="tag off">보기 전용</span>` : ""}${card && card.updatedAt ? html`<span>마지막 ${who(card.updatedBy)} ${whenTxt(card.updatedAt)}</span>` : ""}`;
+  const meta = html`<${ImgSlot} src=${d.img} onSet=${(v) => set("img", v)} ro=${ro} size=${36} title="완제품 사진" /><span>${live.brand || "브랜드 —"} · ${live.round || "차수 —"} · ${C.methodName(live.method) || "생산 방식 미정"}${live.origin ? " · " + live.origin : ""}</span>${stTag2(cst)}${live.need ? html`<span class="tag need">분해 필요</span>` : ""}${ro ? html`<span class="tag off">보기 전용</span>` : ""}${card && card.updatedAt ? html`<span>마지막 ${who(card.updatedBy)} ${whenTxt(card.updatedAt)}</span>` : ""}`;
   return html`<${Frame} title=${title} meta=${meta} close=${close} rawClose=${onClose} bar=${bar} tab=${tab} setTab=${setTab}
-      tabs=${[["cost", "원가 계산"], ["cmp", "업체 비교", multiN || null], ["hist", "이력", card && card.history ? card.history.length : 0]]}
+      tabs=${[["cost", "원가 계산"], ["cmp", "업체 비교", multiN || null], ["sched", "일정", sx && sx.ready ? "상차 " + (+sx.ready.slice(5, 7)) + "/" + (+sx.ready.slice(8, 10)) : null], ["hist", "이력", card && card.history ? card.history.length : 0]]}
       right=${isM && card ? html`<button type="button" class="tbtn red" onClick=${del}>휴지통</button>` : ""}>
     ${tab === "cost" && html`<${React.Fragment}>
       <${ResultBar} ctx=${ctx} card=${card} d=${d} setD=${setD} live=${live} x=${x} prod=${prod} pt=${pt} ro=${ro} dirty=${dirty} cheap=${cheap} multiN=${multiN} goCmp=${() => setTab("cmp")} />
@@ -1517,11 +1807,12 @@ function CardSheet({ id, ctx, onClose, onSaved }) {
         <div class="pb flush">
         ${!d.method && !ro && html`<div class="note" style=${{ padding: "6px 10px 0" }}>기본 정보에서 생산 방식을 고르면 그 방식의 기본 줄(예: 자체생산 = 원료·용기·캡·라벨·단상자·공임·간접비)이 들어가요.</div>`}
         ${wide ? html`<div class="gridwrap"><table class="grid ed"><thead><tr>
-            <th>번호</th><th style=${{ width: 110 }}>구분</th><th style=${{ minWidth: 140 }}>구성 요소</th><th style=${{ minWidth: 120 }}>무엇에 쓰는지</th><th style=${{ minWidth: 200 }}>업체 (적용)${seeNames ? "" : " · 가칭"}</th><th style=${{ width: 70 }}>제조 단가 포함?</th>
+            <th>번호</th><th>사진</th><th style=${{ width: 110 }}>구분</th><th style=${{ minWidth: 140 }}>구성 요소</th><th style=${{ minWidth: 120 }}>무엇에 쓰는지</th><th style=${{ minWidth: 200 }}>업체 (적용)${seeNames ? "" : " · 가칭"}</th><th style=${{ width: 70 }}>제조 단가 포함?</th>
             <th style=${{ width: 106 }}>견적 단가</th><th style=${{ width: 86 }}>부가세</th><th class="num">단가(V-, 원)</th><th style=${{ width: 66 }}>개당/1회</th><th style=${{ width: 70 }}>사용량·횟수</th><th style=${{ width: 82 }}>구매·MOQ</th>
             <th class="num">개당 금액</th><th class="num">첫 생산 남는 비용</th><th style=${{ minWidth: 110 }}>견적일·출처</th><th style=${{ width: 96 }}>상태</th>${!ro && html`<th></th>`}</tr></thead>
           <tbody>${d.rows.map((r, i) => { const m = rcalc(r), a = av(r); return html`<${React.Fragment} key=${r.id}><tr class=${openV[r.id] ? "vopen" : ""}>
             <td class="nw">${!ro && html`<button class="mv" title="위로" onClick=${() => mvRow(i, -1)}>▲</button>`}${i + 1}${!ro && html`<button class="mv" title="아래로" onClick=${() => mvRow(i, 1)}>▼</button>`}</td>
+            <td><${ImgSlot} src=${r.img} onSet=${(v) => setR(i, "img", v)} ro=${ro} size=${28} title=${(r.name || "구성요소") + " 사진"} /></td>
             <td>${sel(r.kind, (v) => setR(i, "kind", v), KIND_OPTS, { al: "구분" })}</td>
             <td>${inp(r.name, (v) => setR(i, "name", v), { ph: "예: 용기", al: "구성 요소" })}</td>
             <td>${inp(r.use, (v) => setR(i, "use", v), { ph: r.kind === "1회 비용" ? "대상 박스·통·파우치" : "쓰임", al: "무엇에 쓰는지" })}${hint1(r)}</td>
@@ -1537,10 +1828,10 @@ function CardSheet({ id, ctx, onClose, onSaved }) {
             <td>${vin(i, a, "qd", { ph: "견적서 날짜", al: "출처" })}</td>
             <td>${ro ? stTag(m.st) : html`<div>${sel(r.st, (v) => setR(i, "st", v), ST_OPTS, { al: "상태" })}</div>`}${!ro && (m.st !== (r.st || "확정")) ? html`<div style=${{ marginTop: 2 }}>${stTag(m.st)}</div>` : ""}</td>
             ${!ro && html`<td><button class="rmv" title="줄 빼기" onClick=${() => rmRow(i)}>✕</button></td>`}
-          </tr>${openV[r.id] && html`<tr class="vrow"><td colspan=${ro ? 16 : 17}><${VendorTable} r=${r} i=${i} cx=${cmp[live.rows.findIndex((y) => y.id === r.id)]} ...${vProps} /></td></tr>`}<//>`; })}</tbody>
-          <tfoot><tr><td colspan="12" style=${{ textAlign: "right" }}>합계</td><td class="c">${fmt(x.unit)}</td><td class="c">${fmt(x.leftSum, 0)}</td><td colspan=${ro ? 2 : 3}>근거 확인 ${x.ok}/${x.n}</td></tr></tfoot></table></div>`
+          </tr>${openV[r.id] && html`<tr class="vrow"><td colspan=${ro ? 17 : 18}><${VendorTable} r=${r} i=${i} cx=${cmp[live.rows.findIndex((y) => y.id === r.id)]} ...${vProps} /></td></tr>`}<//>`; })}</tbody>
+          <tfoot><tr><td colspan="13" style=${{ textAlign: "right" }}>합계</td><td class="c">${fmt(x.unit)}</td><td class="c">${fmt(x.leftSum, 0)}</td><td colspan=${ro ? 2 : 3}>근거 확인 ${x.ok}/${x.n}</td></tr></tfoot></table></div>`
         : html`<div>${d.rows.map((r, i) => { const m = rcalc(r), a = av(r); return html`<div class="rc" key=${r.id}>
-            <div class="rh"><span class="no">${i + 1}</span>${sel(r.kind, (v) => setR(i, "kind", v), KIND_OPTS, { al: "구분" })}${!ro && html`<button type="button" class="tbtn sm" onClick=${() => mvRow(i, -1)} aria-label="위로">▲</button><button type="button" class="tbtn sm red" onClick=${() => rmRow(i)} aria-label="줄 빼기">✕</button>`}</div>
+            <div class="rh"><span class="no">${i + 1}</span><${ImgSlot} src=${r.img} onSet=${(v) => setR(i, "img", v)} ro=${ro} size=${32} title=${(r.name || "구성요소") + " 사진"} />${sel(r.kind, (v) => setR(i, "kind", v), KIND_OPTS, { al: "구분" })}${!ro && html`<button type="button" class="tbtn sm" onClick=${() => mvRow(i, -1)} aria-label="위로">▲</button><button type="button" class="tbtn sm red" onClick=${() => rmRow(i)} aria-label="줄 빼기">✕</button>`}</div>
             <div class="g">
               <div class="fld w2"><label>구성 요소</label>${inp(r.name, (v) => setR(i, "name", v), { ph: "예: 용기", al: "구성 요소" })}</div>
               <div class="fld w2"><label>무엇에 쓰는지</label>${inp(r.use, (v) => setR(i, "use", v), { ph: r.kind === "1회 비용" ? "대상 박스·통·파우치" : "쓰임", al: "무엇에 쓰는지" })}${hint1(r)}</div>
@@ -1567,7 +1858,8 @@ function CardSheet({ id, ctx, onClose, onSaved }) {
         <${QtyCompare} live=${live} />
       </div></details>
     <//>`}
-    ${tab === "cmp" && html`<${CompareTab} live=${live} x=${x} cmp=${cmp} cheap=${cheap} ro=${ro} vName=${vName} nTags=${nTags} fileBtn=${fileBtn} supI=${supI} onPick=${(rid, vid) => { const i = rowIdx(rid); if (i >= 0) pickV(i, vid); }}
+    ${tab === "sched" && html`<${ScheduleTab} ctx=${ctx} d=${d} setD=${setD} live=${live} ro=${ro} setV=${setV} rowIdx=${rowIdx} vName=${vName} rowImg=${rowImg} />`}
+    ${tab === "cmp" && html`<${CompareTab} live=${live} x=${x} cmp=${cmp} cheap=${cheap} ro=${ro} vName=${vName} nTags=${nTags} fileBtn=${fileBtn} swapOf=${swapOf} sx=${sx} rowImg=${rowImg} supI=${supI} onPick=${(rid, vid) => { const i = rowIdx(rid); if (i >= 0) pickV(i, vid); }}
       onAll=${() => setD((o) => ({ ...o, rows: o.rows.map((r) => { const c = cmp.find((y) => y && y.r.id === r.id); return c && c.best && !c.best.on ? { ...r, sel: c.best.v.vid } : r; }) }))}
       goRow=${(rid) => { setOpenV((o) => ({ ...o, [rid]: true })); setTab("cost"); }} dirty=${dirty} />`}
     ${tab === "hist" && html`<div class="panel"><div class="ph">변경 이력 <span class="rt">누가 · 언제 · 무엇을 · 이유 (최근 100건)</span></div><div class="pb flush">
@@ -1580,16 +1872,18 @@ function CardSheet({ id, ctx, onClose, onSaved }) {
   <//>`;
 }
 // 구성요소 1줄의 업체들 — PC: 표 (A 주 · B 서브 · C…) · 적용 1곳
-function VendorTable({ r, i, cx, ro, vin, nameIn, nTags, fileBtn, pickV, addV, rmV, supI }) {
+function VendorTable({ r, i, cx, ro, vin, nameIn, nTags, fileBtn, pickV, addV, rmV, supI, vImg, leadBad, showShip }) {
   const nextL = C.nextVid(r.vendors), nextK = r.vendors.length;
-  return html`<div style=${{ overflowX: "auto", paddingRight: 8 }}><table class="vt"><thead><tr><th>적용</th><th>업체</th><th style=${{ minWidth: 150 }}>업체 이름</th><th>통화</th><th style=${{ width: 90 }}>견적 단가</th><th style=${{ width: 84 }}>부가세</th><th style=${{ width: 78 }}>MOQ</th><th style=${{ width: 72 }}>리드타임</th><th style=${{ width: 96 }}>견적일·출처</th><th style=${{ width: 118 }}>유효기간</th><th style=${{ minWidth: 110 }}>메모</th><th>견적서</th><th class="num">단가(V-, 원)</th><th class="num">개당</th><th class="num">적용보다</th>${!ro && html`<th></th>`}</tr></thead>
+  return html`<div style=${{ overflowX: "auto", paddingRight: 8 }}><table class="vt"><thead><tr><th>적용</th><th>사진</th><th>업체</th><th style=${{ minWidth: 150 }}>업체 이름</th><th>통화</th><th style=${{ width: 90 }}>견적 단가</th><th style=${{ width: 84 }}>부가세</th><th style=${{ width: 78 }}>MOQ</th><th style=${{ width: 74 }} title="영업일 숫자">리드타임 (영업일)</th>${showShip ? html`<th style=${{ width: 74 }} title="수입: 해상·통관 영업일">해상·통관</th>` : ""}<th style=${{ width: 96 }}>견적일·출처</th><th style=${{ width: 118 }}>유효기간</th><th style=${{ minWidth: 110 }}>메모</th><th>견적서</th><th class="num">단가(V-, 원)</th><th class="num">개당</th><th class="num">적용보다</th>${!ro && html`<th></th>`}</tr></thead>
     <tbody>${r.vendors.map((v, k) => { const l = cx && cx.list.find((y) => y.v.vid === v.vid), on = v.vid === r.sel, best = cx && cx.best && cx.best.v.vid === v.vid && cx.list.filter((y) => y.priced).length > 1;
       return html`<tr key=${v.vid} class=${on ? "on" : ""} style=${v.nst === "탈락" ? { opacity: 0.55 } : null}>
         <td><input type="radio" name=${"sel-" + r.id} checked=${on} disabled=${ro} onChange=${() => pickV(i, v.vid)} aria-label=${v.vid + " 적용"} /></td>
+        <td>${vImg(i, v)}</td>
         <td class="nw"><b>${vLabel(v, k)}</b>${best ? html` <span class="tag has">최저</span>` : ""}${nTags(r, v)}</td>
         <td>${nameIn(r, i, v)}${supI(v) ? html`<div class="sub" style=${{ whiteSpace: "normal" }}>${supI(v)}</div>` : ""}</td>
         <td>${vin(i, v, "cur")}</td><td>${vin(i, v, "price", { num: true, ph: "0", al: v.vid + " 견적 단가" })}</td><td>${vin(i, v, "vat")}</td>
-        <td>${vin(i, v, "moq", { num: true, al: v.vid + " MOQ" })}</td><td>${vin(i, v, "lead", { ph: "예: 3주", al: v.vid + " 리드타임" })}</td>
+        <td>${vin(i, v, "moq", { num: true, al: v.vid + " MOQ" })}</td><td>${vin(i, v, "lead", { num: true, ph: "영업일", al: v.vid + " 리드타임" })}${leadBad(v) ? html`<div class="sub" style=${{ color: "var(--red)" }}>숫자로 (확인 필요)</div>` : ""}</td>
+        ${showShip ? html`<td>${vin(i, v, "ship", { num: true, ph: "영업일", al: v.vid + " 해상 통관" })}</td>` : ""}
         <td>${vin(i, v, "qd", { ph: "견적서 날짜", al: v.vid + " 견적일" })}</td><td>${vin(i, v, "vu")}</td>
         <td>${vin(i, v, "memo", { ph: v.nnote ? "노션: " + v.nnote : "조건·특이사항", al: v.vid + " 메모" })}</td>
         <td>${fileBtn(r, v)}</td>
@@ -1601,18 +1895,18 @@ function VendorTable({ r, i, cx, ro, vin, nameIn, nTags, fileBtn, pickV, addV, r
     ${!ro && html`<button type="button" class="vadd" onClick=${() => addV(i)}>＋ 업체 ${nextL}${C.vRole(nextK) ? " " + C.vRole(nextK) : ""} 추가 <span class="dim" style=${{ fontWeight: 500 }}>— 같은 구성요소를 다른 업체 견적으로</span></button>`}</div>`;
 }
 // 폰: 업체 한 곳씩
-function VendorCards({ r, i, cx, ro, vin, nameIn, nTags, fileBtn, pickV, addV, rmV, supI }) {
+function VendorCards({ r, i, cx, ro, vin, nameIn, nTags, fileBtn, pickV, addV, rmV, supI, vImg, leadBad, showShip }) {
   const nextL = C.nextVid(r.vendors), nextK = r.vendors.length;
   return html`<div>${r.vendors.map((v, k) => { const l = cx && cx.list.find((y) => y.v.vid === v.vid), on = v.vid === r.sel, best = cx && cx.best && cx.best.v.vid === v.vid && cx.list.filter((y) => y.priced).length > 1;
     return html`<div key=${v.vid} class=${"vc" + (on ? " on" : "")} style=${v.nst === "탈락" ? { opacity: 0.55 } : null}>
       <div class="vh"><label style=${{ display: "flex", gap: 5, alignItems: "center", fontWeight: 800 }}><input type="radio" name=${"sel-" + r.id} checked=${on} disabled=${ro} onChange=${() => pickV(i, v.vid)} aria-label=${v.vid + " 적용"} />${vLabel(v, k)}</label>
-        ${on ? html`<span class="tag ok">적용</span>` : ""}${best ? html`<span class="tag has">최저</span>` : ""}${nTags(r, v)}<span class="sp"></span>${fileBtn(r, v)}
+        ${vImg(i, v)}${on ? html`<span class="tag ok">적용</span>` : ""}${best ? html`<span class="tag has">최저</span>` : ""}${nTags(r, v)}<span class="sp"></span>${fileBtn(r, v)}
         ${!ro && r.vendors.length > 1 && html`<button class="rmv" style=${{ border: 0, background: "none", color: "var(--mute)", fontSize: 15 }} title="업체 빼기" onClick=${() => rmV(i, v.vid)} aria-label=${v.vid + " 업체 빼기"}>✕</button>`}</div>
       <div class="vf">
         <div class="fld w2"><label>업체 이름</label>${nameIn(r, i, v)}${supI(v) ? html`<div class="sub">${supI(v)}</div>` : ""}</div>
         <div class="fld"><label>통화</label>${vin(i, v, "cur")}</div><div class="fld"><label>견적 단가</label>${vin(i, v, "price", { num: true, ph: "0", al: v.vid + " 견적 단가" })}</div>
         <div class="fld"><label>부가세</label>${vin(i, v, "vat")}</div><div class="fld"><label>MOQ</label>${vin(i, v, "moq", { num: true, al: v.vid + " MOQ" })}</div>
-        <div class="fld"><label>리드타임</label>${vin(i, v, "lead", { ph: "예: 3주", al: v.vid + " 리드타임" })}</div><div class="fld"><label>견적일·출처</label>${vin(i, v, "qd", { ph: "견적서 날짜", al: v.vid + " 견적일" })}</div>
+        <div class="fld"><label>리드타임 (영업일)${leadBad(v) ? html` <span style=${{ color: "var(--red)" }}>확인 필요</span>` : ""}</label>${vin(i, v, "lead", { num: true, ph: "영업일", al: v.vid + " 리드타임" })}</div>${showShip ? html`<div class="fld"><label>해상·통관 (영업일)</label>${vin(i, v, "ship", { num: true, ph: "영업일", al: v.vid + " 해상 통관" })}</div>` : ""}<div class="fld"><label>견적일·출처</label>${vin(i, v, "qd", { ph: "견적서 날짜", al: v.vid + " 견적일" })}</div>
         <div class="fld"><label>유효기간</label>${vin(i, v, "vu")}</div><div class="fld"><label>메모</label>${vin(i, v, "memo", { ph: "조건·특이사항", al: v.vid + " 메모" })}</div>
       </div>
       <div class="vr">${l && l.priced ? html`<span>단가(V-) <b>${fmt(l.m.unitV)}원</b></span><span>개당 <b>${fmt(l.m.per)}원</b></span>${!on ? html`<span class=${sgnCls(l.dPer)}>적용보다 ${sgn(l.dPer)}</span>` : ""}` : html`<span class="dim">${v.cur && C.num(v.price) != null ? `${v.cur} 환율을 기본 정보에 넣어 주세요` : "단가를 넣으면 비교돼요"}</span>`}</div>
@@ -1620,25 +1914,27 @@ function VendorCards({ r, i, cx, ro, vin, nameIn, nTags, fileBtn, pickV, addV, r
     ${!ro && html`<button type="button" class="vadd" style=${{ width: "100%" }} onClick=${() => addV(i)}>＋ 업체 ${nextL}${C.vRole(nextK) ? " " + C.vRole(nextK) : ""} 추가</button>`}</div>`;
 }
 // 업체 비교 — 표 하나: 구성요소(초록 줄)마다 업체 나란히
-function CompareTab({ live, x, cmp, cheap, ro, vName, nTags, fileBtn, supI, onPick, onAll, goRow, dirty }) {
+function CompareTab({ live, x, cmp, cheap, ro, vName, nTags, fileBtn, supI, onPick, onAll, goRow, dirty, swapOf, sx, rowImg }) {
   const multi = cmp.filter((c) => c && c.n > 1), single = cmp.filter((c) => c && c.n === 1), diff = cheap - x.unit;
   return html`<${React.Fragment}>
-    <div class="pl-line"><span>지금 적용 원가 <b class="big">${W(x.unit)}</b></span><i>·</i><span>모두 최저가로 고르면 <b class=${"big " + (diff < -0.005 ? "minus" : "")}>${W(cheap)}</b> ${Math.abs(diff) < 0.005 ? "(지금이 최저)" : `(${sgn(diff)})`}</span><i>·</i><span>업체 2곳 이상 <b>${multi.length}</b> / ${x.n}줄</span>
+    <div class="pl-line"><span>지금 적용 원가 <b class="big">${W(x.unit)}</b></span><i>·</i><span>모두 최저가로 고르면 <b class=${"big " + (diff < -0.005 ? "minus" : "")}>${W(cheap)}</b> ${Math.abs(diff) < 0.005 ? "(지금이 최저)" : `(${sgn(diff)})`}</span><i>·</i><span>업체 2곳 이상 <b>${multi.length}</b> / ${x.n}줄</span>${sx ? html`<i>·</i><span>발주상차 가능일 <b>${dW(sx.ready)}</b>${sx.bottleneck.t !== "none" ? html` <span class="dim">(병목 ${bottleTxt(sx)})</span>` : ""}</span>` : ""}
       ${!ro && Math.abs(diff) >= 0.005 ? html`<span style=${{ flex: 1 }}></span><button type="button" class="tbtn primary" onClick=${onAll}>모두 최저가 업체로 적용 (${sgn(diff)})</button><span class="dim" style=${{ fontSize: 11.5 }}>누른 뒤 [저장]${dirty ? " · 저장 안 된 내용 있음" : ""}</span>` : ""}</div>
-    ${multi.length ? html`<div class="panel"><div class="pb flush"><div class="gridwrap"><table class="grid" style=${{ minWidth: 980 }}><thead><tr>
-        <th class="stk">업체</th><th>업체 이름</th><th class="num">단가 (V-, 원)</th><th class="num">개당 금액</th><th class="num">바꾸면 완제품 원가</th><th class="num">첫 생산 원가</th><th class="num">MOQ</th><th>리드타임</th><th>유효기간</th><th>견적서</th><th></th></tr></thead>
+    ${multi.length ? html`<div class="panel"><div class="pb flush"><div class="gridwrap"><table class="grid" style=${{ minWidth: 1100 }}><thead><tr>
+        <th class="stk">업체</th><th>사진</th><th>업체 이름</th><th class="num">단가 (V-, 원)</th><th class="num">개당 금액</th><th class="num">바꾸면 완제품 원가</th><th class="num" title="이 업체로 바꾸면 발주상차 가능일이 몇 영업일 바뀌나">바꾸면 상차 가능일</th><th class="num">첫 생산 원가</th><th class="num">MOQ</th><th>리드타임</th><th>유효기간</th><th>견적서</th><th></th></tr></thead>
       <tbody>${multi.map((c) => html`<${React.Fragment} key=${c.r.id}>
-        <tr class="l2"><td colspan="11">▸ ${c.r.name || c.r.kind || "구성요소"}<span class="n">${c.r.kind || ""}${c.r.per === "1회" ? " · 1회 비용(÷ 생산 수량)" : ""}</span> <button type="button" class="lnk" style=${{ marginLeft: 10 }} onClick=${() => goRow(c.r.id)}>업체 고치기</button></td></tr>
+        <tr class="l2"><td colspan="13">▸ ${c.r.name || c.r.kind || "구성요소"}<span class="n">${c.r.kind || ""}${c.r.per === "1회" ? " · 1회 비용(÷ 생산 수량)" : ""}</span> <button type="button" class="lnk" style=${{ marginLeft: 10 }} onClick=${() => goRow(c.r.id)}>업체 고치기</button></td></tr>
         ${c.list.map((l) => { const bst = c.best && c.best.v.vid === l.v.vid;
           return html`<tr key=${l.v.vid} style=${{ ...(l.on ? { fontWeight: 700 } : {}), ...(l.v.nst === "탈락" ? { opacity: 0.55 } : {}) }}>
             <td class="stk nw" style=${l.on ? { background: "var(--gl)" } : bst ? { background: "var(--gl2)" } : null}>${vLabel(l.v, l.k)} ${l.on ? html`<span class="tag ok">적용</span>` : ""}${bst ? html` <span class="tag has">최저</span>` : ""}${nTags(c.r, l.v)}</td>
+            <td>${rowImg(c.r, l.v)}</td>
             <td>${vName(c.r, l.v) || html`<span class="dim">—</span>`}${supI(l.v) ? html`<div class="sub" style=${{ whiteSpace: "normal" }}>${supI(l.v)}</div>` : ""}</td>
             <td class="num">${l.priced ? html`${l.v.cur ? html`<span class="dim" style=${{ fontWeight: 500 }}>${fmt(C.num(l.v.price), 4)} ${l.v.cur} → </span>` : ""}${fmt(l.m.unitV)}` : html`<span class="dim">${l.v.cur && C.num(l.v.price) != null ? "환율 필요" : "단가 없음"}</span>`}</td>
             <td class="num">${l.priced ? html`<b>${fmt(l.m.per)}</b>` : "—"}</td>
             <td class="num">${l.on ? html`<span class="dim">적용 중</span>` : l.priced ? html`<span class=${sgnCls(l.dPer)}>${sgn(l.dPer)}</span>` : "—"}</td>
+            <td class="num">${l.on ? html`<span class="dim">적용 중</span>` : (() => { const n = swapOf(c.r.id, l.v.vid); return html`<span class=${bdCls(n)} title=${C.leadDays(l.v.lead) == null ? "리드타임 확인 필요" : ""}>${bdTxt(n)}</span>`; })()}</td>
             <td class="num">${!l.on && l.priced && Math.abs(l.dFirst - l.dPer) >= 0.005 ? html`<span class=${sgnCls(l.dFirst)} title="MOQ 차이로 첫 생산 때 남는 비용">${sgn(l.dFirst)}</span>` : html`<span class="dim">—</span>`}</td>
             <td class="num">${C.num(l.v.moq) != null ? won(C.num(l.v.moq)) + (l.v.unit ? l.v.unit : "") : "—"}</td>
-            <td class="nw">${l.v.lead || html`<span class="dim">—</span>`}</td>
+            <td class="nw">${C.leadDays(l.v.lead) != null ? `${C.leadDays(l.v.lead)}영업일${C.leadDays(l.v.ship) ? " + 해상 " + C.leadDays(l.v.ship) : ""}` : l.v.lead ? html`<span class="tag chk" title=${String(l.v.lead)}>확인 필요</span>` : html`<span class="dim">—</span>`}</td>
             <td class="nw">${l.v.vu ? dTxt(l.v.vu) : html`<span class="dim">—</span>`}</td>
             <td>${fileBtn(c.r, l.v)}</td>
             <td>${!ro && !l.on && l.priced ? html`<button type="button" class="tbtn sm" onClick=${() => onPick(c.r.id, l.v.vid)}>${l.v.vid}로 적용</button>` : ""}</td></tr>`; })}<//>`)}</tbody></table></div></div></div>`

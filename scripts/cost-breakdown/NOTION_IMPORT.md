@@ -24,7 +24,7 @@ const r = await window.costImport.applyNotion(payload);
   suppliers: [{ notionId, name, region: "국내" | "해외", type, payTerms, moveBy, quality, onTime, moq, moqUnit, leadTime, items, note }],   // 공급사 표 (유형·결제 조건·이동비 부담·점수는 선택 — 업체 칸에 보임)
   quotes: [{ notionId, supplierNotionId, title, quoteNo, quoteDate, validUntil, currency, vat, leadTime, status, adopted, notionUrl,   // 견적서 표 1행
              files: [{ name, notionUrl, url }], originUrl,   // 파일 이름 + 노션 페이지 주소 + url(노션 파일 임시 주소 · 1시간) → 서버가 받아 파일 보관(KV)에 복사 후 📎 연결 · 원본 링크(url)
-             lines: [{ notionId, title, product: { name, code?, spec? }, noteKind, unitPrice, currency, qty, unit, moq, vat, leadTime, adopted, note }] }] }   // 견적 품목 표 행
+             lines: [{ notionId, title, product: { name, code?, spec? }, noteKind, unitPrice, currency, qty, unit, moq, vat, leadTime, adopted, note, supplierItemName?, supplierItemNo? }] }] }   // 견적 품목 표 행 · 업체 품명·품번(선택)
 ```
 
 - **노션 파일 복사**(2026-11-25 KV): `files[].url` 이 노션 파일 서버 주소면 서버(`/api/cost-files/notion-copy`)가 직접 받아 보관 → 견적서 📎 에 '노션 · 보관'으로 [미리보기]·[내려받기] · 임시 주소는 저장 안 함 · 다음 동기화 때 같은 파일은 다시 안 받음 · 결과 `r.files` · 따로 1개만: `window.costImport.copyNotionFile({ quoteNotionId, name, url })` → `{ fileId, size, dedup }` · 자세히 QUOTE_FILES.md
@@ -39,9 +39,10 @@ const r = await window.costImport.applyNotion(payload);
 
 ## 2. 줄 목록 (xlsx · CSV UTF-8 · 첫 줄 = 칸 이름 · 이 순서·이 이름)
 
-`자체상품코드 | 품목 | 규격 | 생산 방식 | 국내·수입 | 구분 | 구성요소 | 무엇에 쓰는지 | 업체 | 업체 순위(A 주/B 서브/C) | 단가 | 통화(KRW/USD/CNY) | 환율 | 부가세(V+/V-/V?) | 개당/1회 | 개당 사용량·1회 횟수 | 구매 수량 | MOQ | 리드타임 | 날짜 | 견적 유효기간 | 생산 수량 | 출처 | 출처 링크 | 상태(확정/임시/확인 필요) | 메모`
+`자체상품코드 | 품목 | 규격 | 생산 방식 | 국내·수입 | 구분 | 구성요소 | 무엇에 쓰는지 | 업체 | 업체 순위(A 주/B 서브/C) | 업체 품명 | 업체 품번 | 단가 | 통화(KRW/USD/CNY) | 환율 | 부가세(V+/V-/V?) | 개당/1회 | 개당 사용량·1회 횟수 | 구매 수량 | MOQ | 리드타임 | 날짜 | 견적 유효기간 | 생산 수량 | 출처 | 출처 링크 | 상태(확정/임시/확인 필요) | 메모`
 
 - '리드타임' = 영업일 숫자 (글자 '2주'·'10일'도 숫자로 바꿈) · 일정 탭 원자재 입고·인쇄 기간·생산 기간에 씀
+- **업체 품명·업체 품번**(2026-11-25 송희님 '좋아'): 그 업체가 부르는 이름·번호(알리바바 주문번호·모델 등) → `cost-names.vprod[줄][업체]` (업체 실명과 같은 규칙 = 마스터·경영 열람만 · 부마스터·부마스터 엑셀엔 안 나옴) · 분해원가 찾기에 걸림 · 노션 = 줄의 `supplierItemName`·`supplierItemNo`(있으면 노션 값) · 줄 목록 = 칸에 값이 있을 때만
 - 양식: 도구줄 [줄 목록 양식 받기] (xlsx · 설명 시트 포함) · 올리기 화면에서 CSV 양식도
 - 올리기 전 **미리 보기**(새 카드 · 바뀌는 줄 · 그대로 · 연결 필요 · 오류 + 줄마다 결과) → [적용]
 - 같은 품목·구분·구성요소·업체 줄 = 덮어쓰기(새로 안 만듦) · 업체 순위 = A/B/C 자리 · 구성요소에 업체가 처음 들어오면 'A'를 적용 업체로

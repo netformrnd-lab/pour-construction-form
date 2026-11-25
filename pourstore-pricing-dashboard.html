@@ -2593,6 +2593,8 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
   </section>
 
   <!-- ── Sheet: 제조사·제품·상품 등록 ── -->
+  <!-- ── Sheet: 분해원가 (2026-11-25 송희님 "통일감" — pourstore-cost.html 을 같은 틀 안에 · 원가·마스터·부마스터만) ── -->
+  <section class="sheet" id="sh-cost" style="overflow:hidden"><div id="costFrameBox" style="height:100%"></div></section>
   <section class="sheet" id="sh-reg">
     <div class="toolrow">
       <span class="ttl">제조사</span>
@@ -2868,6 +2870,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
   <button class="stab" data-grp="price" data-sh="sh-dash"><span class="dot"></span>요약·알림</button>
   <button class="stab" data-grp="prod" data-sh="sh-launch"><span class="dot"></span>출시 관리</button>
   <button class="stab" data-grp="prod" data-sh="sh-reg"><span class="dot"></span>제조사</button>
+  <button class="stab" data-grp="prod" data-sh="sh-cost"><span class="dot"></span>분해원가</button>
   <button class="stab" data-grp="sales" data-sh="sh-sales"><span class="dot"></span>매출</button>
   <button class="stab" data-grp="sales" data-sh="sh-expiry"><span class="dot"></span>재고·유통기한</button>
   <button class="stab" data-grp="sales" data-sh="sh-pl"><span class="dot"></span>손익</button>
@@ -3539,6 +3542,7 @@ const menuHid=x=>!!(x&&x.hide)&&!TEAM_MODE&&!MENU_SHOWALL;
 const PS_CHK=new Set();
 // (2026-11-25 가격정책표 고도화 · 송희님 가1 나1 다1 라1) 문제만 보기 · 열 정렬 · 마진 낮음 기준 · 마스터 바로 고침 · 계정별 '내 보기'
 let PROB_ONLY=false, GSORT={k:'',dir:1};
+const COST_URL='pourstore-cost.html'; let COST_KPI=null, _ribbonCost=false, _costPending='';   // 분해원가 같은 틀 안 (2026-11-25)
 const LOW_MARGIN=0.2;
 let MEDIT={vbase:{},retail:{},ovr:{},todo:{}};   // 마스터가 고친 가격(저장 전) — [저장] 한 번에 바로 반영 + 변경 기록 · 개정안과 별개
 let VIEWCFG={cols:{},ch:{}};                     // 계정별 '내 보기' (product-meta/menu-prefs.map[이메일].view)
@@ -4605,6 +4609,9 @@ function avgRate(uid){
 }
 function renderRibbon(){
   /* 2026-11-25 송희님 가1: 요약 카드 4개 → 작은 글씨 한 줄 · 누르면 그 조건으로 가격정책표 */
+  if(costTabOn()&&COST_KPI){ _ribbonCost=true;   // 분해원가 화면: 같은 자리·같은 모양의 한 줄 (분해원가 화면이 보낸 숫자)
+    $('#ribbonKpis').innerHTML=`<div class="kline">${COST_KPI.map(x=>`<button type="button" class="kl${x.warn?' warn':''}${x.on?' on':''}" data-ck="${esc(x.k)}" title="${esc(x.t||'')}">${esc(x.lb)} <b>${esc(String(x.n))}</b></button>`).join('<i aria-hidden="true">·</i>')}</div>`; return; }
+  _ribbonCost=false;
   const live=P.filter(p=>!isDeletedProd(p)), sell=live.filter(p=>pstatus(p)==='출시'&&!isPackage(p));
   const parts=[`<button type="button" class="kl" data-kl="sell" title="가격정책표 판매중 탭">판매중 <b>${sell.length}</b></button>`];
   if(costAllowed){
@@ -4615,6 +4622,42 @@ function renderRibbon(){
   }
   $('#ribbonKpis').innerHTML=`<div class="kline">${parts.join('<i aria-hidden="true">·</i>')}</div>`;
 }
+/* ══ 분해원가 = 같은 틀 안 (2026-11-25 송희님 "디자인 통일") ══
+   · 제품 › 분해원가 = pourstore-cost.html?embed=1 을 이 화면 안 자리(#sh-cost)에 — 왼쪽 메뉴·위쪽 머리·아래 탭은 이 화면 것 그대로
+   · 분해원가 화면 → 이 화면: 위쪽 한 줄 숫자(pcc-kpi) · 이 화면 → 분해원가: 한 줄 누름(pcc-filter) · 품목 열기(pcc-open)
+   · 계산·권한·데이터는 분해원가 화면 그대로 (같은 로그인 · 같은 주소라 다시 로그인 없음) */
+function costTabOn(){ const s=document.getElementById('sh-cost'); return !!(s&&s.classList.contains('on')); }
+function costFramePost(msg){ const f=document.getElementById('costFrame'); if(f&&f.contentWindow) f.contentWindow.postMessage(msg, location.origin); }
+function costFrameShow(){
+  const box=document.getElementById('costFrameBox'); if(!box) return;
+  if(!document.getElementById('costFrame')){
+    const u=new URL(COST_URL, location.href); u.searchParams.set('embed','1'); if(_costPending) u.hash='card='+encodeURIComponent(_costPending);
+    _costPending='';
+    box.innerHTML=`<iframe id="costFrame" title="분해원가" src="${esc(u.pathname+u.search+u.hash)}" style="display:block;width:100%;height:100%;border:0;background:#F4F6F8"></iframe>`;
+    console.log('[분해원가] 같은 틀 안에 열기');
+  }
+  requestAnimationFrame(costFrameSize);
+}
+function costFrameSize(){   // 폰 아래 탭에 가리지 않게
+  const f=document.getElementById('costFrame'), box=document.getElementById('costFrameBox'); if(!f||!box||!costTabOn()) return;
+  const nav=document.getElementById('appTabs'), top=box.getBoundingClientRect().top;
+  const navTop=nav&&getComputedStyle(nav).display!=='none'&&nav.getBoundingClientRect().height?nav.getBoundingClientRect().top:innerHeight;
+  box.style.height=Math.max(320,Math.min(box.parentElement.clientHeight||innerHeight,navTop-top))+'px';
+}
+window.addEventListener('resize',()=>{ if(costTabOn()) costFrameSize(); });
+function openCostCard(id){
+  if(!(costAllowed&&!TEAM_MODE)){ location.href=COST_URL+(id?'#card='+encodeURIComponent(id):''); return; }
+  if(document.getElementById('costFrame')){ gotoTab('sh-cost'); if(id) costFramePost({type:'pcc-open', id}); }
+  else { _costPending=id||''; gotoTab('sh-cost'); }
+}
+window.addEventListener('message',e=>{
+  if(e.origin!==location.origin) return; const d=e.data||{};
+  if(d.type==='pcc-kpi'&&Array.isArray(d.parts)){ COST_KPI=d.parts; if(costTabOn()) renderRibbon(); }
+});
+document.addEventListener('click',e=>{
+  const c=e.target.closest('#ribbonKpis [data-ck]'); if(c){ costFramePost({type:'pcc-filter', k:c.dataset.ck}); return; }
+  const a=e.target.closest('a.csrc[data-costcard]'); if(a&&!e.ctrlKey&&!e.metaKey&&!e.shiftKey&&e.button===0){ e.preventDefault(); openCostCard(a.dataset.costcard); }
+});
 document.addEventListener('click',e=>{ const b=e.target.closest('#ribbonKpis [data-kl]'); if(!b) return; const k=b.dataset.kl;
   if(k==='avg'){ gotoTab('sh-dash'); return; }
   gotoTab('sh-price'); psSetTab('판매중');
@@ -4943,11 +4986,11 @@ function probSet(){ const s=new Set(); detectAlerts().forEach(a=>{ if(a.p) s.add
 /* 완제품 원가 칸 꼬리표: 분해원가에서 반영한 값이면 생산 방식(자체·OEM·수입·매입) · 아니면 '분해 전' */
 function costSrcTag(p){
   if(!COSTIDX) return '';
-  const s=COSTIDX[pKey(p)], c=effCost(p), href=`pourstore-cost.html${s?'#card='+encodeURIComponent(s.id):''}`;
+  const s=COSTIDX[pKey(p)], c=effCost(p), href=`pourstore-cost.html${s?'#card='+encodeURIComponent(s.id):''}`, dc=` data-costcard="${s?esc(s.id):''}"`;
   if(s&&!s.need&&s.ap!=null&&c!=null&&Math.round(+s.ap)===Math.round(c))
-    return `<a class="mrate csrc" href="${href}" target="_blank" rel="noopener" title="분해원가에서 반영한 완제품 원가 · 눌러서 분해원가 열기">${esc(METHOD_SHORT[s.m]||'분해')}</a>`;
-  if(s&&!s.need) return `<a class="mrate csrc pre" href="${href}" target="_blank" rel="noopener" title="분해원가 ${won(s.unit)}원 — 아직 가격정책표에 반영 전 (분해원가의 [가격정책표에 반영])">분해 ${won(s.unit)} · 반영 전</a>`;
-  return `<a class="mrate csrc pre" href="${href}" target="_blank" rel="noopener" title="아직 분해 전 — 지금 값은 매입원가 그대로 · 눌러서 분해원가 열기">분해 전</a>`;
+    return `<a class="mrate csrc"${dc} href="${href}" target="_blank" rel="noopener" title="분해원가에서 반영한 완제품 원가 · 눌러서 분해원가 열기">${esc(METHOD_SHORT[s.m]||'분해')}</a>`;
+  if(s&&!s.need) return `<a class="mrate csrc pre"${dc} href="${href}" target="_blank" rel="noopener" title="분해원가 ${won(s.unit)}원 — 아직 가격정책표에 반영 전 (분해원가의 [가격정책표에 반영])">분해 ${won(s.unit)} · 반영 전</a>`;
+  return `<a class="mrate csrc pre"${dc} href="${href}" target="_blank" rel="noopener" title="아직 분해 전 — 지금 값은 매입원가 그대로 · 눌러서 분해원가 열기">분해 전</a>`;
 }
 function costSrcText(p){   // 글자만 (줄 정보·산식 칸)
   if(!COSTIDX) return ''; const s=COSTIDX[pKey(p)], c=effCost(p);
@@ -6634,7 +6677,7 @@ async function copyCatalogTSV(){
    권한은 탭 단위(tabHidden)로 걸리고, 보이는 탭이 하나도 없으면 메뉴 항목도 숨는다. */
 const MENU=[
   {g:'price',ic:'💰',lb:'가격',items:[{lb:'단가표',tabs:['sh-tprice']},{lb:'가격정책표',tabs:['sh-price','sh-dash']}]},
-  {g:'prod',ic:'📦',lb:'제품',items:[{lb:'제조사',tabs:['sh-reg']}]},   // 출시 관리 → 가격정책표 상태 탭(2026-11-03) · 제조사 = 마스터 전용
+  {g:'prod',ic:'📦',lb:'제품',items:[{lb:'제조사',tabs:['sh-reg']},{lb:'분해원가',tabs:['sh-cost']}]},   // 분해원가 = 같은 틀 안(2026-11-25 · 예전 '↗ 새 창' 없앰)   // 출시 관리 → 가격정책표 상태 탭(2026-11-03) · 제조사 = 마스터 전용
   {g:'sales',ic:'📈',lb:'판매',hide:1,items:[{lb:'매출',tabs:['sh-sales']},{lb:'재고·유통기한',tabs:['sh-expiry']},{lb:'손익',tabs:['sh-pl','sh-fixed']}]},
   {g:'mkt',ic:'📣',lb:'마케팅',hide:1,items:[{lb:'프로모션',tabs:['sh-mktpromo','sh-promo']},{lb:'링크',tabs:['sh-mktlink','sh-mkt']},{lb:'공동구매',tabs:['sh-gb']}]},
   {g:'set',ic:'⚙',lb:'설정',items:[{lb:'채널·브랜드',tabs:['sh-chman']},{lb:'계정',tabs:['sh-access']},{lb:'CRM 연동',tabs:['sh-inbound'],hide:1},{lb:'매칭',tabs:['sh-match'],hide:1},{lb:'온라인 상품',tabs:['sh-items'],hide:1},{lb:'MOQ 구간',tabs:['sh-moq'],hide:1},{lb:'데이터·휴지통',tabs:['sh-data']}]}
@@ -6682,7 +6725,7 @@ function renderSide(){
   let h=`<div class="sn-head"><div class="sn-logo">${TEAM_MODE?'<b>POUR 팀</b><span>대시보드</span>':'<b>POUR 가격·마진</b><span>통합 관리</span>'}</div><button id="snFold" title="메뉴 접기/펴기">☰</button><button id="snClose" title="메뉴 닫기">✕</button></div><nav class="sn-menu">`;
   loadMenuPref();
   const copyOnly=(TEAM_MODE||MENU_SHOWALL)?`<button class="sn-item" id="snCopyCatalog" title="분류·상품명·옵션·자체상품코드·브랜드·채널별 판매가만 (원가·마진·제조사 없음)">📋 제품 목록 복사 (원가 없음)</button>`:'';
-  const costLink=(costAllowed&&!TEAM_MODE)?`<a class="sn-item" id="snCostLink" href="pourstore-cost.html" target="_blank" rel="noopener" style="text-decoration:none" title="분해원가 — 품목별 완제품 원가 · 구성요소마다 업체 여러 곳 단가 비교 · [가격정책표에 반영] (새 창)">🧾 분해원가 ↗</a>`:'';
+  const costLink='';   // 분해원가는 MENU 의 '제품 › 분해원가' 항목(같은 틀 안 · 2026-11-25)
   const copyBtn=copyOnly+costLink; let copyIn=false; // 옵시디언 제품 카드용 목록 — '제품' 묶음 안 (없으면 맨 아래)
   MENU.forEach(g=>{
     if(menuHid(g)) return;
@@ -6771,6 +6814,8 @@ function gotoTab(sh){
   if(sh==='sh-mkt' && typeof maRender==='function') maRender();
   if(sh==='sh-promo' && typeof renderPromo==='function') renderPromo();
   if(sh==='sh-expiry' && typeof renderExpiry==='function') renderExpiry();
+  if(sh==='sh-cost') costFrameShow();
+  if(sh==='sh-cost'||_ribbonCost) renderRibbon();   // 위쪽 한 줄: 분해원가 화면이면 분해원가 요약
 }
 function selectGroup(grp){
   activeGrp=grp;
@@ -13634,7 +13679,7 @@ function installApp(){ if(!INSTALL_EVT) return; INSTALL_EVT.prompt(); Promise.re
   const mq=matchMedia('(max-width:640px)');
   const tabsCfg=()=>{
     if(TEAM_MODE) return [['sh-tprice','💰','단가표'],['sh-sales','📈','매출'],['ai','💬','AI'],['sh-mktpromo','📣','마케팅'],['more','☰','더보기']];
-    if(!MENU_SHOWALL) return costAllowed ? [['sh-price','💰','가격'],['cost','🧾','분해원가'],['ai','💬','AI'],['more','☰','더보기']] : [['sh-price','💰','가격'],['ai','💬','AI'],['more','☰','더보기']];   // 메뉴 정리(2026-11-23): 판매·마케팅 숨김 · [숨긴 메뉴 다시 보기]면 아래 예전 그대로
+    if(!MENU_SHOWALL) return costAllowed ? [['sh-price','💰','가격'],['sh-cost','🧾','분해원가'],['ai','💬','AI'],['more','☰','더보기']] : [['sh-price','💰','가격'],['ai','💬','AI'],['more','☰','더보기']];   // 메뉴 정리(2026-11-23): 판매·마케팅 숨김 · [숨긴 메뉴 다시 보기]면 아래 예전 그대로
     if(!costAllowed) return [['sh-price','💰','가격'],['sh-mktlink','🔗','링크'],['ai','💬','AI'],['sh-mktpromo','📣','마케팅'],['more','☰','더보기']];
     return [['sh-price','💰','가격'],['sh-sales','📈','매출'],['ai','💬','AI'],['sh-mktpromo','📣','마케팅'],['more','☰','더보기']];   // 출시 → 가격 탭 안 상태 탭(2026-11-03)
   };
@@ -13645,7 +13690,7 @@ function installApp(){ if(!INSTALL_EVT) return; INSTALL_EVT.prompt(); Promise.re
   nav.addEventListener('click',e=>{ const b=e.target.closest('[data-apptab]'); if(!b) return; const k=b.dataset.apptab;
     if(k==='ai'){ if(typeof daiOpen==='function') daiOpen(); return; }
     if(k==='more'){ document.body.classList.add('sn-open'); return; }
-    if(k==='cost'){ window.open('pourstore-cost.html','_blank','noopener'); return; }   // 분해원가(새 창)
+    if(k==='cost'){ gotoTab('sh-cost'); return; }   // 예전 키(분해원가) — 같은 틀 안으로
     if(document.body.classList.contains('ri-open')&&typeof rowSelect==='function'){ EDIT_ROW=null; rowSelect(null); }
     gotoTab(k); try{ $('#sheetwrap .sheet.on').scrollTop=0; }catch(err){} paint(); });
   const setMode=()=>{ document.body.classList.toggle('has-tabs', mq.matches);

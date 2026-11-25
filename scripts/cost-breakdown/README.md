@@ -43,3 +43,8 @@ node vendors_test.js
 
 - 구성요소마다 A 주 · B 서브 · C… 중 '적용' 업체로 완제품 원가 · 업체 비교(최저가·바꾸면 ±·MOQ 차이) · 외화 × 환율 · 예전 카드(업체 칸 없음) = A 업체 하나 · 카드 상태(확정/임시) · 기본 줄
 - 엑셀 v7 대조(1번)는 그대로 통과해야 함 — 통화 칸이 빈 줄(원화)은 예전 식 그대로
+
+## 4. 견적서 파일 · 노션 가져오기 (2026-11-25 밤)
+
+- 견적서 저장소 고르기·Cloudflare R2 켜는 순서: [QUOTE_FILES.md](QUOTE_FILES.md)
+- 노션 → 분해원가 `window.costImport.applyNotion(payload)` 모양·규칙: [NOTION_IMPORT.md](NOTION_IMPORT.md)

@@ -7,6 +7,10 @@
 <meta name="theme-color" content="#107C41">
 <title>POUR 분해원가</title>
 <!--
+  같은 틀 (2026-11-25 밤 송희님 "디자인 통일"): 가격·마진 대시보드 › 제품 › 분해원가 = 이 화면(?embed=1)을 대시보드 안 자리에 — 왼쪽 메뉴·위쪽 머리·한 줄 요약은 대시보드 것
+    · 모양 = 대시보드에서 잰 값(도구줄·버튼·상태 탭·표·묶음 줄) · 따로 열면(경영 열람) 같은 모양의 위쪽 머리
+  견적서(2026-11-25 밤): 업체 × 구성요소마다 여러 개 · cost-names/{카드}.vfiles (마스터·경영 열람만) · 저장소는 송희님 선택 전 = 노션 링크만(FILE_STORE.mode "link")
+  노션 가져오기(2026-11-25 밤): window.costImport.applyNotion(payload) — 아래 applyNotionImport 설명 · 기록 cost-names/_notion
   분해원가 — 2026-11-25 송희님: '원가 계산기' → 메뉴 이름 '분해원가' · 품목별 원가 관리 화면
   · 목록 = 브랜드 · 품목·규격 · 생산 방식 · 국내/수입 · 완제품 원가 · 확정/임시 · 견적 유효기간 (거르기: 브랜드·생산 방식·국내/수입·분해 필요)
   · 생산 방식(자체생산 · 국내 OEM · 해외 OEM·수입 · 완제품 매입)마다 기본 줄 · 외화 단가 × 환율(카드 fx) → 원화
@@ -31,225 +35,223 @@
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>
-:root{--navy:#107C41;--navy2:#0A4A27;--bg:#F4F5F8;--card:#fff;--line:#E3E6EE;--line2:#EEF0F5;--ink:#1B2233;--ink2:#3C455A;--mute:#6B7386;--red:#C0392B;--redbg:#FDECEC;--amber:#0B5C30;--ambg:#EEF8F1;--yel:#0A4A27;--yelbg:#EEF8F1;--green:#0B5C30;--grbg:#EEF8F1;--soft:#E3F1E8;--gline:#8FC6A3}
-/* 색 (2026-11-25 송희님): 가격·마진 대시보드와 같은 초록 톤 · 싸지는 차이(−) = 초록 · 비싸지는 차이(+)·견적 곧 끝남 = 진한 초록 글씨 + 테두리 · 빨강은 위험(역마진·유효기간 지남·확인 필요)에만
-   (--navy 이름은 예전 그대로 두고 값만 초록 #107C41 — 가격정책표 --xl-green) */
+/* ══ 분해원가 — 가격·마진 대시보드와 같은 모양 (2026-11-25 송희님 "통일감") ══
+   대시보드에서 잰 값 그대로: 바탕 #F4F6F8 · 글꼴 Pretendard 13px · 도구줄 #F3F5F7(패딩 10px 18px · 아래 선 #D5D9DE) · 버튼 12px(패딩 6px 13px · 둥글기 8 · 선 #E2E8F0) · 주 버튼 #107C41
+   표: 머리 #F3F5F7 11.5px 600 · 칸 12.3px 500 · 줄 높이 32 · 선 #D5D9DE · 묶음 줄 진초록 #0A3D22 / 초록 #15683B(26px) · 숫자 오른쪽 · 상태 탭 = 회색 판 안 흰 단추
+   빨강은 위험(역마진·유효기간 지남·확인 필요)에만 · ?embed=1 이면 대시보드 틀(왼쪽 메뉴·위쪽 머리) 안 — 이 화면의 머리는 숨김 */
+:root{--g:#107C41;--gd:#0B5C30;--gdeep:#0A4A27;--band1:#0A3D22;--band2:#15683B;--grid:#D5D9DE;--grid2:#EEF0F3;--head:#F3F5F7;--ink:#1F2733;--ink2:#5A6572;--mute:#8A94A0;--faint:#9AA5B1;--canvas:#F4F6F8;--btnline:#E2E8F0;--gl:#EEF8F1;--gl2:#F3FAF5;--gline:#CFE8D8;--red:#C0392B;--redbg:#FDECEC;--tab:#0B7A3E}
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Pretendard,-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;-webkit-text-size-adjust:100%;overflow-x:hidden;word-break:keep-all;overflow-wrap:anywhere}
+html,body{margin:0;background:var(--canvas);color:var(--ink);font-family:Pretendard,'Malgun Gothic','Apple SD Gothic Neo','Segoe UI',sans-serif;font-size:13px;-webkit-text-size-adjust:100%;overflow-x:hidden;word-break:keep-all;overflow-wrap:anywhere}
 button,input,select,textarea{font-family:inherit;color:inherit}
 a{color:inherit}
-.wrap{max-width:1240px;margin:0 auto;padding:0 16px calc(90px + env(safe-area-inset-bottom))}
-.ld{padding:60px 16px;text-align:center;color:var(--mute)}
-.top{padding:calc(10px + env(safe-area-inset-top)) 0 4px}
-.nav{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:13px}
-.nav a{color:var(--green);font-weight:700;text-decoration:none}
-.nav .sp{flex:1}
-.h1{font-size:22px;font-weight:800;margin:10px 0 2px;letter-spacing:-.3px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.role{font-size:11.5px;font-weight:800;padding:3px 9px;border-radius:999px;background:var(--navy);color:#fff}
-.role.mgmt{background:#0B5C30}.role.sub{background:#fff;color:#0A4A27;box-shadow:inset 0 0 0 1.5px #0B5C30}
-.sub{color:var(--mute);font-size:13px;margin:0 0 8px;line-height:1.55}
-.next{background:#fff;border:1px solid var(--line);border-left:3px solid var(--navy);border-radius:10px;padding:9px 12px;font-size:13px;color:var(--ink2);margin:8px 0 10px;line-height:1.6;display:flex;gap:4px 8px;flex-wrap:wrap;align-items:center}
-.next b{color:var(--ink)}
-.lnk{border:0;background:none;padding:0;color:var(--green);font-weight:800;text-decoration:underline;cursor:pointer;font-size:inherit}
-.err{background:var(--redbg);color:var(--red);border-radius:10px;padding:9px 12px;font-size:13px;margin:8px 0;line-height:1.55}
-.warn{background:var(--ambg);color:#0A4A27;border:1px solid var(--gline);border-radius:10px;padding:9px 12px;font-size:13px;margin:8px 0;line-height:1.55}
-.ok{background:var(--grbg);color:var(--green);border-radius:10px;padding:9px 12px;font-size:13px;margin:8px 0;line-height:1.55}
-.note{color:var(--mute);font-size:12px;line-height:1.6;margin:8px 2px 0}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:4px;height:38px;padding:0 13px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--navy);font-weight:700;font-size:13.5px;cursor:pointer;text-decoration:none;white-space:nowrap}
-.btn.solid{background:var(--navy);border-color:var(--navy);color:#fff}
-.btn.soft{background:var(--soft);border-color:var(--soft)}
-.btn.red{color:var(--red)}
-.btn.sm{height:30px;padding:0 9px;font-size:12.5px;border-radius:8px}
-.btn:disabled{opacity:.45;cursor:default}
-.tools{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:6px 0 8px}
-.tools .sp{flex:1}
-.chips{display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-.chips::-webkit-scrollbar{display:none}
-.chip{flex:none;height:32px;padding:0 12px;border-radius:16px;border:1px solid var(--line);background:#fff;color:var(--ink2);font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap}
-.chip.on{background:var(--navy);border-color:var(--navy);color:#fff}
-.chip .n{font-weight:600;opacity:.75;margin-left:4px}
-.in{height:40px;border:1px solid var(--line);border-radius:9px;padding:0 10px;font-size:15px;background:#fff;width:100%;min-width:0}
-.in:focus{outline:2px solid var(--navy);outline-offset:-1px}
-select.in{padding:0 6px}
-.in.ro,.in:disabled{background:#F7F8FB;color:var(--ink);border-color:var(--line2);opacity:1;-webkit-text-fill-color:var(--ink)}
+.ld{padding:60px 16px;text-align:center;color:var(--ink2)}
+.dim{color:var(--mute)}
+/* 위쪽 머리 (따로 열었을 때만 · 대시보드 리본과 같은 모양) */
+.rb{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:#fff;border-bottom:1px solid var(--grid2);padding:calc(10px + env(safe-area-inset-top)) 22px 10px}
+.rb .brand{display:flex;flex-direction:column;gap:1px;min-width:180px}
+.rb .brand b{font-size:16px;letter-spacing:-.3px}
+.rb .brand span{font-size:11px;color:var(--ink2)}
+.rb .acts{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:11.5px;color:var(--ink2)}
+.role{font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px;background:var(--g);color:#fff}
+.role.mgmt{background:var(--gd)}.role.sub{background:#fff;color:var(--gdeep);box-shadow:inset 0 0 0 1.5px var(--gd)}
+/* 한 줄 요약 (대시보드 리본 .kline 과 같음) */
+.kline{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;color:var(--ink2)}
+.kline i{font-style:normal;opacity:.5}
+.kline .kl{border:0;background:none;padding:2px 4px;border-radius:5px;cursor:pointer;font:inherit;font-size:12px;color:inherit}
+.kline .kl b{font-weight:800;color:var(--ink)}
+.kline .kl.warn b{color:var(--gd);text-decoration:underline}
+.kline .kl.on{background:var(--gl)}
+.kline .kl:hover{background:var(--gl)}
+body.embed .rb{display:none}
+/* 상태 탭 (가격정책표 준비중·판매중·단종과 같은 모양) */
+.pstabs{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 16px 2px}
+.tabbar{display:flex;gap:4px;background:#F1F5F9;border-radius:12px;padding:3px;max-width:100%;overflow-x:auto;scrollbar-width:none}
+.tabbar::-webkit-scrollbar{display:none}
+.tabbar button{flex:none;display:flex;align-items:baseline;gap:6px;border:0;background:transparent;border-radius:9px;padding:7px 14px;font:inherit;font-size:13.5px;font-weight:700;color:var(--ink2);cursor:pointer;white-space:nowrap}
+.tabbar button b{font-size:12px;color:var(--mute);font-weight:700}
+.tabbar button.on{background:#fff;color:var(--tab);box-shadow:0 1px 3px rgba(15,23,42,.14)}
+.tabbar button.on b{color:var(--tab)}
+/* 도구줄 */
+.toolrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--head);border-bottom:1px solid var(--grid);padding:10px 18px}
+.toolrow .ttl{font-size:14px;font-weight:700;margin-right:6px}
+.toolrow .sp{flex:1}
+.toolrow .hint2{font-size:11.5px;color:var(--ink2)}
+.in{border:1px solid var(--grid);border-radius:3px;padding:5px 9px;background:#fff;font-size:13px;height:30px;min-width:0;width:100%}
+.in:focus{outline:2px solid var(--g);outline-offset:-1px}
 .in.num{text-align:right;font-variant-numeric:tabular-nums}
-.find{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-.find .in{max-width:260px;height:36px;font-size:14px}
-.tg{display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:700;color:var(--ink2);cursor:pointer;white-space:nowrap}
-.tg input{width:17px;height:17px;accent-color:var(--navy)}
-/* 브랜드 합계 */
-.tots{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;margin:4px 0 10px}
-.tot{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
-.tot .k{font-size:12px;color:var(--mute);font-weight:700;display:flex;gap:6px;align-items:center}
-.tot .v{font-size:19px;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums}
-.tot .s{font-size:12px;color:var(--mute);margin-top:2px}
-/* 표 */
-.tblw{overflow-x:auto;-webkit-overflow-scrolling:touch;background:#fff;border:1px solid var(--line);border-radius:12px;max-width:100%}
-table.t{border-collapse:separate;border-spacing:0;width:100%;font-size:13px}
-.t th{position:sticky;top:0;z-index:1;background:#F7F8FB;color:var(--ink2);font-weight:700;text-align:left;padding:8px;border-bottom:1px solid var(--line);white-space:nowrap;font-size:12.5px}
-.t td{padding:8px;border-bottom:1px solid var(--line2);vertical-align:middle}
-.t tr:last-child td{border-bottom:0}
-.t tr.go{cursor:pointer}
-.t tr.go:hover td{background:#F3FAF5}
-.t .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-.t .nw{white-space:nowrap}
-.t .dim{color:var(--mute)}
-.t .stk{position:sticky;left:0;z-index:2;background:#fff}
-.t th.stk{z-index:3;background:#F7F8FB}
-.t td.v-soon,.v-soon{background:var(--yelbg)!important;color:var(--yel);font-weight:800;box-shadow:inset 0 0 0 1px var(--green)}
-.t td.v-over,.v-over{background:var(--redbg)!important;color:var(--red);font-weight:800}
-.tag{display:inline-block;font-size:11px;font-weight:800;padding:2px 7px;border-radius:6px;background:var(--soft);color:var(--navy);white-space:nowrap;vertical-align:1px}
-.tag.need{background:#F1F2F5;color:#4B5563}.tag.diff{background:#fff;color:var(--green);box-shadow:inset 0 0 0 1px var(--navy)}.tag.has{background:var(--grbg);color:var(--green)}
-.tag.tmp{background:#fff;color:var(--yel);border:1px dashed var(--gline);padding:1px 6px}.tag.chk{background:var(--redbg);color:var(--red)}.tag.ok{background:var(--grbg);color:var(--green)}
-.tag.off{background:#F1F2F5;color:#6B7280}
-.clamp2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.plus{color:#0A4A27;font-weight:800;border:1px solid var(--green);border-radius:4px;padding:0 3px}
-/* 결과 두 가지 */
-.res .rg{display:grid;grid-template-columns:minmax(250px,1fr) 2fr;gap:12px}
-.res .r1,.res .r2{background:#F7F8FB;border-radius:12px;padding:12px 14px;min-width:0}
-.res .k{font-size:13.5px;color:var(--ink2);font-weight:800}
-.res .big{font-size:30px;font-weight:800;margin-top:4px;font-variant-numeric:tabular-nums;letter-spacing:-.5px}
-.res .big.red{color:var(--red)}
-.res .s{font-size:12px;color:var(--mute);margin-top:2px}
-.res .mi{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:8px}
-.res .mi .fld>label{display:flex;align-items:center;gap:4px;min-height:20px;white-space:nowrap;overflow:hidden}
-.res .mi .tag{font-size:10px;padding:1px 5px}
-.res .mo{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
-.res .mo>div{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-width:0}
-.tline{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:3px;font-size:12px}
+select.in{padding:4px 6px}
+.in.ro,.in:disabled{background:#F7F8F9;color:var(--ink);border-color:var(--grid2);opacity:1;-webkit-text-fill-color:var(--ink)}
+.toolrow .in{width:auto}
+.toolrow .q{width:240px}
+.tbtn{display:inline-flex;align-items:center;justify-content:center;gap:4px;border:1px solid var(--btnline);background:#fff;color:var(--ink);border-radius:8px;padding:6px 13px;font-size:12px;cursor:pointer;white-space:nowrap;text-decoration:none;line-height:1.35}
+.tbtn:hover{border-color:var(--g);color:var(--gd)}
+.tbtn.primary{background:var(--g);border-color:var(--g);color:#fff;font-weight:700}
+.tbtn.primary:hover{background:var(--gd)}
+.tbtn.sm{padding:3px 8px;font-size:11.5px;border-radius:6px}
+.tbtn.red{color:var(--red)}
+.tbtn:disabled{opacity:.45;cursor:default}
+.tbtn:active{transform:scale(.96)}
+.seg{display:flex;border:1px solid var(--btnline);border-radius:8px;overflow:hidden;background:#fff;max-width:100%;overflow-x:auto;scrollbar-width:none}
+.seg::-webkit-scrollbar{display:none}
+.seg button{flex:none;border:0;background:transparent;padding:5px 11px;font-size:12px;color:var(--ink2);cursor:pointer;white-space:nowrap}
+.seg button .n{font-size:10px;opacity:.75;margin-left:3px}
+.seg button.on{background:var(--g);color:#fff}
+.lnk{border:0;background:none;padding:0;color:var(--gd);font-weight:700;text-decoration:underline;cursor:pointer;font-size:inherit}
+/* 표 (가격정책표 #priceGrid 와 같은 모양) */
+.gridwrap{overflow:auto;-webkit-overflow-scrolling:touch;background:#fff;max-width:100%}
+table.grid{border-collapse:separate;border-spacing:0;width:100%;font-size:12.3px}
+.grid th{position:sticky;top:0;z-index:2;background:var(--head);color:var(--ink2);font-size:11.5px;font-weight:600;text-align:left;padding:4px 8px;height:35px;border-bottom:1px solid var(--grid);border-right:1px solid var(--grid2);white-space:nowrap}
+.grid td{padding:0 8px;height:32px;border-bottom:1px solid var(--grid);border-right:1px solid var(--grid2);font-weight:500;vertical-align:middle;background:#fff}
+.grid th.num,.grid td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.grid td.nw,.grid th.nw{white-space:nowrap}
+.grid .stk{position:sticky;left:0;z-index:1}
+.grid th.stk{z-index:3}
+.grid tr.go{cursor:pointer}
+.grid tr.go:hover td{background:var(--gl2)}
+.grid tr.l1 td{background:var(--band1);color:#fff;font-size:13px;font-weight:700;height:26px;border-right:0}
+.grid tr.l2 td{background:var(--band2);color:#fff;font-size:12.5px;font-weight:700;height:26px;border-right:0}
+.grid tr.l1 td .n,.grid tr.l2 td .n{font-weight:500;opacity:.75;margin-left:6px;font-size:11.5px}
+.grid tr.l2 td .lnk{color:#fff;font-size:11.5px;font-weight:600}
+.pname{font-weight:600;line-height:1.3}
+.pspec{font-size:11px;color:var(--mute);line-height:1.3}
+.sub{font-size:10px;font-weight:600;color:var(--faint);line-height:1.2;margin-top:1px}
+.grid td .sub .tag{font-size:9.5px;padding:0 4px}
+.foot{color:var(--ink2);font-size:11.5px;line-height:1.6;margin:8px 18px 18px}
+/* 꼬리표 */
+.tag{display:inline-block;font-size:10.5px;font-weight:800;padding:1px 6px;border-radius:4px;background:#E3F1E8;color:var(--gd);white-space:nowrap;vertical-align:1px}
+.tag.ok,.tag.has{background:#E3F1E8;color:var(--gd)}
+.tag.tmp{background:#fff;color:var(--gdeep);border:1px dashed #8FC6A3;padding:0 5px}
+.tag.diff{background:#fff;color:var(--gd);box-shadow:inset 0 0 0 1px var(--g)}
+.tag.need,.tag.off{background:#F1F2F5;color:#4B5563}
+.tag.chk{background:var(--redbg);color:var(--red)}
+.tag.nt{background:#fff;color:#37352F;box-shadow:inset 0 0 0 1px #C9C7C2;font-weight:700}
+.tag.ndel{background:#F1F2F5;color:#6B7280;text-decoration:line-through}
+.v-soon{color:var(--gdeep);font-weight:800;box-shadow:inset 0 0 0 1px var(--gd);background:var(--gl);border-radius:4px;padding:0 4px}
+.v-over{color:var(--red);font-weight:800;background:var(--redbg);border-radius:4px;padding:0 4px}
+.plus{color:var(--gdeep);font-weight:800;border:1px solid var(--gd);border-radius:4px;padding:0 3px}
+.minus{color:var(--g);font-weight:800}
 .minusR,.minusR b{color:var(--red)!important}
-details.more>summary{cursor:pointer;font-weight:800;font-size:14px;color:var(--ink2)}.minus{color:var(--navy);font-weight:800}
-/* 폰 목록 */
-.ml{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
-.mr{display:block;width:100%;text-align:left;border:0;border-top:1px solid var(--line);background:#fff;padding:11px 14px;cursor:pointer;font-size:14px}
-.mr:first-child{border-top:0}
-.mr .a{display:flex;gap:6px;align-items:center}
-.mr .a b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px}
-.mr .b,.mr .c{color:var(--ink2);font-size:12.5px;margin-top:3px;display:flex;gap:4px 10px;flex-wrap:wrap}
-.mr .c{color:var(--mute)}
-.mr .b b{color:var(--ink);font-variant-numeric:tabular-nums}
-.empty{padding:26px 14px;text-align:center;color:var(--mute);font-size:13.5px;line-height:1.6;background:#fff;border:1px dashed var(--line);border-radius:14px}
-/* 시트(전체 화면) */
-.sheet{position:fixed;inset:0;z-index:50;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
-.sh-top{position:sticky;top:0;z-index:6;background:#fff;border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top)}
-.sh-in{max-width:1240px;margin:0 auto;padding:10px 16px}
-.sh-t{display:flex;align-items:center;gap:8px}
-.sh-t .tt{flex:1;min-width:0;font-weight:800;font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.sh-t .x{border:0;background:var(--soft);color:var(--navy);font-weight:800;border-radius:9px;height:34px;padding:0 12px;cursor:pointer;font-size:13px;flex:none}
-.sh-sub{font-size:12.5px;color:var(--mute);margin-top:2px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-.tabs{display:flex;gap:2px;margin-top:8px;overflow-x:auto;scrollbar-width:none}
-.tab{flex:none;border:0;background:none;padding:8px 12px;font-weight:800;font-size:14px;color:var(--mute);cursor:pointer;border-bottom:2px solid transparent}
-.tab.on{color:var(--navy);border-bottom-color:var(--navy)}
-.sh-body{max-width:1240px;margin:0 auto;padding:4px 16px calc(110px + env(safe-area-inset-bottom))}
-.sec{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:12px 0}
-.sec>h3{margin:0 0 10px;font-size:15px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.sec>h3 .sp{flex:1}
-.sec>h3 .rt{font-size:12px;color:var(--mute);font-weight:600}
-.fg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.empty{padding:26px 14px;text-align:center;color:var(--ink2);font-size:13px;line-height:1.6;background:#fff}
+.err{background:var(--redbg);color:var(--red);padding:9px 18px;font-size:12.5px;line-height:1.55;border-bottom:1px solid #F5C6C6}
+.warn{background:var(--gl);color:var(--gdeep);padding:9px 18px;font-size:12.5px;line-height:1.55;border-bottom:1px solid var(--gline)}
+.note{color:var(--ink2);font-size:11.5px;line-height:1.6;margin:6px 0 0}
+.hint{font-size:11px;color:var(--gd);margin-top:2px}
+/* 줄 위 안내 한 줄 (가격정책표 개정안 줄과 같은 모양) */
+.pl-line{display:flex;align-items:center;gap:6px 8px;flex-wrap:wrap;background:var(--gl2);border:1px solid var(--gline);border-radius:8px;padding:7px 10px;font-size:12.5px;margin:10px 18px 0}
+.pl-line b{font-variant-numeric:tabular-nums}
+.pl-line .big{font-size:15px;font-weight:800}
+.pl-line i{font-style:normal;opacity:.45}
+/* 상세 화면 (품목 1장 · 같은 틀 안) */
+.sheet{position:fixed;inset:0;z-index:50;background:var(--canvas);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.dhead{position:sticky;top:0;z-index:6;background:#fff;border-bottom:1px solid var(--grid2);padding-top:env(safe-area-inset-top)}
+.dhead .r1{display:flex;align-items:center;gap:10px;padding:10px 18px 4px;flex-wrap:wrap}
+.dhead .tt{font-size:15px;font-weight:800;letter-spacing:-.2px;min-width:0}
+.dhead .meta{font-size:11.5px;color:var(--ink2);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.dhead .sp{flex:1}
+.dhead .pstabs{padding:4px 18px 8px}
+.dbody{padding:0 0 calc(80px + env(safe-area-inset-bottom))}
+.panel{background:#fff;border:1px solid var(--grid);border-radius:6px;margin:10px 18px;overflow:hidden}
+.panel>.ph{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--head);border-bottom:1px solid var(--grid);padding:6px 10px;font-weight:700;font-size:12.5px}
+.panel>.ph .sp{flex:1}
+.panel>.ph .rt{font-weight:500;color:var(--ink2);font-size:11.5px}
+.panel>.pb{padding:10px}
+.panel>.pb.flush{padding:0}
+details.panel>summary{cursor:pointer;list-style:none}
+details.panel>summary::-webkit-details-marker{display:none}
+.fg{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px 10px}
 .fld{min-width:0}
-.fld>label{display:block;font-size:12px;color:var(--mute);font-weight:700;margin:0 0 4px}
-.fld.w2{grid-column:span 2}.fld.w4{grid-column:1/-1}
-.calc{display:flex;align-items:center;height:40px;padding:0 10px;border-radius:9px;background:#F7F8FB;font-weight:800;font-variant-numeric:tabular-nums}
-.kv{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
-.kv>div{background:#F7F8FB;border-radius:12px;padding:10px 12px;min-width:0}
-.kv .k{font-size:12px;color:var(--mute);font-weight:700}
-.kv .v{font-size:20px;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums}
-.kv .s{font-size:11.5px;color:var(--mute);margin-top:2px}
-.subt{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
-.subt span{font-size:12px;background:#F7F8FB;border-radius:8px;padding:4px 8px;color:var(--ink2)}
-.subt span b{font-variant-numeric:tabular-nums}
-/* 구성요소 표(PC) */
-table.ed{min-width:1640px;font-size:12.5px}
-.ed td{padding:4px 4px;border-bottom:1px solid var(--line2)}
-.ed th{padding:7px 5px;font-size:11.5px}
-.ed .in{height:32px;font-size:13px;padding:0 6px;border-radius:7px}
+.fld>label{display:flex;gap:4px;align-items:center;font-size:11px;color:var(--ink2);font-weight:600;margin:0 0 3px;white-space:nowrap;overflow:hidden}
+.fld.w2{grid-column:span 2}.fld.w3{grid-column:span 3}.fld.w6{grid-column:1/-1}
+.calc{display:flex;align-items:center;min-height:30px;padding:0 8px;border-radius:3px;background:#F7F8F9;font-weight:700;font-variant-numeric:tabular-nums}
+.mline{display:flex;gap:8px 12px;flex-wrap:wrap;align-items:flex-end}
+.mline .fld{width:130px}
+.mline .res{display:flex;gap:14px;align-items:baseline;padding:0 4px 4px;font-size:12px;color:var(--ink2)}
+.mline .res b{font-size:16px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums}
+.mline .res b.red{color:var(--red)}
+/* 구성요소 표 (편집) */
+table.ed{min-width:1500px}
+.ed td{padding:2px 4px;height:34px}
+.ed .in{height:28px;font-size:12.5px;padding:0 6px}
 .ed .c{font-weight:700;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;padding-right:8px}
-.ed .rmv{border:0;background:none;color:var(--mute);cursor:pointer;font-size:15px;width:26px;height:28px}
-.ed .mv{border:0;background:none;color:var(--mute);cursor:pointer;font-size:11px;width:18px;padding:0}
-.ed tfoot td{background:#F7F8FB;font-weight:800}
-/* 구성요소 카드(폰) */
-.rc{border:1px solid var(--line);border-radius:12px;padding:10px;margin-top:10px;background:#fff}
-.rc .rh{display:flex;gap:6px;align-items:center;margin-bottom:8px}
-.rc .rh .no{font-weight:800;color:var(--mute);width:22px}
-.rc .rh select{flex:1}
-.rc .g{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.rc .g .w2{grid-column:1/-1}
-.rc .res{display:flex;gap:6px 12px;flex-wrap:wrap;margin-top:8px;font-size:12.5px;color:var(--ink2);background:#F7F8FB;border-radius:9px;padding:7px 9px}
-.rc .res b{font-variant-numeric:tabular-nums}
-.hint{font-size:11.5px;color:var(--green);margin-top:3px}
-/* 아래 고정 저장줄 */
-.bar{position:fixed;left:0;right:0;bottom:0;z-index:55;background:#fff;border-top:1px solid var(--line);padding:8px 16px calc(8px + env(safe-area-inset-bottom))}
-.bar .in2{max-width:1240px;margin:0 auto;display:flex;gap:8px;align-items:center}
-.bar .why{flex:1;min-width:0;height:40px}
-.bar .st{font-size:12.5px;color:var(--mute);white-space:nowrap}
-.toast{position:fixed;left:50%;bottom:calc(76px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:80;background:var(--navy2);color:#fff;padding:11px 16px;border-radius:12px;font-size:13.5px;font-weight:700;max-width:92vw;box-shadow:0 8px 24px rgba(0,0,0,.2);line-height:1.45}
-.hist{list-style:none;margin:0;padding:0}
-.hist li{padding:10px 0;border-top:1px solid var(--line2);font-size:13px;line-height:1.55}
-.hist li:first-child{border-top:0}
-.hist .w{color:var(--mute);font-size:12px}
-.login{max-width:380px;margin:60px auto 0;padding:0 16px}
-.login .in{margin-bottom:8px}
-.sale td.over{color:var(--red);font-weight:800;text-align:center}
-.qc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.qc>div{background:#F7F8FB;border-radius:12px;padding:8px 10px;min-width:0}
-.qc .v{font-weight:800;font-size:16px;margin-top:6px;font-variant-numeric:tabular-nums}
-.qc .s{font-size:11.5px;color:var(--mute)}
-.dropz{border:2px dashed var(--line);border-radius:14px;padding:22px 14px;text-align:center;color:var(--mute);background:#fff}
-/* 분해원가 (11/25) — 거르기 · 업체 여러 곳 · 업체 비교 */
-.find .fsel{width:auto;max-width:none;height:36px;font-size:13.5px;flex:none}
-.vbox{border-radius:6px;padding:1px 5px}
+.ed .rmv,.vt .rmv{border:0;background:none;color:var(--mute);cursor:pointer;font-size:14px;width:24px;height:26px}
+.ed .mv{border:0;background:none;color:var(--mute);cursor:pointer;font-size:10px;width:16px;padding:0}
+.ed tfoot td{background:var(--head);font-weight:800}
+.ed tr.vopen>td{background:var(--gl2)}
+.ed tr.vrow>td{background:var(--gl2);padding:0 0 8px 36px;height:auto}
 .vcell{display:flex;gap:4px;align-items:center;min-width:0}
 .vcell .in{flex:1;min-width:70px}
 .vcell .vnm{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.vbtn{flex:none;height:30px;padding:0 7px;border-radius:7px;border:1px solid var(--line);background:#F7F8FB;color:var(--navy);font-weight:800;font-size:12px;cursor:pointer;white-space:nowrap}
-.vbtn b{color:var(--green)}
-.vbtn.on{background:var(--navy);border-color:var(--navy);color:#fff}.vbtn.on b{color:#D3EEDD}
-.pcur{display:flex;gap:3px;align-items:center}.pcur .cu{font-size:11px;font-weight:800;color:var(--mute)}
-.ed tr.vopen td{background:#F3FAF5}
-.ed tr.vrow>td{background:#F3FAF5;padding:4px 8px 12px;border-bottom:1px solid var(--line)}
-.vpan{min-width:0}
-.vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px}
-.rc .vgrid{margin-top:8px;grid-template-columns:1fr}
-.vc{background:#fff;border:1px solid var(--line);border-radius:11px;padding:8px 10px;min-width:0}
-.vc.on{border-color:var(--green);box-shadow:0 0 0 1px var(--green) inset}
-.vc .vh{display:flex;gap:6px;align-items:center;margin-bottom:6px}.vc .vh .sp{flex:1}
+.vbtn{flex:none;height:26px;padding:0 6px;border-radius:6px;border:1px solid var(--btnline);background:#fff;color:var(--gd);font-weight:800;font-size:11.5px;cursor:pointer;white-space:nowrap}
+.vbtn b{color:var(--g)}
+.vbtn.on{background:var(--g);border-color:var(--g);color:#fff}.vbtn.on b{color:#D3EEDD}
+.pcur{display:flex;gap:3px;align-items:center}.pcur .cu{font-size:10.5px;font-weight:800;color:var(--ink2)}
+/* 업체 표 (구성요소 1줄 펼침 · PC) */
+table.vt{border-collapse:separate;border-spacing:0;font-size:12px;background:#fff;border:1px solid var(--grid);border-radius:4px;min-width:1260px}
+.vt th{background:var(--head);color:var(--ink2);font-size:11px;font-weight:600;text-align:left;padding:3px 5px;height:28px;border-bottom:1px solid var(--grid);white-space:nowrap}
+.vt td{padding:2px 4px;height:32px;border-bottom:1px solid var(--grid2);vertical-align:middle}
+.vt tr.on td{background:var(--gl)}
+.vt tr:last-child td{border-bottom:0}
+.vt .in{height:26px;font-size:12px;padding:0 5px}
+.vt .c{font-weight:700;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.vadd{border:1px dashed #8FC6A3;border-radius:6px;background:#fff;color:var(--gd);font-weight:700;font-size:12px;cursor:pointer;padding:5px 10px;margin-top:6px}
+/* 구성요소 (폰) */
+.rc{border-bottom:1px solid var(--grid);padding:10px;background:#fff}
+.rc .rh{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.rc .rh .no{font-weight:800;color:var(--ink2);width:20px}
+.rc .rh select{flex:1}
+.rc .g{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.rc .g .w2{grid-column:1/-1}
+.rc .res{display:flex;gap:4px 12px;flex-wrap:wrap;margin-top:6px;font-size:12px;color:var(--ink2);background:#F7F8F9;border-radius:4px;padding:5px 8px}
+.rc .res b{font-variant-numeric:tabular-nums}
+.vc{border:1px solid var(--grid);border-radius:6px;padding:8px;margin-top:6px;background:#fff}
+.vc.on{border-color:var(--g);box-shadow:inset 0 0 0 1px var(--g)}
+.vc .vh{display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap}.vc .vh .sp{flex:1}
 .vc .vf{display:grid;grid-template-columns:1fr 1fr;gap:6px}.vc .vf .w2{grid-column:1/-1}
-.vc .vf .in{height:32px;font-size:13px}
-.vc .vf .fld>label{font-size:11px;margin-bottom:2px}
-.vc .vr{display:flex;gap:4px 10px;flex-wrap:wrap;margin-top:7px;font-size:12px;color:var(--ink2);background:#F7F8FB;border-radius:8px;padding:5px 8px}
-.vc .vr b{font-variant-numeric:tabular-nums}
-.vadd{border:1.5px dashed var(--line);border-radius:11px;background:#fff;color:var(--navy);font-weight:800;font-size:13.5px;cursor:pointer;padding:14px 10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:80px}
-.vadd span{font-size:11.5px;color:var(--mute);font-weight:600}
-.cmpk{grid-template-columns:repeat(3,minmax(0,1fr))}
-.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
-.cc{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff;min-width:0}
-.cc.on{border-color:var(--navy);box-shadow:0 0 0 1px var(--navy) inset}
-.cc.best:not(.on){border-color:var(--gline)}
-.cc.best{background:var(--grbg)}
-.cc .ch{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.cc .ch .cn{color:var(--ink2);font-weight:600;font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
-.cc .cv{font-size:15px;margin-top:6px}.cc .cv b{font-size:20px;font-variant-numeric:tabular-nums}
-.cc .cs{font-size:12px;color:var(--mute);margin-top:3px;line-height:1.5}
-.cc .cd{font-size:12.5px;margin-top:5px;line-height:1.55}
-.cc .cd b{font-variant-numeric:tabular-nums}
+.vc .vr{display:flex;gap:4px 10px;flex-wrap:wrap;margin-top:6px;font-size:12px;color:var(--ink2)}
+/* 아래 고정 저장줄 */
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:55;background:#fff;border-top:1px solid var(--grid);padding:8px 18px calc(8px + env(safe-area-inset-bottom))}
+.bar .in2{display:flex;gap:8px;align-items:center}
+.bar .why{flex:1;min-width:0}
+.bar .st{font-size:12px;color:var(--ink2);white-space:nowrap}
+.toast{position:fixed;left:50%;bottom:calc(70px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:80;background:var(--gdeep);color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:700;max-width:92vw;box-shadow:0 8px 24px rgba(0,0,0,.2);line-height:1.45}
+.login{max-width:380px;margin:60px auto 0;padding:0 16px}
+.login .in{margin-bottom:8px;height:40px;font-size:15px}
+.qc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.qc>div{background:#F7F8F9;border-radius:4px;padding:8px 10px;min-width:0}
+.qc .v{font-weight:800;font-size:15px;margin-top:4px;font-variant-numeric:tabular-nums}
+.qc .s{font-size:11px;color:var(--ink2)}
+.dropz{border:2px dashed var(--grid);border-radius:8px;padding:22px 14px;text-align:center;color:var(--ink2);background:#fff;display:block;cursor:pointer}
+.hist td{height:auto;padding:6px 8px;line-height:1.5}
+/* 견적서 창 */
+.modal{position:fixed;inset:0;z-index:90;background:rgba(15,23,42,.38);display:flex;align-items:center;justify-content:center;padding:16px}
+.modal .box{background:#fff;border-radius:10px;width:620px;max-width:100%;max-height:88vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.modal .mh{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--gd);color:#fff;font-weight:800;position:sticky;top:0}
+.modal .mh .sp{flex:1}
+.modal .mh button{border:0;background:rgba(255,255,255,.16);color:#fff;border-radius:6px;padding:4px 10px;cursor:pointer}
+.modal .mb{padding:12px 14px}
+.modal .pv{width:100%;height:60vh;border:1px solid var(--grid);border-radius:4px;background:#F7F8F9}
 @media (max-width:900px){
-  .fg,.kv{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .res .rg{grid-template-columns:1fr}.res .mi{grid-template-columns:1fr 1fr}
-  .cmpk{grid-template-columns:1fr 1fr}
-  .h1{font-size:20px}
+  .fg{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .fld.w3{grid-column:span 3}
 }
 @media (max-width:700px){
-  .wrap,.sh-in,.sh-body{padding-left:12px;padding-right:12px}
-  .find .in{max-width:none;flex:1 1 160px}
-  .find .fsel{flex:1 1 40%}
-  .kv .v{font-size:17px}
-  .tot .v{font-size:17px}
-  .bar .st{display:none}
-}
-@media (max-width:380px){
-  .fg{grid-template-columns:1fr}.fld.w2{grid-column:auto}
+  .toolrow{padding:8px 12px}
+  .toolrow .q{width:100%;flex:1 1 100%}
+  .toolrow .in{flex:1 1 40%}
+  .pstabs{padding:8px 12px 2px}
+  .panel{margin:8px 10px}
+  .pl-line{margin:8px 10px 0}
+  .dhead .r1{padding:8px 12px 2px}.dhead .pstabs{padding:4px 12px 6px}
+  .fg{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .fld.w3,.fld.w2{grid-column:1/-1}
+  .mline .fld{width:calc(50% - 6px)}
+  .in{font-size:16px;height:34px}
+  .ed .in,.vt .in{font-size:16px}
+  .bar{padding:8px 12px calc(8px + env(safe-area-inset-bottom))}.bar .st{display:none}
+  .foot{margin:8px 12px 16px}
+  .rb{padding:calc(8px + env(safe-area-inset-top)) 12px 8px}
   .qc{grid-template-columns:1fr}
-  .res .mi{grid-template-columns:1fr}.res .big{font-size:26px}
-  .btn{padding:0 10px}
+  .grid td{height:34px}
 }
 </style>
 </head>
@@ -692,6 +694,10 @@ const newRow = (o) => ({ id: uid(), kind: "", name: "", use: "", inMfg: "별도"
 const tplRow = (t) => newRow({ kind: t.kind, name: t.name, use: t.use || "", inMfg: t.inMfg || "별도", per: t.per || "개당", usage: str(t.usage ?? 1), vendors: [{ ...newVendor("A"), vat: t.vat || "V-", cur: t.cur || "" }] });
 const blankCard = () => ({ brand: "", round: "1차", item: "", spec: "", method: "", origin: "", scope: "", qty: "", validUntil: "", include: true, need: false, prodKey: "", prodLabel: "", mfgAlias: "", seed: "manual", fx: {}, frag: { name: "", ratio: "", batchKg: "", directKg: "" }, rows: [newRow()], sale: {} });
 const av = (r) => r.vendors.find((v) => v.vid === r.sel) || r.vendors[0];   // 적용 업체 (편집 중)
+// 노션에서 가져온 업체 칸 표시 (nid 노션 줄 · nq 견적 · nsid 공급업체 · nno 견적 번호 · nnote 노션 비고 · ndel 노션에서 삭제됨) — 편집해도 그대로
+const N_KEYS = ["nid", "nq", "nsid", "nno", "nnote", "ndel"];
+const pickN = (v) => { const o = {}; N_KEYS.forEach((k) => { if (v && v[k] != null && v[k] !== "") o[k] = v[k]; }); return o; };
+const isNotion = (v) => !!(v && v.nid);
 const vLabel = (v, k) => `${v.vid}${C.vRole(k) ? " " + C.vRole(k) : ""}`;
 const pctStr = (f) => { const n = C.num(f); return n == null ? "" : String(+(n * 100).toPrecision(10)); };
 const fromPct = (s) => { const n = C.num(s); return n == null ? "" : +(n / 100).toPrecision(12); };
@@ -702,7 +708,7 @@ function toEdit(c) {
   d.frag = { name: str(f.name), ratioPct: pctStr(f.ratio), batchKg: str(f.batchKg), directKg: str(f.directKg) };
   d.fx = {}; Object.entries((c && c.fx) || {}).forEach(([k, v]) => { d.fx[k] = str(v); });
   d.rows = ((c && c.rows) || []).map((r) => {
-    const vs = C.vendorsOf(r).map((v) => ({ ...newVendor(v.vid), vid: v.vid, alias: v.alias || "", price: str(v.price), vat: v.vat || "", cur: v.cur || "", moq: str(v.moq), lead: str(v.lead), qd: str(v.qd), vu: str(v.vu), memo: str(v.memo) }));
+    const vs = C.vendorsOf(r).map((v) => ({ ...newVendor(v.vid), ...pickN(v), vid: v.vid, alias: v.alias || "", price: str(v.price), vat: v.vat || "", cur: v.cur || "", moq: str(v.moq), lead: str(v.lead), qd: str(v.qd), vu: str(v.vu), memo: str(v.memo) }));
     return { id: r.id || uid(), kind: r.kind || "", name: str(r.name), use: str(r.use), inMfg: r.inMfg || "", per: r.per || "", usage: str(r.usage), st: r.st || "", sel: C.selOf({ ...r, vendors: vs }), vendors: vs };
   });
   if (!d.rows.length) d.rows = [newRow()];
@@ -720,16 +726,18 @@ function fromEdit(d) {
     prodKey: d.prodKey || "", prodLabel: T(d.prodLabel), mfgAlias: d.mfgAlias || "", seed: d.seed || "manual", fx,
     frag: { name: T(f.name), ratio: fromPct(f.ratioPct), batchKg: N(f.batchKg), directKg: N(f.directKg) },
     rows: (d.rows || []).filter((r) => !C.rowEmpty(C.syncRow(r))).map((r) => C.syncRow({ id: r.id, kind: r.kind || "", name: T(r.name), use: T(r.use), inMfg: r.inMfg || "", per: r.per || "", usage: N(r.usage), st: r.st || "", sel: r.sel,
-      vendors: r.vendors.map((v) => ({ vid: v.vid, alias: v.alias || "", price: N(v.price), vat: v.vat || "", cur: v.cur || "", moq: N(v.moq), lead: T(v.lead), qd: T(v.qd), vu: C.parseDate(v.vu) || T(v.vu), memo: T(v.memo) })) })),
+      vendors: r.vendors.map((v) => ({ ...pickN(v), vid: v.vid, alias: v.alias || "", price: N(v.price), vat: v.vat || "", cur: v.cur || "", moq: N(v.moq), lead: T(v.lead), qd: T(v.qd), vu: C.parseDate(v.vu) || T(v.vu), memo: T(v.memo) })) })),
     sale: { price: N(s.price), ch: s.ch || "", chName: T(s.chName), fee: fromPct(s.feePct), logi: N(s.logi) },
   };
 }
 // 실제 업체 이름 (cost-names) — vsup = {줄: {A: 이름, B: 이름}} · sup = 줄마다 적용 업체 이름(예전 모양 · 엑셀 받기)
 function namesInit(names, rows) {
-  const n = names || {}, vsup = {};
-  (rows || []).forEach((r) => { const m = { ...((n.vsup || {})[r.id] || {}) }; if (!Object.keys(m).length && (n.sup || {})[r.id]) m[C.selOf(r)] = n.sup[r.id]; vsup[r.id] = m; });
-  return { mfg: n.mfg || "", vsup };
+  const n = names || {}, vsup = {}, vfiles = {}, vurl = {};
+  (rows || []).forEach((r) => { const m = { ...((n.vsup || {})[r.id] || {}) }; if (!Object.keys(m).length && (n.sup || {})[r.id]) m[C.selOf(r)] = n.sup[r.id]; vsup[r.id] = m;
+    vfiles[r.id] = clone((n.vfiles || {})[r.id] || {}); vurl[r.id] = { ...((n.vurl || {})[r.id] || {}) }; });
+  return { mfg: n.mfg || "", vsup, vfiles, vurl };
 }
+const cleanF = (vf) => { const o = {}; Object.entries(vf || {}).forEach(([rid, m]) => { const mm = {}; Object.entries(m || {}).forEach(([k, l]) => { if (Array.isArray(l) && l.length) mm[k] = l.map((f) => ({ id: f.id, name: f.name || "", kind: f.kind || "", url: f.url || "", key: f.key || "" })); }); if (Object.keys(mm).length) o[rid] = mm; }); return o; };
 const cleanV = (vs) => { const o = {}; Object.entries(vs || {}).forEach(([rid, m]) => { const mm = {}; Object.entries(m || {}).forEach(([k, n]) => { n = String(n || "").trim(); if (n) mm[k] = n; }); if (Object.keys(mm).length) o[rid] = mm; }); return o; };
 // 업체 이름 → 가칭 (가격정책표 제조사 가칭과 같은 이름이면 같은 가칭 · 새 이름은 비어 있는 다음 글자)
 function makeAliaser(amap, mfgList) {
@@ -744,10 +752,12 @@ function makeAliaser(amap, mfgList) {
 async function saveCard(ctx, { id, prev, prevNames, d, nm, why }) {
   const card = fromEdit(d), at = new Date().toISOString(), by = (ctx.user && ctx.user.email) || "";
   const before = stable(ctx.amap), al = makeAliaser(ctx.amap, ctx.mfgList);
-  const mfg = String((nm && nm.mfg) || "").trim(), sup = {}, vsup = {};
+  const mfg = String((nm && nm.mfg) || "").trim(), sup = {}, vsup = {}, vfiles = {}, vurl = {};
   card.mfgAlias = al(mfg);
   card.rows = card.rows.map((r) => {
     const m = ((nm && nm.vsup) || {})[r.id] || {}; vsup[r.id] = {};
+    const fm = ((nm && nm.vfiles) || {})[r.id] || {}, um = ((nm && nm.vurl) || {})[r.id] || {};
+    r.vendors.forEach((v) => { if (Array.isArray(fm[v.vid]) && fm[v.vid].length) (vfiles[r.id] = vfiles[r.id] || {})[v.vid] = fm[v.vid]; if (um[v.vid]) (vurl[r.id] = vurl[r.id] || {})[v.vid] = um[v.vid]; });
     const vendors = r.vendors.map((v) => { const n = String(m[v.vid] || "").trim(); vsup[r.id][v.vid] = n; return { ...v, alias: al(n) }; });
     const x = C.syncRow({ ...r, vendors }); sup[r.id] = vsup[r.id][x.sel] || ""; return x;
   });
@@ -756,18 +766,20 @@ async function saveCard(ctx, { id, prev, prevNames, d, nm, why }) {
   const sk = (x) => { const o = x || {}; return stable({ price: o.price ?? "", ch: o.ch || "", fee: o.fee ?? "", logi: o.logi ?? "" }); };
   if (prev && sk(prev.sale) !== sk(card.sale)) what.push(`판매가 계산 바뀜 (${card.sale.price === "" ? "판매가 없음" : "판매가 " + won(card.sale.price)}${card.sale.chName ? " · " + card.sale.chName : ""})`);
   const pn = namesInit(prevNames, prev ? prev.rows : []);
+  const fdiff = stable(cleanF(pn.vfiles)) !== stable(cleanF(vfiles));
+  if (fdiff) what.push("견적서 바뀜");
   if (prev && !what.length && (pn.mfg || "") === mfg && stable(cleanV(pn.vsup)) === stable(cleanV(vsup))) return { id, same: true };
   id = id || cardsCol().doc().id;
   const history = [{ at, by, what: joinWhat(what.length ? what : ["업체 이름 고침"]), why: String(why || "").trim().slice(0, 200) }, ...((prev && prev.history) || [])].slice(0, 100);
   const doc = { ...card, history, deleted: false, createdAt: (prev && prev.createdAt) || at, createdBy: (prev && prev.createdBy) || by, updatedAt: at, updatedBy: by };
   const b = db.batch();
   b.set(cardsCol().doc(id), doc);
-  b.set(namesCol().doc(id), { mfg, sup, vsup, updatedAt: at, updatedBy: by });
+  b.set(namesCol().doc(id), { mfg, sup, vsup, vfiles, vurl, updatedAt: at, updatedBy: by });
   if (stable(ctx.amap) !== before) b.set(namesCol().doc("_alias"), { map: ctx.amap, updatedAt: at, updatedBy: by }, { merge: true });
   b.set(refDoc("cards"), { map: { [id]: C.summaryOf(doc) }, at }, { merge: true });
   await b.commit();
   console.log(`[cost-cards] ${id} 저장 · ${what.length}가지`);
-  return { id, doc, what, names: { mfg, vsup } };
+  return { id, doc, what, names: namesInit({ mfg, vsup, vfiles, vurl }, doc.rows) };
 }
 // 가격정책표에 반영 (마스터 · 2026-11-25 송희님 C) — 버튼으로만 · 몰래 안 바뀜
 //  한 번에: 가격정책표 원가(product-meta/prod-cost.map[제품]) + 원가 이력(cost-log · 가격정책표 제품 수정 창 '변경 이력'과 같은 자리)
@@ -801,19 +813,22 @@ async function setDeleted(user, c, del) {
   await b.commit();
 }
 
-// 폰 뒤로 = 맨 위 시트만 닫기
+// 폰 뒤로 = 맨 위 화면만 닫기 (열린 상세 화면을 쌓아 두고 popstate 하나로 처리 — 한 화면을 닫고 바로 다른 품목을 열어도 새 화면이 닫히지 않게)
+const SHEETS = []; let SELF_BACK = 0, FREE_ENTRY = 0;   // FREE_ENTRY = 방금 닫힌 화면의 뒤로 기록 — 같은 순간 새 화면이 열리면 그대로 물려받음
+window.addEventListener("popstate", () => { if (SELF_BACK > 0) { SELF_BACK--; return; } const top = SHEETS.pop(); if (top) top.close(); });
 function useBackClose(open, close) {
-  const pushed = useRef(false), cref = useRef(close); cref.current = close;
+  const cref = useRef(close); cref.current = close;
   useEffect(() => {
     if (!open) return;
-    try { history.pushState({ pcc: 1 }, ""); pushed.current = true; } catch (e) { pushed.current = false; }
-    const onPop = () => { pushed.current = false; cref.current(); };
-    window.addEventListener("popstate", onPop);
-    return () => { window.removeEventListener("popstate", onPop); if (pushed.current) { pushed.current = false; try { history.back(); } catch (e) {} } };
+    const me = { close: () => { me.popped = true; cref.current(); } };
+    if (FREE_ENTRY > 0) FREE_ENTRY--; else try { history.pushState({ pcc: 1 }, ""); } catch (e) {}
+    SHEETS.push(me);
+    return () => { const k = SHEETS.indexOf(me); if (k >= 0) SHEETS.splice(k, 1);
+      if (!me.popped) { FREE_ENTRY++; setTimeout(() => { if (FREE_ENTRY > 0) { FREE_ENTRY--; SELF_BACK++; try { history.back(); } catch (e) { SELF_BACK--; } } }, 0); } };
   }, [open]);
 }
 function useWide() {
-  const q = "(min-width: 901px)", [w, setW] = useState(() => window.matchMedia(q).matches);
+  const q = "(min-width: 761px)", [w, setW] = useState(() => window.matchMedia(q).matches);
   useEffect(() => { const m = window.matchMedia(q), f = () => setW(m.matches); m.addEventListener ? m.addEventListener("change", f) : m.addListener(f); return () => (m.removeEventListener ? m.removeEventListener("change", f) : m.removeListener(f)); }, []);
   return w;
 }
@@ -823,13 +838,14 @@ function useCostData(user, role) {
   const [S, setS] = useState({ cards: null, names: {}, alias: {}, refNames: null, ref: undefined, draft: undefined, mfgList: [], err: "" });
   useEffect(() => {
     if (!user || !["master", "mgmt", "sub"].includes(role)) return;
-    const set = (p) => setS((s) => ({ ...s, ...p })), off = [];
+    const set = (p) => setS((s) => ({ ...s, ...p })), off = [];   // notion = cost-names/_notion (노션 가져오기 기록 · 마스터·경영 열람)
     const fail = (n, extra) => (e) => { console.error(`[${n}] 읽기 실패`, e); set({ err: e && e.code === "permission-denied" ? "rules" : `${n}: ${e.code || e.message}`, ...(extra || {}) }); };
     off.push(cardsCol().onSnapshot((s) => { console.log(`[cost-cards] ${s.size}장`); set({ cards: s.docs.map((d) => ({ id: d.id, ...d.data() })) }); }, fail("cost-cards", { cards: [] })));
     if (role === "master" || role === "mgmt") off.push(namesCol().onSnapshot((s) => {
       const names = {}; let alias = {}, refNames = null;
-      s.docs.forEach((d) => { if (d.id === "_alias") alias = d.data().map || {}; else if (d.id === "_ref") refNames = d.data().map || {}; else names[d.id] = d.data(); });
-      console.log(`[cost-names] ${Object.keys(names).length}장`); set({ names, alias, refNames });
+      let notion = null;
+      s.docs.forEach((d) => { if (d.id === "_alias") alias = d.data().map || {}; else if (d.id === "_ref") refNames = d.data().map || {}; else if (d.id === "_notion") notion = d.data(); else names[d.id] = d.data(); });
+      console.log(`[cost-names] ${Object.keys(names).length}장`); set({ names, alias, refNames, notion, namesReady: true });
     }, fail("cost-names")));
     off.push(refDoc("products").onSnapshot((d) => { const x = d.exists ? d.data() : null; console.log(`[cost-ref/products] 제품 ${x && x.list ? x.list.length : 0}개`); set({ ref: x }); }, fail("cost-ref/products", { ref: null })));
     if (role === "master" || role === "sub") off.push(draftDoc().onSnapshot((d) => set({ draft: d.exists ? d.data() : null }), (e) => { console.warn("[pricing-draft] 읽기 실패", e.code || e); set({ draft: null }); }));
@@ -842,25 +858,177 @@ function useCostData(user, role) {
   return S;
 }
 
+// ══ 노션 → 분해원가 가져오기 (2026-11-25 송희님 · 매일 19:00 Aside 가 마스터로 로그인한 이 화면에서 window.costImport.applyNotion(payload)) ══
+//  · 품목 찾기: 자체상품코드 → 제품명+규격 → 못 찾으면 '연결 필요'(cost-names/_notion.unmatched) · 화면에서 한 번 고르면 기억(_notion.links)
+//  · 노션이 원본인 값(업체 단가·통화·부가세·MOQ·리드타임·견적일·유효기간·견적 번호·비고·견적서·노션 주소)만 새 값으로 · 업체 칸에 nid(노션 줄 id)
+//  · 대시보드에서만 정하는 것(적용 업체·사용량·개당/1회·제조 단가 포함·가격정책표 반영)은 절대 안 바꿈 · 가격정책표 반영은 자동으로 안 함
+//  · 같은 노션 id 는 여러 번 돌려도 같은 결과(바뀐 것 없으면 안 씀) · 노션에서 사라진 견적 = 지우지 않고 ndel('노션에서 삭제됨')
+//  · 실행마다 _notion.runs 에 '노션 동기화 ○건' · 바뀐 카드는 카드 이력에도 · 견적서·노션 주소·업체 실명 = cost-names(마스터·경영 열람만)
+const NOTION_OWN = ["price", "vat", "cur", "moq", "lead", "qd", "vu", "nnote", "nno", "nq", "nsid", "ndel"];
+const curOf = (c) => { const s = String(c || "").trim().toUpperCase(); return !s || s === "KRW" || s === "원" || s === "WON" ? "" : s; };
+const matchKeyOf = (p) => (p && String(p.code || "").trim() ? "c:" + String(p.code).trim() : "n:" + nz(p && p.name) + "|" + nz(p && p.spec));
+const hid = (s) => { let h = 2166136261; for (const ch of String(s)) { h ^= ch.codePointAt(0); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); };
+const seedMethodOf = (supName) => (/넷폼/.test(String(supName || "")) ? "self" : "oem");   // 4번: 공급업체 ㈜넷폼알앤디·넷폼 = 자체생산 · 그 밖 = 국내 OEM
+const cleanU = (vu) => { const o = {}; Object.entries(vu || {}).forEach(([rid, m]) => { const mm = {}; Object.entries(m || {}).forEach(([k, u]) => { if (u) mm[k] = u; }); if (Object.keys(mm).length) o[rid] = mm; }); return o; };
+const notionDoc = () => namesCol().doc("_notion");
+const packF = (vf) => { const o = {}; Object.entries(vf || {}).forEach(([rid, m]) => { const mm = {}; Object.entries(m || {}).forEach(([k, l]) => { if (Array.isArray(l) && l.length) mm[k] = clone(l); }); if (Object.keys(mm).length) o[rid] = mm; }); return o; };
+async function applyNotionImport(ctx, payload, opt = {}) {
+  const res = { added: 0, updated: 0, unchanged: 0, deleted: 0, unmatched: [], errors: [] };
+  const { S, user } = ctx;
+  if (!payload || payload.source !== "notion" || !Array.isArray(payload.quotes)) { res.errors.push("payload 모양이 달라요 (source:'notion', quotes:[…])"); return res; }
+  const at = new Date().toISOString(), by = (user && user.email) || "", partial = payload.partial === true;
+  const reg = clone(S.notion || {}); reg.links = { ...(reg.links || {}), ...(opt.links || {}) }; reg.unmatched = reg.unmatched || {};
+  const sups = {}; (payload.suppliers || []).forEach((s) => { if (s && s.notionId) sups[s.notionId] = s; });
+  const refList = (S.ref && S.ref.list) || [], refMap = {}; refList.forEach((p) => { refMap[p.k] = p; });
+  const live = (S.cards || []).filter((c) => !c.deleted);
+  const work = {}, wnames = {}, prevCards = {}, prevNames = {}, created = {};
+  const getCard = (c) => {
+    if (!work[c.id]) { prevCards[c.id] = c; prevNames[c.id] = S.names[c.id] || {}; wnames[c.id] = namesInit(S.names[c.id], c.rows);
+      work[c.id] = { ...clone(c), rows: (c.rows || []).map((r) => ({ ...clone(r), vendors: C.vendorsOf(r).map((v) => ({ ...v })), sel: C.selOf(r) })) }; }
+    return work[c.id];
+  };
+  const bestCardFor = (k) => live.filter((c) => c.prodKey === k).sort((a, b) => C.roundNo(b.round) - C.roundNo(a.round) || String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")))[0] || null;
+  const newCardFor = (p) => {   // 가격정책표엔 있는데 카드가 없는 품목 → 노션 줄로 새 카드 (생산 방식 기본값 = 4번 규칙)
+    if (created[p.k]) return work[created[p.k]];
+    const id = "nt-" + hid(p.k), r = (S.refNames || {})[p.k] || {};
+    work[id] = { id, brand: C.normBrand((p.brand || [])[0] || ""), round: "1차", item: p.name || "", spec: p.spec && p.spec !== "-" ? p.spec : "", method: seedMethodOf(r.sup || r.mfg), origin: "국내", scope: "", qty: "", validUntil: "", include: true, need: false,
+      prodKey: p.k, prodLabel: `${p.name || ""}${p.spec && p.spec !== "-" ? " " + p.spec : ""}`, mfgAlias: "", seed: "notion", fx: {}, frag: { name: "", ratio: "", batchKg: "", directKg: "" }, rows: [], sale: {} };
+    wnames[id] = namesInit({}, []); prevCards[id] = null; prevNames[id] = {}; created[p.k] = id; return work[id];
+  };
+  const resolve = (prod) => {
+    const t = reg.links[matchKeyOf(prod)];
+    if (t) {
+      if (String(t).startsWith("p:")) { const k = t.slice(2), p = refMap[k]; if (p) { const c = bestCardFor(k); return c ? getCard(c) : newCardFor(p); } }
+      else { const c = live.find((x) => x.id === t); if (c) return getCard(c); }
+    }
+    let cands = [];
+    if (prod && String(prod.code || "").trim()) cands = refList.filter((p) => p.type !== "세트" && String(p.code || "").trim() === String(prod.code).trim());
+    if (!cands.length && prod && prod.name) cands = refList.filter((p) => p.type !== "세트" && nz(p.name) === nz(prod.name) && (!prod.spec || nz(p.spec === "-" ? "" : p.spec) === nz(prod.spec)));
+    if (cands.length === 1) { const p = cands[0], c = bestCardFor(p.k); return c ? getCard(c) : newCardFor(p); }
+    if (prod && prod.name && !cands.length) { const cs = live.filter((c) => nz(c.item) === nz(prod.name) && (!prod.spec || nz(c.spec) === nz(prod.spec))); if (cs.length === 1) return getCard(cs[0]); }   // 출시 전(가격표에 없는) 카드
+    return null;
+  };
+  const seen = new Set();
+  for (const q of payload.quotes) {
+    if (!q) continue;
+    const sup = sups[q.supplierNotionId] || {}, supName = String(sup.name || "").trim();
+    for (const L of q.lines || []) {
+      try {
+        if (!L || !L.notionId) { res.errors.push(`견적 ${q.quoteNo || q.notionId}: 줄 notionId 없음`); continue; }
+        seen.add(L.notionId);
+        const c = resolve(L.product);
+        if (!c) {
+          const u = { lineId: L.notionId, quoteId: q.notionId || "", quoteNo: q.quoteNo || "", supplier: supName, product: L.product || {}, component: L.component || {}, unitPrice: L.unitPrice ?? "", currency: q.currency || "" };
+          res.unmatched.push(u); reg.unmatched[L.notionId] = clone({ ...u, q: { ...q, lines: [L] }, s: sup, at }); continue;
+        }
+        delete reg.unmatched[L.notionId];
+        const nmw = wnames[c.id], comp = L.component || {}, cname = String(comp.name || comp.kind || "").trim();
+        let row = c.rows.find((r) => r.vendors.some((v) => v.nid === L.notionId)) || (cname ? c.rows.find((r) => nz(r.name) === nz(cname)) : null), isNew = false;
+        if (!row) { row = { id: "n" + hid(L.notionId), kind: C.kindOf(comp.kind) || "", name: cname, use: str(comp.use).trim(), inMfg: "별도", per: C.perOf(comp.per) || "개당", usage: 1, st: "", sel: "A", vendors: [] }; c.rows.push(row); isNew = true; }   // per·use = 새 줄 만들 때만 (있는 줄은 대시보드가 정함)
+        let v = row.vendors.find((x) => x.nid === L.notionId);
+        if (!v) {
+          const vs = nmw.vsup[row.id] || {};
+          v = row.vendors.find((x) => !x.nid && supName && String(vs[x.vid] || "").trim() === supName)   // 같은 업체 이름으로 손으로 넣어 둔 칸 → 노션 칸으로
+            || row.vendors.find((x) => !x.nid && C.num(x.price) == null && !String(vs[x.vid] || "").trim() && !x.qd);   // 비어 있는 칸(기본 A) 채우기 — 적용 업체는 그대로
+          if (!v) { v = { vid: C.nextVid(row.vendors), alias: "", price: "", vat: "V-", cur: "", moq: "", lead: "", qd: "", vu: "", memo: "" }; row.vendors.push(v); isNew = true; }
+        }
+        const snap = () => stable({ v: NOTION_OWN.map((k) => v[k] ?? ""), nm: (nmw.vsup[row.id] || {})[v.vid] || "", u: (nmw.vurl[row.id] || {})[v.vid] || "", f: (((nmw.vfiles[row.id] || {})[v.vid]) || []).filter((f) => f.kind === "notion").map((f) => [f.name, f.url]) });
+        const before = snap();
+        Object.assign(v, { price: C.num(L.unitPrice) ?? "", vat: C.vatOf(L.vat || q.vat) || "V?", cur: curOf(L.currency || q.currency), moq: C.num(L.moq) ?? "", lead: str(L.leadTime).trim(), qd: C.parseDate(q.quoteDate) || str(q.quoteDate).trim(),
+          vu: C.parseDate(q.validUntil) || "", nnote: str(L.note).trim(), nno: str(q.quoteNo).trim(), nq: q.notionId || "", nsid: q.supplierNotionId || "", nid: L.notionId });
+        delete v.ndel;
+        if (!row.vendors.some((x) => x.vid === row.sel)) row.sel = row.vendors[0].vid;
+        (nmw.vsup[row.id] = nmw.vsup[row.id] || {})[v.vid] = supName;
+        nmw.vurl[row.id] = nmw.vurl[row.id] || {}; if (q.notionUrl) nmw.vurl[row.id][v.vid] = q.notionUrl; else delete nmw.vurl[row.id][v.vid];
+        const keep = (((nmw.vfiles[row.id] || {})[v.vid]) || []).filter((f) => f.kind !== "notion");
+        const nf = (q.files || []).filter((f) => f && f.notionUrl).map((f) => ({ id: "n" + hid(f.notionUrl), name: str(f.name).trim() || "견적서", kind: "notion", url: f.notionUrl }));
+        (nmw.vfiles[row.id] = nmw.vfiles[row.id] || {})[v.vid] = [...nf, ...keep];
+        if (isNew) res.added++; else if (before !== snap()) res.updated++; else res.unchanged++;
+      } catch (e) { console.error("[노션 가져오기] 줄 실패", L, e); res.errors.push(`${(L && L.notionId) || "?"}: ${e.message || e}`); }
+    }
+  }
+  if (!partial) {   // 노션에서 사라진 견적 → 지우지 않고 표시만
+    live.forEach((c0) => (c0.rows || []).forEach((r0) => C.vendorsOf(r0).forEach((v0) => {
+      if (!v0.nid || seen.has(v0.nid) || v0.ndel) return;
+      const c = getCard(c0), r = c.rows.find((x) => x.id === r0.id), v = r && r.vendors.find((x) => x.vid === v0.vid);
+      if (v) { v.ndel = true; res.deleted++; }
+    })));
+    Object.keys(reg.unmatched).forEach((k) => { if (!seen.has(k)) delete reg.unmatched[k]; });
+  }
+  // 저장: 바뀐 카드만 · 카드 + 실제 이름(견적서·노션 주소) + 요약 + 가칭표 + 실행 기록
+  const amap = { ...(S.alias || {}) }, before = stable(amap), al = makeAliaser(amap, S.mfgList), ops = [];
+  let changed = 0;
+  Object.keys(work).forEach((id) => {
+    const c = work[id], pv = prevCards[id], nmw = wnames[id];
+    c.rows = c.rows.map((r) => C.syncRow({ ...r, vendors: r.vendors.map((v) => ({ ...v, alias: al(((nmw.vsup[r.id] || {})[v.vid]) || "") })) }));
+    const sup = {}; c.rows.forEach((r) => { sup[r.id] = ((nmw.vsup[r.id] || {})[r.sel]) || ""; });
+    const what = C.diffCard(pv, c), pn = namesInit(prevNames[id], pv ? pv.rows : []);
+    const nk = (rows) => stable((rows || []).map((r) => C.vendorsOf(r).map((v) => [r.id, v.vid, v.nid || "", ...NOTION_OWN.map((k) => v[k] ?? "")])));
+    if (pv) c.rows.forEach((r) => { const o = (pv.rows || []).find((x) => x.id === r.id); r.vendors.forEach((v) => { const ov = o && C.vendorsOf(o).find((x) => x.vid === v.vid); if (v.ndel && !(ov && ov.ndel)) what.push(`${r.name || r.kind} ${v.vid}업체 노션에서 삭제됨`); }); });
+    const nch = nk(pv && pv.rows) !== nk(c.rows) || stable(cleanF(pn.vfiles)) !== stable(cleanF(nmw.vfiles)) || stable(cleanV(pn.vsup)) !== stable(cleanV(nmw.vsup)) || stable(cleanU(pn.vurl)) !== stable(cleanU(nmw.vurl));
+    if (pv && !what.length && !nch) return;
+    changed++;
+    const { id: _drop, history: _h, ...body } = c;
+    const history = [{ at, by, what: `노션 동기화: ${joinWhat(what.length ? what : ["견적서·업체 이름·노션 주소"])}`, why: "노션" }, ...((pv && pv.history) || [])].slice(0, 100);
+    const doc = { ...body, history, deleted: false, createdAt: (pv && pv.createdAt) || at, createdBy: (pv && pv.createdBy) || by, updatedAt: at, updatedBy: by };
+    const nmDoc = { mfg: nmw.mfg || (prevNames[id] || {}).mfg || "", sup, vsup: cleanV(nmw.vsup), vfiles: packF(nmw.vfiles), vurl: cleanU(nmw.vurl), updatedAt: at, updatedBy: by };
+    ops.push((b) => b.set(cardsCol().doc(id), doc), (b) => b.set(namesCol().doc(id), nmDoc), (b) => b.set(refDoc("cards"), { map: { [id]: C.summaryOf(doc) }, at }, { merge: true }));
+  });
+  if (stable(amap) !== before) ops.push((b) => b.set(namesCol().doc("_alias"), { map: amap, updatedAt: at, updatedBy: by }, { merge: true }));
+  const run = { at, by, added: res.added, updated: res.updated, unchanged: res.unchanged, deleted: res.deleted, unmatched: res.unmatched.length, errors: res.errors.length, cards: changed, partial, syncedAt: str(payload.syncedAt) };
+  ops.push((b) => b.set(notionDoc(), { links: reg.links, unmatched: reg.unmatched, runs: [run, ...(reg.runs || [])].slice(0, 30), lastAt: partial ? reg.lastAt || "" : at, lastSyncedAt: partial ? reg.lastSyncedAt || "" : str(payload.syncedAt), updatedAt: at, updatedBy: by }));
+  for (let i = 0; i < ops.length; i += 400) { const b = db.batch(); ops.slice(i, i + 400).forEach((f) => f(b)); await b.commit(); }
+  console.log(`[노션 가져오기] 추가 ${res.added} · 바뀜 ${res.updated} · 그대로 ${res.unchanged} · 삭제 표시 ${res.deleted} · 연결 필요 ${res.unmatched.length} · 오류 ${res.errors.length} · 카드 ${changed}장 저장`);
+  return res;
+}
+
+// ══ 같은 틀 (2026-11-25 송희님 "분해원가 디자인 통일") ══
+//  · ?embed=1 = 가격·마진 대시보드 안(제품 › 분해원가) — 왼쪽 메뉴·위쪽 머리·한 줄 요약은 대시보드 것 · 이 화면은 숫자만 보냄(pcc-kpi)
+//  · 따로 열면(경영 열람 등) 같은 모양의 위쪽 머리 + 한 줄 요약
+const EMBED = /[?&]embed=1\b/.test(location.search) && window.parent !== window;
+if (EMBED) document.body.classList.add("embed");
+const toParent = (msg) => { if (EMBED) try { window.parent.postMessage(msg, location.origin); } catch (e) {} };
+
+// ── 견적서 파일 저장소 (송희님 선택 전: 'link' = 노션 페이지·파일 링크만 동작) ──
+//  'r2'  = Cloudflare R2 + Pages Functions (/api/quote-files · 파이어베이스 로그인 토큰 → 마스터·경영 열람 확인) — 켜는 순서: scripts/cost-breakdown/QUOTE_FILES.md
+//  'gcs' = Firebase Storage (Blaze 요금제 필요) — 고르면 firebase-storage 스크립트 + storage 규칙 추가
+//  파일 목록(이름·종류·주소/열쇠)은 어느 쪽이든 cost-names/{카드}.vfiles[줄][업체] (마스터·경영 열람만 읽음 — 견적서엔 업체 실명)
+const FILE_STORE = {
+  mode: "link",
+  r2: {
+    api: "/api/quote-files",
+    async upload(file, user) { const t = await user.getIdToken(); const r = await fetch(this.api, { method: "POST", headers: { Authorization: "Bearer " + t, "content-type": file.type || "application/octet-stream", "x-file-name": encodeURIComponent(file.name) }, body: file }); if (!r.ok) throw new Error("올리기 실패 " + r.status); return r.json(); },   // → {key, size, type}
+    async blob(f, user) { const t = await user.getIdToken(); const r = await fetch(this.api + "/" + encodeURIComponent(f.key), { headers: { Authorization: "Bearer " + t } }); if (!r.ok) throw new Error("열기 실패 " + r.status); return r.blob(); },
+  },
+  gcs: { async upload() { throw new Error("Firebase Storage 는 아직 안 켰어요 (Blaze 요금제 필요)"); }, async blob() { throw new Error("Firebase Storage 는 아직 안 켰어요"); } },
+};
+const canUpload = () => FILE_STORE.mode === "r2" || FILE_STORE.mode === "gcs";
+const FILE_KIND = { notion: "노션", link: "링크", r2: "파일", gcs: "파일" };
+const fileCount = (names) => { let n = 0; Object.values((names && names.vfiles) || {}).forEach((m) => Object.values(m || {}).forEach((l) => { n += Array.isArray(l) ? l.length : 0; })); return n; };
+
+// 따로 열었을 때 위쪽 머리 (대시보드 리본과 같은 모양)
+function TopBar({ user, role, kline }) {
+  return html`<div class="rb"><div class="brand"><b>🧾 분해원가</b><span>POUR 가격·마진 · 품목별 완제품 원가 · 업체 단가 비교</span></div>
+    ${kline || ""}
+    <div class="acts">${role && ROLE_NAME[role] ? html`<span class=${"role " + role}>${ROLE_NAME[role]}</span>` : ""}${user ? html`<span>${user.email}</span><button class="tbtn sm" onClick=${() => auth.signOut()}>로그아웃</button>` : ""}<a class="tbtn sm" href=${V1_URL}>가격·마진 대시보드</a></div></div>`;
+}
 function Login() {
   const [em, setEm] = useState(""), [pw, setPw] = useState(""), [msg, setMsg] = useState(""), [busy, setBusy] = useState(false);
   const go = async (e) => { e.preventDefault(); setBusy(true); setMsg("");
     try { await auth.signInWithEmailAndPassword(em.trim(), pw); }
     catch (x) { const c = (x && x.code) || ""; setMsg(/invalid|wrong|not-found/.test(c) ? "이메일 또는 비밀번호가 맞지 않아요." : "로그인 못 했어요: " + (c || x.message || x)); }
     setBusy(false); };
-  return html`<div class="login">
-    <div class="h1">분해원가</div>
-    <p class="sub">가격·마진 대시보드와 같은 계정으로 들어가요. (대시보드에 이미 로그인했다면 자동으로 열려요)</p>
-    ${msg && html`<div class="err">${msg}</div>`}
+  return html`<${React.Fragment}><${TopBar} /><div class="login">
+    <p class="note" style=${{ fontSize: 13 }}>가격·마진 대시보드와 같은 계정으로 들어가요. (대시보드에 이미 로그인했다면 자동으로 열려요)</p>
+    ${msg && html`<div class="err" style=${{ borderRadius: 6, margin: "8px 0" }}>${msg}</div>`}
     <form onSubmit=${go}>
       <input class="in" type="email" autocomplete="username" placeholder="이메일" value=${em} onInput=${(e) => setEm(e.target.value)} aria-label="이메일" />
       <input class="in" type="password" autocomplete="current-password" placeholder="비밀번호" value=${pw} onInput=${(e) => setPw(e.target.value)} aria-label="비밀번호" />
-      <button class="btn solid" style=${{ width: "100%", height: 46 }} disabled=${busy || !em || !pw}>${busy ? "들어가는 중…" : "로그인"}</button>
+      <button class="tbtn primary" style=${{ width: "100%", height: 42, fontSize: 14 }} disabled=${busy || !em || !pw}>${busy ? "들어가는 중…" : "로그인"}</button>
     </form>
     <p class="note">문자 코드로 로그인하는 계정은 <a href=${V1_URL}>가격·마진 대시보드</a>에서 먼저 로그인해 주세요.</p>
-  </div>`;
+  </div><//>`;
 }
-
 function App() {
   const [user, setUser] = useState(undefined), [access, setAccess] = useState(undefined), [accErr, setAccErr] = useState("");
   useEffect(() => auth.onAuthStateChanged((u) => setUser(u || null)), []);
@@ -872,19 +1040,16 @@ function App() {
   if (!user) return html`<${Login} />`;
   if (access === undefined) return html`<div class="ld">권한 확인 중…</div>`;
   const role = roleOf(access, user.email, user.emailVerified);
-  if (role === "none" || role === "unverified") return html`<div class="wrap"><div class="top"><div class="nav"><a href=${V1_URL}>← 가격·마진 대시보드</a></div></div>
-    <div class="h1">분해원가</div>
+  if (role === "none" || role === "unverified") return html`<${React.Fragment}><${TopBar} user=${user} />
     <div class="err">${role === "unverified" ? html`<b>${user.email}</b> 계정은 이메일 인증을 아직 안 했어요. 가격·마진 대시보드 › 설정 › 계정에서 [인증메일 보내기] → 메일의 링크를 누른 뒤 다시 열어 주세요.`
-      : html`<b>${user.email}</b> 계정은 분해원가를 볼 수 없어요. (마스터 · 부마스터 · 경영 열람만) 송희님께 '경영 열람' 등록을 요청해 주세요.${accErr ? ` (${accErr})` : ""}`}</div>
-    <button class="btn" onClick=${() => auth.signOut()}>다른 계정으로</button></div>`;
+      : html`<b>${user.email}</b> 계정은 분해원가를 볼 수 없어요. (마스터 · 부마스터 · 경영 열람만) 송희님께 '경영 열람' 등록을 요청해 주세요.${accErr ? ` (${accErr})` : ""}`}</div><//>`;
   return html`<${Main} user=${user} role=${role} />`;
 }
 
-// ── 분해원가 목록 (2026-11-25 송희님 B1) ──
-//  줄: 브랜드 · 품목·규격 · 생산 방식 · 국내/수입 · 완제품 원가 · 확정/임시 · 견적 유효기간 / 거르기: 브랜드 · 생산 방식 · 국내/수입 · 분해 필요
+// ── 분해원가 목록 ──
 const METHOD_OPTS = [["", "생산 방식 전체"], ...C.METHODS.map(([k, n]) => [k, n]), ["-", "방식 미정"]];
 const ORIGIN_OPTS = [["", "국내/수입 전체"], ["국내", "국내"], ["수입", "수입"], ["-", "미정"]];
-// 가격정책표와 견주기: none 연결 안 됨 · set 세트 · gone 가격표에 없음 · nocost 원가 없음 · same 같음 · diff 반영 전
+const TABS = [["all", "전체"], ["need", "분해 필요"], ["diff", "반영 전"], ["val", "견적 곧 끝남"], ["chk", "확인 필요"]];
 function reflOf(c, p, unit) {
   if (!c.prodKey) return "none"; if (!p) return "gone"; if (p.type === "세트") return "set";
   const pt = p.cost != null && p.cost !== "" ? +p.cost : null; if (pt == null) return "nocost";
@@ -893,15 +1058,15 @@ function reflOf(c, p, unit) {
 function Main({ user, role }) {
   const S = useCostData(user, role), wide = useWide(), isM = role === "master", seeNames = role !== "sub";
   const [open, setOpen] = useState(() => { const m = /card=([^&]+)/.exec(location.hash); return m ? decodeURIComponent(m[1]) : null; });
+  const [okey, setOkey] = useState(0);   // 새 품목을 만든 뒤에도 같은 상세 화면으로 이어서
   const [sheet, setSheet] = useState(""), [toast, setToast] = useState("");
-  const [brand, setBrand] = useState(""), [q, setQ] = useState(""), [flt, setFlt] = useState(""), [sort, setSort] = useState("brand"), [mth, setMth] = useState(""), [org, setOrg] = useState("");
+  const [brand, setBrand] = useState(""), [q, setQ] = useState(""), [tab, setTab] = useState("all"), [sort, setSort] = useState("brand"), [mth, setMth] = useState(""), [org, setOrg] = useState("");
   const recon = useRef(false), today = ymd();
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(""), 3600); return () => clearTimeout(t); }, [toast]);
   useEffect(() => { if (location.hash) try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {} }, []);
   const refList = (S.ref && S.ref.list) || [];
   const refMap = useMemo(() => { const m = {}; refList.forEach((p) => { m[p.k] = p; }); return m; }, [S.ref]);
-  // 요약(가격정책표 완제품 원가 칸 꼬리표용)이 카드와 어긋나 있으면 맞춤 — 마스터가 열 때 한 번
-  useEffect(() => {
+  useEffect(() => {   // 요약(가격정책표 '완제품 원가' 칸 꼬리표용)이 카드와 어긋나 있으면 맞춤 — 마스터가 열 때 한 번
     if (!isM || !S.cards || recon.current || S.err) return; recon.current = true;
     const exp = {}; S.cards.filter((c) => !c.deleted).forEach((c) => { exp[c.id] = C.summaryOf(c); });
     refDoc("cards").get().then((d) => { const cur = (d.exists && d.data().map) || {};
@@ -912,102 +1077,124 @@ function Main({ user, role }) {
   const nameOf = (c) => (seeNames ? ((S.names[c.id] || {}).mfg || c.mfgAlias || "") : (c.mfgAlias || ""));
   const items = useMemo(() => (S.cards || []).filter((c) => !c.deleted).map((c) => {
     const x = C.cardCalc(c), p = c.prodKey ? refMap[c.prodKey] || null : null, pt = p && p.cost != null && p.cost !== "" ? +p.cost : null, vu = C.validFirst(c);
+    const vs = (c.rows || []).flatMap((r) => C.vendorsOf(r));
     return { c, x, p, pt, refl: reflOf(c, p, x.unit), need: !!c.need, st: C.cardStatus(c), vu, val: C.validity(vu, today), mfg: nameOf(c),
-      chk: (c.rows || []).filter((r) => !C.rowEmpty(r) && C.rowCalc(r, c.qty, c.fx).st === "확인 필요").length, multi: (c.rows || []).filter((r) => C.vendorsOf(r).length > 1).length };
+      chk: (c.rows || []).filter((r) => !C.rowEmpty(r) && C.rowCalc(r, c.qty, c.fx).st === "확인 필요").length, multi: (c.rows || []).filter((r) => C.vendorsOf(r).length > 1).length,
+      files: seeNames ? fileCount(S.names[c.id]) : 0, nt: vs.filter((v) => v.nid).length, ndel: vs.filter((v) => v.ndel).length };
   }), [S.cards, refMap, S.names, role]);
   const brands = useMemo(() => [...new Set(items.map((i) => i.c.brand || "브랜드 없음"))].sort(), [items]);
-  const cnt = { need: items.filter((i) => i.need).length, over: items.filter((i) => i.val === "over").length, soon: items.filter((i) => i.val === "soon").length,
-    diff: items.filter((i) => i.refl === "diff" && !i.need).length, chk: items.filter((i) => i.chk > 0).length };
+  const inTab = (i, t) => (t === "need" ? i.need : t === "diff" ? i.refl === "diff" && !i.need : t === "val" ? i.val === "over" || i.val === "soon" : t === "chk" ? i.chk > 0 : true);
+  const cnt = Object.fromEntries(TABS.map(([k]) => [k, items.filter((i) => inTab(i, k)).length]));
   const shown = useMemo(() => {
     const t = nz(q);
-    let l = items.filter((i) => (!brand || (i.c.brand || "브랜드 없음") === brand)
+    const l = items.filter((i) => inTab(i, tab) && (!brand || (i.c.brand || "브랜드 없음") === brand)
       && (!mth || (mth === "-" ? !i.c.method : i.c.method === mth)) && (!org || (org === "-" ? !i.c.origin : i.c.origin === org))
-      && (!t || nz(`${i.c.item}${i.c.spec}${i.c.brand}${i.c.round}${i.mfg}${i.c.scope}`).includes(t))
-      && (!flt || (flt === "need" ? i.need : flt === "val" ? i.val === "over" || i.val === "soon" : flt === "diff" ? i.refl === "diff" && !i.need : flt === "chk" ? i.chk > 0 : true)));
-    const by = { brand: (a, b) => (a.c.brand || "").localeCompare(b.c.brand || "") || (a.c.item || "").localeCompare(b.c.item || "") || C.roundNo(a.c.round) - C.roundNo(b.c.round),
+      && (!t || nz(`${i.c.item}${i.c.spec}${i.c.brand}${i.c.round}${i.mfg}${i.c.scope}`).includes(t)));
+    const mo = (m) => { const k = C.METHODS.findIndex((x) => x[0] === m); return k < 0 ? 9 : k; };
+    const by = { brand: (a, b) => (a.c.brand || "~").localeCompare(b.c.brand || "~") || mo(a.c.method) - mo(b.c.method) || (a.c.item || "").localeCompare(b.c.item || "") || C.roundNo(a.c.round) - C.roundNo(b.c.round),
       cost: (a, b) => b.x.unit - a.x.unit, val: (a, b) => String(a.vu || "9999").localeCompare(String(b.vu || "9999")),
       recent: (a, b) => String(b.c.updatedAt || "").localeCompare(String(a.c.updatedAt || "")) };
     return l.sort(by[sort] || by.brand);
-  }, [items, brand, q, flt, sort, mth, org]);
-  const [okey, setOkey] = useState(0);   // 새 품목을 만든 뒤에도 같은 시트로 이어서 (뒤로 가기 기록이 꼬여 닫히지 않게)
+  }, [items, brand, q, tab, sort, mth, org]);
   const openCard = (id) => { setOkey((k) => k + 1); setOpen(id); };
   const ctx = { S, user, role, isM, seeNames, refList, refMap, setToast, today };
   const loading = S.cards === null && !S.err;
   const seedN = isM ? seedCandidates(S, refList).list.length : 0;
-  const T = (k) => setFlt(flt === k ? "" : k);
-  return html`<div class="wrap">
-    <div class="top"><div class="nav"><a href=${V1_URL}>← 가격·마진 대시보드</a><span class="sp"></span><span class="dim" style=${{ color: "var(--mute)" }}>${user.email}</span><button class="lnk" onClick=${() => auth.signOut()}>로그아웃</button></div></div>
-    <div class="h1">🧾 분해원가 <span class=${"role " + role}>${ROLE_NAME[role]}</span></div>
-    <p class="sub">품목마다 원가를 구성요소로 나눠 관리 · 구성요소마다 업체 여러 곳(A 주 · B 서브 …) 단가 비교 · 원가는 부가세 별도(V-) · 엑셀 '표준_원가계산기_v7'과 같은 식 ${role === "sub" ? "· 업체는 가칭(A사·B사)" : ""}${role === "mgmt" ? "· 보기 전용" : ""}</p>
-    ${S.err === "rules" && html`<div class="err"><b>아직 새 보안 규칙이 게시되지 않았어요.</b> 송희님이 Firebase 콘솔 › Firestore › 규칙에 새 규칙(pourstore.rules)을 붙여 넣고 [게시]하면 이 화면이 열려요. (가격·마진 대시보드는 그 전에도 지금처럼 돌아가요)</div>`}
+  const nUn = Object.keys((S.notion && S.notion.unmatched) || {}).length, lastRun = ((S.notion && S.notion.runs) || [])[0] || null;
+  // 위쪽 한 줄 (대시보드 머리에 그림 · 따로 열면 이 화면 머리에)
+  const kparts = [...TABS.map(([k, lb]) => ({ k, lb: k === "all" ? "카드" : lb, n: cnt[k], warn: k !== "all" && cnt[k] > 0, on: tab === k, t: k === "all" ? "분해원가 전체" : `${lb}만 보기` })),
+    ...(isM && nUn ? [{ k: "notion", lb: "노션 연결 필요", n: nUn, warn: true, t: "노션 견적 중 품목을 못 찾은 줄" }] : [])];
+  const kKey = stable(kparts);
+  useEffect(() => { if (!loading) toParent({ type: "pcc-kpi", parts: kparts }); }, [kKey, loading]);
+  const pickK = (k) => { if (k === "notion") { setSheet("notion"); return; } setTab(k === tab ? "all" : k); };
+  // 대시보드에서 온 말: 한 줄 누름 · 품목 열기
+  useEffect(() => { const f = (e) => { if (e.origin !== location.origin) return; const d = e.data || {};
+    if (d.type === "pcc-filter" && d.k) { if (d.k === "notion") setSheet("notion"); else { setTab((t) => (d.k === t ? "all" : d.k)); setOpen(null); } }
+    if (d.type === "pcc-open" && d.id) openCard(d.id); };
+    window.addEventListener("message", f); return () => window.removeEventListener("message", f); }, []);
+  // 노션 가져오기 (Aside 가 부름) — 마스터 · 데이터가 다 온 뒤
+  const sRef = useRef(S); sRef.current = S;
+  useEffect(() => {
+    const ready = () => { const s = sRef.current; return s.cards !== null && s.ref !== undefined && s.namesReady; };
+    const wait = async () => { for (let i = 0; i < 100 && !ready(); i++) await new Promise((r) => setTimeout(r, 200)); return ready(); };
+    window.costImport = {
+      ready: () => isM && ready(),
+      async applyNotion(payload, opt) {
+        if (!isM) return { added: 0, updated: 0, unchanged: 0, deleted: 0, unmatched: [], errors: ["마스터 계정으로 로그인해야 해요"] };
+        if (!(await wait())) return { added: 0, updated: 0, unchanged: 0, deleted: 0, unmatched: [], errors: ["분해원가 데이터를 아직 못 불러왔어요"] };
+        try { return await applyNotionImport({ S: sRef.current, user }, payload, opt || {}); }
+        catch (e) { console.error("[노션 가져오기] 실패", e); return { added: 0, updated: 0, unchanged: 0, deleted: 0, unmatched: [], errors: [String(e.code || e.message || e)] }; }
+      },
+    };
+    return () => { delete window.costImport; };
+  }, [isM, user && user.uid]);
+  const kline = html`<div class="kline">${kparts.map((x, k) => html`<${React.Fragment} key=${x.k}>${k ? html`<i aria-hidden="true">·</i>` : ""}<button type="button" class=${"kl" + (x.warn ? " warn" : "") + (x.on ? " on" : "")} title=${x.t} onClick=${() => pickK(x.k)}>${x.lb} <b>${x.n}</b></button><//>`)}</div>`;
+  return html`<div>
+    <${TopBar} user=${user} role=${role} kline=${!loading ? kline : ""} />
+    ${S.err === "rules" && html`<div class="err"><b>아직 새 보안 규칙이 게시되지 않았어요.</b> 송희님이 Firebase 콘솔 › Firestore › 규칙에 새 규칙(pourstore.rules)을 붙여 넣고 [게시]하면 이 화면이 열려요.</div>`}
     ${S.err && S.err !== "rules" && html`<div class="err">불러오기 실패: ${S.err}</div>`}
     ${S.ref === null && !S.err && html`<div class="warn">가격정책표 제품 목록이 아직 없어요. ${isM ? "가격·마진 대시보드를 한 번 열면(마스터·부마스터) 제품·원가가 여기로 넘어와요." : "마스터가 가격·마진 대시보드를 한 번 열면 생겨요."}</div>`}
     ${loading ? html`<div class="ld">분해원가 불러오는 중…</div>` : !S.err && html`<${React.Fragment}>
-      <div class="next"><b>다음 할 일</b>
-        ${seedN > 0 && html`<button class="lnk" onClick=${() => setSheet("seed")}>기존 제품 ${seedN}개 카드 만들기</button>`}
-        ${cnt.need > 0 && html`<button class="lnk" onClick=${() => T("need")}>분해 필요 ${cnt.need}장</button>`}
-        ${cnt.diff > 0 && html`<button class="lnk" onClick=${() => T("diff")}>가격정책표에 반영 전 ${cnt.diff}장</button>`}
-        ${cnt.over + cnt.soon > 0 && html`<button class="lnk" onClick=${() => T("val")}>견적 유효기간 지남 ${cnt.over} · 30일 이내 ${cnt.soon}</button>`}
-        ${cnt.chk > 0 && html`<button class="lnk" onClick=${() => T("chk")}>확인 필요 줄이 있는 카드 ${cnt.chk}장</button>`}
-        ${!seedN && !cnt.need && !cnt.over && !cnt.soon && !cnt.diff && !cnt.chk && html`<span>${items.length ? "급한 일 없음 ✓" : isM ? "[엑셀 올리기]나 [＋ 새 품목]으로 시작해요" : "아직 카드가 없어요"}</span>`}
-        ${S.ref && S.ref.at && html`<span style=${{ color: "var(--mute)", fontSize: 12 }}>· 가격정책표 기준 ${whenTxt(S.ref.at)}</span>`}
-      </div>
-      <div class="tools">
-        ${isM && html`<button class="btn solid" onClick=${() => openCard("new")}>＋ 새 품목</button>`}
-        ${isM && html`<button class="btn" onClick=${() => setSheet("import")}>📥 엑셀 올리기</button>`}
-        <button class="btn" disabled=${!items.length} onClick=${() => exportXlsx(ctx, items).then(() => setToast("엑셀을 받았어요")).catch((e) => { console.error("[엑셀 받기] 실패", e); setToast("엑셀 못 받았어요: " + (e.message || e)); })}>📤 엑셀 받기</button>
-        ${isM && seedN > 0 && html`<button class="btn" onClick=${() => setSheet("seed")}>🧩 기존 제품 카드 만들기 (${seedN})</button>`}
+      <div class="pstabs"><div class="tabbar" role="tablist" aria-label="분해원가 상태">${TABS.map(([k, lb]) => html`<button key=${k} type="button" role="tab" aria-selected=${tab === k} class=${tab === k ? "on" : ""} onClick=${() => setTab(k)}><span>${lb}</span><b>${cnt[k]}</b></button>`)}</div></div>
+      <div class="toolrow">
+        <span class="ttl">분해원가</span>
+        <input class="in q" type="text" placeholder="🔍 찾기 (품목·규격·제조사)" value=${q} onInput=${(e) => setQ(e.target.value)} aria-label="찾기" />
+        <select class="in" value=${mth} onChange=${(e) => setMth(e.target.value)} aria-label="생산 방식">${METHOD_OPTS.map(([k, n]) => html`<option key=${k} value=${k}>${n}</option>`)}</select>
+        <select class="in" value=${org} onChange=${(e) => setOrg(e.target.value)} aria-label="국내/수입">${ORIGIN_OPTS.map(([k, n]) => html`<option key=${k} value=${k}>${n}</option>`)}</select>
+        <div class="seg" role="group" aria-label="브랜드">${["", ...brands].map((b) => html`<button key=${b || "all"} type="button" class=${brand === b ? "on" : ""} onClick=${() => setBrand(b)}>${b || "전체"}<span class="n">${b ? items.filter((i) => (i.c.brand || "브랜드 없음") === b).length : items.length}</span></button>`)}</div>
+        <select class="in" value=${sort} onChange=${(e) => setSort(e.target.value)} aria-label="정렬">
+          <option value="brand">브랜드·생산 방식순</option><option value="cost">완제품 원가 높은 순</option><option value="val">유효기간 빠른 순</option><option value="recent">최근 바뀐 순</option></select>
         <span class="sp"></span>
-        ${isM && html`<button class="btn soft" onClick=${() => setSheet("trash")}>🗑 휴지통 ${(S.cards || []).filter((c) => c.deleted).length || ""}</button>`}
+        ${isM && html`<button class="tbtn primary" onClick=${() => openCard("new")}>＋ 새 품목</button>`}
+        ${isM && html`<button class="tbtn" onClick=${() => setSheet("import")}>📥 엑셀 올리기</button>`}
+        <button class="tbtn" disabled=${!items.length} onClick=${() => exportXlsx(ctx, items).then(() => setToast("엑셀을 받았어요")).catch((e) => { console.error("[엑셀 받기] 실패", e); setToast("엑셀 못 받았어요: " + (e.message || e)); })}>📤 엑셀 받기</button>
+        ${isM && seedN > 0 && html`<button class="tbtn" onClick=${() => setSheet("seed")}>🧩 기존 제품 카드 만들기 (${seedN})</button>`}
+        ${seeNames && (S.notion || isM) && html`<button class="tbtn" onClick=${() => setSheet("notion")}>노션 ${nUn ? html`<b style=${{ color: "var(--gd)" }}>연결 필요 ${nUn}</b>` : "가져오기"}</button>`}
+        ${isM && html`<button class="tbtn" onClick=${() => setSheet("trash")}>🗑 휴지통 ${(S.cards || []).filter((c) => c.deleted).length || ""}</button>`}
       </div>
-      <div class="chips">${["", ...brands].map((b) => html`<button key=${b || "all"} class=${"chip" + (brand === b ? " on" : "")} onClick=${() => setBrand(b)}>${b || "전체"}<span class="n">${b ? items.filter((i) => (i.c.brand || "브랜드 없음") === b).length : items.length}</span></button>`)}</div>
-      <div class="find" style=${{ marginBottom: 8 }}>
-        <input class="in" placeholder="품목·규격·제조사 찾기" value=${q} onInput=${(e) => setQ(e.target.value)} aria-label="찾기" />
-        <select class="in fsel" value=${mth} onChange=${(e) => setMth(e.target.value)} aria-label="생산 방식">${METHOD_OPTS.map(([k, n]) => html`<option key=${k} value=${k}>${n}</option>`)}</select>
-        <select class="in fsel" value=${org} onChange=${(e) => setOrg(e.target.value)} aria-label="국내/수입">${ORIGIN_OPTS.map(([k, n]) => html`<option key=${k} value=${k}>${n}</option>`)}</select>
-        <button class=${"chip" + (flt === "need" ? " on" : "")} onClick=${() => T("need")}>분해 필요<span class="n">${cnt.need}</span></button>
-        <select class="in fsel" value=${sort} onChange=${(e) => setSort(e.target.value)} aria-label="정렬">
-          <option value="brand">브랜드·품목순</option><option value="cost">완제품 원가 높은 순</option><option value="val">유효기간 빠른 순</option><option value="recent">최근 바뀐 순</option></select>
-        ${flt && flt !== "need" && html`<button class="chip on" onClick=${() => setFlt("")}>${{ val: "유효기간", diff: "반영 전", chk: "확인 필요" }[flt]} ✕</button>`}
-      </div>
+      ${lastRun && seeNames && html`<div class="pl-line"><b>노션 동기화</b> ${whenTxt(lastRun.at)} <i>·</i> 추가 ${lastRun.added} <i>·</i> 바뀜 ${lastRun.updated} <i>·</i> 그대로 ${lastRun.unchanged}${lastRun.deleted ? html` <i>·</i> 노션에서 삭제됨 ${lastRun.deleted}` : ""}${lastRun.unmatched ? html` <i>·</i> <button class="lnk" onClick=${() => setSheet("notion")}>연결 필요 ${nUn}</button>` : ""}${lastRun.errors ? html` <i>·</i> <span style=${{ color: "var(--red)" }}>오류 ${lastRun.errors}</span>` : ""}</div>`}
       ${!shown.length ? html`<div class="empty">${items.length ? "조건에 맞는 카드가 없어요." : isM ? "아직 분해원가 카드가 없어요. 위 [엑셀 올리기] · [기존 제품 카드 만들기] · [＋ 새 품목]으로 시작해요." : "아직 분해원가 카드가 없어요."}</div>`
-        : wide ? html`<${SumTable} items=${shown} open=${openCard} />` : html`<${SumList} items=${shown} open=${openCard} />`}
-      <p class="note">· 완제품 원가 = 구성요소 개당 금액 합(부가세 별도 · 구성요소마다 '적용' 업체 단가로) · 확정 = 모든 줄 근거(출처·견적일) 있음 · 견적 유효기간 = 카드·적용 업체 중 가장 빠른 날
-        <br />· 가격정책표 완제품 원가는 품목 1장의 [가격정책표에 반영]을 눌러야만 바뀌어요(마스터 · 기록 남음) · 세트(패키지)는 카드를 따로 만들지 않아요(구성 단품 합).</p>
+        : html`<${GridTable} items=${shown} open=${openCard} grouped=${sort === "brand"} seeNames=${seeNames} />`}
+      <p class="foot">· 완제품 원가 = 구성요소 개당 금액 합(부가세 별도 · 구성요소마다 '적용' 업체 단가) · 확정 = 모든 줄 근거(견적일·출처) 있음 · 견적 유효기간 = 카드·적용 업체 중 가장 빠른 날
+        <br />· 가격정책표 완제품 원가는 품목의 [가격정책표에 반영]을 눌러야만 바뀌어요(마스터 · 기록 남음) · 세트(패키지)는 카드를 따로 만들지 않아요(구성 단품 합) · <span class="tag nt">노션</span> = 노션 견적에서 온 값(노션에서 고쳐요)</p>
     <//>`}
     ${open && html`<${CardSheet} key=${okey} id=${open} ctx=${ctx} onClose=${() => setOpen(null)} onSaved=${(id) => setOpen(id)} />`}
     ${sheet === "import" && html`<${ImportSheet} ctx=${ctx} onClose=${() => setSheet("")} />`}
     ${sheet === "seed" && html`<${SeedSheet} ctx=${ctx} onClose=${() => setSheet("")} />`}
     ${sheet === "trash" && html`<${TrashSheet} ctx=${ctx} onClose=${() => setSheet("")} />`}
+    ${sheet === "notion" && html`<${NotionSheet} ctx=${ctx} onClose=${() => setSheet("")} openCard=${(id) => { setSheet(""); openCard(id); }} />`}
     ${toast && html`<div class="toast" role="status">${toast}</div>`}
   </div>`;
 }
-const REFL_TXT = { none: ["dim", "가격표 연결 안 됨"], gone: ["dim", "가격표에 없음"], set: ["dim", "세트"], nocost: ["tag chk", "가격표 원가 없음"], same: ["tag has", "가격표와 같음"], diff: ["tag diff", "반영 전"] };
-const reflTag = (i) => { if (i.need && i.refl !== "none") return ""; const [cl, t] = REFL_TXT[i.refl] || ["dim", ""]; return html`<span class=${cl}>${t}${i.refl === "diff" ? ` · 가격표 ${won(i.pt)}` : ""}</span>`; };
-const needTag = (i) => (i.need ? html`<span class="tag need">분해 필요</span>` : "");
+const REFL_TXT = { none: ["", "가격표 연결 안 됨"], gone: ["", "가격표에 없음"], set: ["", "세트"], nocost: ["tag chk", "가격표 원가 없음"], same: ["tag has", "가격표와 같음"], diff: ["tag diff", "반영 전"] };
+const reflTag = (i) => { if (i.need && i.refl !== "none") return ""; const [cl, t] = REFL_TXT[i.refl] || ["", ""]; return cl ? html`<span class=${cl}>${t}${i.refl === "diff" ? ` · 가격표 ${won(i.pt)}` : ""}</span>` : t; };
 const stTag2 = (st) => html`<span class=${"tag " + (st === "확정" ? "ok" : "tmp")}>${st}</span>`;
-const valCell = (i) => (i.vu ? html`<span class=${i.val === "over" ? "v-over vbox" : i.val === "soon" ? "v-soon vbox" : ""}>${dTxt(i.vu)}${i.val === "over" ? " 지남" : i.val === "soon" ? " 곧" : ""}</span>` : html`<span class="dim">—</span>`);
+const valCell = (i) => (i.vu ? html`<span class=${i.val === "over" ? "v-over" : i.val === "soon" ? "v-soon" : ""}>${dTxt(i.vu)}${i.val === "over" ? " 지남" : i.val === "soon" ? " 곧" : ""}</span>` : html`<span class="dim">—</span>`);
 const lastTxt = (h) => (h ? `${who(h.by)} ${whenTxt(h.at)} · ${h.what}${h.why ? ` (이유: ${h.why})` : ""}` : "—");
 const rateCls = (m) => (!m ? "dim" : m.rate < 0 ? "minusR" : "");
-function SumTable({ items, open }) {
-  return html`<div class="tblw"><table class="t" style=${{ minWidth: 860 }}><thead><tr>
-    <th>브랜드</th><th class="stk">품목 · 규격</th><th>생산 방식</th><th>국내/수입</th><th class="num">완제품 원가</th><th>확정/임시</th><th>견적 유효기간</th></tr></thead>
-    <tbody>${items.map((i) => html`<tr key=${i.c.id} class="go" onClick=${() => open(i.c.id)}>
-      <td class="nw">${i.c.brand || html`<span class="dim">—</span>`}</td>
-      <td class="stk"><div><b>${i.c.item || "(품목 없음)"}</b> <span class="dim">${i.c.spec}</span></div>
-        <div class="tline"><span class="dim">${i.c.round}${i.mfg ? " · " + i.mfg : ""}${i.multi ? ` · 업체 비교 ${i.multi}줄` : ""}</span>${needTag(i)}</div></td>
+// 가격정책표와 같은 표: 브랜드(진초록 줄) › 생산 방식(초록 줄) · 정렬을 바꾸면 묶음 없이
+function GridTable({ items, open, grouped, seeNames }) {
+  const rows = [];
+  let lb = null, lm = null;
+  items.forEach((i) => {
+    if (grouped) {
+      const b = i.c.brand || "브랜드 없음", m = C.methodName(i.c.method) || "생산 방식 미정";
+      if (b !== lb) { rows.push(html`<tr class="l1" key=${"b" + b}><td colspan="8">▣ ${b}<span class="n">${items.filter((x) => (x.c.brand || "브랜드 없음") === b).length}</span></td></tr>`); lb = b; lm = null; }
+      if (m !== lm) { rows.push(html`<tr class="l2" key=${"m" + b + m}><td colspan="8">▸ ${m}<span class="n">${items.filter((x) => (x.c.brand || "브랜드 없음") === b && (C.methodName(x.c.method) || "생산 방식 미정") === m).length}</span></td></tr>`); lm = m; }
+    }
+    rows.push(html`<tr key=${i.c.id} class="go" onClick=${() => open(i.c.id)}>
+      <td class="stk" style=${{ minWidth: 190 }}><div class="pname">${i.c.item || "(품목 없음)"}</div><div class="pspec">${[i.c.spec, i.c.round, !grouped ? i.c.brand : "", i.mfg].filter(Boolean).join(" · ")} ${i.need ? html`<span class="tag need">분해 필요</span>` : ""}${i.nt ? html` <span class="tag nt">노션</span>` : ""}${i.ndel ? html` <span class="tag ndel">노션 삭제 ${i.ndel}</span>` : ""}</div></td>
       <td class="nw">${C.methodName(i.c.method) || html`<span class="dim">미정</span>`}</td>
       <td class="nw">${i.c.origin || html`<span class="dim">—</span>`}</td>
-      <td class="num"><b>${W(i.x.unit)}</b><div class="tline" style=${{ justifyContent: "flex-end" }}>${reflTag(i)}</div></td>
+      <td class="num"><b>${W(i.x.unit)}</b><div class="sub">${reflTag(i)}</div></td>
       <td class="nw">${stTag2(i.st)}${i.chk ? html` <span class="tag chk">확인 ${i.chk}</span>` : ""}</td>
-      <td class="nw">${valCell(i)}</td></tr>`)}</tbody></table></div>`;
-}
-function SumList({ items, open }) {
-  return html`<div class="ml">${items.map((i) => html`<button key=${i.c.id} class="mr" onClick=${() => open(i.c.id)}>
-    <div class="a"><b>${i.c.item || "(품목 없음)"} ${i.c.spec}</b>${stTag2(i.st)}${needTag(i)}</div>
-    <div class="c"><span>${i.c.brand || "브랜드 —"}</span><span>${C.methodName(i.c.method) || "방식 미정"}</span>${i.c.origin ? html`<span>${i.c.origin}</span>` : ""}<span>유효기간 ${valCell(i)}</span></div>
-    <div class="b"><span>완제품 원가 <b>${W(i.x.unit)}</b></span>${reflTag(i)}</div>
-  </button>`)}</div>`;
+      <td class="nw">${valCell(i)}</td>
+      <td class="nw">${i.multi ? html`<span>비교 ${i.multi}줄</span>` : html`<span class="dim">—</span>`}</td>
+      <td class="nw">${seeNames ? (i.files ? html`<span title="견적서">📎 ${i.files}</span>` : html`<span class="dim">—</span>`) : html`<span class="dim" title="견적서는 마스터·경영 열람만">—</span>`}</td></tr>`);
+  });
+  return html`<div class="gridwrap"><table class="grid" style=${{ minWidth: 900 }}><thead><tr>
+    <th class="stk">품목 · 규격</th><th>생산 방식</th><th>국내/수입</th><th class="num">완제품 원가</th><th>확정/임시</th><th>견적 유효기간</th><th>업체</th><th>견적서</th></tr></thead>
+    <tbody>${rows}</tbody></table></div>`;
 }
 
 // ── 엑셀 받기 (요약 · 브랜드 합계 · 구성요소 전체 · 업체별 단가) ──
@@ -1050,29 +1237,38 @@ async function exportXlsx(ctx, items) {
 }
 const r2 = (v) => (v == null || !isFinite(v) ? "" : Math.round(v * 100) / 100);
 
+// ── 상세 화면 틀 (같은 틀 안 · 가격정책표 도구줄·탭 모양) ──
+function Frame({ title, meta, tabs, tab, setTab, right, close, rawClose, children, bar, label }) {
+  useBackClose(true, rawClose || close);
+  return html`<div class="sheet" role="dialog" aria-label=${label || title}>
+    <div class="dhead"><div class="r1"><button type="button" class="tbtn" onClick=${close}>← 목록</button><div class="tt">${title}</div><div class="meta">${meta || ""}</div><span class="sp"></span>${right || ""}</div>
+      ${tabs ? html`<div class="pstabs"><div class="tabbar" role="tablist">${tabs.map(([k, l, n]) => html`<button key=${k} type="button" role="tab" aria-selected=${tab === k} class=${tab === k ? "on" : ""} onClick=${() => setTab(k)}><span>${l}</span>${n != null && n !== "" ? html`<b>${n}</b>` : ""}</button>`)}</div></div>` : ""}
+    </div>
+    <div class="dbody">${children}</div>
+    ${bar || ""}
+  </div>`;
+}
 // ── 품목 1장 (분해원가) ──
 const TPL_NAMES = new Set(C.METHODS.flatMap(([k]) => [...C.templateRows(k, "국내"), ...C.templateRows(k, "수입")].map((t) => t.name)));
 const sgn = (v, d = 2) => (v == null || !isFinite(v) ? "—" : Math.abs(v) < 0.005 ? "±0원" : (v > 0 ? "+" : "−") + fmt(Math.abs(v), d) + "원");
 const sgnCls = (v) => (v == null || Math.abs(v) < 0.005 ? "dim" : v > 0 ? "plus" : "minus");
+const N_LOCK = new Set(["price", "vat", "cur", "moq", "lead", "qd", "vu"]);   // 노션 업체 칸에서 잠그는 것 (노션에서 고침)
 function CardSheet({ id, ctx, onClose, onSaved }) {
   const { S, user, role, isM, seeNames, refList, refMap, setToast } = ctx, wide = useWide();
   const card = id === "new" ? null : (S.cards || []).find((c) => c.id === id) || null;
   const names = (card && S.names[card.id]) || {};
   const [d, setD] = useState(() => toEdit(card));
   const [nm, setNm] = useState(() => namesInit(names, card ? card.rows : []));
-  const [tab, setTab] = useState("cost"), [why, setWhy] = useState(""), [busy, setBusy] = useState(false), [openV, setOpenV] = useState({});
+  const [tab, setTab] = useState("cost"), [why, setWhy] = useState(""), [busy, setBusy] = useState(false), [openV, setOpenV] = useState({}), [filesFor, setFilesFor] = useState(null);
   const base = useRef(stable({ d: toEdit(card), nm: namesInit(names, card ? card.rows : []) }));
-  // 실제 이름은 따로 늦게 올 수 있음 → 아직 안 고쳤으면 들어온 이름으로 채움
   const namesKey = stable(names);
-  useEffect(() => { if (!card) return; const fresh = namesInit(names, card.rows);
+  useEffect(() => { if (!card) return; const fresh = namesInit(names, card.rows);   // 실제 이름은 늦게 올 수 있음 → 아직 안 고쳤으면 새 값
     setNm((cur) => (stable(cur) === stable(JSON.parse(base.current).nm) ? fresh : cur)); base.current = stable({ d: JSON.parse(base.current).d, nm: fresh }); }, [namesKey]);
-  // 다른 곳에서 카드가 바뀌면(예: 가격정책표에 반영) 아직 안 고쳤을 때만 새 값으로
   const cardKey = card ? stable({ ...card, history: (card.history || []).length }) : "";
-  useEffect(() => { if (!card) return; const fresh = toEdit(card); setD((cur) => (stable(cur) === stable(JSON.parse(base.current).d) ? fresh : cur));
-    base.current = stable({ d: fresh, nm: JSON.parse(base.current).nm }); }, [cardKey]);
+  useEffect(() => { if (!card) return; const fresh = toEdit(card);   // 다른 곳에서 바뀌면(반영·노션) 아직 안 고쳤을 때만 새 값
+    setD((cur) => (stable(cur) === stable(JSON.parse(base.current).d) ? fresh : cur)); base.current = stable({ d: fresh, nm: JSON.parse(base.current).nm }); }, [cardKey]);
   const dirty = stable({ d, nm }) !== base.current;
   const close = () => { if (isM && dirty && !confirm("저장하지 않은 내용이 있어요. 닫을까요?")) return; onClose(); };
-  useBackClose(true, onClose);
   const ro = !isM;
   const live = useMemo(() => fromEdit(d), [d]), x = useMemo(() => C.cardCalc(live), [live]);
   const cmp = useMemo(() => C.vendorCompare(live), [live]), cheap = useMemo(() => C.cardCalc(C.cheapestCard(live)).unit, [live]);
@@ -1086,12 +1282,12 @@ function CardSheet({ id, ctx, onClose, onSaved }) {
   const setV = (i, vid, k, v) => upRow(i, (r) => ({ ...r, vendors: r.vendors.map((x) => (x.vid === vid ? { ...x, [k]: v } : x)) }));
   const pickV = (i, vid) => upRow(i, (r) => ({ ...r, sel: vid }));
   const addV = (i) => { upRow(i, (r) => { const vid = C.nextVid(r.vendors), a = av(r); return { ...r, vendors: [...r.vendors, { ...newVendor(vid), vat: a.vat || "V-", cur: a.cur || "" }] }; }); setOpenV((o) => ({ ...o, [d.rows[i].id]: true })); };
-  const rmV = (i, vid) => upRow(i, (r) => { const vs = r.vendors.filter((x) => x.vid !== vid); return { ...r, vendors: vs, sel: r.sel === vid ? vs[0].vid : r.sel }; });
+  const rmV = (i, vid) => { const v = d.rows[i].vendors.find((x) => x.vid === vid); if (isNotion(v) && !confirm("노션에서 온 견적이에요. 빼도 다음 노션 동기화 때 다시 들어와요 — 노션에서 지우는 게 맞아요. 그래도 뺄까요?")) return;
+    upRow(i, (r) => { const vs = r.vendors.filter((x) => x.vid !== vid); return { ...r, vendors: vs, sel: r.sel === vid ? vs[0].vid : r.sel }; }); };
   const rowIdx = (rid) => d.rows.findIndex((r) => r.id === rid);
   const addRow = () => setD((o) => ({ ...o, rows: [...o.rows, newRow()], need: o.need && o.rows.length >= 1 && o.seed === "price-table" ? false : o.need }));
   const rmRow = (i) => setD((o) => ({ ...o, rows: o.rows.filter((_, k) => k !== i) }));
   const mvRow = (i, dir) => setD((o) => { const rows = o.rows.slice(), j = i + dir; if (j < 0 || j >= rows.length) return o; [rows[i], rows[j]] = [rows[j], rows[i]]; return { ...o, rows }; });
-  // 생산 방식·국내/수입 → 기본 줄 (아직 숫자를 넣지 않은 기본 줄뿐이면 새 방식 기본 줄로 바꿈)
   const untouched = (rows) => rows.every((r) => C.rowEmpty(C.syncRow(r)) || (TPL_NAMES.has(String(r.name).trim()) && r.vendors.every((v) => !String(v.price).trim() && !String(v.qd).trim())));
   const reTpl = (o, method, origin) => (method && untouched(o.rows) ? C.templateRows(method, origin).map(tplRow) : o.rows);
   const setMethod = (v) => setD((o) => { const origin = o.origin || (v === "imp" ? "수입" : v ? "국내" : ""); return { ...o, method: v, origin, rows: reTpl(o, v, origin) }; });
@@ -1099,10 +1295,16 @@ function CardSheet({ id, ctx, onClose, onSaved }) {
   const addTpl = () => setD((o) => { const have = new Set(o.rows.map((r) => String(r.name).trim())), add = C.templateRows(o.method, o.origin).filter((t) => !have.has(t.name)).map(tplRow);
     return { ...o, rows: [...o.rows.filter((r) => !C.rowEmpty(C.syncRow(r))), ...add] }; });
   const tplMissing = d.method ? C.templateRows(d.method, d.origin).filter((t) => !d.rows.some((r) => String(r.name).trim() === t.name)).length : 0;
-  // 업체 이름: 마스터 = 고치는 칸 / 경영 열람 = 실제 이름 / 부마스터 = 가칭
+  // 기존 값 줄(가격정책표 매입원가 1줄)과 노션 구성요소가 같이 있으면 두 번 더해짐 → 안내 + 한 번에 빼기
+  const seedRow = d.rows.findIndex((r) => r.id === "seed" && r.vendors.some((v) => /가격정책표 기존 값/.test(v.qd || "")));
+  const hasNotion = d.rows.some((r) => r.vendors.some((v) => isNotion(v)));
   const nv = useMemo(() => namesInit(names, card ? card.rows : []), [namesKey]);
-  const vName = (r, v) => (isM ? ((nm.vsup || {})[r.id] || {})[v.vid] || "" : seeNames ? ((nv.vsup || {})[r.id] || {})[v.vid] || v.alias || "" : v.alias || "");
+  const NM = isM ? nm : nv;   // 이름·견적서·노션 주소: 마스터 = 고치는 값 · 경영 열람 = 저장된 값 · 부마스터 = 안 씀
+  const vName = (r, v) => (seeNames ? ((NM.vsup || {})[r.id] || {})[v.vid] || (isM ? "" : v.alias || "") : v.alias || "");
+  const vUrl = (r, v) => (seeNames ? ((NM.vurl || {})[r.id] || {})[v.vid] || "" : "");
+  const vFiles = (r, v) => (seeNames ? (((NM.vfiles || {})[r.id] || {})[v.vid]) || [] : []);
   const setVName = (r, vid, val) => setNm((o) => ({ ...o, vsup: { ...o.vsup, [r.id]: { ...((o.vsup || {})[r.id] || {}), [vid]: val } } }));
+  const setVFiles = (rid, vid, list) => setNm((o) => ({ ...o, vfiles: { ...o.vfiles, [rid]: { ...((o.vfiles || {})[rid] || {}), [vid]: list } } }));
   const knownNames = useMemo(() => { const s = new Set(); Object.values(S.names || {}).forEach((n) => { if (n.mfg) s.add(n.mfg); Object.values(n.sup || {}).forEach((v) => v && s.add(v)); Object.values(n.vsup || {}).forEach((m) => Object.values(m || {}).forEach((v) => v && s.add(v))); }); return [...s].sort(); }, [S.names]);
   const brandList = useMemo(() => [...new Set([...(S.cards || []).map((c) => c.brand).filter(Boolean), "POUR스토어", "GROHOME", "바라스데이"])], [S.cards]);
   const prodOpts = useMemo(() => refList.filter((p) => p.type !== "세트").map((p) => ({ k: p.k, lb: `${p.name}${p.spec && p.spec !== "-" ? " " + p.spec : ""} · ${(p.brand || []).join("/")} · ${ST_NAME[p.st] || p.st || ""}` })), [refList]);
@@ -1123,51 +1325,62 @@ function CardSheet({ id, ctx, onClose, onSaved }) {
   const del = async () => { if (!card || !confirm(`'${card.item} ${card.spec}' 카드를 휴지통으로 옮길까요? (휴지통에서 되살릴 수 있어요)`)) return;
     try { await setDeleted(user, card, true); setToast("휴지통으로 옮겼어요"); onClose(); } catch (e) { console.error("[cost-cards] 휴지통 실패", e); setToast("못 옮겼어요: " + (e.code || e.message)); } };
   const title = card ? `${card.item || "(품목 없음)"} ${card.spec || ""}` : "새 품목";
-  const val = C.validity(live.validUntil, ctx.today);
-  const cst = C.cardStatus(live);
-  const inp = (v, on, o = {}) => html`<input class=${"in" + (o.num ? " num" : "") + (ro ? " ro" : "")} value=${v ?? ""} onInput=${(e) => on(e.target.value)} disabled=${ro} placeholder=${ro ? "" : o.ph || ""} inputmode=${o.num ? "decimal" : undefined} list=${o.list} type=${o.type || "text"} aria-label=${o.al || o.ph || ""} />`;
-  const sel = (v, on, opts, o = {}) => html`<select class=${"in" + (ro ? " ro" : "")} value=${v ?? ""} onChange=${(e) => on(e.target.value)} disabled=${ro} aria-label=${o.al || ""}>${(opts.some((p) => p[0] === (v ?? "")) ? opts : [[v ?? "", v ? v : "(빈칸)"], ...opts]).map(([a, b]) => html`<option key=${a} value=${a}>${b}</option>`)}</select>`;
+  const val = C.validity(live.validUntil, ctx.today), cst = C.cardStatus(live);
+  const inp = (v, on, o = {}) => html`<input class=${"in" + (o.num ? " num" : "") + (ro || o.lock ? " ro" : "")} value=${v ?? ""} onInput=${(e) => on(e.target.value)} disabled=${ro || !!o.lock} placeholder=${ro || o.lock ? "" : o.ph || ""} inputmode=${o.num ? "decimal" : undefined} list=${o.list} type=${o.type || "text"} aria-label=${o.al || o.ph || ""} title=${o.lock ? "노션에서 온 값 — 노션에서 고쳐요" : undefined} />`;
+  const sel = (v, on, opts, o = {}) => html`<select class=${"in" + (ro || o.lock ? " ro" : "")} value=${v ?? ""} onChange=${(e) => on(e.target.value)} disabled=${ro || !!o.lock} aria-label=${o.al || ""}>${(opts.some((p) => p[0] === (v ?? "")) ? opts : [[v ?? "", v ? v : "(빈칸)"], ...opts]).map(([a, b]) => html`<option key=${a} value=${a}>${b}</option>`)}</select>`;
   const KIND_OPTS = [["", "구분 고르기"], ...C.KINDS.map((k) => [k, k])], IN_OPTS = [["별도", "별도"], ["포함", "포함"]], PER_OPTS = [["개당", "개당"], ["1회", "1회"]], VAT_OPTS = C.VATS, ST_OPTS = [["", "자동(확정)"], ["확정", "확정"], ["임시", "임시"], ["확인 필요", "확인 필요"]];
-  const CUR_OPTS = C.CURS.map(([k, n]) => [k, k || "원"]);
+  const CUR_OPTS = C.CURS.map(([k]) => [k, k || "원"]);
   const stTag = (st) => html`<span class=${"tag " + (st === "확정" ? "ok" : st === "임시" ? "tmp" : "chk")}>${st}</span>`;
   const hint1 = (r) => (!ro && r.kind === "1회 비용" && !String(r.use || "").trim() ? html`<div class="hint">무엇에 쓰는지에 대상(박스·통·파우치) 이름을 넣어 주세요</div>` : "");
   const rcalc = (r) => C.rowCalc(C.syncRow(r), d.qty, live.fx);
-  const vbtn = (r, i) => { const a = av(r), k = r.vendors.indexOf(a), on = !!openV[r.id];
-    return html`<button class=${"vbtn" + (on ? " on" : "")} onClick=${() => setOpenV((o) => ({ ...o, [r.id]: !o[r.id] }))} aria-expanded=${on} title="업체 여러 곳 · 단가 비교">${vLabel(a, k)}${r.vendors.length > 1 ? html` <b>${r.vendors.length}곳</b>` : ""} ${on ? "▴" : "▾"}</button>`; };
-  const priceIn = (r, i) => { const a = av(r); return html`<div class="pcur">${inp(a.price, (v) => setV(i, a.vid, "price", v), { num: true, ph: "0", al: "견적 단가" })}${a.cur ? html`<span class="cu">${a.cur}</span>` : ""}</div>`; };
-  return html`<div class="sheet" role="dialog" aria-label=${title}>
-    <div class="sh-top"><div class="sh-in">
-      <div class="sh-t"><div class="tt">${title}</div>${isM && card && html`<button class="btn sm red" onClick=${del}>휴지통</button>`}<button class="x" onClick=${close}>닫기</button></div>
-      <div class="sh-sub">${live.brand || "브랜드 —"} · ${live.round || "차수 —"} · ${C.methodName(live.method) || "생산 방식 미정"}${live.origin ? " · " + live.origin : ""} ${stTag2(cst)} ${live.need ? html`<span class="tag need">분해 필요</span>` : ""} ${ro ? html`<span class="tag off">보기 전용</span>` : ""}${card && card.updatedAt ? html`<span>· 마지막 ${who(card.updatedBy)} ${whenTxt(card.updatedAt)}</span>` : ""}</div>
-      <div class="tabs" role="tablist">${[["cost", "원가 계산"], ["cmp", `업체 비교${multiN ? " " + multiN : ""}`], ["hist", `이력 ${card && card.history ? card.history.length : 0}`]].map(([k, l]) => html`<button key=${k} role="tab" class=${"tab" + (tab === k ? " on" : "")} onClick=${() => setTab(k)}>${l}</button>`)}</div>
-    </div></div>
-    <div class="sh-body">
+  // 업체 칸 하나 (노션 업체면 노션 칸 잠금)
+  const vin = (i, v, k, o = {}) => { const lock = isNotion(v) && N_LOCK.has(k);
+    if (k === "cur") return sel(v.cur, (x) => setV(i, v.vid, "cur", x), CUR_OPTS, { al: v.vid + " 통화", lock });
+    if (k === "vat") return sel(v.vat, (x) => setV(i, v.vid, "vat", x), VAT_OPTS, { al: v.vid + " 부가세", lock });
+    if (k === "vu") return inp(C.parseDate(v.vu) || v.vu, (x) => setV(i, v.vid, "vu", x), { type: ro || lock ? "text" : "date", al: v.vid + " 유효기간", lock });
+    return inp(v[k], (x) => setV(i, v.vid, k, x), { ...o, lock }); };
+  const nameIn = (r, i, v) => (isM && !isNotion(v) ? inp(vName(r, v), (x) => setVName(r, v.vid, x), { list: "pccNames", ph: "업체 이름", al: v.vid + " 업체 이름" }) : html`<span class="vnm" title=${isNotion(v) ? "노션 공급업체" : ""}>${vName(r, v) || "—"}</span>`);
+  const nTags = (r, v) => html`${isNotion(v) ? html` <span class="tag nt" title=${v.nno ? "노션 견적 " + v.nno : "노션 견적"}>노션</span>` : ""}${v.ndel ? html` <span class="tag ndel" title="노션에서 지운 견적 — 계산엔 그대로(빼려면 ✕)">노션에서 삭제됨</span>` : ""}${isNotion(v) && vUrl(r, v) ? html` <a class="lnk" style=${{ fontSize: 11 }} href=${vUrl(r, v)} target="_blank" rel="noopener">노션에서 고치기 ↗</a>` : ""}`;
+  const fileBtn = (r, v) => { if (!seeNames) return html`<span class="dim" title="견적서는 마스터·경영 열람만">—</span>`; const n = vFiles(r, v).length;
+    return html`<button type="button" class="tbtn sm" onClick=${() => setFilesFor({ rid: r.id, vid: v.vid, lb: `${r.name || r.kind || "구성요소"} · ${v.vid} ${vName(r, v) || ""}` })} title="견적서 (PDF·이미지·노션)">📎 ${n || (isM ? "＋" : 0)}</button>`; };
+  const vbtn = (r) => { const a = av(r), k = r.vendors.indexOf(a), on = !!openV[r.id];
+    return html`<button type="button" class=${"vbtn" + (on ? " on" : "")} onClick=${() => setOpenV((o) => ({ ...o, [r.id]: !o[r.id] }))} aria-expanded=${on} title="업체 여러 곳 · 단가 비교">${vLabel(a, k)}${r.vendors.length > 1 ? html` <b>${r.vendors.length}곳</b>` : ""} ${on ? "▴" : "▾"}</button>`; };
+  const priceIn = (r, i) => { const a = av(r); return html`<div class="pcur">${vin(i, a, "price", { num: true, ph: "0", al: "견적 단가" })}${a.cur ? html`<span class="cu">${a.cur}</span>` : ""}</div>`; };
+  const vProps = { ro, isM, seeNames, vin, nameIn, nTags, fileBtn, pickV, addV, rmV };
+  const bar = isM ? html`<div class="bar"><div class="in2">
+      <span class="st">${dirty ? "● 저장 안 됨" : "저장됨"}</span>
+      <input class="in why" placeholder="바꾼 이유 (선택 · 이력에 남아요)" value=${why} onInput=${(e) => setWhy(e.target.value)} aria-label="바꾼 이유" />
+      <button type="button" class="tbtn primary" style=${{ height: 32, padding: "0 18px" }} disabled=${busy || (!dirty && !!card)} onClick=${save}>${busy ? "저장 중…" : card ? "저장" : "만들기"}</button>
+    </div></div>` : "";
+  const meta = html`<span>${live.brand || "브랜드 —"} · ${live.round || "차수 —"} · ${C.methodName(live.method) || "생산 방식 미정"}${live.origin ? " · " + live.origin : ""}</span>${stTag2(cst)}${live.need ? html`<span class="tag need">분해 필요</span>` : ""}${ro ? html`<span class="tag off">보기 전용</span>` : ""}${card && card.updatedAt ? html`<span>마지막 ${who(card.updatedBy)} ${whenTxt(card.updatedAt)}</span>` : ""}`;
+  return html`<${Frame} title=${title} meta=${meta} close=${close} rawClose=${onClose} bar=${bar} tab=${tab} setTab=${setTab}
+      tabs=${[["cost", "원가 계산"], ["cmp", "업체 비교", multiN || null], ["hist", "이력", card && card.history ? card.history.length : 0]]}
+      right=${isM && card ? html`<button type="button" class="tbtn red" onClick=${del}>휴지통</button>` : ""}>
     ${tab === "cost" && html`<${React.Fragment}>
-      <${ResultPanel} ctx=${ctx} card=${card} d=${d} setD=${setD} live=${live} x=${x} prod=${prod} pt=${pt} ro=${ro} dirty=${dirty} cheap=${cheap} multiN=${multiN} goCmp=${() => setTab("cmp")} />
-      <div class="sec"><h3>기본 정보</h3>
+      <${ResultBar} ctx=${ctx} card=${card} d=${d} setD=${setD} live=${live} x=${x} prod=${prod} pt=${pt} ro=${ro} dirty=${dirty} cheap=${cheap} multiN=${multiN} goCmp=${() => setTab("cmp")} />
+      ${seedRow >= 0 && hasNotion && html`<div class="pl-line" style=${{ background: "#fff" }}>노션 견적 구성요소가 들어왔어요. 처음 넣은 <b>'완제품 매입'(가격정책표 기존 값)</b> 줄이 같이 있으면 두 번 더해져요.${isM ? html` <button type="button" class="tbtn sm" onClick=${() => rmRow(seedRow)}>그 줄 빼기</button> (뺀 뒤 [저장])` : ""}</div>`}
+      <div class="panel"><div class="ph">기본 정보<span class="rt">${!seeNames ? "업체는 가칭" : ""}</span></div><div class="pb">
         <div class="fg">
           <div class="fld"><label>브랜드</label>${inp(d.brand, (v) => set("brand", v), { list: "pccBrands", ph: "예: 바라스데이", al: "브랜드" })}</div>
-          <div class="fld"><label>차수</label>${inp(d.round, (v) => set("round", v), { ph: "1차", al: "차수" })}</div>
           <div class="fld"><label>품목</label>${inp(d.item, (v) => set("item", v), { ph: "예: 핸드워시", al: "품목" })}</div>
           <div class="fld"><label>규격</label>${inp(d.spec, (v) => set("spec", v), { ph: "예: 500ml", al: "규격" })}</div>
+          <div class="fld"><label>차수</label>${inp(d.round, (v) => set("round", v), { ph: "1차", al: "차수" })}</div>
           <div class="fld"><label>생산 방식</label>${sel(d.method, setMethod, [["", "고르기"], ...C.METHODS.map(([k, n]) => [k, n])], { al: "생산 방식" })}</div>
           <div class="fld"><label>국내 · 수입</label>${sel(d.origin, setOrigin, [["", "고르기"], ["국내", "국내"], ["수입", "수입"]], { al: "국내 수입" })}</div>
-          <div class="fld w2"><label>완제품 제조사 ${!seeNames ? "(가칭)" : ""}</label>${isM ? inp(nm.mfg, (v) => setNm((o) => ({ ...o, mfg: v })), { list: "pccNames", ph: "실제 이름 (부마스터에겐 가칭)", al: "완제품 제조사" }) : html`<div class="calc" style=${{ fontWeight: 700 }}>${seeNames ? names.mfg || live.mfgAlias || "—" : live.mfgAlias || "—"}</div>`}</div>
+          <div class="fld w2"><label>완제품 제조사 ${!seeNames ? "(가칭)" : ""}</label>${isM ? inp(nm.mfg, (v) => setNm((o) => ({ ...o, mfg: v })), { list: "pccNames", ph: "실제 이름 (부마스터에겐 가칭)", al: "완제품 제조사" }) : html`<div class="calc" style=${{ fontWeight: 600 }}>${seeNames ? names.mfg || live.mfgAlias || "—" : live.mfgAlias || "—"}</div>`}</div>
           <div class="fld w2"><label>완제품 범위 (한 줄)</label>${inp(d.scope, (v) => set("scope", v), { ph: "예: 내용물 충진 + 용기 + 라벨 + 단상자", al: "완제품 범위" })}</div>
-          <div class="fld"><label>생산 수량 (개)</label>${inp(d.qty, (v) => set("qty", v), { num: true, ph: "예: 5000", al: "생산 수량" })}${live.seed === "price-table" && +live.qty === 1 ? html`<div class="hint">자동 생성 카드라 1개로 둠 · 분해할 때 실제 수량으로</div>` : ""}</div>
-          <div class="fld"><label>견적 유효기간</label>${inp(C.parseDate(d.validUntil) || d.validUntil, (v) => set("validUntil", v), { type: ro ? "text" : "date", al: "견적 유효기간" })}${val && html`<div class=${"hint v-" + val} style=${{ borderRadius: 5, padding: "1px 5px", display: "inline-block" }}>${val === "over" ? "유효기간 지남" : val === "soon" ? "30일 이내" : "유효"}</div>`}</div>
+          <div class="fld"><label>생산 수량 (개)</label>${inp(d.qty, (v) => set("qty", v), { num: true, ph: "예: 5000", al: "생산 수량" })}${live.seed === "price-table" && +live.qty === 1 ? html`<div class="hint">자동 생성 카드라 1개 · 분해할 때 실제 수량으로</div>` : ""}</div>
+          <div class="fld"><label>견적 유효기간 ${val === "over" ? html`<span class="v-over">지남</span>` : val === "soon" ? html`<span class="v-soon">곧</span>` : ""}</label>${inp(C.parseDate(d.validUntil) || d.validUntil, (v) => set("validUntil", v), { type: ro ? "text" : "date", al: "견적 유효기간" })}</div>
           <div class="fld"><label>합계 포함</label>${sel(d.include === false ? "제외" : "포함", (v) => set("include", v !== "제외"), [["포함", "포함"], ["제외", "제외"]], { al: "합계 포함" })}</div>
           <div class="fld"><label>분해 상태</label>${sel(d.need ? "need" : "done", (v) => set("need", v === "need"), [["done", "분해함"], ["need", "분해 필요"]], { al: "분해 상태" })}</div>
-          ${curs.map((k) => html`<div class="fld" key=${"fx" + k}><label>${k} 환율 (1 ${k} = 원)</label>${inp((d.fx || {})[k] || "", (v) => setFx(k, v), { num: true, ph: "예: 1385", al: k + " 환율" })}${!C.num((d.fx || {})[k]) ? html`<div class="hint">비우면 ${k} 줄은 '확인 필요' · 원화 0</div>` : ""}</div>`)}
-          <div class="fld w4"><label>가격정책표 제품 연결 (없어도 저장돼요 · 출시 전 품목은 비워 둬요)</label>
+          ${curs.map((k) => html`<div class="fld" key=${"fx" + k}><label>${k} 환율 (1 ${k} = 원)</label>${inp((d.fx || {})[k] || "", (v) => setFx(k, v), { num: true, ph: "예: 1385", al: k + " 환율" })}${!C.num((d.fx || {})[k]) ? html`<div class="hint">비우면 ${k} 줄 '확인 필요'</div>` : ""}</div>`)}
+          <div class="fld w3"><label>가격정책표 제품 연결 ${prod ? html`<span class="dim" style=${{ fontWeight: 500 }}>· 지금 완제품 원가 ${pt == null ? "없음" : won(pt) + "원"} · ${ST_NAME[prod.st] || prod.st || ""}</span>` : ""}</label>
             ${ro ? html`<div class="calc" style=${{ fontWeight: 600 }}>${prod ? prodTxt : live.prodKey ? live.prodLabel || "가격표에 없음" : "연결 안 됨"}</div>`
-              : html`<input class="in" list="pccProds" value=${prodTxt} onInput=${(e) => pickProd(e.target.value)} placeholder="제품 이름으로 찾아 고르기" aria-label="가격정책표 제품" />`}
-            ${prod && html`<div class="note" style=${{ marginTop: 4 }}>지금 가격정책표 완제품 원가 <b>${pt == null ? "없음" : won(pt) + "원"}</b> · ${ST_NAME[prod.st] || prod.st || ""} · ${(prod.brand || []).join("/")}</div>`}
-          </div>
+              : html`<input class="in" list="pccProds" value=${prodTxt} onInput=${(e) => pickProd(e.target.value)} placeholder="제품 이름으로 찾아 고르기 (출시 전 품목은 비워 둬요)" aria-label="가격정책표 제품" />`}</div>
         </div>
-        <details style=${{ marginTop: 10 }} open=${!!(d.frag.name || d.frag.ratioPct || d.frag.batchKg || d.frag.directKg)}>
-          <summary style=${{ cursor: "pointer", fontWeight: 700, fontSize: 13, color: "var(--ink2)" }}>향료 (선택)</summary>
-          <div class="fg" style=${{ marginTop: 8 }}>
+        <details style=${{ marginTop: 8 }} open=${!!(d.frag.name || d.frag.ratioPct || d.frag.batchKg || d.frag.directKg)}>
+          <summary style=${{ cursor: "pointer", fontWeight: 600, fontSize: 12, color: "var(--ink2)" }}>향료 (선택)</summary>
+          <div class="fg" style=${{ marginTop: 6 }}>
             <div class="fld"><label>향료 이름</label>${inp(d.frag.name, (v) => setF("name", v), { ph: "예: 시트러스", al: "향료 이름" })}</div>
             <div class="fld"><label>함유율 (%)</label>${inp(d.frag.ratioPct, (v) => setF("ratioPct", v), { num: true, ph: "예: 0.8", al: "향료 함유율" })}</div>
             <div class="fld"><label>배합량 (kg)</label>${inp(d.frag.batchKg, (v) => setF("batchKg", v), { num: true, ph: "예: 950", al: "배합량" })}</div>
@@ -1175,184 +1388,189 @@ function CardSheet({ id, ctx, onClose, onSaved }) {
             <div class="fld"><label>향료 필요량 (kg)</label><div class="calc">${fmt(x.frag, 3)}</div></div>
           </div>
         </details>
-      </div>
-      <div class="sec"><h3>구성요소 <span class="rt">${d.rows.length}줄 · 업체 버튼(A 주 ▾)을 누르면 업체 여러 곳</span><span class="sp"></span>
-          ${!ro && d.method && tplMissing > 0 && html`<button class="btn sm soft" onClick=${addTpl}>＋ ${C.methodName(d.method)} 기본 줄 ${tplMissing}개</button>`}${!ro && html`<button class="btn sm" onClick=${addRow}>＋ 줄 추가</button>`}</h3>
-        ${!d.method && !ro && html`<div class="note" style=${{ margin: "-4px 0 8px" }}>위 기본 정보에서 생산 방식을 고르면 그 방식의 기본 줄(예: 자체생산 = 원료·용기·캡·라벨·단상자·공임·간접비)이 들어가요.</div>`}
-        ${wide ? html`<div class="tblw" style=${{ border: 0 }}><table class="t ed"><thead><tr>
-            <th>번호</th><th style=${{ width: 116 }}>구분</th><th style=${{ minWidth: 150 }}>구성 요소</th><th style=${{ minWidth: 140 }}>무엇에 쓰는지</th><th style=${{ minWidth: 190 }}>업체 (적용)${seeNames ? "" : " · 가칭"}</th><th style=${{ width: 74 }}>제조 단가에 포함?</th>
-            <th style=${{ width: 110 }}>견적 단가</th><th style=${{ width: 88 }}>부가세</th><th class="num">단가(V-, 원)</th><th style=${{ width: 70 }}>개당/1회</th><th style=${{ width: 78 }}>개당 사용량·1회 횟수</th><th style=${{ width: 88 }}>구매·MOQ 수량</th>
-            <th class="num">개당 금액</th><th class="num">첫 생산 남는 비용</th><th style=${{ minWidth: 120 }}>출처·견적일</th><th style=${{ width: 100 }}>상태</th>${!ro && html`<th></th>`}</tr></thead>
+      </div></div>
+      <div class="panel"><div class="ph">구성요소 <span class="rt">${d.rows.length}줄 · 업체 단추(A 주 ▾)를 누르면 업체 여러 곳</span><span class="sp"></span>
+          ${!ro && d.method && tplMissing > 0 && html`<button type="button" class="tbtn sm" onClick=${addTpl}>＋ ${C.methodName(d.method)} 기본 줄 ${tplMissing}개</button>`}${!ro && html`<button type="button" class="tbtn sm" onClick=${addRow}>＋ 줄 추가</button>`}</div>
+        <div class="pb flush">
+        ${!d.method && !ro && html`<div class="note" style=${{ padding: "6px 10px 0" }}>기본 정보에서 생산 방식을 고르면 그 방식의 기본 줄(예: 자체생산 = 원료·용기·캡·라벨·단상자·공임·간접비)이 들어가요.</div>`}
+        ${wide ? html`<div class="gridwrap"><table class="grid ed"><thead><tr>
+            <th>번호</th><th style=${{ width: 110 }}>구분</th><th style=${{ minWidth: 140 }}>구성 요소</th><th style=${{ minWidth: 120 }}>무엇에 쓰는지</th><th style=${{ minWidth: 200 }}>업체 (적용)${seeNames ? "" : " · 가칭"}</th><th style=${{ width: 70 }}>제조 단가 포함?</th>
+            <th style=${{ width: 106 }}>견적 단가</th><th style=${{ width: 86 }}>부가세</th><th class="num">단가(V-, 원)</th><th style=${{ width: 66 }}>개당/1회</th><th style=${{ width: 70 }}>사용량·횟수</th><th style=${{ width: 82 }}>구매·MOQ</th>
+            <th class="num">개당 금액</th><th class="num">첫 생산 남는 비용</th><th style=${{ minWidth: 110 }}>견적일·출처</th><th style=${{ width: 96 }}>상태</th>${!ro && html`<th></th>`}</tr></thead>
           <tbody>${d.rows.map((r, i) => { const m = rcalc(r), a = av(r); return html`<${React.Fragment} key=${r.id}><tr class=${openV[r.id] ? "vopen" : ""}>
             <td class="nw">${!ro && html`<button class="mv" title="위로" onClick=${() => mvRow(i, -1)}>▲</button>`}${i + 1}${!ro && html`<button class="mv" title="아래로" onClick=${() => mvRow(i, 1)}>▼</button>`}</td>
             <td>${sel(r.kind, (v) => setR(i, "kind", v), KIND_OPTS, { al: "구분" })}</td>
             <td>${inp(r.name, (v) => setR(i, "name", v), { ph: "예: 용기", al: "구성 요소" })}</td>
             <td>${inp(r.use, (v) => setR(i, "use", v), { ph: r.kind === "1회 비용" ? "대상 박스·통·파우치" : "쓰임", al: "무엇에 쓰는지" })}${hint1(r)}</td>
-            <td><div class="vcell">${vbtn(r, i)}${isM ? inp(vName(r, a), (v) => setVName(r, a.vid, v), { list: "pccNames", ph: "업체 이름", al: "적용 업체 이름" }) : html`<span class="vnm">${vName(r, a) || "—"}</span>`}</div></td>
+            <td><div class="vcell">${vbtn(r)}${nameIn(r, i, a)}</div>${isNotion(a) || a.ndel ? html`<div class="sub">${nTags(r, a)}</div>` : ""}</td>
             <td>${sel(r.inMfg, (v) => setR(i, "inMfg", v), IN_OPTS, { al: "제조 단가에 포함" })}</td>
             <td>${priceIn(r, i)}</td>
-            <td>${sel(a.vat, (v) => setV(i, a.vid, "vat", v), VAT_OPTS, { al: "부가세" })}</td>
+            <td>${vin(i, a, "vat")}</td>
             <td class="c">${fmt(m.unitV)}</td>
             <td>${sel(r.per, (v) => setR(i, "per", v), PER_OPTS, { al: "개당/1회" })}</td>
             <td>${inp(r.usage, (v) => setR(i, "usage", v), { num: true, ph: "1", al: "사용량" })}</td>
-            <td>${inp(a.moq, (v) => setV(i, a.vid, "moq", v), { num: true, ph: "", al: "MOQ" })}</td>
+            <td>${vin(i, a, "moq", { num: true, al: "MOQ" })}</td>
             <td class="c">${fmt(m.per)}</td><td class="c">${fmt(m.left, 0)}</td>
-            <td>${inp(a.qd, (v) => setV(i, a.vid, "qd", v), { ph: "견적서 날짜", al: "출처" })}</td>
-            <td>${ro ? stTag(m.st) : html`<div style=${{ display: "flex", gap: 3, alignItems: "center" }}>${sel(r.st, (v) => setR(i, "st", v), ST_OPTS, { al: "상태" })}</div>`}${!ro && (m.st !== (r.st || "확정")) ? html`<div style=${{ marginTop: 2 }}>${stTag(m.st)}</div>` : ""}</td>
+            <td>${vin(i, a, "qd", { ph: "견적서 날짜", al: "출처" })}</td>
+            <td>${ro ? stTag(m.st) : html`<div>${sel(r.st, (v) => setR(i, "st", v), ST_OPTS, { al: "상태" })}</div>`}${!ro && (m.st !== (r.st || "확정")) ? html`<div style=${{ marginTop: 2 }}>${stTag(m.st)}</div>` : ""}</td>
             ${!ro && html`<td><button class="rmv" title="줄 빼기" onClick=${() => rmRow(i)}>✕</button></td>`}
-          </tr>${openV[r.id] && html`<tr class="vrow"><td colspan=${ro ? 16 : 17}><${VendorPanel} r=${r} i=${i} cx=${cmp[live.rows.findIndex((y) => y.id === r.id)]} ro=${ro} isM=${isM} seeNames=${seeNames} vName=${vName} setVName=${setVName} setV=${setV} pickV=${pickV} addV=${addV} rmV=${rmV} CUR_OPTS=${CUR_OPTS} VAT_OPTS=${VAT_OPTS} sel=${sel} inp=${inp} /></td></tr>`}<//>`; })}</tbody>
+          </tr>${openV[r.id] && html`<tr class="vrow"><td colspan=${ro ? 16 : 17}><${VendorTable} r=${r} i=${i} cx=${cmp[live.rows.findIndex((y) => y.id === r.id)]} ...${vProps} /></td></tr>`}<//>`; })}</tbody>
           <tfoot><tr><td colspan="12" style=${{ textAlign: "right" }}>합계</td><td class="c">${fmt(x.unit)}</td><td class="c">${fmt(x.leftSum, 0)}</td><td colspan=${ro ? 2 : 3}>근거 확인 ${x.ok}/${x.n}</td></tr></tfoot></table></div>`
         : html`<div>${d.rows.map((r, i) => { const m = rcalc(r), a = av(r); return html`<div class="rc" key=${r.id}>
-            <div class="rh"><span class="no">${i + 1}</span>${sel(r.kind, (v) => setR(i, "kind", v), KIND_OPTS, { al: "구분" })}${!ro && html`<button class="btn sm" onClick=${() => mvRow(i, -1)} aria-label="위로">▲</button><button class="btn sm red" onClick=${() => rmRow(i)} aria-label="줄 빼기">✕</button>`}</div>
+            <div class="rh"><span class="no">${i + 1}</span>${sel(r.kind, (v) => setR(i, "kind", v), KIND_OPTS, { al: "구분" })}${!ro && html`<button type="button" class="tbtn sm" onClick=${() => mvRow(i, -1)} aria-label="위로">▲</button><button type="button" class="tbtn sm red" onClick=${() => rmRow(i)} aria-label="줄 빼기">✕</button>`}</div>
             <div class="g">
               <div class="fld w2"><label>구성 요소</label>${inp(r.name, (v) => setR(i, "name", v), { ph: "예: 용기", al: "구성 요소" })}</div>
               <div class="fld w2"><label>무엇에 쓰는지</label>${inp(r.use, (v) => setR(i, "use", v), { ph: r.kind === "1회 비용" ? "대상 박스·통·파우치" : "쓰임", al: "무엇에 쓰는지" })}${hint1(r)}</div>
-              <div class="fld w2"><label>업체 (적용)${seeNames ? "" : " · 가칭"}</label><div class="vcell">${vbtn(r, i)}${isM ? inp(vName(r, a), (v) => setVName(r, a.vid, v), { list: "pccNames", ph: "업체 이름", al: "적용 업체 이름" }) : html`<span class="vnm">${vName(r, a) || "—"}</span>`}</div></div>
+              <div class="fld w2"><label>업체 (적용)${seeNames ? "" : " · 가칭"} ${nTags(r, a)}</label><div class="vcell">${vbtn(r)}${nameIn(r, i, a)}</div></div>
               <div class="fld"><label>견적 단가${a.cur ? ` (${a.cur})` : ""}</label>${priceIn(r, i)}</div>
-              <div class="fld"><label>부가세</label>${sel(a.vat, (v) => setV(i, a.vid, "vat", v), VAT_OPTS, { al: "부가세" })}</div>
+              <div class="fld"><label>부가세</label>${vin(i, a, "vat")}</div>
               <div class="fld"><label>개당/1회</label>${sel(r.per, (v) => setR(i, "per", v), PER_OPTS, { al: "개당/1회" })}</div>
               <div class="fld"><label>${r.per === "1회" ? "1회 횟수" : "개당 사용량"}</label>${inp(r.usage, (v) => setR(i, "usage", v), { num: true, ph: "1", al: "사용량" })}</div>
               <div class="fld"><label>제조 단가에 포함?</label>${sel(r.inMfg, (v) => setR(i, "inMfg", v), IN_OPTS, { al: "제조 단가에 포함" })}</div>
-              <div class="fld"><label>구매·MOQ 수량</label>${inp(a.moq, (v) => setV(i, a.vid, "moq", v), { num: true, al: "MOQ" })}</div>
-              <div class="fld"><label>출처·견적일</label>${inp(a.qd, (v) => setV(i, a.vid, "qd", v), { ph: "견적서 날짜", al: "출처" })}</div>
+              <div class="fld"><label>구매·MOQ 수량</label>${vin(i, a, "moq", { num: true, al: "MOQ" })}</div>
+              <div class="fld"><label>견적일·출처</label>${vin(i, a, "qd", { ph: "견적서 날짜", al: "출처" })}</div>
               <div class="fld"><label>상태</label>${ro ? html`<div class="calc">${stTag(m.st)}</div>` : sel(r.st, (v) => setR(i, "st", v), ST_OPTS, { al: "상태" })}</div>
             </div>
             <div class="res"><span>단가(V-) <b>${fmt(m.unitV)}</b></span><span>개당 금액 <b>${fmt(m.per)}</b></span><span>남는 비용 <b>${fmt(m.left, 0)}</b></span>${stTag(m.st)}</div>
-            ${openV[r.id] && html`<${VendorPanel} r=${r} i=${i} cx=${cmp[live.rows.findIndex((y) => y.id === r.id)]} ro=${ro} isM=${isM} seeNames=${seeNames} vName=${vName} setVName=${setVName} setV=${setV} pickV=${pickV} addV=${addV} rmV=${rmV} CUR_OPTS=${CUR_OPTS} VAT_OPTS=${VAT_OPTS} sel=${sel} inp=${inp} />`}
+            ${openV[r.id] && html`<${VendorCards} r=${r} i=${i} cx=${cmp[live.rows.findIndex((y) => y.id === r.id)]} ...${vProps} />`}
           </div>`; })}</div>`}
-        ${!ro && html`<div style=${{ marginTop: 10 }}><button class="btn" onClick=${addRow}>＋ 줄 추가</button></div>`}
-        <p class="note">· 1회 비용(동판·목형·운임·관세 등)은 '1회'를 고르고 횟수를 넣어요 → 생산 수량으로 나눠요 · '제조 단가에 포함'이면 개당 금액 0 (첫 생산 남는 비용은 계산)
-          <br />· 출처·견적일이나 단가를 비우면 '임시', 부가세가 V?거나 환율이 없으면 '확인 필요'로 자동 표시돼요 · 외화 단가 = 견적 단가 × 위 환율(원)</p>
-      </div>
-      <details class="sec more"><summary>더 보기 · 첫 생산 원가 · 근거 확인 · 수량 바꿔 보기</summary>
-        <div class="kv" style=${{ marginTop: 10 }}>
-          <div><div class="k">첫 생산 원가</div><div class="v">${W(x.first)}</div><div class="s">+ 남는 비용 ${W(x.leftSum, 0)} ÷ ${won(x.qty)}개</div></div>
-          <div><div class="k">첫 생산 금액</div><div class="v">${W(x.firstAmt, 0)}</div><div class="s">첫 생산 원가 × 생산 수량</div></div>
-          <div><div class="k">생산 수량</div><div class="v">${won(x.qty)}개</div><div class="s">기본 정보에서 고쳐요</div></div>
-          <div><div class="k">근거 확인 비율</div><div class="v">${x.n ? Math.round(x.okRatio * 100) + "%" : "—"}</div><div class="s">확정 ${x.ok}줄 / 전체 ${x.n}줄</div></div>
-        </div>
-        <div class="subt">${Object.entries(x.byKind).map(([k, v]) => html`<span key=${k}>${k} <b>${fmt(v)}</b></span>`)}</div>
+        ${!ro && html`<div style=${{ padding: 10 }}><button type="button" class="tbtn" onClick=${addRow}>＋ 줄 추가</button></div>`}
+        </div></div>
+      <p class="foot">· 1회 비용(동판·목형·운임·관세 등)은 '1회'를 고르고 횟수를 넣어요 → 생산 수량으로 나눠요 · '제조 단가에 포함'이면 개당 금액 0 (첫 생산 남는 비용은 계산)
+        <br />· 견적일·출처나 단가를 비우면 '임시', 부가세가 V?거나 환율이 없으면 '확인 필요' · 외화 단가 = 견적 단가 × 위 환율(원) · <span class="tag nt">노션</span> 칸은 노션에서 고쳐요(적용 업체·사용량은 여기서)</p>
+      <details class="panel"><summary class="ph">더 보기 · 첫 생산 원가 · 근거 확인 · 수량 바꿔 보기</summary><div class="pb">
+        <div class="kline" style=${{ fontSize: 12.5, gap: 10 }}><span>첫 생산 원가 <b>${W(x.first)}</b></span><i>·</i><span>첫 생산 금액 <b>${W(x.firstAmt, 0)}</b></span><i>·</i><span>생산 수량 <b>${won(x.qty)}개</b></span><i>·</i><span>근거 확인 <b>${x.n ? Math.round(x.okRatio * 100) + "%" : "—"}</b> (${x.ok}/${x.n}줄)</span></div>
+        <div class="kline" style=${{ marginTop: 6 }}>${Object.entries(x.byKind).map(([k, v], j) => html`<${React.Fragment} key=${k}>${j ? html`<i>·</i>` : ""}<span>${k} <b>${fmt(v)}</b></span><//>`)}</div>
         <${QtyCompare} live=${live} />
-      </details>
+      </div></details>
     <//>`}
-    ${tab === "cmp" && html`<${CompareTab} live=${live} x=${x} cmp=${cmp} cheap=${cheap} ro=${ro} vName=${vName} onPick=${(rid, vid) => { const i = rowIdx(rid); if (i >= 0) pickV(i, vid); }}
+    ${tab === "cmp" && html`<${CompareTab} live=${live} x=${x} cmp=${cmp} cheap=${cheap} ro=${ro} vName=${vName} nTags=${nTags} fileBtn=${fileBtn} onPick=${(rid, vid) => { const i = rowIdx(rid); if (i >= 0) pickV(i, vid); }}
       onAll=${() => setD((o) => ({ ...o, rows: o.rows.map((r) => { const c = cmp.find((y) => y && y.r.id === r.id); return c && c.best && !c.best.on ? { ...r, sel: c.best.v.vid } : r; }) }))}
       goRow=${(rid) => { setOpenV((o) => ({ ...o, [rid]: true })); setTab("cost"); }} dirty=${dirty} />`}
-    ${tab === "hist" && html`<div class="sec"><h3>변경 이력 <span class="rt">누가 · 언제 · 무엇을 · 이유 (최근 100건)</span></h3>
-      ${card && card.history && card.history.length ? html`<ul class="hist">${card.history.map((h, k) => html`<li key=${k}><b>${who(h.by)}</b> <span class="w">${whenTxt(h.at)}</span><div>${h.what}</div>${h.why ? html`<div class="w">이유: ${h.why}</div>` : ""}</li>`)}</ul>` : html`<div class="empty">아직 이력이 없어요.</div>`}</div>`}
-    </div>
-    ${isM ? html`<div class="bar"><div class="in2">
-        <span class="st">${dirty ? "● 저장 안 됨" : "저장됨"}</span>
-        <input class="in why" placeholder="바꾼 이유 (선택 · 이력에 남아요)" value=${why} onInput=${(e) => setWhy(e.target.value)} aria-label="바꾼 이유" />
-        <button class="btn solid" style=${{ height: 40 }} disabled=${busy || (!dirty && !!card)} onClick=${save}>${busy ? "저장 중…" : card ? "저장" : "만들기"}</button>
-      </div></div>` : ""}
+    ${tab === "hist" && html`<div class="panel"><div class="ph">변경 이력 <span class="rt">누가 · 언제 · 무엇을 · 이유 (최근 100건)</span></div><div class="pb flush">
+      ${card && card.history && card.history.length ? html`<div class="gridwrap"><table class="grid hist" style=${{ minWidth: 640 }}><thead><tr><th>언제</th><th>누가</th><th>무엇을</th><th>이유</th></tr></thead><tbody>${card.history.map((h, k) => html`<tr key=${k}><td class="nw">${whenTxt(h.at)}</td><td class="nw">${who(h.by)}</td><td>${h.what}</td><td class="dim">${h.why || ""}</td></tr>`)}</tbody></table></div>` : html`<div class="empty">아직 이력이 없어요.</div>`}</div></div>`}
+    ${filesFor && (() => { const r = d.rows.find((y) => y.id === filesFor.rid), v = r && r.vendors.find((y) => y.vid === filesFor.vid); if (!r || !v) return "";
+      return html`<${FilesModal} title=${filesFor.lb} files=${vFiles(r, v)} canEdit=${isM} notionUrl=${vUrl(r, v)} user=${user} onChange=${(l) => setVFiles(r.id, v.vid, l)} onClose=${() => setFilesFor(null)} />`; })()}
     <datalist id="pccBrands">${brandList.map((b) => html`<option key=${b} value=${b} />`)}</datalist>
     ${isM && html`<datalist id="pccNames">${knownNames.map((b) => html`<option key=${b} value=${b} />`)}</datalist>`}
     ${isM && html`<datalist id="pccProds">${prodOpts.map((o) => html`<option key=${o.k} value=${o.lb} />`)}</datalist>`}
-  </div>`;
+  <//>`;
 }
-// 구성요소 1줄의 업체들 (A 주 · B 서브 · C…) — 적용 1곳 · 고치기(마스터)
-function VendorPanel({ r, i, cx, ro, isM, seeNames, vName, setVName, setV, pickV, addV, rmV, CUR_OPTS, VAT_OPTS, sel, inp }) {
+// 구성요소 1줄의 업체들 — PC: 표 (A 주 · B 서브 · C…) · 적용 1곳
+function VendorTable({ r, i, cx, ro, vin, nameIn, nTags, fileBtn, pickV, addV, rmV }) {
   const nextL = C.nextVid(r.vendors), nextK = r.vendors.length;
-  return html`<div class="vpan"><div class="vgrid">${r.vendors.map((v, k) => { const l = cx && cx.list.find((y) => y.v.vid === v.vid), on = v.vid === r.sel, best = cx && cx.best && cx.best.v.vid === v.vid && cx.list.filter((y) => y.priced).length > 1;
-    return html`<div key=${v.vid} class=${"vc" + (on ? " on" : "")}>
-      <div class="vh"><label class="tg"><input type="radio" name=${"sel-" + r.id} checked=${on} disabled=${ro} onChange=${() => pickV(i, v.vid)} aria-label=${v.vid + " 적용"} />${vLabel(v, k)}</label>
-        ${on ? html`<span class="tag ok">적용</span>` : ""}${best ? html`<span class="tag has">최저</span>` : ""}<span class="sp"></span>
-        ${!ro && r.vendors.length > 1 && html`<button class="rmv" title="업체 빼기" onClick=${() => rmV(i, v.vid)} aria-label=${v.vid + " 업체 빼기"}>✕</button>`}</div>
-      <div class="vf">
-        <div class="fld w2"><label>업체 이름${seeNames ? "" : " (가칭)"}</label>${isM ? inp(vName(r, v), (x) => setVName(r, v.vid, x), { list: "pccNames", ph: "업체 이름", al: v.vid + " 업체 이름" }) : html`<div class="calc" style=${{ fontWeight: 600 }}>${vName(r, v) || "—"}</div>`}</div>
-        <div class="fld"><label>통화</label>${sel(v.cur, (x) => setV(i, v.vid, "cur", x), CUR_OPTS, { al: v.vid + " 통화" })}</div>
-        <div class="fld"><label>견적 단가</label>${inp(v.price, (x) => setV(i, v.vid, "price", x), { num: true, ph: "0", al: v.vid + " 견적 단가" })}</div>
-        <div class="fld"><label>부가세</label>${sel(v.vat, (x) => setV(i, v.vid, "vat", x), VAT_OPTS, { al: v.vid + " 부가세" })}</div>
-        <div class="fld"><label>MOQ</label>${inp(v.moq, (x) => setV(i, v.vid, "moq", x), { num: true, al: v.vid + " MOQ" })}</div>
-        <div class="fld"><label>리드타임</label>${inp(v.lead, (x) => setV(i, v.vid, "lead", x), { ph: "예: 3주", al: v.vid + " 리드타임" })}</div>
-        <div class="fld"><label>견적일·출처</label>${inp(v.qd, (x) => setV(i, v.vid, "qd", x), { ph: "견적서 날짜", al: v.vid + " 견적일" })}</div>
-        <div class="fld"><label>유효기간</label>${inp(C.parseDate(v.vu) || v.vu, (x) => setV(i, v.vid, "vu", x), { type: ro ? "text" : "date", al: v.vid + " 유효기간" })}</div>
-        <div class="fld w2"><label>메모</label>${inp(v.memo, (x) => setV(i, v.vid, "memo", x), { ph: "조건·특이사항", al: v.vid + " 메모" })}</div>
-      </div>
-      <div class="vr">${l && l.priced ? html`<span>단가(V-) <b>${fmt(l.m.unitV)}원</b></span><span>개당 <b>${fmt(l.m.per)}원</b></span>${!on ? html`<span class=${sgnCls(l.dPer)}>적용보다 완제품 원가 ${sgn(l.dPer)}</span>` : ""}` : html`<span class="dim">${v.cur && !(l && l.priced) && C.num(v.price) != null ? `${v.cur} 환율을 기본 정보에 넣어 주세요` : "단가를 넣으면 비교돼요"}</span>`}</div>
-    </div>`; })}
-    ${!ro && html`<button class="vadd" onClick=${() => addV(i)}>＋ 업체 ${nextL}${C.vRole(nextK) ? " " + C.vRole(nextK) : ""} 추가<span>같은 구성요소를 다른 업체 견적으로</span></button>`}
-  </div></div>`;
+  return html`<div style=${{ overflowX: "auto", paddingRight: 8 }}><table class="vt"><thead><tr><th>적용</th><th>업체</th><th style=${{ minWidth: 150 }}>업체 이름</th><th>통화</th><th style=${{ width: 90 }}>견적 단가</th><th style=${{ width: 84 }}>부가세</th><th style=${{ width: 78 }}>MOQ</th><th style=${{ width: 72 }}>리드타임</th><th style=${{ width: 96 }}>견적일·출처</th><th style=${{ width: 118 }}>유효기간</th><th style=${{ minWidth: 110 }}>메모</th><th>견적서</th><th class="num">단가(V-, 원)</th><th class="num">개당</th><th class="num">적용보다</th>${!ro && html`<th></th>`}</tr></thead>
+    <tbody>${r.vendors.map((v, k) => { const l = cx && cx.list.find((y) => y.v.vid === v.vid), on = v.vid === r.sel, best = cx && cx.best && cx.best.v.vid === v.vid && cx.list.filter((y) => y.priced).length > 1;
+      return html`<tr key=${v.vid} class=${on ? "on" : ""}>
+        <td><input type="radio" name=${"sel-" + r.id} checked=${on} disabled=${ro} onChange=${() => pickV(i, v.vid)} aria-label=${v.vid + " 적용"} /></td>
+        <td class="nw"><b>${vLabel(v, k)}</b>${best ? html` <span class="tag has">최저</span>` : ""}${nTags(r, v)}</td>
+        <td>${nameIn(r, i, v)}</td>
+        <td>${vin(i, v, "cur")}</td><td>${vin(i, v, "price", { num: true, ph: "0", al: v.vid + " 견적 단가" })}</td><td>${vin(i, v, "vat")}</td>
+        <td>${vin(i, v, "moq", { num: true, al: v.vid + " MOQ" })}</td><td>${vin(i, v, "lead", { ph: "예: 3주", al: v.vid + " 리드타임" })}</td>
+        <td>${vin(i, v, "qd", { ph: "견적서 날짜", al: v.vid + " 견적일" })}</td><td>${vin(i, v, "vu")}</td>
+        <td>${vin(i, v, "memo", { ph: v.nnote ? "노션: " + v.nnote : "조건·특이사항", al: v.vid + " 메모" })}</td>
+        <td>${fileBtn(r, v)}</td>
+        <td class="c">${l && l.priced ? fmt(l.m.unitV) : html`<span class="dim">${v.cur && C.num(v.price) != null ? "환율 필요" : "—"}</span>`}</td>
+        <td class="c">${l && l.priced ? fmt(l.m.per) : "—"}</td>
+        <td class="c">${l && l.priced && !on ? html`<span class=${sgnCls(l.dPer)}>${sgn(l.dPer)}</span>` : on ? html`<span class="dim">적용 중</span>` : "—"}</td>
+        ${!ro && html`<td>${r.vendors.length > 1 ? html`<button class="rmv" title="업체 빼기" onClick=${() => rmV(i, v.vid)} aria-label=${v.vid + " 업체 빼기"}>✕</button>` : ""}</td>`}
+      </tr>`; })}</tbody></table>
+    ${!ro && html`<button type="button" class="vadd" onClick=${() => addV(i)}>＋ 업체 ${nextL}${C.vRole(nextK) ? " " + C.vRole(nextK) : ""} 추가 <span class="dim" style=${{ fontWeight: 500 }}>— 같은 구성요소를 다른 업체 견적으로</span></button>`}</div>`;
 }
-// 업체 비교 탭 — 지금 적용 원가 · 모두 최저가로 고르면 · 줄마다 업체 나란히
-function CompareTab({ live, x, cmp, cheap, ro, vName, onPick, onAll, goRow, dirty }) {
+// 폰: 업체 한 곳씩
+function VendorCards({ r, i, cx, ro, vin, nameIn, nTags, fileBtn, pickV, addV, rmV }) {
+  const nextL = C.nextVid(r.vendors), nextK = r.vendors.length;
+  return html`<div>${r.vendors.map((v, k) => { const l = cx && cx.list.find((y) => y.v.vid === v.vid), on = v.vid === r.sel, best = cx && cx.best && cx.best.v.vid === v.vid && cx.list.filter((y) => y.priced).length > 1;
+    return html`<div key=${v.vid} class=${"vc" + (on ? " on" : "")}>
+      <div class="vh"><label style=${{ display: "flex", gap: 5, alignItems: "center", fontWeight: 800 }}><input type="radio" name=${"sel-" + r.id} checked=${on} disabled=${ro} onChange=${() => pickV(i, v.vid)} aria-label=${v.vid + " 적용"} />${vLabel(v, k)}</label>
+        ${on ? html`<span class="tag ok">적용</span>` : ""}${best ? html`<span class="tag has">최저</span>` : ""}${nTags(r, v)}<span class="sp"></span>${fileBtn(r, v)}
+        ${!ro && r.vendors.length > 1 && html`<button class="rmv" style=${{ border: 0, background: "none", color: "var(--mute)", fontSize: 15 }} title="업체 빼기" onClick=${() => rmV(i, v.vid)} aria-label=${v.vid + " 업체 빼기"}>✕</button>`}</div>
+      <div class="vf">
+        <div class="fld w2"><label>업체 이름</label>${nameIn(r, i, v)}</div>
+        <div class="fld"><label>통화</label>${vin(i, v, "cur")}</div><div class="fld"><label>견적 단가</label>${vin(i, v, "price", { num: true, ph: "0", al: v.vid + " 견적 단가" })}</div>
+        <div class="fld"><label>부가세</label>${vin(i, v, "vat")}</div><div class="fld"><label>MOQ</label>${vin(i, v, "moq", { num: true, al: v.vid + " MOQ" })}</div>
+        <div class="fld"><label>리드타임</label>${vin(i, v, "lead", { ph: "예: 3주", al: v.vid + " 리드타임" })}</div><div class="fld"><label>견적일·출처</label>${vin(i, v, "qd", { ph: "견적서 날짜", al: v.vid + " 견적일" })}</div>
+        <div class="fld"><label>유효기간</label>${vin(i, v, "vu")}</div><div class="fld"><label>메모</label>${vin(i, v, "memo", { ph: "조건·특이사항", al: v.vid + " 메모" })}</div>
+      </div>
+      <div class="vr">${l && l.priced ? html`<span>단가(V-) <b>${fmt(l.m.unitV)}원</b></span><span>개당 <b>${fmt(l.m.per)}원</b></span>${!on ? html`<span class=${sgnCls(l.dPer)}>적용보다 ${sgn(l.dPer)}</span>` : ""}` : html`<span class="dim">${v.cur && C.num(v.price) != null ? `${v.cur} 환율을 기본 정보에 넣어 주세요` : "단가를 넣으면 비교돼요"}</span>`}</div>
+    </div>`; })}
+    ${!ro && html`<button type="button" class="vadd" style=${{ width: "100%" }} onClick=${() => addV(i)}>＋ 업체 ${nextL}${C.vRole(nextK) ? " " + C.vRole(nextK) : ""} 추가</button>`}</div>`;
+}
+// 업체 비교 — 표 하나: 구성요소(초록 줄)마다 업체 나란히
+function CompareTab({ live, x, cmp, cheap, ro, vName, nTags, fileBtn, onPick, onAll, goRow, dirty }) {
   const multi = cmp.filter((c) => c && c.n > 1), single = cmp.filter((c) => c && c.n === 1), diff = cheap - x.unit;
   return html`<${React.Fragment}>
-    <div class="sec"><div class="kv cmpk">
-      <div><div class="k">지금 적용 원가</div><div class="v">${W(x.unit)}</div><div class="s">구성요소마다 '적용' 업체 단가로</div></div>
-      <div><div class="k">모두 최저가로 고르면</div><div class=${"v " + (diff < -0.005 ? "minus" : "")}>${W(cheap)}</div><div class="s">${Math.abs(diff) < 0.005 ? "지금이 이미 최저가예요" : `지금보다 ${sgn(diff)} (개당)`}</div></div>
-      <div><div class="k">업체 2곳 이상</div><div class="v">${multi.length}줄</div><div class="s">구성요소 ${x.n}줄 중</div></div>
-    </div>
-    ${!ro && Math.abs(diff) >= 0.005 && html`<div style=${{ marginTop: 10, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}><button class="btn" onClick=${onAll}>모두 최저가 업체로 적용 (${sgn(diff)})</button><span class="note" style=${{ margin: 0 }}>누른 뒤 아래 [저장]해야 바뀌어요${dirty ? " · 지금 저장 안 된 내용 있음" : ""}</span></div>`}
-    </div>
-    ${multi.length ? multi.map((c) => html`<div class="sec" key=${c.r.id}><h3>${c.r.name || c.r.kind || "구성요소"} <span class="rt">${c.r.kind || ""}${c.r.per === "1회" ? " · 1회 비용(÷ 생산 수량)" : ""}</span><span class="sp"></span><button class="lnk" style=${{ fontSize: 12.5 }} onClick=${() => goRow(c.r.id)}>업체 고치기</button></h3>
-      <div class="cgrid">${c.list.map((l) => { const bst = c.best && c.best.v.vid === l.v.vid;
-        return html`<div key=${l.v.vid} class=${"cc" + (l.on ? " on" : "") + (bst ? " best" : "")}>
-          <div class="ch"><b>${vLabel(l.v, l.k)}</b><span class="cn">${vName(c.r, l.v) || ""}</span>${l.on ? html`<span class="tag ok">적용</span>` : ""}${bst ? html`<span class="tag has">최저</span>` : ""}</div>
-          ${l.priced ? html`<div class="cv">개당 <b>${fmt(l.m.per)}원</b></div>
-            <div class="cs">단가 ${l.v.cur ? `${fmt(C.num(l.v.price), 4)} ${l.v.cur} → ` : ""}${fmt(l.m.unitV)}원(V-)${C.num(l.v.moq) != null ? ` · MOQ ${won(C.num(l.v.moq))}` : ""}${l.v.lead ? ` · ${l.v.lead}` : ""}${l.v.vu ? ` · ~${dTxt(l.v.vu)}` : ""}</div>
-            ${l.on ? html`<div class="cd dim">지금 적용 중</div>` : html`<div class="cd">${l.v.vid}로 바꾸면 부품 단가 <b class=${sgnCls(l.dUnit)}>${sgn(l.dUnit)}</b> · 완제품 원가 <b class=${sgnCls(l.dPer)}>${sgn(l.dPer)}</b>${Math.abs(l.dFirst - l.dPer) >= 0.005 ? html` · 첫 생산 원가 <b class=${sgnCls(l.dFirst)}>${sgn(l.dFirst)}</b> (MOQ 차이)` : ""}</div>`}
-            ${!ro && !l.on ? html`<button class="btn sm" style=${{ marginTop: 6 }} onClick=${() => onPick(c.r.id, l.v.vid)}>${l.v.vid}로 적용</button>` : ""}`
-          : html`<div class="cs dim">${l.v.cur && C.num(l.v.price) != null ? `${l.v.cur} 환율이 없어요 (기본 정보)` : "단가 없음"}</div>`}
-        </div>`; })}</div></div>`)
-      : html`<div class="empty">아직 업체가 2곳 이상인 구성요소가 없어요.${ro ? "" : html`<br />원가 계산 탭 › 구성요소의 업체 버튼(A 주 ▾) › [＋ 업체 B 서브 추가]로 다른 견적을 넣으면 여기서 나란히 비교돼요.`}</div>`}
-    ${single.length > 0 && html`<p class="note">업체 1곳뿐: ${single.map((c) => c.r.name || c.r.kind).join(" · ")}</p>`}
+    <div class="pl-line"><span>지금 적용 원가 <b class="big">${W(x.unit)}</b></span><i>·</i><span>모두 최저가로 고르면 <b class=${"big " + (diff < -0.005 ? "minus" : "")}>${W(cheap)}</b> ${Math.abs(diff) < 0.005 ? "(지금이 최저)" : `(${sgn(diff)})`}</span><i>·</i><span>업체 2곳 이상 <b>${multi.length}</b> / ${x.n}줄</span>
+      ${!ro && Math.abs(diff) >= 0.005 ? html`<span style=${{ flex: 1 }}></span><button type="button" class="tbtn primary" onClick=${onAll}>모두 최저가 업체로 적용 (${sgn(diff)})</button><span class="dim" style=${{ fontSize: 11.5 }}>누른 뒤 [저장]${dirty ? " · 저장 안 된 내용 있음" : ""}</span>` : ""}</div>
+    ${multi.length ? html`<div class="panel"><div class="pb flush"><div class="gridwrap"><table class="grid" style=${{ minWidth: 980 }}><thead><tr>
+        <th class="stk">업체</th><th>업체 이름</th><th class="num">단가 (V-, 원)</th><th class="num">개당 금액</th><th class="num">바꾸면 완제품 원가</th><th class="num">첫 생산 원가</th><th class="num">MOQ</th><th>리드타임</th><th>유효기간</th><th>견적서</th><th></th></tr></thead>
+      <tbody>${multi.map((c) => html`<${React.Fragment} key=${c.r.id}>
+        <tr class="l2"><td colspan="11">▸ ${c.r.name || c.r.kind || "구성요소"}<span class="n">${c.r.kind || ""}${c.r.per === "1회" ? " · 1회 비용(÷ 생산 수량)" : ""}</span> <button type="button" class="lnk" style=${{ marginLeft: 10 }} onClick=${() => goRow(c.r.id)}>업체 고치기</button></td></tr>
+        ${c.list.map((l) => { const bst = c.best && c.best.v.vid === l.v.vid;
+          return html`<tr key=${l.v.vid} style=${l.on ? { fontWeight: 700 } : null}>
+            <td class="stk nw" style=${l.on ? { background: "var(--gl)" } : bst ? { background: "var(--gl2)" } : null}>${vLabel(l.v, l.k)} ${l.on ? html`<span class="tag ok">적용</span>` : ""}${bst ? html` <span class="tag has">최저</span>` : ""}${nTags(c.r, l.v)}</td>
+            <td>${vName(c.r, l.v) || html`<span class="dim">—</span>`}</td>
+            <td class="num">${l.priced ? html`${l.v.cur ? html`<span class="dim" style=${{ fontWeight: 500 }}>${fmt(C.num(l.v.price), 4)} ${l.v.cur} → </span>` : ""}${fmt(l.m.unitV)}` : html`<span class="dim">${l.v.cur && C.num(l.v.price) != null ? "환율 필요" : "단가 없음"}</span>`}</td>
+            <td class="num">${l.priced ? html`<b>${fmt(l.m.per)}</b>` : "—"}</td>
+            <td class="num">${l.on ? html`<span class="dim">적용 중</span>` : l.priced ? html`<span class=${sgnCls(l.dPer)}>${sgn(l.dPer)}</span>` : "—"}</td>
+            <td class="num">${!l.on && l.priced && Math.abs(l.dFirst - l.dPer) >= 0.005 ? html`<span class=${sgnCls(l.dFirst)} title="MOQ 차이로 첫 생산 때 남는 비용">${sgn(l.dFirst)}</span>` : html`<span class="dim">—</span>`}</td>
+            <td class="num">${C.num(l.v.moq) != null ? won(C.num(l.v.moq)) : "—"}</td>
+            <td class="nw">${l.v.lead || html`<span class="dim">—</span>`}</td>
+            <td class="nw">${l.v.vu ? dTxt(l.v.vu) : html`<span class="dim">—</span>`}</td>
+            <td>${fileBtn(c.r, l.v)}</td>
+            <td>${!ro && !l.on && l.priced ? html`<button type="button" class="tbtn sm" onClick=${() => onPick(c.r.id, l.v.vid)}>${l.v.vid}로 적용</button>` : ""}</td></tr>`; })}<//>`)}</tbody></table></div></div></div>`
+      : html`<div class="panel"><div class="empty">아직 업체가 2곳 이상인 구성요소가 없어요.${ro ? "" : html`<br />원가 계산 › 구성요소의 업체 단추(A 주 ▾) › [＋ 업체 B 서브 추가]로 다른 견적을 넣으면 여기서 나란히 비교돼요.`}</div></div>`}
+    ${single.length > 0 && html`<p class="foot">업체 1곳뿐: ${single.map((c) => c.r.name || c.r.kind).join(" · ")}</p>`}
   <//>`;
 }
 function QtyCompare({ live }) {
   const [qs, setQs] = useState(["5000", "10000", ""]);
   const cur = C.num(live.qty), list = [qs[0], qs[1], qs[2] === "" ? str(cur ?? "") : qs[2]];
   const res = C.qtyCompare(live, list.map((v) => C.num(v) ?? 0));
-  return html`<div style=${{ marginTop: 14 }}><h3 style=${{ fontSize: 14, margin: "0 0 8px" }}>수량 바꿔 보기 <span class="rt" style=${{ fontSize: 12, color: "var(--mute)", fontWeight: 600 }}>저장 안 해요</span></h3>
+  return html`<div style=${{ marginTop: 10 }}><div style=${{ fontWeight: 700, fontSize: 12.5, margin: "0 0 6px" }}>수량 바꿔 보기 <span class="dim" style=${{ fontWeight: 500 }}>저장 안 해요</span></div>
     <div class="qc">${res.map((r, k) => html`<div key=${k}>
       <label class="note" style=${{ margin: 0, display: "block" }}>${k === 2 ? "③ 지금 수량" : k === 0 ? "① 수량" : "② 수량"}</label>
       <input class="in num" inputmode="decimal" value=${list[k]} onInput=${(e) => setQs((o) => { const n = o.slice(); n[k] = e.target.value; return n; })} aria-label=${"수량 " + (k + 1)} />
-      <div class="v">${W(r.unit)}</div><div class="s">완제품 기준 원가 · 첫 생산 ${W(r.first)} · 금액 ${W(r.firstAmt, 0)}</div></div>`)}</div></div>`;
+      <div class="v">${W(r.unit)}</div><div class="s">완제품 기준 원가 · 첫 생산 ${W(r.first)}</div></div>`)}</div></div>`;
 }
-// ── 결과 두 가지: ① 최종 완제품 원가 (+ 가격정책표에 반영) ② 판매가를 넣으면 마진율·마진액 ──
-function ResultPanel({ ctx, card, d, setD, live, x, prod, pt, ro, dirty, cheap, multiN, goCmp }) {
+// ── 결과: 한 줄(완제품 원가 · 최저가 · 가격정책표 반영) + 판매가 넣으면 마진 ──
+function ResultBar({ ctx, card, d, setD, live, x, prod, pt, ro, dirty, cheap, multiN, goCmp }) {
   const chans = (ctx.S.ref && ctx.S.ref.channels) || [];
   const s = d.sale || {}, setS = (p) => setD((o) => ({ ...o, sale: { ...o.sale, ...p } }));
   const pickCh = (u) => { const c = chans.find((y) => y.uid === u); setS(c ? { ch: u, chName: c.name, feePct: String(+c.fee || 0) } : { ch: "", chName: "" }); };
   const m = C.marginCalc({ price: s.price, fee: fromPct(s.feePct), logi: s.logi, cost: x.unit });
   const chObj = chans.find((c) => c.uid === s.ch), chPrice = prod && s.ch && prod.pr ? prod.pr[s.ch] : null;
-  const feeTag = !chObj ? "" : String(+chObj.fee || 0) === String(C.num(s.feePct) ?? "") ? html`<span class="tag ok">자동</span>` : html`<span class="tag tmp">고침 (가격정책표 ${+chObj.fee || 0}%)</span>`;
+  const feeTag = !chObj ? "" : String(+chObj.fee || 0) === String(C.num(s.feePct) ?? "") ? html`<span class="tag ok">자동</span>` : html`<span class="tag tmp">고침 · 가격정책표 ${+chObj.fee || 0}%</span>`;
   const neg = m && m.rate < 0, cdiff = cheap - x.unit;
-  return html`<div class="sec res">
-    <div class="rg">
-      <div class="r1"><div class="k">① 최종 완제품 원가</div><div class="big">${W(x.unit)}</div><div class="s">개당 · 부가세 별도 · 구성요소 ${x.n}줄 합 · ${C.cardStatus(live)}</div>
-        ${multiN > 0 && html`<div class="s" style=${{ marginTop: 4 }}>모두 최저가로 고르면 <b class=${sgnCls(cdiff)}>${W(cheap)}</b>${Math.abs(cdiff) >= 0.005 ? ` (${sgn(cdiff)})` : " (지금이 최저)"} · <button class="lnk" onClick=${goCmp}>업체 비교</button></div>`}
-        <div style=${{ marginTop: 10 }}><${ApplyButton} ctx=${ctx} card=${card} live=${live} x=${x} prod=${prod} pt=${pt} dirty=${dirty} /></div></div>
-      <div class="r2"><div class="k">② 판매가를 넣으면 마진</div>
-        <div class="mi">
-          <div class="fld"><label>판매가 (원 · 부가세 포함)</label><input class="in num" inputmode="decimal" value=${s.price || ""} placeholder="예: 12900" onInput=${(e) => setS({ price: e.target.value })} aria-label="판매가" /></div>
-          <div class="fld"><label>채널</label><select class="in" value=${s.ch || ""} onChange=${(e) => pickCh(e.target.value)} aria-label="채널">
-            <option value="">직접 입력</option>${chans.map((c) => html`<option key=${c.uid} value=${c.uid}>${c.name}${c.code ? ` (${c.code})` : ""} · ${+c.fee || 0}%</option>`)}</select></div>
-          <div class="fld"><label>수수료 % ${feeTag}</label><input class="in num" inputmode="decimal" value=${s.feePct || ""} placeholder="예: 10.8" onInput=${(e) => setS({ feePct: e.target.value })} aria-label="수수료" /></div>
-          <div class="fld"><label>물류비 (개당 · 원)</label><input class="in num" inputmode="decimal" value=${s.logi || ""} placeholder="예: 3600" onInput=${(e) => setS({ logi: e.target.value })} aria-label="물류비" /></div>
-        </div>
-        ${chPrice != null && String(C.num(s.price)) !== String(chPrice) && html`<div class="note" style=${{ marginTop: 6 }}>가격정책표 ${s.chName || "이 채널"} 판매가 <b>${W(chPrice, 0)}</b> <button class="lnk" onClick=${() => setS({ price: String(chPrice) })}>넣기</button></div>`}
-        <div class="mo">
-          <div><div class="k">마진율</div><div class=${"big" + (neg ? " red" : "")}>${m ? pctTxt(m.rate) : "—"}</div></div>
-          <div><div class="k">마진액 (개당)</div><div class=${"big" + (neg ? " red" : "")}>${m ? W(m.amt, 0) : "—"}</div></div>
-        </div>
-        <div class="note">${m ? html`가격정책표 방식 마진율 = (판매가−원가)÷판매가 = <b>${pctTxt(m.ptRate)}</b> (${W(m.ptAmt, 0)})` : "판매가를 넣으면 마진율·마진액이 나와요"}</div>
-        <div class="note" style=${{ fontSize: 11 }}>마진율 = 1 − 1.1 × ( (원가+물류비) ÷ 판매가 + 수수료 ) — 엑셀 '판매가' 시트 식을 판매가 기준으로 거꾸로 푼 값(부가세 뺀 판매가 기준) · 마진액 = 판매가÷1.1 − 판매가×수수료 − 원가 − 물류비${ro ? " · 보기 전용: 계산만 되고 저장은 안 돼요" : " · [저장]하면 요약에도 보여요"}</div>
+  return html`<${React.Fragment}>
+    <div class="pl-line"><span>완제품 원가 <b class="big">${W(x.unit)}</b> <span class="dim">개당 · 부가세 별도 · ${x.n}줄</span></span>${stTag2(C.cardStatus(live))}
+      ${multiN > 0 && html`<i>·</i><span>모두 최저가로 고르면 <b class=${sgnCls(cdiff)}>${W(cheap)}</b>${Math.abs(cdiff) >= 0.005 ? ` (${sgn(cdiff)})` : " (지금이 최저)"}</span><button type="button" class="lnk" onClick=${goCmp}>업체 비교</button>`}
+      <i>·</i><span>첫 생산 원가 <b>${W(x.first)}</b></span>
+      <span style=${{ flex: 1 }}></span><${ApplyButton} ctx=${ctx} card=${card} live=${live} x=${x} prod=${prod} pt=${pt} dirty=${dirty} /></div>
+    <div class="panel"><div class="ph">판매가를 넣으면 마진 <span class="rt">엑셀 '판매가' 시트 식을 거꾸로 푼 값 · 부가세 뺀 판매가 기준${ro ? " · 계산만(저장 안 됨)" : " · [저장]하면 남아요"}</span></div><div class="pb">
+      <div class="mline">
+        <div class="fld"><label>판매가 (원 · 부가세 포함)</label><input class="in num" inputmode="decimal" value=${s.price || ""} placeholder="예: 12900" onInput=${(e) => setS({ price: e.target.value })} aria-label="판매가" /></div>
+        <div class="fld" style=${{ width: 190 }}><label>채널</label><select class="in" value=${s.ch || ""} onChange=${(e) => pickCh(e.target.value)} aria-label="채널">
+          <option value="">직접 입력</option>${chans.map((c) => html`<option key=${c.uid} value=${c.uid}>${c.name}${c.code ? ` (${c.code})` : ""} · ${+c.fee || 0}%</option>`)}</select></div>
+        <div class="fld"><label>수수료 % ${feeTag}</label><input class="in num" inputmode="decimal" value=${s.feePct || ""} placeholder="예: 10.8" onInput=${(e) => setS({ feePct: e.target.value })} aria-label="수수료" /></div>
+        <div class="fld"><label>물류비 (개당 · 원)</label><input class="in num" inputmode="decimal" value=${s.logi || ""} placeholder="예: 3600" onInput=${(e) => setS({ logi: e.target.value })} aria-label="물류비" /></div>
+        <div class="res"><span>마진율 <b class=${neg ? "red" : ""}>${m ? pctTxt(m.rate) : "—"}</b></span><span>마진액 <b class=${neg ? "red" : ""}>${m ? W(m.amt, 0) : "—"}</b></span>${m ? html`<span>가격정책표 방식 (판매가−원가)÷판매가 <b style=${{ fontSize: 13 }}>${pctTxt(m.ptRate)}</b></span>` : ""}</div>
       </div>
-    </div></div>`;
+      ${chPrice != null && String(C.num(s.price)) !== String(chPrice) && html`<div class="note">가격정책표 ${s.chName || "이 채널"} 판매가 <b>${W(chPrice, 0)}</b> <button type="button" class="lnk" onClick=${() => setS({ price: String(chPrice) })}>넣기</button></div>`}
+    </div></div>
+  <//>`;
 }
-// 가격정책표에 반영 (C) — 마스터: 바로 반영 + 기록 · 부마스터: 반영 요청(가격정책표 개정안 → 마스터 승인) · 경영 열람: 보기만
+// 가격정책표에 반영 — 마스터: 바로 반영 + 기록 · 부마스터: 반영 요청(개정안 → 마스터 승인) · 경영 열람: 보기만
 function ApplyButton({ ctx, card, live, x, prod, pt, dirty }) {
   const { isM, role, user, setToast } = ctx, [busy, setBusy] = useState(false);
-  if (!live.prodKey) return html`<div class="note" style=${{ margin: 0 }}>가격정책표 제품과 연결하면(아래 기본 정보) [가격정책표에 반영] 버튼이 생겨요</div>`;
-  if (!prod) return html`<div class="note" style=${{ margin: 0, color: "var(--amber)" }}>연결한 제품이 지금 가격정책표에 없어요</div>`;
+  if (!live.prodKey) return html`<span class="dim">가격정책표 제품과 연결하면 [가격정책표에 반영] 단추가 생겨요</span>`;
+  if (!prod) return html`<span class="dim">연결한 제품이 지금 가격정책표에 없어요</span>`;
   if (prod.type === "세트") return "";
   const unit = Math.round(x.unit), same = pt != null && unit === Math.round(pt), ap = card && card.applied;
   const apTxt = ap ? `${who(ap.by)} ${whenTxt(ap.at)} 반영 (${ap.from == null ? "없음" : won(ap.from)} → ${won(ap.v)})` : "";
-  if (same) return html`<div class="note" style=${{ margin: 0, color: "var(--green)" }}>✓ 가격정책표 완제품 원가(${W(pt, 0)})와 같아요${ap && Math.round(+ap.v) === unit ? " · " + apTxt : ""}</div>`;
+  if (same) return html`<span style=${{ color: "var(--gd)", fontWeight: 700 }}>✓ 가격정책표 완제품 원가(${W(pt, 0)})와 같아요${ap && Math.round(+ap.v) === unit ? html` <span class="dim" style=${{ fontWeight: 500 }}>· ${apTxt}</span>` : ""}</span>`;
   if (role === "sub") return html`<${ReqButton} ctx=${ctx} card=${card} live=${live} unit=${unit} pt=${pt} />`;
-  if (!isM) return html`<div class="note" style=${{ margin: 0 }}>가격정책표 완제품 원가 ${W(pt, 0)} · 반영은 마스터가 해요</div>`;
+  if (!isM) return html`<span class="dim">가격정책표 완제품 원가 ${W(pt, 0)} · 반영은 마스터가 해요</span>`;
   const go = async () => {
     if (!card) return;
     const tmp = C.cardStatus(live) !== "확정";
@@ -1362,14 +1580,13 @@ function ApplyButton({ ctx, card, live, x, prod, pt, dirty }) {
     catch (e) { console.error("[prod-cost] 분해원가 반영 실패", e); setToast("반영 못 했어요: " + (e.code || e.message)); }
     setBusy(false);
   };
-  return html`<button class="btn solid" disabled=${busy || dirty || !card || !(unit > 0)} title=${dirty ? "먼저 저장해 주세요" : ""} onClick=${go}>${busy ? "반영 중…" : `가격정책표에 반영 (${pt == null ? "없음" : won(pt)} → ${won(unit)}원)`}</button>
-    ${dirty ? html`<div class="note" style=${{ margin: "4px 0 0" }}>먼저 아래 [저장]</div>` : ap ? html`<div class="note" style=${{ margin: "4px 0 0" }}>지난 반영: ${apTxt}</div>` : ""}`;
+  return html`<span style=${{ display: "inline-flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>${dirty ? html`<span class="dim">먼저 [저장]</span>` : ap ? html`<span class="dim">지난 반영: ${apTxt}</span>` : ""}
+    <button type="button" class="tbtn primary" disabled=${busy || dirty || !card || !(unit > 0)} title=${dirty ? "먼저 저장해 주세요" : ""} onClick=${go}>${busy ? "반영 중…" : `가격정책표에 반영 (${pt == null ? "없음" : won(pt)} → ${won(unit)}원)`}</button></span>`;
 }
-// 부마스터: 반영 요청 — 가격정책표 개정안(product-meta/pricing-draft.cost)에 담고, 마스터가 가격정책표에서 승인해야 바뀜
 function ReqButton({ ctx, card, live, unit, pt }) {
   const { S, user, setToast } = ctx, [busy, setBusy] = useState(false);
   const dr = S.draft, pend = dr && dr.cost && dr.cost[live.prodKey] != null ? Math.round(+dr.cost[live.prodKey]) : null;
-  if (pend === unit) return html`<button class="btn sm" disabled>승인 대기 중 · ${won(unit)}원 (가격정책표 개정안)</button>`;
+  if (pend === unit) return html`<button type="button" class="tbtn" disabled>승인 대기 중 · ${won(unit)}원 (가격정책표 개정안)</button>`;
   const req = async () => {
     if (!card || !confirm(`가격정책표 완제품 원가 ${pt == null ? "(없음)" : won(pt) + "원"} → ${won(unit)}원\n반영 요청할까요?\n\n· 가격정책표 개정안에 담기고, 마스터가 가격정책표에서 승인해야 바뀌어요.`)) return;
     setBusy(true);
@@ -1381,7 +1598,7 @@ function ReqButton({ ctx, card, live, unit, pt }) {
         const sn = await tx.get(draftDoc()), cur = sn.exists ? sn.data() : {}, meta = cur.meta || { status: "", by: "", at: "", note: "" };
         let nm;
         if (meta.status === "대기") { nm = { ...meta, note: [meta.note, line].filter(Boolean).join(" / ").slice(0, 500) }; mode = "대기"; }
-        else if (meta.status === "작성중") { nm = meta; mode = "작성중"; }   // 작성 중인 개정안 → 같이 담기만 (승인요청은 가격정책표 위 줄에서)
+        else if (meta.status === "작성중") { nm = meta; mode = "작성중"; }
         else { nm = { status: "대기", by, at, note: line }; mode = "새로"; }
         tx.set(draftDoc(), { cost: { [k]: unit }, costSrc: { [k]: { card: card.id, by, at, from: pt == null ? null : pt, why: "" } }, meta: nm, updatedAt: at }, { merge: true });
       });
@@ -1390,63 +1607,124 @@ function ReqButton({ ctx, card, live, unit, pt }) {
     } catch (e) { console.error("[pricing-draft] 반영 요청 실패", e); setToast("요청 못 했어요: " + (e.code || e.message)); }
     setBusy(false);
   };
-  return html`<button class="btn solid" disabled=${busy || !card || !(unit > 0)} onClick=${req}>${busy ? "요청 중…" : `가격정책표 반영 요청 (${pt == null ? "없음" : won(pt)} → ${won(unit)}원)`}</button>`;
+  return html`<button type="button" class="tbtn primary" disabled=${busy || !card || !(unit > 0)} onClick=${req}>${busy ? "요청 중…" : `가격정책표 반영 요청 (${pt == null ? "없음" : won(pt)} → ${won(unit)}원)`}</button>`;
 }
-
-// ── 기존 제품 → 카드 자동 생성 (6번) ──
-const SEED_BRANDS = ["POUR스토어", "GROHOME"];
+// ── 견적서 (업체 × 구성요소마다 여러 개) — 마스터·경영 열람만 (견적서엔 업체 실명) ──
+function FilesModal({ title, files, canEdit, notionUrl, onChange, onClose, user }) {
+  const [nmTxt, setNmTxt] = useState(""), [url, setUrl] = useState(""), [pv, setPv] = useState(null), [busy, setBusy] = useState("");
+  const okUrl = /^https?:\/\/\S+$/i.test(url.trim());
+  const add = () => { if (!okUrl) return; onChange([...files, { id: "f" + Date.now().toString(36), name: nmTxt.trim() || "견적서", kind: "link", url: url.trim(), at: new Date().toISOString(), by: (user && user.email) || "" }]); setNmTxt(""); setUrl(""); };
+  const rm = (f) => { if (confirm(`'${f.name}' 을(를) 목록에서 뺄까요? ([저장]해야 반영)`)) onChange(files.filter((x) => x.id !== f.id)); };
+  const upload = async (fl) => { if (!fl || !canUpload()) return; setBusy("올리는 중…");
+    try { const r = await FILE_STORE[FILE_STORE.mode].upload(fl, user); onChange([...files, { id: "f" + Date.now().toString(36), name: fl.name, kind: FILE_STORE.mode, key: r.key, size: r.size || fl.size, type: r.type || fl.type, at: new Date().toISOString(), by: user.email || "" }]); }
+    catch (e) { alert(e.message || e); } setBusy(""); };
+  const look = async (f, dl) => { setBusy("여는 중…");
+    try { const b = await FILE_STORE[f.kind].blob(f, user), u = URL.createObjectURL(b);
+      if (dl) { const a = document.createElement("a"); a.href = u; a.download = f.name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(u); a.remove(); }, 1500); }
+      else setPv({ u, type: b.type || f.type || "", name: f.name }); }
+    catch (e) { alert(e.message || e); } setBusy(""); };
+  return html`<div class="modal" role="dialog" aria-label="견적서" onClick=${(e) => { if (e.target === e.currentTarget) onClose(); }}><div class="box">
+    <div class="mh">📎 견적서<span style=${{ fontWeight: 500, fontSize: 12, opacity: 0.85 }}>${title}</span><span class="sp"></span><button type="button" onClick=${onClose}>닫기</button></div>
+    <div class="mb">
+      ${notionUrl && html`<div class="note" style=${{ marginTop: 0 }}>노션 견적 페이지: <a class="lnk" href=${notionUrl} target="_blank" rel="noopener">열기 ↗</a></div>`}
+      ${files.length ? html`<table class="grid" style=${{ marginTop: 6 }}><thead><tr><th>이름</th><th>종류</th><th></th></tr></thead><tbody>${files.map((f) => html`<tr key=${f.id}>
+          <td>${f.name}${f.at ? html`<div class="sub">${who(f.by)} ${whenTxt(f.at)}</div>` : ""}</td><td class="nw"><span class=${"tag " + (f.kind === "notion" ? "nt" : "ok")}>${FILE_KIND[f.kind] || f.kind}</span></td>
+          <td class="nw">${f.url ? html`<a class="tbtn sm" href=${f.url} target="_blank" rel="noopener">열기 ↗</a>` : html`<button type="button" class="tbtn sm" onClick=${() => look(f)}>미리보기</button> <button type="button" class="tbtn sm" onClick=${() => look(f, true)}>내려받기</button>`}
+            ${canEdit && f.kind !== "notion" ? html` <button type="button" class="tbtn sm red" onClick=${() => rm(f)}>빼기</button>` : ""}</td></tr>`)}</tbody></table>`
+        : html`<div class="empty" style=${{ padding: 16 }}>아직 견적서가 없어요.</div>`}
+      ${canEdit && html`<div style=${{ marginTop: 12, borderTop: "1px solid var(--grid2)", paddingTop: 10 }}>
+        <div style=${{ fontWeight: 700, fontSize: 12.5, marginBottom: 6 }}>링크 붙이기 <span class="dim" style=${{ fontWeight: 500 }}>(노션 견적서 페이지·파일 주소)</span></div>
+        <div class="mline"><div class="fld" style=${{ width: 160 }}><label>이름</label><input class="in" value=${nmTxt} placeholder="예: 2026-10 견적서" onInput=${(e) => setNmTxt(e.target.value)} aria-label="견적서 이름" /></div>
+          <div class="fld" style=${{ flex: 1, minWidth: 200 }}><label>주소</label><input class="in" value=${url} placeholder="https://www.notion.so/…" onInput=${(e) => setUrl(e.target.value)} aria-label="견적서 주소" /></div>
+          <button type="button" class="tbtn primary" disabled=${!okUrl} onClick=${add}>붙이기</button></div>
+        <div style=${{ marginTop: 10, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <label class="tbtn" style=${canUpload() ? null : { opacity: 0.45, cursor: "default" }}>📄 파일 올리기 (PDF·이미지)<input type="file" accept="application/pdf,image/*" multiple style=${{ display: "none" }} disabled=${!canUpload() || !!busy} onChange=${(e) => { [...(e.target.files || [])].forEach(upload); e.target.value = ""; }} /></label>
+          <span class="note" style=${{ margin: 0 }}>${canUpload() ? busy : "파일 저장소를 정하면 켜져요 — 지금은 노션 견적서 페이지 링크로"}</span></div>
+        <div class="note">[저장]해야 반영돼요 · 노션에서 온 견적서는 노션에서 고쳐요.</div></div>`}
+      ${pv && html`<div style=${{ marginTop: 10 }}><div class="note" style=${{ marginTop: 0 }}>${pv.name} <button type="button" class="lnk" onClick=${() => { URL.revokeObjectURL(pv.u); setPv(null); }}>닫기</button></div>
+        ${/^image\//.test(pv.type) ? html`<img src=${pv.u} alt=${pv.name} style=${{ maxWidth: "100%" }} />` : html`<iframe class="pv" src=${pv.u} title=${pv.name}></iframe>`}</div>`}
+    </div></div></div>`;
+}
+// ── 노션 가져오기: 실행 기록 · 연결 필요(품목을 못 찾은 줄 → 한 번 고르면 기억) ──
+function NotionSheet({ ctx, onClose, openCard }) {
+  const { S, isM, refList, setToast } = ctx;
+  const reg = S.notion || {}, runs = reg.runs || [], un = Object.values(reg.unmatched || {}).sort((a, b) => String(a.supplier).localeCompare(String(b.supplier)));
+  const opts = useMemo(() => [...(S.cards || []).filter((c) => !c.deleted).map((c) => ({ v: c.id, lb: `카드 · ${c.item} ${c.spec || ""} · ${c.brand || ""} · ${c.round || ""}`.replace(/\s+/g, " ") })),
+    ...refList.filter((p) => p.type !== "세트").map((p) => ({ v: "p:" + p.k, lb: `가격표 · ${p.name} ${p.spec && p.spec !== "-" ? p.spec : ""} · ${(p.brand || []).join("/")}`.replace(/\s+/g, " ") }))], [S.cards, refList]);
+  const [pick, setPick] = useState({}), [busy, setBusy] = useState("");
+  const link = async (u) => {
+    const o = opts.find((x) => x.lb === (pick[u.lineId] || "").trim()); if (!o) { setToast("목록에서 골라 주세요"); return; }
+    if (!window.costImport) { setToast("마스터로 열어야 해요"); return; }
+    setBusy(u.lineId);
+    const r = await window.costImport.applyNotion({ source: "notion", partial: true, suppliers: [u.s || {}], quotes: [u.q] }, { links: { [matchKeyOf(u.product)]: o.v } });
+    setBusy(""); setToast(r.errors.length ? "연결 못 했어요: " + r.errors[0] : `연결했어요 · 추가 ${r.added} · 바뀜 ${r.updated} — 다음부터 자동`);
+  };
+  return html`<${Frame} title="노션 가져오기" label="노션 가져오기" close=${onClose} meta=${html`<span>노션 견적 → 분해원가 업체 단가 · 매일 19:00 (Aside · 마스터 로그인 화면에서)</span>`}>
+    <div class="panel"><div class="ph">연결 필요 <span class="rt">${un.length}줄 · 품목을 못 찾은 노션 견적 줄 — 한 번 고르면 기억해서 다음부터 자동</span></div><div class="pb flush">
+      ${un.length ? html`<div class="gridwrap"><table class="grid" style=${{ minWidth: 900 }}><thead><tr><th>공급업체</th><th>견적</th><th>노션 제품 (코드 · 이름 · 규격)</th><th>구성요소</th><th class="num">단가</th><th style=${{ minWidth: 280 }}>분해원가 품목 고르기</th><th></th></tr></thead><tbody>
+        ${un.map((u) => html`<tr key=${u.lineId}><td class="nw">${u.supplier || "—"}</td><td class="nw">${u.quoteNo || "—"}</td><td>${[u.product.code, u.product.name, u.product.spec].filter(Boolean).join(" · ")}</td><td>${[u.component.kind, u.component.name].filter(Boolean).join(" · ")}</td>
+          <td class="num">${u.unitPrice === "" ? "—" : fmt(C.num(u.unitPrice), 4)} ${u.currency || ""}</td>
+          <td>${isM ? html`<input class="in" list="pccNotionPick" value=${pick[u.lineId] || ""} placeholder="카드 또는 가격표 제품" onInput=${(e) => setPick((p) => ({ ...p, [u.lineId]: e.target.value }))} aria-label="품목 고르기" />` : html`<span class="dim">마스터가 골라요</span>`}</td>
+          <td>${isM && html`<button type="button" class="tbtn primary sm" disabled=${busy === u.lineId} onClick=${() => link(u)}>${busy === u.lineId ? "…" : "연결"}</button>`}</td></tr>`)}</tbody></table></div>
+        <datalist id="pccNotionPick">${opts.map((o) => html`<option key=${o.v} value=${o.lb} />`)}</datalist>` : html`<div class="empty">연결 필요한 줄이 없어요 ✓</div>`}
+    </div></div>
+    <div class="panel"><div class="ph">실행 기록 <span class="rt">최근 30번</span></div><div class="pb flush">
+      ${runs.length ? html`<div class="gridwrap"><table class="grid" style=${{ minWidth: 700 }}><thead><tr><th>언제</th><th>누가</th><th class="num">추가</th><th class="num">바뀜</th><th class="num">그대로</th><th class="num">노션에서 삭제됨</th><th class="num">연결 필요</th><th class="num">오류</th><th class="num">저장한 카드</th></tr></thead><tbody>
+        ${runs.map((r, k) => html`<tr key=${k}><td class="nw">${whenTxt(r.at)}${r.partial ? html` <span class="tag off">일부</span>` : ""}</td><td class="nw">${who(r.by)}</td><td class="num">${r.added}</td><td class="num">${r.updated}</td><td class="num">${r.unchanged}</td><td class="num">${r.deleted || 0}</td><td class="num">${r.unmatched}</td><td class="num">${r.errors ? html`<span style=${{ color: "var(--red)" }}>${r.errors}</span>` : 0}</td><td class="num">${r.cards}</td></tr>`)}</tbody></table></div>`
+        : html`<div class="empty">아직 노션에서 가져온 적이 없어요.</div>`}
+    </div></div>
+    <p class="foot">· 가져오기 = 이 화면(마스터 로그인)에서 <code>window.costImport.applyNotion(payload)</code> → {added, updated, unchanged, unmatched[], errors[]} · 같은 노션 id 는 여러 번 돌려도 같은 결과
+      <br />· 노션이 원본: 업체 단가·통화·부가세·MOQ·리드타임·견적일·유효기간·견적서 · 여기서만 정함: 적용 업체·사용량·1회 비용 배분·가격정책표 반영(자동 반영 안 함) · 노션에서 사라진 견적은 '노션에서 삭제됨'만 표시</p>
+  <//>`;
+}
+// ── 기존 제품 → 카드 자동 생성 (2026-11-25 송희님 4번: 판매중·준비중 전부(세트 제외) · 공급업체 넷폼 = 자체생산 · 그 밖 = 국내 OEM · 모두 임시) ──
 function seedCandidates(S, refList) {
   const have = new Set((S.cards || []).map((c) => c.prodKey).filter(Boolean)), ids = new Set((S.cards || []).map((c) => c.id));
-  const base = refList.filter((p) => (p.st === "출시" || p.st === "출시준비") && (p.brand || []).some((b) => SEED_BRANDS.includes(b)));
+  const base = refList.filter((p) => p.st === "출시" || p.st === "출시준비");
   const sets = base.filter((p) => p.type === "세트"), list = base.filter((p) => p.type !== "세트" && !have.has(p.k) && !ids.has(C.seedId(p.k)));
   return { list, sets, had: base.filter((p) => p.type !== "세트").length - list.length };
 }
 function SeedSheet({ ctx, onClose }) {
-  const { S, user, refList, setToast } = ctx; useBackClose(true, onClose);
+  const { S, user, refList, setToast } = ctx;
   const { list, sets, had } = seedCandidates(S, refList), [busy, setBusy] = useState(false), [done, setDone] = useState(0);
-  const noNames = !S.refNames;
+  const noNames = !S.refNames, rn = (p) => (S.refNames || {})[p.k] || {}, mOf = (p) => seedMethodOf(rn(p).sup || rn(p).mfg);
   const run = async () => {
-    if (!list.length || !confirm(`기존 제품 ${list.length}개로 원가 분해 카드를 만들까요?\n\n· 1줄 '완제품 매입' = 지금 매입원가 · 상태 '분해 필요'\n· 가격정책표 매입원가는 바꾸지 않아요`)) return;
+    if (!list.length || !confirm(`기존 제품 ${list.length}개로 분해원가 카드를 만들까요?\n\n· 1줄 '완제품 매입' = 지금 매입원가 · '분해 필요' · '임시'\n· 생산 방식: 공급업체가 넷폼이면 자체생산, 그 밖은 국내 OEM\n· 가격정책표 원가는 바꾸지 않아요`)) return;
     setBusy(true);
     try {
       const amap = { ...(S.alias || {}) }, al = makeAliaser(amap, S.mfgList), at = new Date().toISOString(), by = user.email || "";
       for (let i = 0; i < list.length; i += 150) {
         const part = list.slice(i, i + 150), b = db.batch(), sum = {};
         part.forEach((p) => {
-          const r = (S.refNames || {})[p.k] || {}, supN = String(r.sup || r.mfg || "").trim(), mfgN = String(r.mfg || r.sup || "").trim();
-          const card = C.seedCard(p, al(supN)); card.mfgAlias = al(mfgN);
-          const id = C.seedId(p.k), doc = { ...card, history: [{ at, by, what: "가격정책표 기존 값으로 자동 생성 (1줄 '완제품 매입' = 지금 매입원가)", why: "처음 넣을 품목" }], deleted: false, createdAt: at, createdBy: by, updatedAt: at, updatedBy: by };
-          b.set(cardsCol().doc(id), doc); b.set(namesCol().doc(id), { mfg: mfgN, sup: { seed: supN }, updatedAt: at, updatedBy: by }); sum[id] = C.summaryOf(doc);
+          const r = rn(p), supN = String(r.sup || r.mfg || "").trim(), mfgN = String(r.mfg || r.sup || "").trim();
+          const card = { ...C.seedCard(p, al(supN)), method: mOf(p), origin: "국내" }; card.mfgAlias = al(mfgN);
+          const id = C.seedId(p.k), doc = { ...card, history: [{ at, by, what: `가격정책표 기존 값으로 자동 생성 (1줄 '완제품 매입' = 지금 매입원가 · ${C.methodName(card.method)})`, why: "처음 넣을 품목" }], deleted: false, createdAt: at, createdBy: by, updatedAt: at, updatedBy: by };
+          b.set(cardsCol().doc(id), doc); b.set(namesCol().doc(id), { mfg: mfgN, sup: { seed: supN }, vsup: { seed: { A: supN } }, updatedAt: at, updatedBy: by }); sum[id] = C.summaryOf(doc);
         });
         b.set(namesCol().doc("_alias"), { map: amap, updatedAt: at, updatedBy: by }, { merge: true });
         b.set(refDoc("cards"), { map: sum, at }, { merge: true });
         await b.commit(); setDone(i + part.length); console.log(`[cost-cards] 자동 생성 ${i + part.length}/${list.length}`);
       }
-      setToast(`카드 ${list.length}장을 만들었어요 (분해 필요)`); onClose();
+      setToast(`카드 ${list.length}장을 만들었어요 (분해 필요 · 임시)`); onClose();
     } catch (e) { console.error("[cost-cards] 자동 생성 실패", e); setToast("만들다 멈췄어요: " + (e.code || e.message) + " — 다시 누르면 남은 것만 만들어요"); }
     setBusy(false);
   };
-  const byBrand = SEED_BRANDS.map((b) => [b, list.filter((p) => (p.brand || []).includes(b)).length]);
-  return html`<div class="sheet" role="dialog" aria-label="기존 제품 카드 만들기"><div class="sh-top"><div class="sh-in"><div class="sh-t"><div class="tt">🧩 기존 제품 카드 만들기</div><button class="x" onClick=${onClose}>닫기</button></div>
-    <div class="sh-sub">POUR스토어·그로홈 판매중·준비중 제품마다 원가 분해 1장</div></div></div>
-    <div class="sh-body">
-      <div class="sec"><h3>만들 카드 ${list.length}장</h3>
-        <div class="kv">${byBrand.map(([b, n]) => html`<div key=${b}><div class="k">${b}</div><div class="v">${n}장</div></div>`)}
-          <div><div class="k">이미 카드 있음</div><div class="v">${had}개</div><div class="s">건너뜀</div></div>
-          <div><div class="k">세트(패키지)</div><div class="v">${sets.length}개</div><div class="s">제외 — 구성 단품 합으로 계산됨</div></div></div>
-        <p class="note">· 1줄 '완제품 매입' = 지금 매입원가 · 공급처 = 지금 공급업체 · 출처 '가격정책표 기존 값' · 상태 '분해 필요'
-          <br />· 생산 수량은 1개(매입원가 그대로 보이게), 합계는 '제외'로 둬요 — 분해할 때 실제 수량·포함으로 바꿔요.
-          <br />· 가격정책표 매입원가 값은 바꾸지 않아요. 매입원가가 빈 제품은 그 줄을 '확인 필요'로 둬요.</p>
-        ${noNames && html`<div class="warn">가격정책표의 공급업체 이름이 아직 안 넘어왔어요 — 가격·마진 대시보드를 마스터로 한 번 열면 넘어와요. (지금 만들면 공급처가 비어요)</div>`}
-        <div class="tblw" style=${{ maxHeight: 320, overflowY: "auto", marginTop: 8 }}><table class="t" style=${{ minWidth: 520 }}><thead><tr><th>제품</th><th>브랜드</th><th>상태</th><th class="num">지금 매입원가</th>${!noNames && html`<th>지금 공급업체</th>`}</tr></thead>
-          <tbody>${list.slice(0, 400).map((p) => html`<tr key=${p.k}><td>${p.name} <span class="dim">${p.spec && p.spec !== "-" ? p.spec : ""}</span></td><td class="nw">${(p.brand || []).join("/")}</td><td class="nw">${ST_NAME[p.st] || p.st}</td><td class="num">${p.cost == null || p.cost === "" ? html`<span class="tag chk">없음</span>` : won(p.cost)}</td>${!noNames && html`<td class="nw">${((S.refNames || {})[p.k] || {}).sup || ((S.refNames || {})[p.k] || {}).mfg || "—"}</td>`}</tr>`)}</tbody></table></div>
-        <div style=${{ display: "flex", gap: 8, marginTop: 12, alignItems: "center" }}><button class="btn solid" disabled=${busy || !list.length} onClick=${run}>${busy ? `만드는 중… ${done}/${list.length}` : `${list.length}장 만들기`}</button><button class="btn" onClick=${onClose}>닫기</button></div>
-      </div></div></div>`;
+  const brandsN = [...new Set(list.flatMap((p) => p.brand && p.brand.length ? p.brand : ["브랜드 없음"]))].map((b) => [b, list.filter((p) => (p.brand && p.brand.length ? p.brand : ["브랜드 없음"]).includes(b)).length]);
+  const selfN = list.filter((p) => mOf(p) === "self").length;
+  return html`<${Frame} title="🧩 기존 제품 카드 만들기" close=${onClose} meta=${html`<span>가격정책표 판매중·준비중 전부(세트 제외) · 제품마다 분해원가 1장</span>`}>
+    <div class="pl-line"><span>만들 카드 <b class="big">${list.length}장</b></span>${brandsN.map(([b, n]) => html`<${React.Fragment} key=${b}><i>·</i><span>${b} <b>${n}</b></span><//>`)}<i>·</i><span>자체생산 <b>${selfN}</b> · 국내 OEM <b>${list.length - selfN}</b></span><i>·</i><span class="dim">이미 카드 있음 ${had} · 세트 ${sets.length} 제외</span>
+      <span style=${{ flex: 1 }}></span><button type="button" class="tbtn primary" disabled=${busy || !list.length} onClick=${run}>${busy ? `만드는 중… ${done}/${list.length}` : `${list.length}장 만들기`}</button></div>
+    ${noNames && html`<div class="warn" style=${{ margin: "10px 18px 0", borderRadius: 6 }}>가격정책표의 공급업체 이름이 아직 안 넘어왔어요 — 가격·마진 대시보드를 마스터로 한 번 열면 넘어와요. (지금 만들면 공급처가 비고, 생산 방식이 모두 국내 OEM 이 돼요)</div>`}
+    <div class="panel"><div class="pb flush"><div class="gridwrap" style=${{ maxHeight: "60vh" }}><table class="grid" style=${{ minWidth: 640 }}><thead><tr><th>제품</th><th>브랜드</th><th>상태</th><th class="num">지금 매입원가</th>${!noNames && html`<th>지금 공급업체</th>`}<th>생산 방식(기본)</th></tr></thead>
+      <tbody>${list.slice(0, 500).map((p) => html`<tr key=${p.k}><td><span class="pname">${p.name}</span> <span class="pspec">${p.spec && p.spec !== "-" ? p.spec : ""}</span></td><td class="nw">${(p.brand || []).join("/")}</td><td class="nw">${ST_NAME[p.st] || p.st}</td><td class="num">${p.cost == null || p.cost === "" ? html`<span class="tag chk">없음</span>` : won(p.cost)}</td>${!noNames && html`<td class="nw">${rn(p).sup || rn(p).mfg || "—"}</td>`}<td class="nw">${C.methodName(mOf(p))} <span class="tag tmp">임시</span></td></tr>`)}</tbody></table></div></div></div>
+    <p class="foot">· 1줄 '완제품 매입' = 지금 매입원가 · 공급처 = 지금 공급업체 · 출처 '가격정책표 기존 값' · '분해 필요' · '임시' · 생산 수량 1개 · 합계 '제외'
+      <br />· 생산 방식 기본값: 공급업체가 ㈜넷폼알앤디·넷폼이면 '자체생산', 그 밖은 '국내 OEM' (카드에서 고쳐요) · 가격정책표 원가 값은 바꾸지 않아요.</p>
+  <//>`;
 }
 
 // ── 엑셀 올리기 (v7 · 품목별 시트 1장) ──
 function ImportSheet({ ctx, onClose }) {
-  const { S, user, refList, setToast } = ctx; useBackClose(true, onClose);
+  const { S, user, refList, setToast } = ctx;
   const [st, setSt] = useState({ file: "", items: [], busy: false, err: "", done: 0 });
   const keyOf = (c) => [nz(C.normBrand(c.brand)), nz(c.item), nz(c.spec), C.roundNo(c.round)].join("|");
   const read = async (f) => {
@@ -1491,36 +1769,36 @@ function ImportSheet({ ctx, onClose }) {
     } catch (e) { console.error("[엑셀 올리기] 저장 실패", e); setSt((s) => ({ ...s, busy: false, err: `${n}장 저장 뒤 멈췄어요: ${e.code || e.message}` })); }
   };
   const tog = (k) => setSt((s) => ({ ...s, items: s.items.map((x, j) => (j === k ? { ...x, on: !x.on } : x)) }));
-  return html`<div class="sheet" role="dialog" aria-label="엑셀 올리기"><div class="sh-top"><div class="sh-in"><div class="sh-t"><div class="tt">📥 엑셀 올리기 (표준 원가계산기 v7)</div><button class="x" onClick=${onClose}>닫기</button></div>
-    <div class="sh-sub">품목별 시트 1장 = 카드 1장 · '완제품 원가 요약'·'판매가'·'목록'·'양식(새 품목)' 시트는 건너뛰어요</div></div></div>
-    <div class="sh-body">
-      <div class="sec"><label class="dropz" style=${{ display: "block", cursor: "pointer" }}>
-        <input type="file" accept=".xlsx,.xlsm,.xls" style=${{ display: "none" }} onChange=${(e) => read(e.target.files && e.target.files[0])} />
-        <b style=${{ color: "var(--navy)" }}>엑셀 파일 고르기</b><div class="note">${st.file ? `고른 파일: ${st.file}` : "A5~B11 기본 정보 · D5~E10 범위·유효기간·향료 · 12행 머리글 · 13~32행 구성요소"}</div></label>
-        ${st.busy && !st.items.length && html`<div class="ld">읽는 중…</div>`}
-        ${st.err && html`<div class="err">${st.err}</div>`}
-      </div>
-      ${st.items.length > 0 && html`<div class="sec"><h3>미리 보기 ${st.items.length}장 <span class="rt">저장 전 확인 · 엑셀이 계산해 둔 값과 화면 계산을 줄마다 대조</span></h3>
-        <div class="tblw" style=${{ border: 0 }}><table class="t" style=${{ minWidth: 900 }}><thead><tr><th></th><th>시트</th><th>브랜드 · 품목 · 규격 · 차수</th><th class="num">줄</th><th class="num">생산 수량</th><th class="num">완제품 기준 원가</th><th>엑셀 값과</th><th>저장 방식</th><th>알림</th></tr></thead>
-        <tbody>${st.items.map((it, k) => { const x = C.cardCalc(it.p.card); return html`<tr key=${k}>
-          <td><input type="checkbox" checked=${it.on} onChange=${() => tog(k)} aria-label="저장할지" /></td><td class="nw">${it.name}</td>
-          <td><b>${it.p.card.brand} · ${it.p.card.item} ${it.p.card.spec}</b> · ${it.p.card.round || "차수 없음"}</td><td class="num">${it.p.card.rows.length}</td><td class="num">${won(C.num(it.p.card.qty))}</td><td class="num"><b>${fmt(x.unit)}</b></td>
-          <td>${it.cmp.diffs.length ? html`<span class="tag chk" title=${it.cmp.diffs.map((d) => `${d.row ? d.row + "줄 " : ""}${d.what}: 엑셀 ${fmt(d.excel)} / 화면 ${fmt(d.ours)}`).join("\n")}>다름 ${it.cmp.diffs.length}칸</span>` : it.cmp.checked ? html`<span class="tag ok">같음 ✓ ${it.cmp.checked}줄</span>` : html`<span class="tag off">계산값 없음</span>`}</td>
-          <td class="nw">${it.match ? html`<span class="tag tmp">기존 카드 고침</span>` : html`<span class="tag ok">새 카드</span>`}${it.link ? html`<span class="tag" style=${{ marginLeft: 4 }}>가격표 연결: ${it.link.name}</span>` : ""}</td>
-          <td style=${{ fontSize: 12, color: "var(--mute)" }}>${it.p.warn.join(" · ")}</td></tr>`; })}</tbody></table></div>
-        ${st.items.some((i) => i.cmp.diffs.length) && html`<div class="warn">'다름' 칸에 마우스를 올리면 어느 줄이 다른지 보여요. 엑셀 식이 v7과 다르게 바뀌었거나 칸이 밀렸을 수 있어요 — 확인 뒤 저장해 주세요.</div>`}
-        <div style=${{ display: "flex", gap: 8, marginTop: 12, alignItems: "center" }}><button class="btn solid" disabled=${st.busy || !st.items.some((i) => i.on)} onClick=${save}>${st.busy ? `저장 중… ${st.done}/${st.items.filter((i) => i.on).length}` : `${st.items.filter((i) => i.on).length}장 저장`}</button><button class="btn" onClick=${onClose}>닫기</button></div>
-        <p class="note">· 같은 브랜드·품목·규격·차수 카드가 있으면 그 카드를 고쳐요(이력에 '엑셀 올리기'로 남음) · 없으면 새로 만들어요 · 공급처·제조사 실제 이름은 따로(마스터·경영 열람만) 저장돼요.
-          <br />· 엑셀 구성요소 줄 = <b>A 업체(주) · 적용</b>으로 들어가요 · 이미 넣어 둔 B·C 업체 견적, 생산 방식·국내/수입·환율은 그대로 남아요.</p>
-      </div>`}
-    </div></div>`;
+  return html`<${Frame} title="📥 엑셀 올리기 (표준 원가계산기 v7)" close=${onClose} meta=${html`<span>품목별 시트 1장 = 카드 1장 · '완제품 원가 요약'·'판매가'·'목록'·'양식(새 품목)' 시트는 건너뛰어요</span>`}>
+    <div class="panel"><div class="pb"><label class="dropz">
+      <input type="file" accept=".xlsx,.xlsm,.xls" style=${{ display: "none" }} onChange=${(e) => read(e.target.files && e.target.files[0])} />
+      <b style=${{ color: "var(--gd)" }}>엑셀 파일 고르기</b><div class="note">${st.file ? `고른 파일: ${st.file}` : "A5~B11 기본 정보 · D5~E10 범위·유효기간·향료 · 12행 머리글 · 13~32행 구성요소"}</div></label>
+      ${st.busy && !st.items.length && html`<div class="ld">읽는 중…</div>`}
+      ${st.err && html`<div class="err" style=${{ borderRadius: 6, marginTop: 8 }}>${st.err}</div>`}
+    </div></div>
+    ${st.items.length > 0 && html`<${React.Fragment}>
+      <div class="pl-line"><span>미리 보기 <b class="big">${st.items.length}장</b></span><i>·</i><span class="dim">저장 전 확인 · 엑셀이 계산해 둔 값과 화면 계산을 줄마다 대조</span><span style=${{ flex: 1 }}></span>
+        <button type="button" class="tbtn primary" disabled=${st.busy || !st.items.some((i) => i.on)} onClick=${save}>${st.busy ? `저장 중… ${st.done}/${st.items.filter((i) => i.on).length}` : `${st.items.filter((i) => i.on).length}장 저장`}</button></div>
+      <div class="panel"><div class="pb flush"><div class="gridwrap"><table class="grid" style=${{ minWidth: 900 }}><thead><tr><th></th><th>시트</th><th>브랜드 · 품목 · 규격 · 차수</th><th class="num">줄</th><th class="num">생산 수량</th><th class="num">완제품 기준 원가</th><th>엑셀 값과</th><th>저장 방식</th><th>알림</th></tr></thead>
+      <tbody>${st.items.map((it, k) => { const x = C.cardCalc(it.p.card); return html`<tr key=${k}>
+        <td><input type="checkbox" checked=${it.on} onChange=${() => tog(k)} aria-label="저장할지" /></td><td class="nw">${it.name}</td>
+        <td><b>${it.p.card.brand} · ${it.p.card.item} ${it.p.card.spec}</b> · ${it.p.card.round || "차수 없음"}</td><td class="num">${it.p.card.rows.length}</td><td class="num">${won(C.num(it.p.card.qty))}</td><td class="num"><b>${fmt(x.unit)}</b></td>
+        <td>${it.cmp.diffs.length ? html`<span class="tag chk" title=${it.cmp.diffs.map((d) => `${d.row ? d.row + "줄 " : ""}${d.what}: 엑셀 ${fmt(d.excel)} / 화면 ${fmt(d.ours)}`).join("\n")}>다름 ${it.cmp.diffs.length}칸</span>` : it.cmp.checked ? html`<span class="tag ok">같음 ✓ ${it.cmp.checked}줄</span>` : html`<span class="tag off">계산값 없음</span>`}</td>
+        <td class="nw">${it.match ? html`<span class="tag tmp">기존 카드 고침</span>` : html`<span class="tag ok">새 카드</span>`}${it.link ? html` <span class="tag">가격표 연결: ${it.link.name}</span>` : ""}</td>
+        <td style=${{ fontSize: 11.5, color: "var(--ink2)" }}>${it.p.warn.join(" · ")}</td></tr>`; })}</tbody></table></div></div></div>
+      ${st.items.some((i) => i.cmp.diffs.length) && html`<div class="warn" style=${{ margin: "0 18px", borderRadius: 6 }}>'다름' 칸에 마우스를 올리면 어느 줄이 다른지 보여요. 엑셀 식이 v7과 다르게 바뀌었거나 칸이 밀렸을 수 있어요 — 확인 뒤 저장해 주세요.</div>`}
+      <p class="foot">· 같은 브랜드·품목·규격·차수 카드가 있으면 그 카드를 고쳐요(이력에 '엑셀 올리기') · 없으면 새로 만들어요 · 공급처·제조사 실제 이름은 따로(마스터·경영 열람만) 저장돼요.
+        <br />· 엑셀 구성요소 줄 = <b>A 업체(주) · 적용</b>으로 들어가요 · 이미 넣어 둔 B·C 업체 견적, 생산 방식·국내/수입·환율, 노션 견적은 그대로 남아요.</p>
+    <//>`}
+  <//>`;
 }
 function TrashSheet({ ctx, onClose }) {
-  const { S, user, setToast } = ctx; useBackClose(true, onClose);
+  const { S, user, setToast } = ctx;
   const list = (S.cards || []).filter((c) => c.deleted).sort((a, b) => String(b.deletedAt || "").localeCompare(String(a.deletedAt || "")));
   const back = async (c) => { try { await setDeleted(user, c, false); setToast("되살렸어요"); } catch (e) { console.error("[cost-cards] 되살리기 실패", e); setToast("못 되살렸어요: " + (e.code || e.message)); } };
-  return html`<div class="sheet" role="dialog" aria-label="휴지통"><div class="sh-top"><div class="sh-in"><div class="sh-t"><div class="tt">🗑 휴지통</div><button class="x" onClick=${onClose}>닫기</button></div><div class="sh-sub">지운 카드는 여기 남아요 · 되살리면 이력도 그대로</div></div></div>
-    <div class="sh-body"><div class="sec">${list.length ? html`<ul class="hist">${list.map((c) => html`<li key=${c.id} style=${{ display: "flex", gap: 8, alignItems: "center" }}><div style=${{ flex: 1 }}><b>${c.item} ${c.spec}</b> <span class="w">${c.brand} · ${c.round} · ${who(c.deletedBy)} ${whenTxt(c.deletedAt)}</span></div><button class="btn sm" onClick=${() => back(c)}>되살리기</button></li>`)}</ul>` : html`<div class="empty">휴지통이 비어 있어요.</div>`}</div></div></div>`;
+  return html`<${Frame} title="🗑 휴지통" close=${onClose} meta=${html`<span>지운 카드는 여기 남아요 · 되살리면 이력도 그대로</span>`}>
+    <div class="panel"><div class="pb flush">${list.length ? html`<div class="gridwrap"><table class="grid" style=${{ minWidth: 560 }}><thead><tr><th>품목 · 규격</th><th>브랜드 · 차수</th><th>지운 사람 · 때</th><th></th></tr></thead><tbody>${list.map((c) => html`<tr key=${c.id}><td><span class="pname">${c.item}</span> <span class="pspec">${c.spec}</span></td><td class="nw">${c.brand} · ${c.round}</td><td class="nw">${who(c.deletedBy)} ${whenTxt(c.deletedAt)}</td><td><button type="button" class="tbtn sm" onClick=${() => back(c)}>되살리기</button></td></tr>`)}</tbody></table></div>` : html`<div class="empty">휴지통이 비어 있어요.</div>`}</div></div>
+  <//>`;
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(html`<${App} />`);

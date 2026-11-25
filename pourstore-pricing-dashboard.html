@@ -4090,13 +4090,13 @@ function renderAccess(){
     const grows=mg.length?mg.map(e=>`<tr><td class="name">${esc(e)} <span class="pill a">경영 열람</span></td>
         <td style="text-align:center;width:80px">${isPrimary?`<button class="tbtn" data-mgmtdel="${esc(e)}" style="color:var(--red);padding:2px 9px;font-size:11px">해제</button>`:'—'}</td></tr>`).join('')
       :`<tr><td class="dim" colspan="2" style="padding:10px">경영 열람 계정이 없습니다.</td></tr>`;
-    mgmtPanel=`<div class="panel"><h3>경영 열람 계정 <span class="tag">원가 분해 화면 · 원가·마진·공급처·제조사 보기만</span></h3><div class="bd">
+    mgmtPanel=`<div class="panel"><h3>경영 열람 계정 <span class="tag">분해원가 화면 · 원가·마진·공급처·제조사 보기만</span></h3><div class="bd">
       ${isPrimary?`<div class="formgrid" style="grid-template-columns:minmax(220px,1fr) auto;align-items:end;margin-bottom:12px">
         <div class="fld"><label>경영 열람으로 추가할 계정 이메일 (미리 Firebase Authentication에 계정 생성 필요)</label><input type="email" id="mgmtAddEmail" placeholder="mgmt@netformrnd.com"></div>
         <button class="tbtn primary" id="btnMgmtAdd" style="height:42px" ${verified?'':'disabled'}>경영 열람 추가</button>
       </div>`:`<p class="footnote" style="margin-bottom:10px">· 경영 열람 추가/해제는 <b>소유자(기본) 마스터</b> 계정만 할 수 있습니다.</p>`}
       <table class="grid" style="width:100%"><thead><tr><th>경영 열람 계정</th><th style="width:80px">해제</th></tr></thead><tbody>${grows}</tbody></table>
-      <p class="footnote">· 경영 열람은 <a href="pourstore-cost.html" target="_blank" rel="noopener"><b>원가 분해</b></a> 화면에서 원가·마진·공급처·제조사까지 <b>보기만</b> 합니다(고치기·승인 불가 · 서버 규칙이 막음).
+      <p class="footnote">· 경영 열람은 <a href="pourstore-cost.html" target="_blank" rel="noopener"><b>분해원가</b></a> 화면에서 원가·마진·공급처·제조사까지 <b>보기만</b> 합니다(고치기·승인 불가 · 서버 규칙이 막음).
       <br>· 이 가격정책표 화면은 열리지 않습니다(허용목록과 별개). 본인 기기에서 <b>이메일 인증</b>을 마쳐야 열립니다.
       ${verified?'':'<br>· 편집하려면 먼저 이메일 인증이 필요합니다.'}</p>
     </div></div>`;
@@ -4338,12 +4338,12 @@ function renderAccess(){
     try{
       const cur=(ACCESS&&Array.isArray(ACCESS.mgmtEmails))?ACCESS.mgmtEmails:[];
       await db.collection('config').doc('access').set({mgmtEmails:Array.from(new Set([...cur,ne])),updatedAt:new Date().toISOString(),updatedBy:curUser.email},{merge:true});
-      await reloadAccess(); refreshAll(); accMsg(`${ne} 을(를) 경영 열람으로 추가했습니다. (이메일 인증 후 원가 분해 화면 보기)`,true); logAct('계정', ne, '경영 열람 추가');
+      await reloadAccess(); refreshAll(); accMsg(`${ne} 을(를) 경영 열람으로 추가했습니다. (이메일 인증 후 분해원가 화면 보기)`,true); logAct('계정', ne, '경영 열람 추가');
     }catch(e){ accMsg('추가 실패: '+(e.code||e.message||e)+' (소유자 마스터·이메일 인증 여부 확인)'); }
   });
   box.querySelectorAll('[data-mgmtdel]').forEach(b=>b.addEventListener('click',async()=>{
     const em=b.dataset.mgmtdel;
-    if(!confirm(`${em} 을(를) 경영 열람에서 해제할까요?\n(원가 분해 화면을 더 이상 볼 수 없습니다)`))return;
+    if(!confirm(`${em} 을(를) 경영 열람에서 해제할까요?\n(분해원가 화면을 더 이상 볼 수 없습니다)`))return;
     try{
       const cur=(ACCESS&&Array.isArray(ACCESS.mgmtEmails))?ACCESS.mgmtEmails:[];
       await db.collection('config').doc('access').set({mgmtEmails:cur.filter(x=>String(x).toLowerCase()!==String(em).toLowerCase()),updatedAt:new Date().toISOString(),updatedBy:curUser.email},{merge:true});
@@ -4949,6 +4949,12 @@ function costSrcTag(p){
   if(s&&!s.need) return `<a class="mrate csrc pre" href="${href}" target="_blank" rel="noopener" title="분해원가 ${won(s.unit)}원 — 아직 가격정책표에 반영 전 (분해원가의 [가격정책표에 반영])">분해 ${won(s.unit)} · 반영 전</a>`;
   return `<a class="mrate csrc pre" href="${href}" target="_blank" rel="noopener" title="아직 분해 전 — 지금 값은 매입원가 그대로 · 눌러서 분해원가 열기">분해 전</a>`;
 }
+function costSrcText(p){   // 글자만 (줄 정보·산식 칸)
+  if(!COSTIDX) return ''; const s=COSTIDX[pKey(p)], c=effCost(p);
+  if(s&&!s.need&&s.ap!=null&&c!=null&&Math.round(+s.ap)===Math.round(c)) return `· 분해원가 반영 (${METHOD_SHORT[s.m]||'분해'})`;
+  if(s&&!s.need) return `· 분해원가 ${won(s.unit)} · 반영 전`;
+  return '· 분해 전 (매입원가 그대로)';
+}
 /* 줄 끝 ⋯ 메뉴 — 예전 줄 앞 버튼(⠿ ⚙ 📌 🧹 상태▾ ✏️ 📋 🗑)을 한곳에 */
 function rowMoreClose(){ const m=$('#rowMoreMenu'); if(m) m.remove(); }
 function rowMoreOpen(btn,p){
@@ -5061,7 +5067,7 @@ function showSplit(p,uid){
   const pw=Math.max(0,Math.min(100-cw,pm/base*100));
   const kw=Math.max(0,100-cw-pw);
   box.innerHTML=`
-    <span class="who"><span class="sw" style="background:#B7BEC7"></span>매입원가 <b>${wonU(effCost(p))}</b>${shp?` + 택배비 <b>${wonU(shp)}</b>`:''}${secAllowed?` (${unlocked?esc(p.sup||'공급업체 미지정'):'공급업체 🔒'})`:''}</span>
+    <span class="who"><span class="sw" style="background:#B7BEC7"></span>완제품 원가 <b>${wonU(effCost(p))}</b> <span style="color:var(--ink-faint)">${costSrcText(p)}</span>${shp?` + 택배비 <b>${wonU(shp)}</b>`:''}${secAllowed?` (${unlocked?esc(p.sup||'공급업체 미지정'):'공급업체 🔒'})`:''}</span>
     <span class="who"><span class="sw" style="background:var(--xl-green)"></span><b style="color:var(--xl-green-dark)">POUR스토어 마진</b>
       <b class="${pm<0?'neg':''}" style="color:${pm<0?'var(--red)':'inherit'}">${wonU(pm)}</b> · ${pct(pr?pm/pr:null)}
       <span style="color:var(--ink-faint)">(공급가 대비)</span></span>
@@ -5083,8 +5089,8 @@ document.addEventListener('click',e=>{
   selCell=td; td.classList.add('selcell'); document.body.classList.add('fx-has');
   const p=P[+td.dataset.id], f=td.dataset.f;
   if(f==='cost'){
-    $('#fxRef').textContent=p.name+' · 매입원가';
-    $('#fxExpr').innerHTML=`매입원가 = <b>${wonU(p.cost)}</b>`+(secAllowed?` &nbsp;(공급업체: ${unlocked?esc(p.sup||'미지정')+(p.mgr?' · '+esc(p.mgr):''):'🔒 보안 잠금'})`:'');
+    $('#fxRef').textContent=p.name+' · 완제품 원가';
+    $('#fxExpr').innerHTML=`완제품 원가 = <b>${wonU(effCost(p))}</b> <span style="color:var(--ink-faint)">${costSrcText(p)}</span>`+(secAllowed?` &nbsp;(공급업체: ${unlocked?esc(p.sup||'미지정')+(p.mgr?' · '+esc(p.mgr):''):'🔒 보안 잠금'})`:'');
     $('#fxSplit').classList.remove('on');
   }else if(f==='vbase'){
     $('#fxRef').textContent=p.name+' · 업체단가(pour공법)';
@@ -6676,7 +6682,7 @@ function renderSide(){
   let h=`<div class="sn-head"><div class="sn-logo">${TEAM_MODE?'<b>POUR 팀</b><span>대시보드</span>':'<b>POUR 가격·마진</b><span>통합 관리</span>'}</div><button id="snFold" title="메뉴 접기/펴기">☰</button><button id="snClose" title="메뉴 닫기">✕</button></div><nav class="sn-menu">`;
   loadMenuPref();
   const copyOnly=(TEAM_MODE||MENU_SHOWALL)?`<button class="sn-item" id="snCopyCatalog" title="분류·상품명·옵션·자체상품코드·브랜드·채널별 판매가만 (원가·마진·제조사 없음)">📋 제품 목록 복사 (원가 없음)</button>`:'';
-  const costLink=(costAllowed&&!TEAM_MODE)?`<a class="sn-item" id="snCostLink" href="pourstore-cost.html" target="_blank" rel="noopener" style="text-decoration:none" title="원가 분해·조립 계산기 — 완제품 원가 · 판매가 넣으면 마진 (새 창)">🧾 원가 계산기 ↗</a>`:'';
+  const costLink=(costAllowed&&!TEAM_MODE)?`<a class="sn-item" id="snCostLink" href="pourstore-cost.html" target="_blank" rel="noopener" style="text-decoration:none" title="분해원가 — 품목별 완제품 원가 · 구성요소마다 업체 여러 곳 단가 비교 · [가격정책표에 반영] (새 창)">🧾 분해원가 ↗</a>`:'';
   const copyBtn=copyOnly+costLink; let copyIn=false; // 옵시디언 제품 카드용 목록 — '제품' 묶음 안 (없으면 맨 아래)
   MENU.forEach(g=>{
     if(menuHid(g)) return;
@@ -6732,7 +6738,7 @@ function buildMobileMenu(){
     if(!its.length)return;
     html+='<div class="mm-grp">'+esc(g.ic+' '+g.lb)+'</div>';
     its.forEach(({it,tabs})=>{ const on=tabs.includes(curSh); html+='<button class="mm-item'+(on?' on':'')+'" data-sh="'+(on?curSh:tabs[0])+'">'+esc(it.lb)+(sheetReady(tabs[0])?'':' <i class="sn-dot"></i>')+'</button>'; });
-    if(g.g==='prod'&&costAllowed&&!TEAM_MODE) html+='<a class="mm-item" href="pourstore-cost.html" target="_blank" rel="noopener" style="text-decoration:none;display:block">🧾 원가 계산기 ↗</a>';
+    if(g.g==='prod'&&costAllowed&&!TEAM_MODE) html+='<a class="mm-item" href="pourstore-cost.html" target="_blank" rel="noopener" style="text-decoration:none;display:block">🧾 분해원가 ↗</a>';
   });
   list.innerHTML=html;
 }
@@ -11786,7 +11792,7 @@ function draftChangeList(){
   const nameOf=k=>{ const p=P.find(x=>pKey(x)===k); return p?`${p.name}${p.spec?' ('+p.spec+')':''}`:k.split('|').slice(1).join(' '); };
   Object.entries(DVBASE).forEach(([k,v])=>items.push({t:'업체단가', n:nameOf(k), from:VBASE[k], to:v}));
   Object.entries(DRETAIL).forEach(([k,v])=>items.push({t:'자사몰정가', n:nameOf(k), from:VRETAIL[k], to:v}));
-  Object.entries(DCOST).forEach(([k,v])=>{ const p=P.find(x=>pKey(x)===k); items.push({t:'매입원가(원가 분해)', n:nameOf(k), from:p?unitCost(p):null, to:v}); });
+  Object.entries(DCOST).forEach(([k,v])=>{ const p=P.find(x=>pKey(x)===k); items.push({t:'완제품 원가(분해원가)', n:nameOf(k), from:p?unitCost(p):null, to:v}); });
   Object.entries(DPOVR).forEach(([k,v])=>{ const i=k.lastIndexOf('|'), pk=k.slice(0,i), uid=k.slice(i+1);
     const c=chByUid(uid); items.push({t:(c?c.name:uid)+' 직접조정', n:nameOf(pk), from:POVR[k], to:v}); });
   Object.entries(DCOEFF).forEach(([code,o])=>{ const c=chByCode(code); const cur=VCOEFF[code]||VCOEFF_DEFAULT[code]||{a:'manual',f:0};
@@ -13628,7 +13634,7 @@ function installApp(){ if(!INSTALL_EVT) return; INSTALL_EVT.prompt(); Promise.re
   const mq=matchMedia('(max-width:640px)');
   const tabsCfg=()=>{
     if(TEAM_MODE) return [['sh-tprice','💰','단가표'],['sh-sales','📈','매출'],['ai','💬','AI'],['sh-mktpromo','📣','마케팅'],['more','☰','더보기']];
-    if(!MENU_SHOWALL) return costAllowed ? [['sh-price','💰','가격'],['cost','🧾','원가 계산'],['ai','💬','AI'],['more','☰','더보기']] : [['sh-price','💰','가격'],['ai','💬','AI'],['more','☰','더보기']];   // 메뉴 정리(2026-11-23): 판매·마케팅 숨김 · [숨긴 메뉴 다시 보기]면 아래 예전 그대로
+    if(!MENU_SHOWALL) return costAllowed ? [['sh-price','💰','가격'],['cost','🧾','분해원가'],['ai','💬','AI'],['more','☰','더보기']] : [['sh-price','💰','가격'],['ai','💬','AI'],['more','☰','더보기']];   // 메뉴 정리(2026-11-23): 판매·마케팅 숨김 · [숨긴 메뉴 다시 보기]면 아래 예전 그대로
     if(!costAllowed) return [['sh-price','💰','가격'],['sh-mktlink','🔗','링크'],['ai','💬','AI'],['sh-mktpromo','📣','마케팅'],['more','☰','더보기']];
     return [['sh-price','💰','가격'],['sh-sales','📈','매출'],['ai','💬','AI'],['sh-mktpromo','📣','마케팅'],['more','☰','더보기']];   // 출시 → 가격 탭 안 상태 탭(2026-11-03)
   };
@@ -13639,7 +13645,7 @@ function installApp(){ if(!INSTALL_EVT) return; INSTALL_EVT.prompt(); Promise.re
   nav.addEventListener('click',e=>{ const b=e.target.closest('[data-apptab]'); if(!b) return; const k=b.dataset.apptab;
     if(k==='ai'){ if(typeof daiOpen==='function') daiOpen(); return; }
     if(k==='more'){ document.body.classList.add('sn-open'); return; }
-    if(k==='cost'){ window.open('pourstore-cost.html','_blank','noopener'); return; }   // 원가 계산기(새 창)
+    if(k==='cost'){ window.open('pourstore-cost.html','_blank','noopener'); return; }   // 분해원가(새 창)
     if(document.body.classList.contains('ri-open')&&typeof rowSelect==='function'){ EDIT_ROW=null; rowSelect(null); }
     gotoTab(k); try{ $('#sheetwrap .sheet.on').scrollTop=0; }catch(err){} paint(); });
   const setMode=()=>{ document.body.classList.toggle('has-tabs', mq.matches);
@@ -14236,6 +14242,20 @@ function startLiveSync(){
     CHCUSTOM=nl; CHPATCH=np; CHCUSTOM_LOADED=true;
     scheduleRebuild('custom-channels('+CHCUSTOM.length+')');
   }, onErr('custom-channels'));
+  if(costAllowed&&!TEAM_MODE) db.collection('product-meta').doc('prod-cost').onSnapshot(d=>{
+    if(!d.exists) return; const m=(d.data()||{}).map||{};
+    if(liveSame(m,PCOST)) return;
+    const last=PCOST_LAST||{}; let n=0;
+    new Set([...Object.keys(m),...Object.keys(last)]).forEach(k=>{
+      const sv=(k in m)?m[k]:null, lv=(k in last)?last[k]:null, cv=(k in PCOST)?PCOST[k]:null;
+      if(sv===lv) return;          // 서버 = 마지막으로 안 값 → 바뀐 것 없음
+      if(cv!==lv) return;          // 이 화면이 저장 중인 칸 → 내 값 유지
+      if(sv==null){ delete PCOST[k]; delete last[k]; } else { PCOST[k]=sv; last[k]=sv; }
+      n++;
+    });
+    if(PCOST_LAST) PCOST_LAST=last;
+    if(n){ console.log(`[live] 원가(prod-cost) ${n}칸 받음`); scheduleRebuild('prod-cost('+n+')'); }
+  }, onErr('prod-cost'));
   db.collection('product-meta').doc('all').onSnapshot(d=>{
     if(editingNow()) return;                    // 입력 중엔 덮어쓰지 않음
     PMETA=d.exists?(d.data()||{}):{}; renderProductView();
@@ -14611,7 +14631,7 @@ function scheduleTeamCatalog(){
 let _crTimer=null, _crHash='', _crnHash='', _crOff=false, COSTIDX=null, _costSumOff=null;
 const _crH=js=>{ let x=0; for(let i=0;i<js.length;i++) x=(x*31+js.charCodeAt(i))|0; return String(x>>>0)+':'+js.length; };
 function costRefPayload(){
-  // 채널 = 가격정책표 열 그대로 + 채널 수수료(config/calc.chVar · 원가 계산기 '채널 고르면 수수료 자동')
+  // 채널 = 가격정책표 열 그대로 + 채널 수수료(config/calc.chVar · 분해원가 '채널 고르면 수수료 자동')
   const channels=COLS().filter(c=>c.role!=='export').map(c=>({uid:c.uid, code:c.code||'', name:c.short||c.name||c.code||'', fee:+((CH_VAR_DEFAULT[c.code]||{}).fee)||0, brands:chBrands(c), retail:c.uid===retailUid()}));
   const list=P.filter(p=>!isDeletedProd(p)).map(p=>{ const k=pKey(p), c=effCost(p);
     const o={k, cat:p.cat, name:p.name, spec:p.spec, brand:pbrand(p), st:pstatus(p), type:isPackage(p)?'세트':'단품', cost:(c==null||!isFinite(c))?null:c};
@@ -14637,7 +14657,7 @@ function scheduleCostRef(){
     try{ const pl=costRefPayload(), list=pl.list, hash=_crH(JSON.stringify(pl));
       if(hash!==_crHash){
         if(!_crHash){ const d=await db.collection('cost-ref').doc('products').get(); if(d.exists&&d.data().hash===hash) _crHash=hash; }
-        if(hash!==_crHash){ await db.collection('cost-ref').doc('products').set({...pl, hash, at, by}); _crHash=hash; console.log(`[cost-ref] 원가 계산기용 제품 ${list.length}개 · 채널 ${pl.channels.length}개 저장`); }
+        if(hash!==_crHash){ await db.collection('cost-ref').doc('products').set({...pl, hash, at, by}); _crHash=hash; console.log(`[cost-ref] 분해원가용 제품 ${list.length}개 · 채널 ${pl.channels.length}개 저장`); }
       }
     }catch(e){ if(e&&e.code==='permission-denied') _crOff=true; console.warn('[cost-ref] 저장 못 함(새 규칙 게시 전이면 정상)', e.code||e.message||e); return; }
     if(secAllowed && unlocked){ try{

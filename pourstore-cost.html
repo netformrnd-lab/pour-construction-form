@@ -5,8 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#24386B">
-<title>POUR 원가 계산기</title>
+<title>POUR 분해원가</title>
 <!--
+  분해원가 — 2026-11-25 송희님: '원가 계산기' → 메뉴 이름 '분해원가' · 품목별 원가 관리 화면
+  · 목록 = 브랜드 · 품목·규격 · 생산 방식 · 국내/수입 · 완제품 원가 · 확정/임시 · 견적 유효기간 (거르기: 브랜드·생산 방식·국내/수입·분해 필요)
+  · 생산 방식(자체생산 · 국내 OEM · 해외 OEM·수입 · 완제품 매입)마다 기본 줄 · 외화 단가 × 환율(카드 fx) → 원화
+  · 구성요소마다 업체 여러 곳(A 주 · B 서브 · C…: 단가·부가세·통화·MOQ·리드타임·견적일·유효기간·메모) → '적용' 1곳으로 완제품 원가 · [업체 비교] 탭 = 나란히·최저가·바꾸면 ±
+    실제 업체 이름 = cost-names/{id}.vsup (마스터·경영 열람만) · 카드엔 가칭(A사·B사)만
+  · [가격정책표에 반영] (C) = 마스터만 바로 반영: product-meta/prod-cost.map[제품] + cost-log(누가·언제·전→후) + dashboard-activity + 카드 applied
+    부마스터 = 반영 요청(가격정책표 개정안 → 마스터 승인) · 자동으로 몰래 안 바뀜
+  ─ 아래는 11/23 처음 만든 때 설명 ─
   원가 분해·조립 계산기 — 2026-11-23 김송희 요청·승인 (관리 = 대시보드 · 경영팀 = 공급처까지 전부 열람 · 본부장님 = 전부 · 처음 품목 = POUR스토어 기존 품목 포함)
   · 같은 날 오후 범위 줄임: 결과는 ① 최종 완제품 원가 ② 판매가를 넣으면 마진율·마진액 두 가지 (판매가 3단계 고정 표·판매가 설정은 뺌)
     마진율 = 엑셀 '판매가' 시트 식을 판매가 기준으로 거꾸로 푼 값(pcc-core marginCalc) + 작게 가격정책표 방식 (판매가−원가)÷판매가
@@ -185,14 +193,51 @@ table.ed{min-width:1640px;font-size:12.5px}
 .qc .v{font-weight:800;font-size:16px;margin-top:6px;font-variant-numeric:tabular-nums}
 .qc .s{font-size:11.5px;color:var(--mute)}
 .dropz{border:2px dashed var(--line);border-radius:14px;padding:22px 14px;text-align:center;color:var(--mute);background:#fff}
+/* 분해원가 (11/25) — 거르기 · 업체 여러 곳 · 업체 비교 */
+.find .fsel{width:auto;max-width:none;height:36px;font-size:13.5px;flex:none}
+.vbox{border-radius:6px;padding:1px 5px}
+.vcell{display:flex;gap:4px;align-items:center;min-width:0}
+.vcell .in{flex:1;min-width:70px}
+.vcell .vnm{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vbtn{flex:none;height:30px;padding:0 7px;border-radius:7px;border:1px solid var(--line);background:#F7F8FB;color:var(--navy);font-weight:800;font-size:12px;cursor:pointer;white-space:nowrap}
+.vbtn b{color:var(--green)}
+.vbtn.on{background:var(--navy);border-color:var(--navy);color:#fff}.vbtn.on b{color:#BBF7D0}
+.pcur{display:flex;gap:3px;align-items:center}.pcur .cu{font-size:11px;font-weight:800;color:var(--mute)}
+.ed tr.vopen td{background:#F7F9FD}
+.ed tr.vrow>td{background:#F7F9FD;padding:4px 8px 12px;border-bottom:1px solid var(--line)}
+.vpan{min-width:0}
+.vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px}
+.rc .vgrid{margin-top:8px;grid-template-columns:1fr}
+.vc{background:#fff;border:1px solid var(--line);border-radius:11px;padding:8px 10px;min-width:0}
+.vc.on{border-color:var(--green);box-shadow:0 0 0 1px var(--green) inset}
+.vc .vh{display:flex;gap:6px;align-items:center;margin-bottom:6px}.vc .vh .sp{flex:1}
+.vc .vf{display:grid;grid-template-columns:1fr 1fr;gap:6px}.vc .vf .w2{grid-column:1/-1}
+.vc .vf .in{height:32px;font-size:13px}
+.vc .vf .fld>label{font-size:11px;margin-bottom:2px}
+.vc .vr{display:flex;gap:4px 10px;flex-wrap:wrap;margin-top:7px;font-size:12px;color:var(--ink2);background:#F7F8FB;border-radius:8px;padding:5px 8px}
+.vc .vr b{font-variant-numeric:tabular-nums}
+.vadd{border:1.5px dashed var(--line);border-radius:11px;background:#fff;color:var(--navy);font-weight:800;font-size:13.5px;cursor:pointer;padding:14px 10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:80px}
+.vadd span{font-size:11.5px;color:var(--mute);font-weight:600}
+.cmpk{grid-template-columns:repeat(3,minmax(0,1fr))}
+.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.cc{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff;min-width:0}
+.cc.on{border-color:var(--navy);box-shadow:0 0 0 1px var(--navy) inset}
+.cc.best{background:var(--grbg)}
+.cc .ch{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.cc .ch .cn{color:var(--ink2);font-weight:600;font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.cc .cv{font-size:15px;margin-top:6px}.cc .cv b{font-size:20px;font-variant-numeric:tabular-nums}
+.cc .cs{font-size:12px;color:var(--mute);margin-top:3px;line-height:1.5}
+.cc .cd{font-size:12.5px;margin-top:5px;line-height:1.55}
+.cc .cd b{font-variant-numeric:tabular-nums}
 @media (max-width:900px){
   .fg,.kv{grid-template-columns:repeat(2,minmax(0,1fr))}
   .res .rg{grid-template-columns:1fr}.res .mi{grid-template-columns:1fr 1fr}
+  .cmpk{grid-template-columns:1fr 1fr}
   .h1{font-size:20px}
 }
 @media (max-width:700px){
   .wrap,.sh-in,.sh-body{padding-left:12px;padding-right:12px}
   .find .in{max-width:none;flex:1 1 160px}
+  .find .fsel{flex:1 1 40%}
   .kv .v{font-size:17px}
   .tot .v{font-size:17px}
   .bar .st{display:none}
@@ -206,7 +251,7 @@ table.ed{min-width:1640px;font-size:12.5px}
 </style>
 </head>
 <body>
-<div id="root"><div class="ld">원가 계산기 불러오는 중…</div></div>
+<div id="root"><div class="ld">분해원가 불러오는 중…</div></div>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -223,7 +268,12 @@ table.ed{min-width:1640px;font-size:12.5px}
      · 완제품 기준 원가 = 개당 금액 합 · 첫 생산 원가 = 완제품 기준 원가 + 남는 비용 합 ÷ 생산 수량 · 첫 생산 금액 = 첫 생산 원가 × 생산 수량
      · 빈칸은 엑셀처럼 0 (생산 수량·사용량·단가) — 화면에선 '—' 로 보일 수 있음
      이 블록은 화면(React)과 따로 떼어 node 시험에서도 그대로 돈다 (window.PCC) */
-  const KINDS = ["내용물·충전", "용기", "캡", "라벨", "단상자", "파우치", "구성품", "아웃박스", "향료", "1회 비용", "입고 이동", "수입 물류", "기타"];
+  const KINDS = ["내용물·충전", "용기", "캡", "라벨", "단상자", "파우치", "구성품", "아웃박스", "향료", "OEM 단가", "공임", "간접비", "1회 비용", "입고 이동", "수입 물류", "관세", "기타"];
+  // 생산 방식 (2026-11-25 송희님) — 코드 · 이름 · 가격정책표 꼬리표
+  const METHODS = [["self", "자체생산", "자체"], ["oem", "국내 OEM", "OEM"], ["imp", "해외 OEM·수입", "수입"], ["buy", "완제품 매입", "매입"]];
+  const ORIGINS = ["국내", "수입"];
+  const CURS = [["", "원"], ["USD", "USD 달러"], ["CNY", "CNY 위안"], ["JPY", "JPY 엔"], ["EUR", "EUR 유로"]];
+  const methodName = (m) => (METHODS.find((x) => x[0] === m) || [, ""])[1];
   const VATS = [["V+", "V+ 포함"], ["V-", "V- 별도"], ["V?", "V? 불명"]];
   const ROW_ST = ["확정", "임시", "확인 필요"];
   const SKIP_SHEETS = ["완제품원가요약", "판매가", "목록", "양식(새품목)", "양식"];
@@ -277,12 +327,15 @@ table.ed{min-width:1640px;font-size:12.5px}
     if (!r) return "임시";
     if (r.vat === "V?" || !r.vat) return "확인 필요";
     if (!has(r.src)) return "임시";
+    if (num(r.price) == null && r.inMfg !== "포함") return "임시";   // 단가 빈칸(예: 공장 간접비 선택 줄) → 임시
     return ROW_ST.includes(r.st) ? r.st : "확정";
   }
   const rowEmpty = (r) => !r || (!has(r.name) && !has(r.kind) && num(r.price) == null && !has(r.use));
 
-  function rowCalc(r, qty) {
-    const price = z(r.price), q = z(qty), use = z(r.usage);
+  // 외화 단가: 견적 단가 × 환율(카드의 fx · 통화별 1개 = 원) → 원화 · 통화가 비면(원) 엑셀과 같은 식 그대로
+  const fxOf = (r, fx) => (r && r.cur ? num((fx || {})[r.cur]) : 1);
+  function rowCalc(r, qty, fx) {
+    const rate = fxOf(r, fx), price = z(r.price) * (rate > 0 ? rate : 0), q = z(qty), use = z(r.usage);
     const unitV = r.vat === "V+" ? price / 1.1 : price;
     let per;
     if (q === 0) per = 0;
@@ -291,7 +344,7 @@ table.ed{min-width:1640px;font-size:12.5px}
     else per = unitV * use;
     const moq = num(r.moq);
     const left = r.per === "개당" && moq != null ? Math.max(moq - q * use, 0) * unitV : 0;
-    return { unitV, per, left, st: rowStatus(r) };
+    return { unitV, per, left, krw: price, st: r && r.cur && !(rate > 0) ? "확인 필요" : rowStatus(r) };
   }
   function fragNeed(f) {
     if (!f) return null;
@@ -302,7 +355,7 @@ table.ed{min-width:1640px;font-size:12.5px}
   }
   function cardCalc(c) {
     const qty = z(c && c.qty), src = (c && c.rows) || [];
-    const rows = src.map((r) => rowCalc(r, qty));
+    const rows = src.map((r) => rowCalc(r, qty, c && c.fx));
     const unit = rows.reduce((a, x) => a + x.per, 0);
     const leftSum = rows.reduce((a, x) => a + x.left, 0);
     const first = qty > 0 ? unit + leftSum / qty : null;
@@ -313,6 +366,57 @@ table.ed{min-width:1640px;font-size:12.5px}
     const n = live.length, ok = live.filter(([, x]) => x.st === "확정").length;
     return { qty, rows, unit, leftSum, first, firstAmt, byKind, n, ok, okRatio: n ? ok / n : null, frag: fragNeed(c && c.frag) };
   }
+  // ── 업체 여러 곳 (2026-11-25 송희님): 줄마다 A(주)·B(서브)·C… · 완제품 원가는 '적용' 업체 하나로 ──
+  //  줄의 단가·부가세·통화·MOQ·출처·가칭 = 적용 업체 값(거울) → 위 계산·엑셀 식은 그대로
+  const VF = ["price", "vat", "cur", "moq", "lead", "qd", "vu", "memo"];
+  const vRole = (i) => (i === 0 ? "주" : i === 1 ? "서브" : "");
+  const nextVid = (vs) => { for (let i = 0; i < 26; i++) { const v = String.fromCharCode(65 + i); if (!(vs || []).some((x) => x.vid === v)) return v; } return "V" + ((vs || []).length + 1); };
+  function vendorsOf(r) {
+    if (r && Array.isArray(r.vendors) && r.vendors.length) return r.vendors;
+    return [{ vid: "A", alias: (r && r.supAlias) || "", price: r && r.price != null ? r.price : "", vat: (r && r.vat) || "", cur: (r && r.cur) || "", moq: r && r.moq != null ? r.moq : "", lead: "", qd: (r && r.src) || "", vu: "", memo: "" }];
+  }
+  const selOf = (r) => { const vs = vendorsOf(r); return r && vs.some((v) => v.vid === r.sel) ? r.sel : vs[0].vid; };
+  const withVendor = (r, v) => ({ ...r, price: v.price, vat: v.vat, cur: v.cur || "", moq: v.moq, src: v.qd, supAlias: v.alias || "", sel: v.vid });
+  function syncRow(r) { const vs = vendorsOf(r), s = selOf(r); return { ...withVendor(r, vs.find((v) => v.vid === s)), vendors: vs, sel: s }; }
+  const vendorPriced = (v, fx) => num(v.price) != null && (!v.cur || num((fx || {})[v.cur]) > 0);
+  // 줄마다 업체별 단가·개당 금액 + 적용 업체로 바꿨을 때 차이 · 최저가(같으면 지금 적용 업체)
+  function vendorCompare(c) {
+    const qty = c && c.qty, fx = c && c.fx, q = z(qty);
+    return ((c && c.rows) || []).map((r, i) => {
+      if (rowEmpty(r)) return null;
+      const vs = vendorsOf(r), s = selOf(r), curV = vs.find((v) => v.vid === s), cur = rowCalc(withVendor(r, curV), qty, fx);
+      const firstOf = (m) => m.per + (q > 0 ? m.left / q : 0);
+      const list = vs.map((v, k) => { const m = rowCalc(withVendor(r, v), qty, fx); return { v, k, m, on: v.vid === s, priced: vendorPriced(v, fx), dUnit: m.unitV - cur.unitV, dPer: m.per - cur.per, dFirst: firstOf(m) - firstOf(cur) }; });
+      const pr = list.filter((x) => x.priced);
+      let best = null;
+      if (pr.length) { const min = Math.min(...pr.map((x) => x.m.per)); best = pr.find((x) => x.on && x.m.per <= min + 1e-9) || pr.find((x) => x.m.per <= min + 1e-9); }
+      return { i, r, sel: s, cur, list, best, n: vs.length };
+    });
+  }
+  // 모두 최저가로 고르면 (저장 안 함 · 비교용)
+  function cheapestCard(c) {
+    const cmp = vendorCompare(c);
+    return { ...c, rows: ((c && c.rows) || []).map((r, i) => { const x = cmp[i]; return x && x.best && !x.best.on ? syncRow({ ...r, vendors: vendorsOf(r), sel: x.best.v.vid }) : r; }) };
+  }
+  // 카드 상태: 모든 줄 확정 → 확정 · 그 밖(임시·확인 필요·분해 필요·줄 없음) → 임시
+  function cardStatus(c) { const x = cardCalc(c); return !c || c.need || !x.n || x.ok < x.n ? "임시" : "확정"; }
+  // 견적 유효기간: 카드 유효기간과 적용 업체 유효기간 중 가장 빠른 날
+  function validFirst(c) {
+    const l = [parseDate(c && c.validUntil)];
+    ((c && c.rows) || []).forEach((r) => { if (rowEmpty(r)) return; const s = selOf(r), v = vendorsOf(r).find((x) => x.vid === s); l.push(parseDate(v && v.vu)); });
+    return l.filter(Boolean).sort()[0] || "";
+  }
+  // 생산 방식별 기본 줄 (1회 = 운임·관세처럼 한 번 내는 돈 → 생산 수량으로 나눔)
+  function templateRows(method, origin) {
+    const R = (kind, name, o = {}) => ({ kind, name, use: "", inMfg: "별도", price: "", vat: "V-", per: "개당", usage: 1, moq: "", src: "", st: "", ...o });
+    const imp = (first) => [R("OEM 단가", first, { cur: "USD", use: "포함 범위 적기" }), R("수입 물류", "해상·항공 운임", { per: "1회" }), R("관세", "관세", { per: "1회" }), R("수입 물류", "통관·보험", { per: "1회" }), R("입고 이동", "내륙 운송", { per: "1회" })];
+    if (method === "self") return [R("내용물·충전", "원료·내용물"), R("용기", "용기"), R("캡", "캡"), R("라벨", "라벨"), R("단상자", "단상자"), R("공임", "충진·포장 공임"), R("간접비", "공장 간접비", { use: "선택 · 비우면 임시" })];
+    if (method === "oem") return [R("OEM 단가", "OEM 단가", { use: "포함 범위 적기" }), R("기타", "넷폼 별도 공급 부자재"), R("입고 이동", "입고 운송", { per: "1회" })];
+    if (method === "imp") return imp("해외 단가");
+    if (method === "buy") return origin === "수입" ? imp("완제품 매입 (해외 단가)") : [R("기타", "완제품 매입", { use: "완제품 전체" }), R("입고 이동", "입고 운송", { per: "1회" })];
+    return [];
+  }
+
   // 수량 바꿔 보기 (저장 안 함)
   const qtyCompare = (c, qtys) => qtys.map((q) => { const x = cardCalc({ ...c, qty: q }); return { q: z(q), unit: x.unit, first: x.first, firstAmt: x.firstAmt }; });
 
@@ -335,7 +439,9 @@ table.ed{min-width:1640px;font-size:12.5px}
   // 가격정책표에 보낼 한 줄 요약 (cost-ref/cards.map[id]) — 실제 이름 없음
   function summaryOf(c) {
     const x = cardCalc(c), r2 = (v) => (v == null ? null : Math.round(v * 100) / 100);
-    return { k: c.prodKey || "", b: c.brand || "", i: c.item || "", s: c.spec || "", r: c.round || "", unit: r2(x.unit), first: r2(x.first), need: !!c.need, inc: c.include !== false, at: c.updatedAt || c.createdAt || "" };
+    const ap = c.applied && c.applied.v != null && c.applied.v !== "" ? +c.applied.v : null;
+    return { k: c.prodKey || "", b: c.brand || "", i: c.item || "", s: c.spec || "", r: c.round || "", unit: r2(x.unit), first: r2(x.first), need: !!c.need, inc: c.include !== false, at: c.updatedAt || c.createdAt || "",
+      m: c.method || "", o: c.origin || "", st: cardStatus(c), ap, vu: validFirst(c) };
   }
   // 한 제품에 카드가 여럿이면(1차·2차…) 차수가 높은 것 → 최근 것
   function pickForProduct(map, key) {
@@ -475,8 +581,9 @@ table.ed{min-width:1640px;font-size:12.5px}
   }
 
   // 바뀐 것 한 줄 (이력용 — 실제 업체 이름은 넣지 않음, 가칭만)
-  const F_LB = { brand: "브랜드", round: "차수", item: "품목", spec: "규격", scope: "완제품 범위", qty: "생산 수량", validUntil: "견적 유효기간", include: "합계 포함", prodKey: "가격정책표 연결", need: "분해 필요", mfgAlias: "완제품 제조사" };
-  const R_LB = { kind: "구분", name: "구성요소", use: "쓰임", supAlias: "공급처", inMfg: "제조 단가 포함", price: "견적 단가", vat: "부가세", per: "개당/1회", usage: "사용량", moq: "MOQ", src: "출처", st: "상태" };
+  const F_LB = { brand: "브랜드", round: "차수", item: "품목", spec: "규격", method: "생산 방식", origin: "국내·수입", scope: "완제품 범위", qty: "생산 수량", validUntil: "견적 유효기간", include: "합계 포함", prodKey: "가격정책표 연결", need: "분해 필요", mfgAlias: "완제품 제조사" };
+  const R_LB = { kind: "구분", name: "구성요소", use: "쓰임", supAlias: "공급처", inMfg: "제조 단가 포함", price: "견적 단가", cur: "통화", vat: "부가세", per: "개당/1회", usage: "사용량", moq: "MOQ", src: "출처", st: "상태" };
+  const V_LB = { alias: "이름", price: "단가", vat: "부가세", cur: "통화", moq: "MOQ", lead: "리드타임", qd: "견적일", vu: "유효기간", memo: "메모" };
   const show = (v) => (v === true ? "포함" : v === false ? "제외" : v === "" || v == null ? "빈칸" : typeof v === "number" ? v.toLocaleString("ko-KR") : String(v));
   function diffCard(a, b) {
     const out = [];
@@ -484,15 +591,23 @@ table.ed{min-width:1640px;font-size:12.5px}
     Object.keys(F_LB).forEach((k) => {
       const x = k === "include" ? a[k] !== false : a[k], y = k === "include" ? b[k] !== false : b[k];
       if (k === "need") { if (!!x !== !!y) out.push(y ? "분해 필요로 표시" : "분해 필요 해제"); return; }
-      if (String(x ?? "") !== String(y ?? "")) out.push(`${F_LB[k]} ${show(x)}→${show(y)}`);
+      if (String(x ?? "") !== String(y ?? "")) out.push(`${F_LB[k]} ${show(k === "method" ? methodName(x) || x : x)}→${show(k === "method" ? methodName(y) || y : y)}`);
     });
+    const fxa = a.fx || {}, fxb = b.fx || {};
+    [...new Set([...Object.keys(fxa), ...Object.keys(fxb)])].forEach((k) => { if (String(fxa[k] ?? "") !== String(fxb[k] ?? "")) out.push(`환율 ${k} ${show(fxa[k])}→${show(fxb[k])}`); });
     const fa = a.frag || {}, fb = b.frag || {};
     if (["name", "ratio", "batchKg", "directKg"].some((k) => String(fa[k] ?? "") !== String(fb[k] ?? ""))) out.push("향료 바뀜");
     const ra = new Map((a.rows || []).map((r) => [r.id, r])), rb = new Map((b.rows || []).map((r) => [r.id, r]));
     (b.rows || []).forEach((r) => {
       const o = ra.get(r.id); const nm = r.name || r.kind || "줄";
       if (!o) { out.push(`줄 추가: ${nm}`); return; }
-      Object.keys(R_LB).forEach((k) => { if (String(o[k] ?? "") !== String(r[k] ?? "")) out.push(`${nm} ${R_LB[k]} ${show(o[k])}→${show(r[k])}`); });
+      // 업체: 적용 바뀜 · 추가·뺌 · 업체 값 (적용 업체가 그대로면 그 업체 단가 등은 줄 값으로 남김 · 적용이 바뀌면 줄 값 대신 '적용 업체 A→B')
+      const va = vendorsOf(o), vb = vendorsOf(r), sa = selOf(o), sb = selOf(r), MIR = ["supAlias", "price", "vat", "cur", "moq", "src"];
+      Object.keys(R_LB).forEach((k) => { if (sa !== sb && MIR.includes(k)) return; if (String(o[k] ?? "") !== String(r[k] ?? "")) out.push(`${nm} ${R_LB[k]} ${show(o[k])}→${show(r[k])}`); });
+      if (sa !== sb) out.push(`${nm} 적용 업체 ${sa}→${sb}`);
+      vb.forEach((v) => { const p = va.find((x) => x.vid === v.vid); if (!p) { out.push(`${nm} 업체 ${v.vid} 추가`); return; }
+        Object.keys(V_LB).forEach((k) => { if (sa === sb && v.vid === sb && ["alias", "price", "vat", "cur", "moq", "qd"].includes(k)) return; if (String(p[k] ?? "") !== String(v[k] ?? "")) out.push(`${nm} ${v.vid}업체 ${V_LB[k]} ${show(p[k])}→${show(v[k])}`); }); });
+      va.forEach((v) => { if (!vb.some((x) => x.vid === v.vid)) out.push(`${nm} 업체 ${v.vid} 뺌`); });
     });
     (a.rows || []).forEach((r) => { if (!rb.has(r.id)) out.push(`줄 뺌: ${r.name || r.kind || "줄"}`); });
     return out;
@@ -509,7 +624,8 @@ table.ed{min-width:1640px;font-size:12.5px}
   }
   const seedId = (key) => { let h = 2166136261; const s = String(key); for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return "seed-" + (h >>> 0).toString(36); };
 
-  G.PCC = { KINDS, VATS, ROW_ST, BADGE, SALE_CH, SALE_MARGINS, LOGI, num, z, has, ceil100, normBrand, vatOf, perOf, inMfgOf, kindOf, rowStatus, rowEmpty, rowCalc, fragNeed, cardCalc, qtyCompare,
+  G.PCC = { KINDS, METHODS, ORIGINS, CURS, methodName, VATS, ROW_ST, BADGE, SALE_CH, SALE_MARGINS, LOGI, num, z, has, ceil100, normBrand, vatOf, perOf, inMfgOf, kindOf, rowStatus, rowEmpty, rowCalc, fragNeed, cardCalc, qtyCompare,
+    VF, vRole, nextVid, vendorsOf, selOf, withVendor, syncRow, vendorPriced, vendorCompare, cheapestCard, cardStatus, validFirst, templateRows,
     parseDate, days, validity, roundNo, summaryOf, pickForProduct, badgeOf, aliasNext, logiCalc, salePrice, marginCalc, parseV7, compareXl, sheetSkip, diffCard, seedCard, seedId };
 })(typeof window !== "undefined" ? window : globalThis);
 </script>
@@ -524,7 +640,7 @@ const V1_URL = "pourstore-pricing-dashboard.html";
 firebase.initializeApp({ apiKey: "AIzaSyB9VC75Hs8eAdXxy9n2aVsCeFUnCGX4xhA", authDomain: "pourstoreproject.firebaseapp.com", projectId: "pourstoreproject", storageBucket: "pourstoreproject.firebasestorage.app", messagingSenderId: "549863414475", appId: "1:549863414475:web:9c696d7f85d82a7b7bd94e" });
 const auth = firebase.auth(), db = firebase.firestore();
 // 내 컴퓨터 시험 전용(localhost + ?emu=1) — 실제 주소에선 켜지지 않음
-if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) && /[?&]emu=1\b/.test(location.search)) { db.useEmulator("127.0.0.1", 8085); auth.useEmulator("http://127.0.0.1:9099", { disableWarnings: true }); console.log("[원가 분해] 시험용 에뮬레이터"); }
+if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) && /[?&]emu=1\b/.test(location.search)) { db.useEmulator("127.0.0.1", 8085); auth.useEmulator("http://127.0.0.1:9099", { disableWarnings: true }); console.log("[분해원가] 시험용 에뮬레이터"); }
 const FV = firebase.firestore.FieldValue;
 const cardsCol = () => db.collection("cost-cards"), namesCol = () => db.collection("cost-names"), refDoc = (d) => db.collection("cost-ref").doc(d);
 const draftDoc = () => db.collection("product-meta").doc("pricing-draft");
@@ -566,33 +682,52 @@ function roleOf(a, email, verified) {
 }
 
 // ── 편집 모양 ↔ 저장 모양 (숫자 칸은 편집 중엔 글자 그대로, 저장할 때 숫자로) ──
-const newRow = () => ({ id: uid(), kind: "", name: "", use: "", supAlias: "", inMfg: "별도", price: "", vat: "V-", per: "개당", usage: "1", moq: "", src: "", st: "" });
-const blankCard = () => ({ brand: "", round: "1차", item: "", spec: "", scope: "", qty: "", validUntil: "", include: true, need: false, prodKey: "", prodLabel: "", mfgAlias: "", seed: "manual", frag: { name: "", ratio: "", batchKg: "", directKg: "" }, rows: [newRow()], sale: {} });
+//  줄 = 구분·구성요소·쓰임·개당/1회·사용량 + 업체 여러 곳(vendors: A 주 · B 서브 · C…) · sel = 적용 업체
+//  저장할 때 적용 업체 값(단가·부가세·통화·MOQ·견적일·가칭)을 줄에도 그대로 적음(C.syncRow) → 계산·엑셀 식은 예전 그대로
+const newVendor = (vid) => ({ vid: vid || "A", alias: "", price: "", vat: "V-", cur: "", moq: "", lead: "", qd: "", vu: "", memo: "" });
+const newRow = (o) => ({ id: uid(), kind: "", name: "", use: "", inMfg: "별도", per: "개당", usage: "1", st: "", sel: "A", vendors: [newVendor("A")], ...(o || {}) });
+const tplRow = (t) => newRow({ kind: t.kind, name: t.name, use: t.use || "", inMfg: t.inMfg || "별도", per: t.per || "개당", usage: str(t.usage ?? 1), vendors: [{ ...newVendor("A"), vat: t.vat || "V-", cur: t.cur || "" }] });
+const blankCard = () => ({ brand: "", round: "1차", item: "", spec: "", method: "", origin: "", scope: "", qty: "", validUntil: "", include: true, need: false, prodKey: "", prodLabel: "", mfgAlias: "", seed: "manual", fx: {}, frag: { name: "", ratio: "", batchKg: "", directKg: "" }, rows: [newRow()], sale: {} });
+const av = (r) => r.vendors.find((v) => v.vid === r.sel) || r.vendors[0];   // 적용 업체 (편집 중)
+const vLabel = (v, k) => `${v.vid}${C.vRole(k) ? " " + C.vRole(k) : ""}`;
 const pctStr = (f) => { const n = C.num(f); return n == null ? "" : String(+(n * 100).toPrecision(10)); };
 const fromPct = (s) => { const n = C.num(s); return n == null ? "" : +(n / 100).toPrecision(12); };
 function toEdit(c) {
   const b = blankCard(), d = clone({ ...b, ...(c || {}) });
-  d.qty = str(d.qty);
+  d.qty = str(d.qty); d.method = d.method || ""; d.origin = d.origin || "";
   const f = { ...b.frag, ...((c && c.frag) || {}) };
   d.frag = { name: str(f.name), ratioPct: pctStr(f.ratio), batchKg: str(f.batchKg), directKg: str(f.directKg) };
-  d.rows = ((c && c.rows) || []).map((r) => ({ ...newRow(), ...r, price: str(r.price), usage: str(r.usage), moq: str(r.moq) }));
+  d.fx = {}; Object.entries((c && c.fx) || {}).forEach(([k, v]) => { d.fx[k] = str(v); });
+  d.rows = ((c && c.rows) || []).map((r) => {
+    const vs = C.vendorsOf(r).map((v) => ({ ...newVendor(v.vid), vid: v.vid, alias: v.alias || "", price: str(v.price), vat: v.vat || "", cur: v.cur || "", moq: str(v.moq), lead: str(v.lead), qd: str(v.qd), vu: str(v.vu), memo: str(v.memo) }));
+    return { id: r.id || uid(), kind: r.kind || "", name: str(r.name), use: str(r.use), inMfg: r.inMfg || "", per: r.per || "", usage: str(r.usage), st: r.st || "", sel: C.selOf({ ...r, vendors: vs }), vendors: vs };
+  });
   if (!d.rows.length) d.rows = [newRow()];
   const s = (c && c.sale) || {};
   d.sale = { price: str(s.price), ch: str(s.ch), chName: str(s.chName), feePct: pctStr(s.fee), logi: str(s.logi) };
-  ["history", "deleted", "deletedAt", "deletedBy", "createdAt", "createdBy", "updatedAt", "updatedBy", "id"].forEach((k) => delete d[k]);
+  ["history", "deleted", "deletedAt", "deletedBy", "createdAt", "createdBy", "updatedAt", "updatedBy", "id", "applied"].forEach((k) => delete d[k]);
   return d;
 }
 function fromEdit(d) {
   const N = (v) => { const n = C.num(v); return n == null ? "" : n; }, T = (v) => String(v ?? "").trim(), f = d.frag || {}, s = d.sale || {};
+  const fx = {}; Object.entries(d.fx || {}).forEach(([k, v]) => { const n = C.num(v); if (k && n != null) fx[k] = n; });
   return {
-    brand: C.normBrand(d.brand), round: T(d.round), item: T(d.item), spec: T(d.spec), scope: T(d.scope), qty: N(d.qty),
+    brand: C.normBrand(d.brand), round: T(d.round), item: T(d.item), spec: T(d.spec), method: d.method || "", origin: d.origin || "", scope: T(d.scope), qty: N(d.qty),
     validUntil: C.parseDate(d.validUntil) || T(d.validUntil), include: d.include !== false, need: !!d.need,
-    prodKey: d.prodKey || "", prodLabel: T(d.prodLabel), mfgAlias: d.mfgAlias || "", seed: d.seed || "manual",
+    prodKey: d.prodKey || "", prodLabel: T(d.prodLabel), mfgAlias: d.mfgAlias || "", seed: d.seed || "manual", fx,
     frag: { name: T(f.name), ratio: fromPct(f.ratioPct), batchKg: N(f.batchKg), directKg: N(f.directKg) },
-    rows: (d.rows || []).filter((r) => !C.rowEmpty(r)).map((r) => ({ id: r.id, kind: r.kind || "", name: T(r.name), use: T(r.use), supAlias: r.supAlias || "", inMfg: r.inMfg || "", price: N(r.price), vat: r.vat || "", per: r.per || "", usage: N(r.usage), moq: N(r.moq), src: T(r.src), st: r.st || "" })),
+    rows: (d.rows || []).filter((r) => !C.rowEmpty(C.syncRow(r))).map((r) => C.syncRow({ id: r.id, kind: r.kind || "", name: T(r.name), use: T(r.use), inMfg: r.inMfg || "", per: r.per || "", usage: N(r.usage), st: r.st || "", sel: r.sel,
+      vendors: r.vendors.map((v) => ({ vid: v.vid, alias: v.alias || "", price: N(v.price), vat: v.vat || "", cur: v.cur || "", moq: N(v.moq), lead: T(v.lead), qd: T(v.qd), vu: C.parseDate(v.vu) || T(v.vu), memo: T(v.memo) })) })),
     sale: { price: N(s.price), ch: s.ch || "", chName: T(s.chName), fee: fromPct(s.feePct), logi: N(s.logi) },
   };
 }
+// 실제 업체 이름 (cost-names) — vsup = {줄: {A: 이름, B: 이름}} · sup = 줄마다 적용 업체 이름(예전 모양 · 엑셀 받기)
+function namesInit(names, rows) {
+  const n = names || {}, vsup = {};
+  (rows || []).forEach((r) => { const m = { ...((n.vsup || {})[r.id] || {}) }; if (!Object.keys(m).length && (n.sup || {})[r.id]) m[C.selOf(r)] = n.sup[r.id]; vsup[r.id] = m; });
+  return { mfg: n.mfg || "", vsup };
+}
+const cleanV = (vs) => { const o = {}; Object.entries(vs || {}).forEach(([rid, m]) => { const mm = {}; Object.entries(m || {}).forEach(([k, n]) => { n = String(n || "").trim(); if (n) mm[k] = n; }); if (Object.keys(mm).length) o[rid] = mm; }); return o; };
 // 업체 이름 → 가칭 (가격정책표 제조사 가칭과 같은 이름이면 같은 가칭 · 새 이름은 비어 있는 다음 글자)
 function makeAliaser(amap, mfgList) {
   const used = new Set([...Object.values(amap), ...(mfgList || []).map((m) => m && m.alias).filter(Boolean)]);
@@ -606,25 +741,53 @@ function makeAliaser(amap, mfgList) {
 async function saveCard(ctx, { id, prev, prevNames, d, nm, why }) {
   const card = fromEdit(d), at = new Date().toISOString(), by = (ctx.user && ctx.user.email) || "";
   const before = stable(ctx.amap), al = makeAliaser(ctx.amap, ctx.mfgList);
-  const mfg = String((nm && nm.mfg) || "").trim(), sup = {};
+  const mfg = String((nm && nm.mfg) || "").trim(), sup = {}, vsup = {};
   card.mfgAlias = al(mfg);
-  card.rows.forEach((r) => { const n = String(((nm && nm.sup) || {})[r.id] || "").trim(); sup[r.id] = n; r.supAlias = al(n); });
+  card.rows = card.rows.map((r) => {
+    const m = ((nm && nm.vsup) || {})[r.id] || {}; vsup[r.id] = {};
+    const vendors = r.vendors.map((v) => { const n = String(m[v.vid] || "").trim(); vsup[r.id][v.vid] = n; return { ...v, alias: al(n) }; });
+    const x = C.syncRow({ ...r, vendors }); sup[r.id] = vsup[r.id][x.sel] || ""; return x;
+  });
+  if (prev && prev.applied) card.applied = prev.applied;
   const what = C.diffCard(prev || null, card);
   const sk = (x) => { const o = x || {}; return stable({ price: o.price ?? "", ch: o.ch || "", fee: o.fee ?? "", logi: o.logi ?? "" }); };
   if (prev && sk(prev.sale) !== sk(card.sale)) what.push(`판매가 계산 바뀜 (${card.sale.price === "" ? "판매가 없음" : "판매가 " + won(card.sale.price)}${card.sale.chName ? " · " + card.sale.chName : ""})`);
-  const pn = prevNames || {};
-  if (prev && !what.length && (pn.mfg || "") === mfg && stable(pn.sup || {}) === stable(sup)) return { id, same: true };
+  const pn = namesInit(prevNames, prev ? prev.rows : []);
+  if (prev && !what.length && (pn.mfg || "") === mfg && stable(cleanV(pn.vsup)) === stable(cleanV(vsup))) return { id, same: true };
   id = id || cardsCol().doc().id;
   const history = [{ at, by, what: joinWhat(what.length ? what : ["업체 이름 고침"]), why: String(why || "").trim().slice(0, 200) }, ...((prev && prev.history) || [])].slice(0, 100);
   const doc = { ...card, history, deleted: false, createdAt: (prev && prev.createdAt) || at, createdBy: (prev && prev.createdBy) || by, updatedAt: at, updatedBy: by };
   const b = db.batch();
   b.set(cardsCol().doc(id), doc);
-  b.set(namesCol().doc(id), { mfg, sup, updatedAt: at, updatedBy: by });
+  b.set(namesCol().doc(id), { mfg, sup, vsup, updatedAt: at, updatedBy: by });
   if (stable(ctx.amap) !== before) b.set(namesCol().doc("_alias"), { map: ctx.amap, updatedAt: at, updatedBy: by }, { merge: true });
   b.set(refDoc("cards"), { map: { [id]: C.summaryOf(doc) }, at }, { merge: true });
   await b.commit();
   console.log(`[cost-cards] ${id} 저장 · ${what.length}가지`);
-  return { id, doc, what };
+  return { id, doc, what, names: { mfg, vsup } };
+}
+// 가격정책표에 반영 (마스터 · 2026-11-25 송희님 C) — 버튼으로만 · 몰래 안 바뀜
+//  한 번에: 가격정책표 원가(product-meta/prod-cost.map[제품]) + 원가 이력(cost-log · 가격정책표 제품 수정 창 '변경 이력'과 같은 자리)
+//          + 활동 기록(dashboard-activity) + 카드 applied·이력 + 요약(cost-ref/cards) + 가격정책표 제품 목록 사본(cost-ref/products)
+const cpHash = (str) => { let h1 = 0x811c9dc5, h2 = 0x9747b28c; for (const ch of String(str)) { const c = ch.codePointAt(0); h1 = Math.imul(h1 ^ c, 16777619) >>> 0; h2 = Math.imul(h2 ^ c, 2246822519) >>> 0; h2 = ((h2 << 13) | (h2 >>> 19)) >>> 0; } return h1.toString(36) + h2.toString(36); };   // 가격·마진 대시보드 cpHash 와 같음
+async function applyToPriceTable(user, card, prod, unit, pt) {
+  const at = new Date().toISOString(), by = user.email || "", k = card.prodKey;
+  const pcRef = db.collection("product-meta").doc("prod-cost"), crRef = refDoc("products"), cRef = cardsCol().doc(card.id);
+  let from = null;
+  await db.runTransaction(async (tx) => {
+    const pc = await tx.get(pcRef), cr = await tx.get(crRef), cd = await tx.get(cRef);
+    const map = (pc.exists && pc.data().map) || {}; from = k in map ? map[k] : pt == null ? null : pt;
+    const cur = cd.exists ? cd.data() : card, applied = { v: unit, at, by, from: from == null ? null : from };
+    const history = [{ at, by, what: `가격정책표에 반영: 완제품 원가 ${from == null ? "없음" : won(from)} → ${won(unit)}`, why: "" }, ...(cur.history || [])].slice(0, 100);
+    tx.set(pcRef, { map: { [k]: unit }, updatedAt: at, updatedBy: by }, { merge: true });
+    tx.set(db.collection("cost-log").doc(cpHash(k)), { key: k, name: prod.name || "", spec: prod.spec || "", updatedAt: at, hist: FV.arrayUnion({ at, by, from: from == null ? null : from, to: unit, via: "분해원가 반영" }) }, { merge: true });
+    tx.set(db.collection("dashboard-activity").doc(), { ts: at, by, type: "원가변경", target: `${prod.name || ""} ${prod.spec && prod.spec !== "-" ? prod.spec : ""}`.trim(), detail: `분해원가 반영 · 완제품 원가 ${from == null ? "없음" : won(from)} → ${won(unit)}` });
+    tx.set(cRef, { applied, history, updatedAt: at, updatedBy: by }, { merge: true });
+    tx.set(refDoc("cards"), { map: { [card.id]: C.summaryOf({ ...cur, applied, updatedAt: at }) }, at }, { merge: true });
+    if (cr.exists && Array.isArray(cr.data().list)) tx.set(crRef, { list: cr.data().list.map((p) => (p.k === k ? { ...p, cost: unit } : p)) }, { merge: true });
+  });
+  console.log(`[prod-cost] 분해원가 반영 ${k}: ${from} → ${unit}`);
+  return from;
 }
 async function setDeleted(user, c, del) {
   const at = new Date().toISOString(), by = user.email || "";
@@ -666,8 +829,8 @@ function useCostData(user, role) {
       console.log(`[cost-names] ${Object.keys(names).length}장`); set({ names, alias, refNames });
     }, fail("cost-names")));
     off.push(refDoc("products").onSnapshot((d) => { const x = d.exists ? d.data() : null; console.log(`[cost-ref/products] 제품 ${x && x.list ? x.list.length : 0}개`); set({ ref: x }); }, fail("cost-ref/products", { ref: null })));
+    if (role === "master" || role === "sub") off.push(draftDoc().onSnapshot((d) => set({ draft: d.exists ? d.data() : null }), (e) => { console.warn("[pricing-draft] 읽기 실패", e.code || e); set({ draft: null }); }));
     if (role === "master") {
-      off.push(draftDoc().onSnapshot((d) => set({ draft: d.exists ? d.data() : null }), (e) => { console.warn("[pricing-draft] 읽기 실패", e.code || e); set({ draft: null }); }));
       db.collection("config").doc("seckey").get().then((d) => { const l = d.exists && Array.isArray(d.data().mfgList) ? d.data().mfgList : []; console.log(`[seckey] 제조사 가칭 ${l.length}개`); set({ mfgList: l.filter((m) => m && m.name).map((m) => ({ name: m.name, alias: m.alias || "" })) }); })
         .catch((e) => console.warn("[seckey] 읽기 실패 — 가칭은 원가 분해 안에서만 맞춤", e.code || e));
     }
@@ -683,7 +846,7 @@ function Login() {
     catch (x) { const c = (x && x.code) || ""; setMsg(/invalid|wrong|not-found/.test(c) ? "이메일 또는 비밀번호가 맞지 않아요." : "로그인 못 했어요: " + (c || x.message || x)); }
     setBusy(false); };
   return html`<div class="login">
-    <div class="h1">원가 계산기</div>
+    <div class="h1">분해원가</div>
     <p class="sub">가격·마진 대시보드와 같은 계정으로 들어가요. (대시보드에 이미 로그인했다면 자동으로 열려요)</p>
     ${msg && html`<div class="err">${msg}</div>`}
     <form onSubmit=${go}>
@@ -707,25 +870,34 @@ function App() {
   if (access === undefined) return html`<div class="ld">권한 확인 중…</div>`;
   const role = roleOf(access, user.email, user.emailVerified);
   if (role === "none" || role === "unverified") return html`<div class="wrap"><div class="top"><div class="nav"><a href=${V1_URL}>← 가격·마진 대시보드</a></div></div>
-    <div class="h1">원가 계산기</div>
+    <div class="h1">분해원가</div>
     <div class="err">${role === "unverified" ? html`<b>${user.email}</b> 계정은 이메일 인증을 아직 안 했어요. 가격·마진 대시보드 › 설정 › 계정에서 [인증메일 보내기] → 메일의 링크를 누른 뒤 다시 열어 주세요.`
-      : html`<b>${user.email}</b> 계정은 원가 계산기를 볼 수 없어요. (마스터 · 부마스터 · 경영 열람만) 송희님께 '경영 열람' 등록을 요청해 주세요.${accErr ? ` (${accErr})` : ""}`}</div>
+      : html`<b>${user.email}</b> 계정은 분해원가를 볼 수 없어요. (마스터 · 부마스터 · 경영 열람만) 송희님께 '경영 열람' 등록을 요청해 주세요.${accErr ? ` (${accErr})` : ""}`}</div>
     <button class="btn" onClick=${() => auth.signOut()}>다른 계정으로</button></div>`;
   return html`<${Main} user=${user} role=${role} />`;
 }
 
-// ── 요약 화면 ──
+// ── 분해원가 목록 (2026-11-25 송희님 B1) ──
+//  줄: 브랜드 · 품목·규격 · 생산 방식 · 국내/수입 · 완제품 원가 · 확정/임시 · 견적 유효기간 / 거르기: 브랜드 · 생산 방식 · 국내/수입 · 분해 필요
+const METHOD_OPTS = [["", "생산 방식 전체"], ...C.METHODS.map(([k, n]) => [k, n]), ["-", "방식 미정"]];
+const ORIGIN_OPTS = [["", "국내/수입 전체"], ["국내", "국내"], ["수입", "수입"], ["-", "미정"]];
+// 가격정책표와 견주기: none 연결 안 됨 · set 세트 · gone 가격표에 없음 · nocost 원가 없음 · same 같음 · diff 반영 전
+function reflOf(c, p, unit) {
+  if (!c.prodKey) return "none"; if (!p) return "gone"; if (p.type === "세트") return "set";
+  const pt = p.cost != null && p.cost !== "" ? +p.cost : null; if (pt == null) return "nocost";
+  return Math.round(unit) === Math.round(pt) ? "same" : "diff";
+}
 function Main({ user, role }) {
   const S = useCostData(user, role), wide = useWide(), isM = role === "master", seeNames = role !== "sub";
   const [open, setOpen] = useState(() => { const m = /card=([^&]+)/.exec(location.hash); return m ? decodeURIComponent(m[1]) : null; });
   const [sheet, setSheet] = useState(""), [toast, setToast] = useState("");
-  const [brand, setBrand] = useState(""), [q, setQ] = useState(""), [flt, setFlt] = useState(""), [sort, setSort] = useState("brand");
+  const [brand, setBrand] = useState(""), [q, setQ] = useState(""), [flt, setFlt] = useState(""), [sort, setSort] = useState("brand"), [mth, setMth] = useState(""), [org, setOrg] = useState("");
   const recon = useRef(false), today = ymd();
-  useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(""), 3200); return () => clearTimeout(t); }, [toast]);
+  useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(""), 3600); return () => clearTimeout(t); }, [toast]);
   useEffect(() => { if (location.hash) try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {} }, []);
   const refList = (S.ref && S.ref.list) || [];
   const refMap = useMemo(() => { const m = {}; refList.forEach((p) => { m[p.k] = p; }); return m; }, [S.ref]);
-  // 요약(가격정책표 매입원가 옆 표시용)이 카드와 어긋나 있으면 맞춤 — 마스터가 열 때 한 번
+  // 요약(가격정책표 완제품 원가 칸 꼬리표용)이 카드와 어긋나 있으면 맞춤 — 마스터가 열 때 한 번
   useEffect(() => {
     if (!isM || !S.cards || recon.current || S.err) return; recon.current = true;
     const exp = {}; S.cards.filter((c) => !c.deleted).forEach((c) => { exp[c.id] = C.summaryOf(c); });
@@ -736,42 +908,43 @@ function Main({ user, role }) {
   }, [S.cards, S.err]);
   const nameOf = (c) => (seeNames ? ((S.names[c.id] || {}).mfg || c.mfgAlias || "") : (c.mfgAlias || ""));
   const items = useMemo(() => (S.cards || []).filter((c) => !c.deleted).map((c) => {
-    const x = C.cardCalc(c), p = c.prodKey ? refMap[c.prodKey] || null : null, pt = p && p.cost != null && p.cost !== "" ? +p.cost : null;
-    const badge = c.prodKey ? C.badgeOf(C.summaryOf(c), pt) : c.need ? "need" : "";
-    return { c, x, p, pt, diff: pt == null ? null : x.unit - pt, badge, val: C.validity(c.validUntil, today), mfg: nameOf(c), last: (c.history || [])[0] || null,
-      chk: (c.rows || []).filter((r) => C.rowStatus(r) === "확인 필요").length, sale: c.sale || {}, m: saleCalc(c, x.unit) };
+    const x = C.cardCalc(c), p = c.prodKey ? refMap[c.prodKey] || null : null, pt = p && p.cost != null && p.cost !== "" ? +p.cost : null, vu = C.validFirst(c);
+    return { c, x, p, pt, refl: reflOf(c, p, x.unit), need: !!c.need, st: C.cardStatus(c), vu, val: C.validity(vu, today), mfg: nameOf(c),
+      chk: (c.rows || []).filter((r) => !C.rowEmpty(r) && C.rowCalc(r, c.qty, c.fx).st === "확인 필요").length, multi: (c.rows || []).filter((r) => C.vendorsOf(r).length > 1).length };
   }), [S.cards, refMap, S.names, role]);
   const brands = useMemo(() => [...new Set(items.map((i) => i.c.brand || "브랜드 없음"))].sort(), [items]);
-  const cnt = { need: items.filter((i) => i.badge === "need").length, over: items.filter((i) => i.val === "over").length, soon: items.filter((i) => i.val === "soon").length,
-    diff: items.filter((i) => i.badge === "diff").length, chk: items.filter((i) => i.chk > 0).length };
+  const cnt = { need: items.filter((i) => i.need).length, over: items.filter((i) => i.val === "over").length, soon: items.filter((i) => i.val === "soon").length,
+    diff: items.filter((i) => i.refl === "diff" && !i.need).length, chk: items.filter((i) => i.chk > 0).length };
   const shown = useMemo(() => {
     const t = nz(q);
     let l = items.filter((i) => (!brand || (i.c.brand || "브랜드 없음") === brand)
+      && (!mth || (mth === "-" ? !i.c.method : i.c.method === mth)) && (!org || (org === "-" ? !i.c.origin : i.c.origin === org))
       && (!t || nz(`${i.c.item}${i.c.spec}${i.c.brand}${i.c.round}${i.mfg}${i.c.scope}`).includes(t))
-      && (!flt || (flt === "need" ? i.badge === "need" : flt === "val" ? i.val === "over" || i.val === "soon" : flt === "diff" ? i.badge === "diff" : flt === "chk" ? i.chk > 0 : true)));
+      && (!flt || (flt === "need" ? i.need : flt === "val" ? i.val === "over" || i.val === "soon" : flt === "diff" ? i.refl === "diff" && !i.need : flt === "chk" ? i.chk > 0 : true)));
     const by = { brand: (a, b) => (a.c.brand || "").localeCompare(b.c.brand || "") || (a.c.item || "").localeCompare(b.c.item || "") || C.roundNo(a.c.round) - C.roundNo(b.c.round),
-      rate: (a, b) => (a.m ? a.m.rate : 9) - (b.m ? b.m.rate : 9), val: (a, b) => String(a.c.validUntil || "9999").localeCompare(String(b.c.validUntil || "9999")),
+      cost: (a, b) => b.x.unit - a.x.unit, val: (a, b) => String(a.vu || "9999").localeCompare(String(b.vu || "9999")),
       recent: (a, b) => String(b.c.updatedAt || "").localeCompare(String(a.c.updatedAt || "")) };
     return l.sort(by[sort] || by.brand);
-  }, [items, brand, q, flt, sort]);
-  const openCard = (id) => setOpen(id);
+  }, [items, brand, q, flt, sort, mth, org]);
+  const [okey, setOkey] = useState(0);   // 새 품목을 만든 뒤에도 같은 시트로 이어서 (뒤로 가기 기록이 꼬여 닫히지 않게)
+  const openCard = (id) => { setOkey((k) => k + 1); setOpen(id); };
   const ctx = { S, user, role, isM, seeNames, refList, refMap, setToast, today };
   const loading = S.cards === null && !S.err;
   const seedN = isM ? seedCandidates(S, refList).list.length : 0;
   const T = (k) => setFlt(flt === k ? "" : k);
   return html`<div class="wrap">
     <div class="top"><div class="nav"><a href=${V1_URL}>← 가격·마진 대시보드</a><span class="sp"></span><span class="dim" style=${{ color: "var(--mute)" }}>${user.email}</span><button class="lnk" onClick=${() => auth.signOut()}>로그아웃</button></div></div>
-    <div class="h1">🧾 원가 분해·조립 계산기 <span class=${"role " + role}>${ROLE_NAME[role]}</span></div>
-    <p class="sub">구성요소를 넣으면 ① 완제품 원가 · 판매가를 넣으면 ② 마진율·마진액 · 원가는 부가세 별도(V-) · 엑셀 '표준_원가계산기_v7'과 같은 식 ${role === "sub" ? "· 업체는 가칭(A사·B사)" : ""}${role === "mgmt" ? "· 보기 전용" : ""}</p>
+    <div class="h1">🧾 분해원가 <span class=${"role " + role}>${ROLE_NAME[role]}</span></div>
+    <p class="sub">품목마다 원가를 구성요소로 나눠 관리 · 구성요소마다 업체 여러 곳(A 주 · B 서브 …) 단가 비교 · 원가는 부가세 별도(V-) · 엑셀 '표준_원가계산기_v7'과 같은 식 ${role === "sub" ? "· 업체는 가칭(A사·B사)" : ""}${role === "mgmt" ? "· 보기 전용" : ""}</p>
     ${S.err === "rules" && html`<div class="err"><b>아직 새 보안 규칙이 게시되지 않았어요.</b> 송희님이 Firebase 콘솔 › Firestore › 규칙에 새 규칙(pourstore.rules)을 붙여 넣고 [게시]하면 이 화면이 열려요. (가격·마진 대시보드는 그 전에도 지금처럼 돌아가요)</div>`}
     ${S.err && S.err !== "rules" && html`<div class="err">불러오기 실패: ${S.err}</div>`}
-    ${S.ref === null && !S.err && html`<div class="warn">가격정책표 제품 목록이 아직 없어요. ${isM ? "가격·마진 대시보드를 한 번 열면(마스터·부마스터) 제품·매입원가가 여기로 넘어와요." : "마스터가 가격·마진 대시보드를 한 번 열면 생겨요."}</div>`}
-    ${loading ? html`<div class="ld">원가 계산기 불러오는 중…</div>` : !S.err && html`<${React.Fragment}>
+    ${S.ref === null && !S.err && html`<div class="warn">가격정책표 제품 목록이 아직 없어요. ${isM ? "가격·마진 대시보드를 한 번 열면(마스터·부마스터) 제품·원가가 여기로 넘어와요." : "마스터가 가격·마진 대시보드를 한 번 열면 생겨요."}</div>`}
+    ${loading ? html`<div class="ld">분해원가 불러오는 중…</div>` : !S.err && html`<${React.Fragment}>
       <div class="next"><b>다음 할 일</b>
         ${seedN > 0 && html`<button class="lnk" onClick=${() => setSheet("seed")}>기존 제품 ${seedN}개 카드 만들기</button>`}
         ${cnt.need > 0 && html`<button class="lnk" onClick=${() => T("need")}>분해 필요 ${cnt.need}장</button>`}
+        ${cnt.diff > 0 && html`<button class="lnk" onClick=${() => T("diff")}>가격정책표에 반영 전 ${cnt.diff}장</button>`}
         ${cnt.over + cnt.soon > 0 && html`<button class="lnk" onClick=${() => T("val")}>견적 유효기간 지남 ${cnt.over} · 30일 이내 ${cnt.soon}</button>`}
-        ${cnt.diff > 0 && html`<button class="lnk" onClick=${() => T("diff")}>가격정책표와 차이 ${cnt.diff}장</button>`}
         ${cnt.chk > 0 && html`<button class="lnk" onClick=${() => T("chk")}>확인 필요 줄이 있는 카드 ${cnt.chk}장</button>`}
         ${!seedN && !cnt.need && !cnt.over && !cnt.soon && !cnt.diff && !cnt.chk && html`<span>${items.length ? "급한 일 없음 ✓" : isM ? "[엑셀 올리기]나 [＋ 새 품목]으로 시작해요" : "아직 카드가 없어요"}</span>`}
         ${S.ref && S.ref.at && html`<span style=${{ color: "var(--mute)", fontSize: 12 }}>· 가격정책표 기준 ${whenTxt(S.ref.at)}</span>`}
@@ -787,110 +960,152 @@ function Main({ user, role }) {
       <div class="chips">${["", ...brands].map((b) => html`<button key=${b || "all"} class=${"chip" + (brand === b ? " on" : "")} onClick=${() => setBrand(b)}>${b || "전체"}<span class="n">${b ? items.filter((i) => (i.c.brand || "브랜드 없음") === b).length : items.length}</span></button>`)}</div>
       <div class="find" style=${{ marginBottom: 8 }}>
         <input class="in" placeholder="품목·규격·제조사 찾기" value=${q} onInput=${(e) => setQ(e.target.value)} aria-label="찾기" />
-        <select class="in" style=${{ width: "auto", height: 36, fontSize: 14 }} value=${sort} onChange=${(e) => setSort(e.target.value)} aria-label="정렬">
-          <option value="brand">브랜드·품목순</option><option value="rate">마진율 낮은 순</option><option value="val">유효기간 빠른 순</option><option value="recent">최근 바뀐 순</option></select>
-        ${flt && html`<button class="chip on" onClick=${() => setFlt("")}>${{ need: "분해 필요", val: "유효기간", diff: "차이 있음", chk: "확인 필요" }[flt]} ✕</button>`}
+        <select class="in fsel" value=${mth} onChange=${(e) => setMth(e.target.value)} aria-label="생산 방식">${METHOD_OPTS.map(([k, n]) => html`<option key=${k} value=${k}>${n}</option>`)}</select>
+        <select class="in fsel" value=${org} onChange=${(e) => setOrg(e.target.value)} aria-label="국내/수입">${ORIGIN_OPTS.map(([k, n]) => html`<option key=${k} value=${k}>${n}</option>`)}</select>
+        <button class=${"chip" + (flt === "need" ? " on" : "")} onClick=${() => T("need")}>분해 필요<span class="n">${cnt.need}</span></button>
+        <select class="in fsel" value=${sort} onChange=${(e) => setSort(e.target.value)} aria-label="정렬">
+          <option value="brand">브랜드·품목순</option><option value="cost">완제품 원가 높은 순</option><option value="val">유효기간 빠른 순</option><option value="recent">최근 바뀐 순</option></select>
+        ${flt && flt !== "need" && html`<button class="chip on" onClick=${() => setFlt("")}>${{ val: "유효기간", diff: "반영 전", chk: "확인 필요" }[flt]} ✕</button>`}
       </div>
-      ${!shown.length ? html`<div class="empty">${items.length ? "조건에 맞는 카드가 없어요." : isM ? "아직 원가 분해 카드가 없어요. 위 [엑셀 올리기] · [기존 제품 카드 만들기] · [＋ 새 품목]으로 시작해요." : "아직 원가 분해 카드가 없어요."}</div>`
+      ${!shown.length ? html`<div class="empty">${items.length ? "조건에 맞는 카드가 없어요." : isM ? "아직 분해원가 카드가 없어요. 위 [엑셀 올리기] · [기존 제품 카드 만들기] · [＋ 새 품목]으로 시작해요." : "아직 분해원가 카드가 없어요."}</div>`
         : wide ? html`<${SumTable} items=${shown} open=${openCard} />` : html`<${SumList} items=${shown} open=${openCard} />`}
-      <p class="note">· 완제품 원가 = 구성요소 개당 금액 합(부가세 별도) · 마진율·마진액 = 카드에 넣은 판매가·채널 수수료·물류비로 계산 (엑셀 '판매가' 시트 식을 거꾸로 푼 값)
-        <br />· 매입원가를 바꾸려면 카드의 [매입원가로 승인요청] → 가격정책표에서 승인 · 세트(패키지)는 카드를 따로 만들지 않아요(구성 단품 합).</p>
+      <p class="note">· 완제품 원가 = 구성요소 개당 금액 합(부가세 별도 · 구성요소마다 '적용' 업체 단가로) · 확정 = 모든 줄 근거(출처·견적일) 있음 · 견적 유효기간 = 카드·적용 업체 중 가장 빠른 날
+        <br />· 가격정책표 완제품 원가는 품목 1장의 [가격정책표에 반영]을 눌러야만 바뀌어요(마스터 · 기록 남음) · 세트(패키지)는 카드를 따로 만들지 않아요(구성 단품 합).</p>
     <//>`}
-    ${open && html`<${CardSheet} key=${open} id=${open} ctx=${ctx} onClose=${() => setOpen(null)} onSaved=${(id) => setOpen(id)} />`}
+    ${open && html`<${CardSheet} key=${okey} id=${open} ctx=${ctx} onClose=${() => setOpen(null)} onSaved=${(id) => setOpen(id)} />`}
     ${sheet === "import" && html`<${ImportSheet} ctx=${ctx} onClose=${() => setSheet("")} />`}
     ${sheet === "seed" && html`<${SeedSheet} ctx=${ctx} onClose=${() => setSheet("")} />`}
     ${sheet === "trash" && html`<${TrashSheet} ctx=${ctx} onClose=${() => setSheet("")} />`}
     ${toast && html`<div class="toast" role="status">${toast}</div>`}
   </div>`;
 }
-const diffCell = (i) => (!i.c.prodKey ? html`<span class="dim">연결 안 됨</span>` : i.p && i.p.type === "세트" ? html`<span class="dim">세트</span>` : !i.p ? html`<span class="dim">가격표에 없음</span>`
-  : i.pt == null ? html`<span class="dim">매입원가 없음</span>` : Math.round(i.diff) === 0 ? html`<span class="tag has">같음</span>` : html`<span class=${i.diff > 0 ? "plus" : "minus"}>${i.diff > 0 ? "+" : "−"}${fmt(Math.abs(i.diff))}</span>`);
-const badgeTag = (b) => (b ? html`<span class=${"tag " + b}>${C.BADGE[b]}</span>` : "");
-const valTag = (v) => (v === "over" ? html`<span class="tag chk">견적 유효기간 지남</span>` : v === "soon" ? html`<span class="tag tmp">견적 30일 이내</span>` : "");
+const REFL_TXT = { none: ["dim", "가격표 연결 안 됨"], gone: ["dim", "가격표에 없음"], set: ["dim", "세트"], nocost: ["tag chk", "가격표 원가 없음"], same: ["tag has", "가격표와 같음"], diff: ["tag diff", "반영 전"] };
+const reflTag = (i) => { if (i.need && i.refl !== "none") return ""; const [cl, t] = REFL_TXT[i.refl] || ["dim", ""]; return html`<span class=${cl}>${t}${i.refl === "diff" ? ` · 가격표 ${won(i.pt)}` : ""}</span>`; };
+const needTag = (i) => (i.need ? html`<span class="tag need">분해 필요</span>` : "");
+const stTag2 = (st) => html`<span class=${"tag " + (st === "확정" ? "ok" : "tmp")}>${st}</span>`;
+const valCell = (i) => (i.vu ? html`<span class=${i.val === "over" ? "v-over vbox" : i.val === "soon" ? "v-soon vbox" : ""}>${dTxt(i.vu)}${i.val === "over" ? " 지남" : i.val === "soon" ? " 곧" : ""}</span>` : html`<span class="dim">—</span>`);
 const lastTxt = (h) => (h ? `${who(h.by)} ${whenTxt(h.at)} · ${h.what}${h.why ? ` (이유: ${h.why})` : ""}` : "—");
 const rateCls = (m) => (!m ? "dim" : m.rate < 0 ? "minusR" : "");
 function SumTable({ items, open }) {
   return html`<div class="tblw"><table class="t" style=${{ minWidth: 860 }}><thead><tr>
-    <th class="stk">품목 · 규격</th><th class="num">완제품 원가</th><th class="num">판매가</th><th>채널</th><th class="num">마진율</th><th class="num">마진액</th></tr></thead>
+    <th>브랜드</th><th class="stk">품목 · 규격</th><th>생산 방식</th><th>국내/수입</th><th class="num">완제품 원가</th><th>확정/임시</th><th>견적 유효기간</th></tr></thead>
     <tbody>${items.map((i) => html`<tr key=${i.c.id} class="go" onClick=${() => open(i.c.id)}>
+      <td class="nw">${i.c.brand || html`<span class="dim">—</span>`}</td>
       <td class="stk"><div><b>${i.c.item || "(품목 없음)"}</b> <span class="dim">${i.c.spec}</span></div>
-        <div class="tline"><span class="dim">${i.c.brand} · ${i.c.round}${i.mfg ? " · " + i.mfg : ""}</span>${badgeTag(i.badge)}${valTag(i.val)}</div></td>
-      <td class="num"><b>${W(i.x.unit)}</b></td>
-      <td class="num">${i.m ? W(i.sale.price, 0) : html`<span class="dim">—</span>`}</td>
-      <td class="nw">${i.m ? i.sale.chName || html`<span class="dim">직접 입력</span>` : ""}</td>
-      <td class=${"num " + rateCls(i.m)}><b>${i.m ? pctTxt(i.m.rate) : "—"}</b></td>
-      <td class=${"num " + rateCls(i.m)}>${i.m ? W(i.m.amt, 0) : "—"}</td></tr>`)}</tbody></table></div>`;
+        <div class="tline"><span class="dim">${i.c.round}${i.mfg ? " · " + i.mfg : ""}${i.multi ? ` · 업체 비교 ${i.multi}줄` : ""}</span>${needTag(i)}</div></td>
+      <td class="nw">${C.methodName(i.c.method) || html`<span class="dim">미정</span>`}</td>
+      <td class="nw">${i.c.origin || html`<span class="dim">—</span>`}</td>
+      <td class="num"><b>${W(i.x.unit)}</b><div class="tline" style=${{ justifyContent: "flex-end" }}>${reflTag(i)}</div></td>
+      <td class="nw">${stTag2(i.st)}${i.chk ? html` <span class="tag chk">확인 ${i.chk}</span>` : ""}</td>
+      <td class="nw">${valCell(i)}</td></tr>`)}</tbody></table></div>`;
 }
 function SumList({ items, open }) {
   return html`<div class="ml">${items.map((i) => html`<button key=${i.c.id} class="mr" onClick=${() => open(i.c.id)}>
-    <div class="a"><b>${i.c.item || "(품목 없음)"} ${i.c.spec}</b>${badgeTag(i.badge)}</div>
-    <div class="c"><span>${i.c.brand} · ${i.c.round}</span>${i.mfg ? html`<span>${i.mfg}</span>` : ""}${valTag(i.val)}</div>
-    <div class="b"><span>완제품 원가 <b>${W(i.x.unit)}</b></span>${i.m ? html`<span>판매가 <b>${W(i.sale.price, 0)}</b>${i.sale.chName ? ` (${i.sale.chName})` : ""}</span>` : html`<span class="dim">판매가 —</span>`}</div>
-    ${i.m && html`<div class="b"><span>마진율 <b class=${rateCls(i.m)}>${pctTxt(i.m.rate)}</b></span><span>마진액 <b class=${rateCls(i.m)}>${W(i.m.amt, 0)}</b></span></div>`}
+    <div class="a"><b>${i.c.item || "(품목 없음)"} ${i.c.spec}</b>${stTag2(i.st)}${needTag(i)}</div>
+    <div class="c"><span>${i.c.brand || "브랜드 —"}</span><span>${C.methodName(i.c.method) || "방식 미정"}</span>${i.c.origin ? html`<span>${i.c.origin}</span>` : ""}<span>유효기간 ${valCell(i)}</span></div>
+    <div class="b"><span>완제품 원가 <b>${W(i.x.unit)}</b></span>${reflTag(i)}</div>
   </button>`)}</div>`;
 }
 
-// ── 엑셀 받기 (요약 · 브랜드 합계 · 구성요소 전체) ──
+// ── 엑셀 받기 (요약 · 브랜드 합계 · 구성요소 전체 · 업체별 단가) ──
 async function exportXlsx(ctx, items) {
   const X = await loadXLSX(), { S, seeNames } = ctx;
-  const sum = items.map((i) => ({ "브랜드": i.c.brand, "차수": i.c.round, "품목": i.c.item, "규격": i.c.spec, "완제품 제조사": i.mfg, "완제품 범위": i.c.scope,
-    "완제품 기준 원가": r2(i.x.unit), "첫 생산 원가": r2(i.x.first), "생산 수량": i.x.qty, "첫 생산 금액": i.x.firstAmt == null ? "" : Math.round(i.x.firstAmt),
-    "견적 유효기간": i.c.validUntil || "", "유효기간 상태": { over: "지남", soon: "30일 이내", ok: "" }[i.val] || "", "근거 확인 비율": i.x.okRatio == null ? "" : r2(i.x.okRatio * 100) + "%",
-    "가격정책표 매입원가": i.pt == null ? "" : i.pt, "차이(분해−매입원가)": i.diff == null ? "" : r2(i.diff), "합계 포함": i.c.include === false ? "제외" : "포함",
-    "분해 상태": i.badge ? C.BADGE[i.badge] : "연결 안 됨", "판매가(부가세 포함)": i.m ? i.sale.price : "", "채널": i.m ? i.sale.chName || "직접 입력" : "",
-    "수수료": i.m && i.sale.fee !== "" ? r2(i.sale.fee * 100) + "%" : "", "물류비(개당)": i.m ? i.sale.logi : "", "마진율": i.m ? r2(i.m.rate * 100) + "%" : "", "마진액": i.m ? Math.round(i.m.amt) : "",
-    "가격정책표 방식 마진율": i.m ? r2(i.m.ptRate * 100) + "%" : "", "최근 변경": lastTxt(i.last) }));
+  const sum = items.map((i) => { const m = saleCalc(i.c, i.x.unit), sale = i.c.sale || {};
+    return { "브랜드": i.c.brand, "차수": i.c.round, "품목": i.c.item, "규격": i.c.spec, "생산 방식": C.methodName(i.c.method), "국내/수입": i.c.origin || "", "완제품 제조사": i.mfg, "완제품 범위": i.c.scope,
+    "완제품 기준 원가": r2(i.x.unit), "확정/임시": i.st, "첫 생산 원가": r2(i.x.first), "생산 수량": i.x.qty, "첫 생산 금액": i.x.firstAmt == null ? "" : Math.round(i.x.firstAmt),
+    "견적 유효기간": i.vu || "", "유효기간 상태": { over: "지남", soon: "30일 이내", ok: "" }[i.val] || "", "근거 확인 비율": i.x.okRatio == null ? "" : r2(i.x.okRatio * 100) + "%",
+    "모두 최저가로 고르면": i.multi ? r2(C.cardCalc(C.cheapestCard(i.c)).unit) : "",
+    "가격정책표 완제품 원가": i.pt == null ? "" : i.pt, "차이(분해−가격정책표)": i.pt == null ? "" : r2(i.x.unit - i.pt), "가격정책표 반영": i.c.applied ? `${won(i.c.applied.v)} (${dTxt(String(i.c.applied.at || "").slice(0, 10))} ${who(i.c.applied.by)})` : "",
+    "합계 포함": i.c.include === false ? "제외" : "포함", "분해 필요": i.need ? "분해 필요" : "",
+    "판매가(부가세 포함)": m ? sale.price : "", "채널": m ? sale.chName || "직접 입력" : "", "수수료": m && sale.fee !== "" ? r2(sale.fee * 100) + "%" : "", "물류비(개당)": m ? sale.logi : "",
+    "마진율": m ? r2(m.rate * 100) + "%" : "", "마진액": m ? Math.round(m.amt) : "", "가격정책표 방식 마진율": m ? r2(m.ptRate * 100) + "%" : "", "최근 변경": lastTxt((i.c.history || [])[0]) }; });
   const brands = [...new Set(items.map((i) => i.c.brand))];
   const bt = brands.map((b) => { const its = items.filter((i) => i.c.brand === b), inc = its.filter((i) => i.c.include !== false);
     return { "브랜드": b, "카드 수": its.length, "합계 포함 카드": inc.length, "첫 생산 금액 합계(합계 포함만)": Math.round(inc.reduce((a, i) => a + (i.x.firstAmt || 0), 0)) }; });
-  const rows = []; items.forEach((i) => { const nm = seeNames ? (S.names[i.c.id] || {}) : {}; (i.c.rows || []).forEach((r, k) => { const m = i.x.rows[k];
-    rows.push({ "브랜드": i.c.brand, "차수": i.c.round, "품목": i.c.item, "규격": i.c.spec, "번호": k + 1, "구분": r.kind, "구성 요소": r.name, "무엇에 쓰는지": r.use,
-      "공급처": seeNames ? ((nm.sup || {})[r.id] || r.supAlias || "") : r.supAlias || "", "제조 단가에 포함?": r.inMfg, "견적 단가": r.price, "부가세": r.vat, "단가(V-)": r2(m.unitV),
-      "개당/1회": r.per, "개당 사용량·1회 횟수": r.usage, "구매·MOQ 수량": r.moq, "개당 금액": r2(m.per), "첫 생산 남는 비용": r2(m.left), "출처·견적일": r.src, "상태": m.st }); }); });
+  const rows = [], vrows = [];
+  items.forEach((i) => { const nm = seeNames ? namesInit(S.names[i.c.id], i.c.rows) : { vsup: {} }, cmp = C.vendorCompare(i.c);
+    (i.c.rows || []).forEach((r, k) => { const m = i.x.rows[k], vn = (v) => (seeNames ? (nm.vsup[r.id] || {})[v.vid] || v.alias || "" : v.alias || "");
+      const sv = C.vendorsOf(r).find((v) => v.vid === C.selOf(r));
+      rows.push({ "브랜드": i.c.brand, "차수": i.c.round, "품목": i.c.item, "규격": i.c.spec, "번호": k + 1, "구분": r.kind, "구성 요소": r.name, "무엇에 쓰는지": r.use,
+        "공급처(적용 업체)": `${C.selOf(r)} · ${vn(sv)}`, "제조 단가에 포함?": r.inMfg, "견적 단가": r.price, "통화": r.cur || "원", "환율": r.cur ? (i.c.fx || {})[r.cur] ?? "" : "", "부가세": r.vat, "단가(V-, 원)": r2(m.unitV),
+        "개당/1회": r.per, "개당 사용량·1회 횟수": r.usage, "구매·MOQ 수량": r.moq, "개당 금액": r2(m.per), "첫 생산 남는 비용": r2(m.left), "출처·견적일": r.src, "상태": m.st, "업체 수": C.vendorsOf(r).length });
+      const cx = cmp[k]; if (!cx) return;
+      cx.list.forEach((l) => vrows.push({ "브랜드": i.c.brand, "품목": i.c.item, "규격": i.c.spec, "구성 요소": r.name, "업체": vLabel(l.v, l.k), "업체 이름": vn(l.v), "적용": l.on ? "적용" : "", "최저가": cx.best && cx.best.v.vid === l.v.vid ? "최저" : "",
+        "통화": l.v.cur || "원", "견적 단가": l.v.price, "부가세": l.v.vat, "단가(V-, 원)": l.priced ? r2(l.m.unitV) : "", "개당 금액": l.priced ? r2(l.m.per) : "", "바꾸면 완제품 원가 차이": l.priced && !l.on ? r2(l.dPer) : "",
+        "MOQ": l.v.moq, "리드타임": l.v.lead || "", "견적일·출처": l.v.qd || "", "유효기간": l.v.vu || "", "메모": l.v.memo || "" }));
+    }); });
   const wb = X.utils.book_new(), add = (name, data, w) => { const ws = X.utils.json_to_sheet(data); if (data.length) ws["!autofilter"] = { ref: ws["!ref"] }; ws["!cols"] = w.map((x) => ({ wch: x })); X.utils.book_append_sheet(wb, ws, name); };
-  add("완제품 원가 요약", sum, [12, 6, 18, 10, 14, 26, 12, 12, 10, 14, 12, 10, 10, 14, 14, 8, 14, 12, 12, 8, 10, 9, 10, 12, 50]);
+  add("완제품 원가 요약", sum, [12, 6, 18, 10, 12, 8, 14, 26, 12, 8, 12, 10, 14, 12, 10, 10, 12, 14, 14, 20, 8, 10, 12, 12, 8, 10, 9, 10, 12, 50]);
   add("브랜드 합계", bt, [14, 8, 12, 26]);
-  add("구성요소 전체", rows, [12, 6, 16, 10, 5, 10, 18, 18, 12, 8, 10, 6, 10, 7, 10, 10, 10, 12, 16, 9]);
-  const name = `원가분해_요약_${ymd().replace(/-/g, "")}${seeNames ? "" : "_가칭"}.xlsx`;
+  add("구성요소 전체", rows, [12, 6, 16, 10, 5, 10, 18, 18, 16, 8, 10, 6, 8, 6, 10, 7, 10, 10, 10, 12, 16, 9, 6]);
+  add("업체별 단가", vrows, [12, 16, 10, 16, 8, 16, 6, 6, 6, 10, 6, 10, 10, 14, 8, 10, 14, 12, 20]);
+  const name = `분해원가_${ymd().replace(/-/g, "")}${seeNames ? "" : "_가칭"}.xlsx`;
   const blob = new Blob([X.write(wb, { bookType: "xlsx", type: "array" })], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
-  console.log(`[엑셀 받기] ${name} · 카드 ${sum.length}장 · 구성요소 ${rows.length}줄`);
+  console.log(`[엑셀 받기] ${name} · 카드 ${sum.length}장 · 구성요소 ${rows.length}줄 · 업체 ${vrows.length}줄`);
 }
 const r2 = (v) => (v == null || !isFinite(v) ? "" : Math.round(v * 100) / 100);
 
-// ── 품목 카드 (원가 분해 1장) ──
+// ── 품목 1장 (분해원가) ──
+const TPL_NAMES = new Set(C.METHODS.flatMap(([k]) => [...C.templateRows(k, "국내"), ...C.templateRows(k, "수입")].map((t) => t.name)));
+const sgn = (v, d = 2) => (v == null || !isFinite(v) ? "—" : Math.abs(v) < 0.005 ? "±0원" : (v > 0 ? "+" : "−") + fmt(Math.abs(v), d) + "원");
+const sgnCls = (v) => (v == null || Math.abs(v) < 0.005 ? "dim" : v > 0 ? "plus" : "minus");
 function CardSheet({ id, ctx, onClose, onSaved }) {
   const { S, user, role, isM, seeNames, refList, refMap, setToast } = ctx, wide = useWide();
   const card = id === "new" ? null : (S.cards || []).find((c) => c.id === id) || null;
   const names = (card && S.names[card.id]) || {};
   const [d, setD] = useState(() => toEdit(card));
-  const [nm, setNm] = useState(() => ({ mfg: names.mfg || "", sup: { ...(names.sup || {}) } }));
-  const [tab, setTab] = useState("cost"), [why, setWhy] = useState(""), [busy, setBusy] = useState(false);
-  const base = useRef(stable({ d: toEdit(card), nm: { mfg: names.mfg || "", sup: { ...(names.sup || {}) } } }));
+  const [nm, setNm] = useState(() => namesInit(names, card ? card.rows : []));
+  const [tab, setTab] = useState("cost"), [why, setWhy] = useState(""), [busy, setBusy] = useState(false), [openV, setOpenV] = useState({});
+  const base = useRef(stable({ d: toEdit(card), nm: namesInit(names, card ? card.rows : []) }));
   // 실제 이름은 따로 늦게 올 수 있음 → 아직 안 고쳤으면 들어온 이름으로 채움
   const namesKey = stable(names);
-  useEffect(() => { if (!card) return; const fresh = { mfg: names.mfg || "", sup: { ...(names.sup || {}) } };
+  useEffect(() => { if (!card) return; const fresh = namesInit(names, card.rows);
     setNm((cur) => (stable(cur) === stable(JSON.parse(base.current).nm) ? fresh : cur)); base.current = stable({ d: JSON.parse(base.current).d, nm: fresh }); }, [namesKey]);
+  // 다른 곳에서 카드가 바뀌면(예: 가격정책표에 반영) 아직 안 고쳤을 때만 새 값으로
+  const cardKey = card ? stable({ ...card, history: (card.history || []).length }) : "";
+  useEffect(() => { if (!card) return; const fresh = toEdit(card); setD((cur) => (stable(cur) === stable(JSON.parse(base.current).d) ? fresh : cur));
+    base.current = stable({ d: fresh, nm: JSON.parse(base.current).nm }); }, [cardKey]);
   const dirty = stable({ d, nm }) !== base.current;
   const close = () => { if (isM && dirty && !confirm("저장하지 않은 내용이 있어요. 닫을까요?")) return; onClose(); };
   useBackClose(true, onClose);
   const ro = !isM;
   const live = useMemo(() => fromEdit(d), [d]), x = useMemo(() => C.cardCalc(live), [live]);
+  const cmp = useMemo(() => C.vendorCompare(live), [live]), cheap = useMemo(() => C.cardCalc(C.cheapestCard(live)).unit, [live]);
+  const multiN = cmp.filter((c) => c && c.n > 1).length;
   const prod = d.prodKey ? refMap[d.prodKey] : null, pt = prod && prod.cost != null && prod.cost !== "" ? +prod.cost : null;
   const set = (k, v) => setD((o) => ({ ...o, [k]: v }));
   const setF = (k, v) => setD((o) => ({ ...o, frag: { ...o.frag, [k]: v } }));
-  const setR = (i, k, v) => setD((o) => { const rows = o.rows.slice(); rows[i] = { ...rows[i], [k]: v }; return { ...o, rows }; });
+  const setFx = (k, v) => setD((o) => ({ ...o, fx: { ...o.fx, [k]: v } }));
+  const upRow = (i, f) => setD((o) => { const rows = o.rows.slice(); rows[i] = f(rows[i]); return { ...o, rows }; });
+  const setR = (i, k, v) => upRow(i, (r) => ({ ...r, [k]: v }));
+  const setV = (i, vid, k, v) => upRow(i, (r) => ({ ...r, vendors: r.vendors.map((x) => (x.vid === vid ? { ...x, [k]: v } : x)) }));
+  const pickV = (i, vid) => upRow(i, (r) => ({ ...r, sel: vid }));
+  const addV = (i) => { upRow(i, (r) => { const vid = C.nextVid(r.vendors), a = av(r); return { ...r, vendors: [...r.vendors, { ...newVendor(vid), vat: a.vat || "V-", cur: a.cur || "" }] }; }); setOpenV((o) => ({ ...o, [d.rows[i].id]: true })); };
+  const rmV = (i, vid) => upRow(i, (r) => { const vs = r.vendors.filter((x) => x.vid !== vid); return { ...r, vendors: vs, sel: r.sel === vid ? vs[0].vid : r.sel }; });
+  const rowIdx = (rid) => d.rows.findIndex((r) => r.id === rid);
   const addRow = () => setD((o) => ({ ...o, rows: [...o.rows, newRow()], need: o.need && o.rows.length >= 1 && o.seed === "price-table" ? false : o.need }));
   const rmRow = (i) => setD((o) => ({ ...o, rows: o.rows.filter((_, k) => k !== i) }));
   const mvRow = (i, dir) => setD((o) => { const rows = o.rows.slice(), j = i + dir; if (j < 0 || j >= rows.length) return o; [rows[i], rows[j]] = [rows[j], rows[i]]; return { ...o, rows }; });
-  const supName = (r) => (isM ? nm.sup[r.id] || "" : seeNames ? ((names.sup || {})[r.id] || r.supAlias || "") : r.supAlias || "");
-  const setSup = (r, v) => setNm((o) => ({ ...o, sup: { ...o.sup, [r.id]: v } }));
-  const knownNames = useMemo(() => { const s = new Set(); Object.values(S.names || {}).forEach((n) => { if (n.mfg) s.add(n.mfg); Object.values(n.sup || {}).forEach((v) => v && s.add(v)); }); return [...s].sort(); }, [S.names]);
+  // 생산 방식·국내/수입 → 기본 줄 (아직 숫자를 넣지 않은 기본 줄뿐이면 새 방식 기본 줄로 바꿈)
+  const untouched = (rows) => rows.every((r) => C.rowEmpty(C.syncRow(r)) || (TPL_NAMES.has(String(r.name).trim()) && r.vendors.every((v) => !String(v.price).trim() && !String(v.qd).trim())));
+  const reTpl = (o, method, origin) => (method && untouched(o.rows) ? C.templateRows(method, origin).map(tplRow) : o.rows);
+  const setMethod = (v) => setD((o) => { const origin = o.origin || (v === "imp" ? "수입" : v ? "국내" : ""); return { ...o, method: v, origin, rows: reTpl(o, v, origin) }; });
+  const setOrigin = (v) => setD((o) => ({ ...o, origin: v, rows: o.method === "buy" ? reTpl(o, o.method, v) : o.rows }));
+  const addTpl = () => setD((o) => { const have = new Set(o.rows.map((r) => String(r.name).trim())), add = C.templateRows(o.method, o.origin).filter((t) => !have.has(t.name)).map(tplRow);
+    return { ...o, rows: [...o.rows.filter((r) => !C.rowEmpty(C.syncRow(r))), ...add] }; });
+  const tplMissing = d.method ? C.templateRows(d.method, d.origin).filter((t) => !d.rows.some((r) => String(r.name).trim() === t.name)).length : 0;
+  // 업체 이름: 마스터 = 고치는 칸 / 경영 열람 = 실제 이름 / 부마스터 = 가칭
+  const nv = useMemo(() => namesInit(names, card ? card.rows : []), [namesKey]);
+  const vName = (r, v) => (isM ? ((nm.vsup || {})[r.id] || {})[v.vid] || "" : seeNames ? ((nv.vsup || {})[r.id] || {})[v.vid] || v.alias || "" : v.alias || "");
+  const setVName = (r, vid, val) => setNm((o) => ({ ...o, vsup: { ...o.vsup, [r.id]: { ...((o.vsup || {})[r.id] || {}), [vid]: val } } }));
+  const knownNames = useMemo(() => { const s = new Set(); Object.values(S.names || {}).forEach((n) => { if (n.mfg) s.add(n.mfg); Object.values(n.sup || {}).forEach((v) => v && s.add(v)); Object.values(n.vsup || {}).forEach((m) => Object.values(m || {}).forEach((v) => v && s.add(v))); }); return [...s].sort(); }, [S.names]);
   const brandList = useMemo(() => [...new Set([...(S.cards || []).map((c) => c.brand).filter(Boolean), "POUR스토어", "GROHOME", "바라스데이"])], [S.cards]);
   const prodOpts = useMemo(() => refList.filter((p) => p.type !== "세트").map((p) => ({ k: p.k, lb: `${p.name}${p.spec && p.spec !== "-" ? " " + p.spec : ""} · ${(p.brand || []).join("/")} · ${ST_NAME[p.st] || p.st || ""}` })), [refList]);
   const [prodTxt, setProdTxt] = useState(() => (d.prodKey ? ((prodOpts.find((o) => o.k === d.prodKey) || {}).lb || d.prodLabel || d.prodKey) : ""));
   const pickProd = (v) => { setProdTxt(v); const o = prodOpts.find((x) => x.lb === v); if (o) { const p = refMap[o.k]; setD((c) => ({ ...c, prodKey: o.k, prodLabel: `${p.name}${p.spec && p.spec !== "-" ? " " + p.spec : ""}` })); } else if (!v.trim()) setD((c) => ({ ...c, prodKey: "", prodLabel: "" })); };
+  const curs = useMemo(() => { const s = new Set(); d.rows.forEach((r) => r.vendors.forEach((v) => { if (v.cur) s.add(v.cur); })); Object.keys(d.fx || {}).forEach((k) => { if (String(d.fx[k]).trim()) s.add(k); }); if (!s.size && d.origin === "수입") s.add("USD"); return [...s]; }, [d.rows, d.fx, d.origin]);
   const save = async () => {
     if (!isM || busy) return;
     if (!String(d.item || "").trim()) { setToast("품목 이름을 넣어 주세요"); return; }
@@ -898,7 +1113,7 @@ function CardSheet({ id, ctx, onClose, onSaved }) {
     try {
       const r = await saveCard({ user, amap: { ...(S.alias || {}) }, mfgList: S.mfgList }, { id: card ? card.id : "", prev: card, prevNames: names, d, nm, why });
       if (r.same) setToast("바뀐 것이 없어요");
-      else { setToast(card ? "저장했어요 · 이력에 남았어요" : "새 품목을 만들었어요"); setWhy(""); base.current = stable({ d: toEdit(r.doc), nm: { mfg: String(nm.mfg || "").trim(), sup: (() => { const o = {}; r.doc.rows.forEach((rw) => { o[rw.id] = String(nm.sup[rw.id] || "").trim(); }); return o; })() } }); setD(toEdit(r.doc)); setNm(JSON.parse(base.current).nm); if (!card) onSaved(r.id); }
+      else { setToast(card ? "저장했어요 · 이력에 남았어요" : "새 품목을 만들었어요"); setWhy(""); const nd = toEdit(r.doc); base.current = stable({ d: nd, nm: r.names }); setD(nd); setNm(r.names); if (!card) onSaved(r.id); }
     } catch (e) { console.error("[cost-cards] 저장 실패", e); setToast("저장 못 했어요: " + (e.code || e.message)); }
     setBusy(false);
   };
@@ -906,37 +1121,45 @@ function CardSheet({ id, ctx, onClose, onSaved }) {
     try { await setDeleted(user, card, true); setToast("휴지통으로 옮겼어요"); onClose(); } catch (e) { console.error("[cost-cards] 휴지통 실패", e); setToast("못 옮겼어요: " + (e.code || e.message)); } };
   const title = card ? `${card.item || "(품목 없음)"} ${card.spec || ""}` : "새 품목";
   const val = C.validity(live.validUntil, ctx.today);
-  const sumBadge = live.prodKey ? C.badgeOf(C.summaryOf(live), pt) : live.need ? "need" : "";
+  const cst = C.cardStatus(live);
   const inp = (v, on, o = {}) => html`<input class=${"in" + (o.num ? " num" : "") + (ro ? " ro" : "")} value=${v ?? ""} onInput=${(e) => on(e.target.value)} disabled=${ro} placeholder=${ro ? "" : o.ph || ""} inputmode=${o.num ? "decimal" : undefined} list=${o.list} type=${o.type || "text"} aria-label=${o.al || o.ph || ""} />`;
   const sel = (v, on, opts, o = {}) => html`<select class=${"in" + (ro ? " ro" : "")} value=${v ?? ""} onChange=${(e) => on(e.target.value)} disabled=${ro} aria-label=${o.al || ""}>${(opts.some((p) => p[0] === (v ?? "")) ? opts : [[v ?? "", v ? v : "(빈칸)"], ...opts]).map(([a, b]) => html`<option key=${a} value=${a}>${b}</option>`)}</select>`;
   const KIND_OPTS = [["", "구분 고르기"], ...C.KINDS.map((k) => [k, k])], IN_OPTS = [["별도", "별도"], ["포함", "포함"]], PER_OPTS = [["개당", "개당"], ["1회", "1회"]], VAT_OPTS = C.VATS, ST_OPTS = [["", "자동(확정)"], ["확정", "확정"], ["임시", "임시"], ["확인 필요", "확인 필요"]];
+  const CUR_OPTS = C.CURS.map(([k, n]) => [k, k || "원"]);
   const stTag = (st) => html`<span class=${"tag " + (st === "확정" ? "ok" : st === "임시" ? "tmp" : "chk")}>${st}</span>`;
   const hint1 = (r) => (!ro && r.kind === "1회 비용" && !String(r.use || "").trim() ? html`<div class="hint">무엇에 쓰는지에 대상(박스·통·파우치) 이름을 넣어 주세요</div>` : "");
+  const rcalc = (r) => C.rowCalc(C.syncRow(r), d.qty, live.fx);
+  const vbtn = (r, i) => { const a = av(r), k = r.vendors.indexOf(a), on = !!openV[r.id];
+    return html`<button class=${"vbtn" + (on ? " on" : "")} onClick=${() => setOpenV((o) => ({ ...o, [r.id]: !o[r.id] }))} aria-expanded=${on} title="업체 여러 곳 · 단가 비교">${vLabel(a, k)}${r.vendors.length > 1 ? html` <b>${r.vendors.length}곳</b>` : ""} ${on ? "▴" : "▾"}</button>`; };
+  const priceIn = (r, i) => { const a = av(r); return html`<div class="pcur">${inp(a.price, (v) => setV(i, a.vid, "price", v), { num: true, ph: "0", al: "견적 단가" })}${a.cur ? html`<span class="cu">${a.cur}</span>` : ""}</div>`; };
   return html`<div class="sheet" role="dialog" aria-label=${title}>
     <div class="sh-top"><div class="sh-in">
       <div class="sh-t"><div class="tt">${title}</div>${isM && card && html`<button class="btn sm red" onClick=${del}>휴지통</button>`}<button class="x" onClick=${close}>닫기</button></div>
-      <div class="sh-sub">${live.brand || "브랜드 —"} · ${live.round || "차수 —"} ${badgeTag(sumBadge)} ${ro ? html`<span class="tag off">보기 전용</span>` : ""}${card && card.updatedAt ? html`<span>· 마지막 ${who(card.updatedBy)} ${whenTxt(card.updatedAt)}</span>` : ""}</div>
-      <div class="tabs" role="tablist">${[["cost", "원가 계산"], ["hist", `이력 ${card && card.history ? card.history.length : 0}`]].map(([k, l]) => html`<button key=${k} role="tab" class=${"tab" + (tab === k ? " on" : "")} onClick=${() => setTab(k)}>${l}</button>`)}</div>
+      <div class="sh-sub">${live.brand || "브랜드 —"} · ${live.round || "차수 —"} · ${C.methodName(live.method) || "생산 방식 미정"}${live.origin ? " · " + live.origin : ""} ${stTag2(cst)} ${live.need ? html`<span class="tag need">분해 필요</span>` : ""} ${ro ? html`<span class="tag off">보기 전용</span>` : ""}${card && card.updatedAt ? html`<span>· 마지막 ${who(card.updatedBy)} ${whenTxt(card.updatedAt)}</span>` : ""}</div>
+      <div class="tabs" role="tablist">${[["cost", "원가 계산"], ["cmp", `업체 비교${multiN ? " " + multiN : ""}`], ["hist", `이력 ${card && card.history ? card.history.length : 0}`]].map(([k, l]) => html`<button key=${k} role="tab" class=${"tab" + (tab === k ? " on" : "")} onClick=${() => setTab(k)}>${l}</button>`)}</div>
     </div></div>
     <div class="sh-body">
     ${tab === "cost" && html`<${React.Fragment}>
-      <${ResultPanel} ctx=${ctx} card=${card} d=${d} setD=${setD} live=${live} x=${x} prod=${prod} pt=${pt} ro=${ro} dirty=${dirty} />
+      <${ResultPanel} ctx=${ctx} card=${card} d=${d} setD=${setD} live=${live} x=${x} prod=${prod} pt=${pt} ro=${ro} dirty=${dirty} cheap=${cheap} multiN=${multiN} goCmp=${() => setTab("cmp")} />
       <div class="sec"><h3>기본 정보</h3>
         <div class="fg">
           <div class="fld"><label>브랜드</label>${inp(d.brand, (v) => set("brand", v), { list: "pccBrands", ph: "예: 바라스데이", al: "브랜드" })}</div>
           <div class="fld"><label>차수</label>${inp(d.round, (v) => set("round", v), { ph: "1차", al: "차수" })}</div>
           <div class="fld"><label>품목</label>${inp(d.item, (v) => set("item", v), { ph: "예: 핸드워시", al: "품목" })}</div>
           <div class="fld"><label>규격</label>${inp(d.spec, (v) => set("spec", v), { ph: "예: 500ml", al: "규격" })}</div>
+          <div class="fld"><label>생산 방식</label>${sel(d.method, setMethod, [["", "고르기"], ...C.METHODS.map(([k, n]) => [k, n])], { al: "생산 방식" })}</div>
+          <div class="fld"><label>국내 · 수입</label>${sel(d.origin, setOrigin, [["", "고르기"], ["국내", "국내"], ["수입", "수입"]], { al: "국내 수입" })}</div>
           <div class="fld w2"><label>완제품 제조사 ${!seeNames ? "(가칭)" : ""}</label>${isM ? inp(nm.mfg, (v) => setNm((o) => ({ ...o, mfg: v })), { list: "pccNames", ph: "실제 이름 (부마스터에겐 가칭)", al: "완제품 제조사" }) : html`<div class="calc" style=${{ fontWeight: 700 }}>${seeNames ? names.mfg || live.mfgAlias || "—" : live.mfgAlias || "—"}</div>`}</div>
           <div class="fld w2"><label>완제품 범위 (한 줄)</label>${inp(d.scope, (v) => set("scope", v), { ph: "예: 내용물 충진 + 용기 + 라벨 + 단상자", al: "완제품 범위" })}</div>
           <div class="fld"><label>생산 수량 (개)</label>${inp(d.qty, (v) => set("qty", v), { num: true, ph: "예: 5000", al: "생산 수량" })}${live.seed === "price-table" && +live.qty === 1 ? html`<div class="hint">자동 생성 카드라 1개로 둠 · 분해할 때 실제 수량으로</div>` : ""}</div>
           <div class="fld"><label>견적 유효기간</label>${inp(C.parseDate(d.validUntil) || d.validUntil, (v) => set("validUntil", v), { type: ro ? "text" : "date", al: "견적 유효기간" })}${val && html`<div class=${"hint v-" + val} style=${{ borderRadius: 5, padding: "1px 5px", display: "inline-block" }}>${val === "over" ? "유효기간 지남" : val === "soon" ? "30일 이내" : "유효"}</div>`}</div>
           <div class="fld"><label>합계 포함</label>${sel(d.include === false ? "제외" : "포함", (v) => set("include", v !== "제외"), [["포함", "포함"], ["제외", "제외"]], { al: "합계 포함" })}</div>
           <div class="fld"><label>분해 상태</label>${sel(d.need ? "need" : "done", (v) => set("need", v === "need"), [["done", "분해함"], ["need", "분해 필요"]], { al: "분해 상태" })}</div>
+          ${curs.map((k) => html`<div class="fld" key=${"fx" + k}><label>${k} 환율 (1 ${k} = 원)</label>${inp((d.fx || {})[k] || "", (v) => setFx(k, v), { num: true, ph: "예: 1385", al: k + " 환율" })}${!C.num((d.fx || {})[k]) ? html`<div class="hint">비우면 ${k} 줄은 '확인 필요' · 원화 0</div>` : ""}</div>`)}
           <div class="fld w4"><label>가격정책표 제품 연결 (없어도 저장돼요 · 출시 전 품목은 비워 둬요)</label>
             ${ro ? html`<div class="calc" style=${{ fontWeight: 600 }}>${prod ? prodTxt : live.prodKey ? live.prodLabel || "가격표에 없음" : "연결 안 됨"}</div>`
               : html`<input class="in" list="pccProds" value=${prodTxt} onInput=${(e) => pickProd(e.target.value)} placeholder="제품 이름으로 찾아 고르기" aria-label="가격정책표 제품" />`}
-            ${prod && html`<div class="note" style=${{ marginTop: 4 }}>지금 가격정책표 매입원가 <b>${pt == null ? "없음" : won(pt) + "원"}</b> · ${ST_NAME[prod.st] || prod.st || ""} · ${(prod.brand || []).join("/")}</div>`}
+            ${prod && html`<div class="note" style=${{ marginTop: 4 }}>지금 가격정책표 완제품 원가 <b>${pt == null ? "없음" : won(pt) + "원"}</b> · ${ST_NAME[prod.st] || prod.st || ""} · ${(prod.brand || []).join("/")}</div>`}
           </div>
         </div>
         <details style=${{ marginTop: 10 }} open=${!!(d.frag.name || d.frag.ratioPct || d.frag.batchKg || d.frag.directKg)}>
@@ -950,50 +1173,53 @@ function CardSheet({ id, ctx, onClose, onSaved }) {
           </div>
         </details>
       </div>
-      <div class="sec"><h3>구성요소 <span class="rt">${d.rows.length}줄</span><span class="sp"></span>${!ro && html`<button class="btn sm" onClick=${addRow}>＋ 줄 추가</button>`}</h3>
+      <div class="sec"><h3>구성요소 <span class="rt">${d.rows.length}줄 · 업체 버튼(A 주 ▾)을 누르면 업체 여러 곳</span><span class="sp"></span>
+          ${!ro && d.method && tplMissing > 0 && html`<button class="btn sm soft" onClick=${addTpl}>＋ ${C.methodName(d.method)} 기본 줄 ${tplMissing}개</button>`}${!ro && html`<button class="btn sm" onClick=${addRow}>＋ 줄 추가</button>`}</h3>
+        ${!d.method && !ro && html`<div class="note" style=${{ margin: "-4px 0 8px" }}>위 기본 정보에서 생산 방식을 고르면 그 방식의 기본 줄(예: 자체생산 = 원료·용기·캡·라벨·단상자·공임·간접비)이 들어가요.</div>`}
         ${wide ? html`<div class="tblw" style=${{ border: 0 }}><table class="t ed"><thead><tr>
-            <th>번호</th><th style=${{ width: 116 }}>구분</th><th style=${{ minWidth: 150 }}>구성 요소</th><th style=${{ minWidth: 150 }}>무엇에 쓰는지</th><th style=${{ minWidth: 120 }}>공급처${seeNames ? "" : " (가칭)"}</th><th style=${{ width: 74 }}>제조 단가에 포함?</th>
-            <th style=${{ width: 96 }}>견적 단가</th><th style=${{ width: 88 }}>부가세</th><th class="num">단가(V-)</th><th style=${{ width: 70 }}>개당/1회</th><th style=${{ width: 78 }}>개당 사용량·1회 횟수</th><th style=${{ width: 88 }}>구매·MOQ 수량</th>
-            <th class="num">개당 금액</th><th class="num">첫 생산 남는 비용</th><th style=${{ minWidth: 130 }}>출처·견적일</th><th style=${{ width: 100 }}>상태</th>${!ro && html`<th></th>`}</tr></thead>
-          <tbody>${d.rows.map((r, i) => { const m = C.rowCalc(r, d.qty); return html`<tr key=${r.id}>
+            <th>번호</th><th style=${{ width: 116 }}>구분</th><th style=${{ minWidth: 150 }}>구성 요소</th><th style=${{ minWidth: 140 }}>무엇에 쓰는지</th><th style=${{ minWidth: 190 }}>업체 (적용)${seeNames ? "" : " · 가칭"}</th><th style=${{ width: 74 }}>제조 단가에 포함?</th>
+            <th style=${{ width: 110 }}>견적 단가</th><th style=${{ width: 88 }}>부가세</th><th class="num">단가(V-, 원)</th><th style=${{ width: 70 }}>개당/1회</th><th style=${{ width: 78 }}>개당 사용량·1회 횟수</th><th style=${{ width: 88 }}>구매·MOQ 수량</th>
+            <th class="num">개당 금액</th><th class="num">첫 생산 남는 비용</th><th style=${{ minWidth: 120 }}>출처·견적일</th><th style=${{ width: 100 }}>상태</th>${!ro && html`<th></th>`}</tr></thead>
+          <tbody>${d.rows.map((r, i) => { const m = rcalc(r), a = av(r); return html`<${React.Fragment} key=${r.id}><tr class=${openV[r.id] ? "vopen" : ""}>
             <td class="nw">${!ro && html`<button class="mv" title="위로" onClick=${() => mvRow(i, -1)}>▲</button>`}${i + 1}${!ro && html`<button class="mv" title="아래로" onClick=${() => mvRow(i, 1)}>▼</button>`}</td>
             <td>${sel(r.kind, (v) => setR(i, "kind", v), KIND_OPTS, { al: "구분" })}</td>
             <td>${inp(r.name, (v) => setR(i, "name", v), { ph: "예: 용기", al: "구성 요소" })}</td>
             <td>${inp(r.use, (v) => setR(i, "use", v), { ph: r.kind === "1회 비용" ? "대상 박스·통·파우치" : "쓰임", al: "무엇에 쓰는지" })}${hint1(r)}</td>
-            <td>${isM ? inp(nm.sup[r.id] || "", (v) => setSup(r, v), { list: "pccNames", ph: "공급처", al: "공급처" }) : html`<span>${supName(r) || "—"}</span>`}</td>
+            <td><div class="vcell">${vbtn(r, i)}${isM ? inp(vName(r, a), (v) => setVName(r, a.vid, v), { list: "pccNames", ph: "업체 이름", al: "적용 업체 이름" }) : html`<span class="vnm">${vName(r, a) || "—"}</span>`}</div></td>
             <td>${sel(r.inMfg, (v) => setR(i, "inMfg", v), IN_OPTS, { al: "제조 단가에 포함" })}</td>
-            <td>${inp(r.price, (v) => setR(i, "price", v), { num: true, ph: "0", al: "견적 단가" })}</td>
-            <td>${sel(r.vat, (v) => setR(i, "vat", v), VAT_OPTS, { al: "부가세" })}</td>
+            <td>${priceIn(r, i)}</td>
+            <td>${sel(a.vat, (v) => setV(i, a.vid, "vat", v), VAT_OPTS, { al: "부가세" })}</td>
             <td class="c">${fmt(m.unitV)}</td>
             <td>${sel(r.per, (v) => setR(i, "per", v), PER_OPTS, { al: "개당/1회" })}</td>
             <td>${inp(r.usage, (v) => setR(i, "usage", v), { num: true, ph: "1", al: "사용량" })}</td>
-            <td>${inp(r.moq, (v) => setR(i, "moq", v), { num: true, ph: "", al: "MOQ" })}</td>
+            <td>${inp(a.moq, (v) => setV(i, a.vid, "moq", v), { num: true, ph: "", al: "MOQ" })}</td>
             <td class="c">${fmt(m.per)}</td><td class="c">${fmt(m.left, 0)}</td>
-            <td>${inp(r.src, (v) => setR(i, "src", v), { ph: "견적서 날짜", al: "출처" })}</td>
+            <td>${inp(a.qd, (v) => setV(i, a.vid, "qd", v), { ph: "견적서 날짜", al: "출처" })}</td>
             <td>${ro ? stTag(m.st) : html`<div style=${{ display: "flex", gap: 3, alignItems: "center" }}>${sel(r.st, (v) => setR(i, "st", v), ST_OPTS, { al: "상태" })}</div>`}${!ro && (m.st !== (r.st || "확정")) ? html`<div style=${{ marginTop: 2 }}>${stTag(m.st)}</div>` : ""}</td>
             ${!ro && html`<td><button class="rmv" title="줄 빼기" onClick=${() => rmRow(i)}>✕</button></td>`}
-          </tr>`; })}</tbody>
+          </tr>${openV[r.id] && html`<tr class="vrow"><td colspan=${ro ? 16 : 17}><${VendorPanel} r=${r} i=${i} cx=${cmp[live.rows.findIndex((y) => y.id === r.id)]} ro=${ro} isM=${isM} seeNames=${seeNames} vName=${vName} setVName=${setVName} setV=${setV} pickV=${pickV} addV=${addV} rmV=${rmV} CUR_OPTS=${CUR_OPTS} VAT_OPTS=${VAT_OPTS} sel=${sel} inp=${inp} /></td></tr>`}<//>`; })}</tbody>
           <tfoot><tr><td colspan="12" style=${{ textAlign: "right" }}>합계</td><td class="c">${fmt(x.unit)}</td><td class="c">${fmt(x.leftSum, 0)}</td><td colspan=${ro ? 2 : 3}>근거 확인 ${x.ok}/${x.n}</td></tr></tfoot></table></div>`
-        : html`<div>${d.rows.map((r, i) => { const m = C.rowCalc(r, d.qty); return html`<div class="rc" key=${r.id}>
+        : html`<div>${d.rows.map((r, i) => { const m = rcalc(r), a = av(r); return html`<div class="rc" key=${r.id}>
             <div class="rh"><span class="no">${i + 1}</span>${sel(r.kind, (v) => setR(i, "kind", v), KIND_OPTS, { al: "구분" })}${!ro && html`<button class="btn sm" onClick=${() => mvRow(i, -1)} aria-label="위로">▲</button><button class="btn sm red" onClick=${() => rmRow(i)} aria-label="줄 빼기">✕</button>`}</div>
             <div class="g">
               <div class="fld w2"><label>구성 요소</label>${inp(r.name, (v) => setR(i, "name", v), { ph: "예: 용기", al: "구성 요소" })}</div>
               <div class="fld w2"><label>무엇에 쓰는지</label>${inp(r.use, (v) => setR(i, "use", v), { ph: r.kind === "1회 비용" ? "대상 박스·통·파우치" : "쓰임", al: "무엇에 쓰는지" })}${hint1(r)}</div>
-              <div class="fld w2"><label>공급처${seeNames ? "" : " (가칭)"}</label>${isM ? inp(nm.sup[r.id] || "", (v) => setSup(r, v), { list: "pccNames", ph: "공급처", al: "공급처" }) : html`<div class="calc" style=${{ fontWeight: 600 }}>${supName(r) || "—"}</div>`}</div>
-              <div class="fld"><label>견적 단가</label>${inp(r.price, (v) => setR(i, "price", v), { num: true, ph: "0", al: "견적 단가" })}</div>
-              <div class="fld"><label>부가세</label>${sel(r.vat, (v) => setR(i, "vat", v), VAT_OPTS, { al: "부가세" })}</div>
+              <div class="fld w2"><label>업체 (적용)${seeNames ? "" : " · 가칭"}</label><div class="vcell">${vbtn(r, i)}${isM ? inp(vName(r, a), (v) => setVName(r, a.vid, v), { list: "pccNames", ph: "업체 이름", al: "적용 업체 이름" }) : html`<span class="vnm">${vName(r, a) || "—"}</span>`}</div></div>
+              <div class="fld"><label>견적 단가${a.cur ? ` (${a.cur})` : ""}</label>${priceIn(r, i)}</div>
+              <div class="fld"><label>부가세</label>${sel(a.vat, (v) => setV(i, a.vid, "vat", v), VAT_OPTS, { al: "부가세" })}</div>
               <div class="fld"><label>개당/1회</label>${sel(r.per, (v) => setR(i, "per", v), PER_OPTS, { al: "개당/1회" })}</div>
               <div class="fld"><label>${r.per === "1회" ? "1회 횟수" : "개당 사용량"}</label>${inp(r.usage, (v) => setR(i, "usage", v), { num: true, ph: "1", al: "사용량" })}</div>
               <div class="fld"><label>제조 단가에 포함?</label>${sel(r.inMfg, (v) => setR(i, "inMfg", v), IN_OPTS, { al: "제조 단가에 포함" })}</div>
-              <div class="fld"><label>구매·MOQ 수량</label>${inp(r.moq, (v) => setR(i, "moq", v), { num: true, al: "MOQ" })}</div>
-              <div class="fld"><label>출처·견적일</label>${inp(r.src, (v) => setR(i, "src", v), { ph: "견적서 날짜", al: "출처" })}</div>
+              <div class="fld"><label>구매·MOQ 수량</label>${inp(a.moq, (v) => setV(i, a.vid, "moq", v), { num: true, al: "MOQ" })}</div>
+              <div class="fld"><label>출처·견적일</label>${inp(a.qd, (v) => setV(i, a.vid, "qd", v), { ph: "견적서 날짜", al: "출처" })}</div>
               <div class="fld"><label>상태</label>${ro ? html`<div class="calc">${stTag(m.st)}</div>` : sel(r.st, (v) => setR(i, "st", v), ST_OPTS, { al: "상태" })}</div>
             </div>
             <div class="res"><span>단가(V-) <b>${fmt(m.unitV)}</b></span><span>개당 금액 <b>${fmt(m.per)}</b></span><span>남는 비용 <b>${fmt(m.left, 0)}</b></span>${stTag(m.st)}</div>
+            ${openV[r.id] && html`<${VendorPanel} r=${r} i=${i} cx=${cmp[live.rows.findIndex((y) => y.id === r.id)]} ro=${ro} isM=${isM} seeNames=${seeNames} vName=${vName} setVName=${setVName} setV=${setV} pickV=${pickV} addV=${addV} rmV=${rmV} CUR_OPTS=${CUR_OPTS} VAT_OPTS=${VAT_OPTS} sel=${sel} inp=${inp} />`}
           </div>`; })}</div>`}
         ${!ro && html`<div style=${{ marginTop: 10 }}><button class="btn" onClick=${addRow}>＋ 줄 추가</button></div>`}
-        <p class="note">· 1회 비용(동판·목형 등)은 '1회'를 고르고 횟수를 넣어요 → 생산 수량으로 나눠요 · '제조 단가에 포함'이면 개당 금액 0 (첫 생산 남는 비용은 계산)
-          <br />· 출처를 비우면 '임시', 부가세가 V?면 '확인 필요'로 자동 표시돼요.</p>
+        <p class="note">· 1회 비용(동판·목형·운임·관세 등)은 '1회'를 고르고 횟수를 넣어요 → 생산 수량으로 나눠요 · '제조 단가에 포함'이면 개당 금액 0 (첫 생산 남는 비용은 계산)
+          <br />· 출처·견적일이나 단가를 비우면 '임시', 부가세가 V?거나 환율이 없으면 '확인 필요'로 자동 표시돼요 · 외화 단가 = 견적 단가 × 위 환율(원)</p>
       </div>
       <details class="sec more"><summary>더 보기 · 첫 생산 원가 · 근거 확인 · 수량 바꿔 보기</summary>
         <div class="kv" style=${{ marginTop: 10 }}>
@@ -1006,6 +1232,9 @@ function CardSheet({ id, ctx, onClose, onSaved }) {
         <${QtyCompare} live=${live} />
       </details>
     <//>`}
+    ${tab === "cmp" && html`<${CompareTab} live=${live} x=${x} cmp=${cmp} cheap=${cheap} ro=${ro} vName=${vName} onPick=${(rid, vid) => { const i = rowIdx(rid); if (i >= 0) pickV(i, vid); }}
+      onAll=${() => setD((o) => ({ ...o, rows: o.rows.map((r) => { const c = cmp.find((y) => y && y.r.id === r.id); return c && c.best && !c.best.on ? { ...r, sel: c.best.v.vid } : r; }) }))}
+      goRow=${(rid) => { setOpenV((o) => ({ ...o, [rid]: true })); setTab("cost"); }} dirty=${dirty} />`}
     ${tab === "hist" && html`<div class="sec"><h3>변경 이력 <span class="rt">누가 · 언제 · 무엇을 · 이유 (최근 100건)</span></h3>
       ${card && card.history && card.history.length ? html`<ul class="hist">${card.history.map((h, k) => html`<li key=${k}><b>${who(h.by)}</b> <span class="w">${whenTxt(h.at)}</span><div>${h.what}</div>${h.why ? html`<div class="w">이유: ${h.why}</div>` : ""}</li>`)}</ul>` : html`<div class="empty">아직 이력이 없어요.</div>`}</div>`}
     </div>
@@ -1019,6 +1248,55 @@ function CardSheet({ id, ctx, onClose, onSaved }) {
     ${isM && html`<datalist id="pccProds">${prodOpts.map((o) => html`<option key=${o.k} value=${o.lb} />`)}</datalist>`}
   </div>`;
 }
+// 구성요소 1줄의 업체들 (A 주 · B 서브 · C…) — 적용 1곳 · 고치기(마스터)
+function VendorPanel({ r, i, cx, ro, isM, seeNames, vName, setVName, setV, pickV, addV, rmV, CUR_OPTS, VAT_OPTS, sel, inp }) {
+  const nextL = C.nextVid(r.vendors), nextK = r.vendors.length;
+  return html`<div class="vpan"><div class="vgrid">${r.vendors.map((v, k) => { const l = cx && cx.list.find((y) => y.v.vid === v.vid), on = v.vid === r.sel, best = cx && cx.best && cx.best.v.vid === v.vid && cx.list.filter((y) => y.priced).length > 1;
+    return html`<div key=${v.vid} class=${"vc" + (on ? " on" : "")}>
+      <div class="vh"><label class="tg"><input type="radio" name=${"sel-" + r.id} checked=${on} disabled=${ro} onChange=${() => pickV(i, v.vid)} aria-label=${v.vid + " 적용"} />${vLabel(v, k)}</label>
+        ${on ? html`<span class="tag ok">적용</span>` : ""}${best ? html`<span class="tag has">최저</span>` : ""}<span class="sp"></span>
+        ${!ro && r.vendors.length > 1 && html`<button class="rmv" title="업체 빼기" onClick=${() => rmV(i, v.vid)} aria-label=${v.vid + " 업체 빼기"}>✕</button>`}</div>
+      <div class="vf">
+        <div class="fld w2"><label>업체 이름${seeNames ? "" : " (가칭)"}</label>${isM ? inp(vName(r, v), (x) => setVName(r, v.vid, x), { list: "pccNames", ph: "업체 이름", al: v.vid + " 업체 이름" }) : html`<div class="calc" style=${{ fontWeight: 600 }}>${vName(r, v) || "—"}</div>`}</div>
+        <div class="fld"><label>통화</label>${sel(v.cur, (x) => setV(i, v.vid, "cur", x), CUR_OPTS, { al: v.vid + " 통화" })}</div>
+        <div class="fld"><label>견적 단가</label>${inp(v.price, (x) => setV(i, v.vid, "price", x), { num: true, ph: "0", al: v.vid + " 견적 단가" })}</div>
+        <div class="fld"><label>부가세</label>${sel(v.vat, (x) => setV(i, v.vid, "vat", x), VAT_OPTS, { al: v.vid + " 부가세" })}</div>
+        <div class="fld"><label>MOQ</label>${inp(v.moq, (x) => setV(i, v.vid, "moq", x), { num: true, al: v.vid + " MOQ" })}</div>
+        <div class="fld"><label>리드타임</label>${inp(v.lead, (x) => setV(i, v.vid, "lead", x), { ph: "예: 3주", al: v.vid + " 리드타임" })}</div>
+        <div class="fld"><label>견적일·출처</label>${inp(v.qd, (x) => setV(i, v.vid, "qd", x), { ph: "견적서 날짜", al: v.vid + " 견적일" })}</div>
+        <div class="fld"><label>유효기간</label>${inp(C.parseDate(v.vu) || v.vu, (x) => setV(i, v.vid, "vu", x), { type: ro ? "text" : "date", al: v.vid + " 유효기간" })}</div>
+        <div class="fld w2"><label>메모</label>${inp(v.memo, (x) => setV(i, v.vid, "memo", x), { ph: "조건·특이사항", al: v.vid + " 메모" })}</div>
+      </div>
+      <div class="vr">${l && l.priced ? html`<span>단가(V-) <b>${fmt(l.m.unitV)}원</b></span><span>개당 <b>${fmt(l.m.per)}원</b></span>${!on ? html`<span class=${sgnCls(l.dPer)}>적용보다 완제품 원가 ${sgn(l.dPer)}</span>` : ""}` : html`<span class="dim">${v.cur && !(l && l.priced) && C.num(v.price) != null ? `${v.cur} 환율을 기본 정보에 넣어 주세요` : "단가를 넣으면 비교돼요"}</span>`}</div>
+    </div>`; })}
+    ${!ro && html`<button class="vadd" onClick=${() => addV(i)}>＋ 업체 ${nextL}${C.vRole(nextK) ? " " + C.vRole(nextK) : ""} 추가<span>같은 구성요소를 다른 업체 견적으로</span></button>`}
+  </div></div>`;
+}
+// 업체 비교 탭 — 지금 적용 원가 · 모두 최저가로 고르면 · 줄마다 업체 나란히
+function CompareTab({ live, x, cmp, cheap, ro, vName, onPick, onAll, goRow, dirty }) {
+  const multi = cmp.filter((c) => c && c.n > 1), single = cmp.filter((c) => c && c.n === 1), diff = cheap - x.unit;
+  return html`<${React.Fragment}>
+    <div class="sec"><div class="kv cmpk">
+      <div><div class="k">지금 적용 원가</div><div class="v">${W(x.unit)}</div><div class="s">구성요소마다 '적용' 업체 단가로</div></div>
+      <div><div class="k">모두 최저가로 고르면</div><div class=${"v " + (diff < -0.005 ? "minus" : "")}>${W(cheap)}</div><div class="s">${Math.abs(diff) < 0.005 ? "지금이 이미 최저가예요" : `지금보다 ${sgn(diff)} (개당)`}</div></div>
+      <div><div class="k">업체 2곳 이상</div><div class="v">${multi.length}줄</div><div class="s">구성요소 ${x.n}줄 중</div></div>
+    </div>
+    ${!ro && Math.abs(diff) >= 0.005 && html`<div style=${{ marginTop: 10, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}><button class="btn" onClick=${onAll}>모두 최저가 업체로 적용 (${sgn(diff)})</button><span class="note" style=${{ margin: 0 }}>누른 뒤 아래 [저장]해야 바뀌어요${dirty ? " · 지금 저장 안 된 내용 있음" : ""}</span></div>`}
+    </div>
+    ${multi.length ? multi.map((c) => html`<div class="sec" key=${c.r.id}><h3>${c.r.name || c.r.kind || "구성요소"} <span class="rt">${c.r.kind || ""}${c.r.per === "1회" ? " · 1회 비용(÷ 생산 수량)" : ""}</span><span class="sp"></span><button class="lnk" style=${{ fontSize: 12.5 }} onClick=${() => goRow(c.r.id)}>업체 고치기</button></h3>
+      <div class="cgrid">${c.list.map((l) => { const bst = c.best && c.best.v.vid === l.v.vid;
+        return html`<div key=${l.v.vid} class=${"cc" + (l.on ? " on" : "") + (bst ? " best" : "")}>
+          <div class="ch"><b>${vLabel(l.v, l.k)}</b><span class="cn">${vName(c.r, l.v) || ""}</span>${l.on ? html`<span class="tag ok">적용</span>` : ""}${bst ? html`<span class="tag has">최저</span>` : ""}</div>
+          ${l.priced ? html`<div class="cv">개당 <b>${fmt(l.m.per)}원</b></div>
+            <div class="cs">단가 ${l.v.cur ? `${fmt(C.num(l.v.price), 4)} ${l.v.cur} → ` : ""}${fmt(l.m.unitV)}원(V-)${C.num(l.v.moq) != null ? ` · MOQ ${won(C.num(l.v.moq))}` : ""}${l.v.lead ? ` · ${l.v.lead}` : ""}${l.v.vu ? ` · ~${dTxt(l.v.vu)}` : ""}</div>
+            ${l.on ? html`<div class="cd dim">지금 적용 중</div>` : html`<div class="cd">${l.v.vid}로 바꾸면 부품 단가 <b class=${sgnCls(l.dUnit)}>${sgn(l.dUnit)}</b> · 완제품 원가 <b class=${sgnCls(l.dPer)}>${sgn(l.dPer)}</b>${Math.abs(l.dFirst - l.dPer) >= 0.005 ? html` · 첫 생산 원가 <b class=${sgnCls(l.dFirst)}>${sgn(l.dFirst)}</b> (MOQ 차이)` : ""}</div>`}
+            ${!ro && !l.on ? html`<button class="btn sm" style=${{ marginTop: 6 }} onClick=${() => onPick(c.r.id, l.v.vid)}>${l.v.vid}로 적용</button>` : ""}`
+          : html`<div class="cs dim">${l.v.cur && C.num(l.v.price) != null ? `${l.v.cur} 환율이 없어요 (기본 정보)` : "단가 없음"}</div>`}
+        </div>`; })}</div></div>`)
+      : html`<div class="empty">아직 업체가 2곳 이상인 구성요소가 없어요.${ro ? "" : html`<br />원가 계산 탭 › 구성요소의 업체 버튼(A 주 ▾) › [＋ 업체 B 서브 추가]로 다른 견적을 넣으면 여기서 나란히 비교돼요.`}</div>`}
+    ${single.length > 0 && html`<p class="note">업체 1곳뿐: ${single.map((c) => c.r.name || c.r.kind).join(" · ")}</p>`}
+  <//>`;
+}
 function QtyCompare({ live }) {
   const [qs, setQs] = useState(["5000", "10000", ""]);
   const cur = C.num(live.qty), list = [qs[0], qs[1], qs[2] === "" ? str(cur ?? "") : qs[2]];
@@ -1029,19 +1307,20 @@ function QtyCompare({ live }) {
       <input class="in num" inputmode="decimal" value=${list[k]} onInput=${(e) => setQs((o) => { const n = o.slice(); n[k] = e.target.value; return n; })} aria-label=${"수량 " + (k + 1)} />
       <div class="v">${W(r.unit)}</div><div class="s">완제품 기준 원가 · 첫 생산 ${W(r.first)} · 금액 ${W(r.firstAmt, 0)}</div></div>`)}</div></div>`;
 }
-// ── 결과 두 가지 (2026-11-23 송희님): ① 최종 완제품 원가 ② 판매가를 넣으면 마진율·마진액 ──
-function ResultPanel({ ctx, card, d, setD, live, x, prod, pt, ro, dirty }) {
+// ── 결과 두 가지: ① 최종 완제품 원가 (+ 가격정책표에 반영) ② 판매가를 넣으면 마진율·마진액 ──
+function ResultPanel({ ctx, card, d, setD, live, x, prod, pt, ro, dirty, cheap, multiN, goCmp }) {
   const chans = (ctx.S.ref && ctx.S.ref.channels) || [];
   const s = d.sale || {}, setS = (p) => setD((o) => ({ ...o, sale: { ...o.sale, ...p } }));
   const pickCh = (u) => { const c = chans.find((y) => y.uid === u); setS(c ? { ch: u, chName: c.name, feePct: String(+c.fee || 0) } : { ch: "", chName: "" }); };
   const m = C.marginCalc({ price: s.price, fee: fromPct(s.feePct), logi: s.logi, cost: x.unit });
   const chObj = chans.find((c) => c.uid === s.ch), chPrice = prod && s.ch && prod.pr ? prod.pr[s.ch] : null;
   const feeTag = !chObj ? "" : String(+chObj.fee || 0) === String(C.num(s.feePct) ?? "") ? html`<span class="tag ok">자동</span>` : html`<span class="tag tmp">고침 (가격정책표 ${+chObj.fee || 0}%)</span>`;
-  const neg = m && m.rate < 0;
+  const neg = m && m.rate < 0, cdiff = cheap - x.unit;
   return html`<div class="sec res">
     <div class="rg">
-      <div class="r1"><div class="k">① 최종 완제품 원가</div><div class="big">${W(x.unit)}</div><div class="s">개당 · 부가세 별도 · 구성요소 ${x.n}줄 합</div>
-        <div style=${{ marginTop: 10 }}><${ReqButton} ctx=${ctx} card=${card} live=${live} x=${x} prod=${prod} pt=${pt} dirty=${dirty} /></div></div>
+      <div class="r1"><div class="k">① 최종 완제품 원가</div><div class="big">${W(x.unit)}</div><div class="s">개당 · 부가세 별도 · 구성요소 ${x.n}줄 합 · ${C.cardStatus(live)}</div>
+        ${multiN > 0 && html`<div class="s" style=${{ marginTop: 4 }}>모두 최저가로 고르면 <b class=${sgnCls(cdiff)}>${W(cheap)}</b>${Math.abs(cdiff) >= 0.005 ? ` (${sgn(cdiff)})` : " (지금이 최저)"} · <button class="lnk" onClick=${goCmp}>업체 비교</button></div>`}
+        <div style=${{ marginTop: 10 }}><${ApplyButton} ctx=${ctx} card=${card} live=${live} x=${x} prod=${prod} pt=${pt} dirty=${dirty} /></div></div>
       <div class="r2"><div class="k">② 판매가를 넣으면 마진</div>
         <div class="mi">
           <div class="fld"><label>판매가 (원 · 부가세 포함)</label><input class="in num" inputmode="decimal" value=${s.price || ""} placeholder="예: 12900" onInput=${(e) => setS({ price: e.target.value })} aria-label="판매가" /></div>
@@ -1060,38 +1339,55 @@ function ResultPanel({ ctx, card, d, setD, live, x, prod, pt, ro, dirty }) {
       </div>
     </div></div>`;
 }
-// 매입원가 승인요청 — 버튼 하나 (가격정책표 개정안에 담고, 마스터가 가격정책표에서 승인해야 바뀜 · 자동 덮어쓰기 없음)
-function ReqButton({ ctx, card, live, x, prod, pt, dirty }) {
-  const { isM, S, user, setToast } = ctx, [busy, setBusy] = useState(false);
-  if (!live.prodKey) return html`<div class="note" style=${{ margin: 0 }}>가격정책표 제품과 연결하면(아래 기본 정보) 매입원가 승인요청 버튼이 생겨요</div>`;
+// 가격정책표에 반영 (C) — 마스터: 바로 반영 + 기록 · 부마스터: 반영 요청(가격정책표 개정안 → 마스터 승인) · 경영 열람: 보기만
+function ApplyButton({ ctx, card, live, x, prod, pt, dirty }) {
+  const { isM, role, user, setToast } = ctx, [busy, setBusy] = useState(false);
+  if (!live.prodKey) return html`<div class="note" style=${{ margin: 0 }}>가격정책표 제품과 연결하면(아래 기본 정보) [가격정책표에 반영] 버튼이 생겨요</div>`;
   if (!prod) return html`<div class="note" style=${{ margin: 0, color: "var(--amber)" }}>연결한 제품이 지금 가격정책표에 없어요</div>`;
   if (prod.type === "세트") return "";
-  const unit = Math.round(x.unit), same = pt != null && unit === Math.round(pt);
-  if (same) return html`<div class="note" style=${{ margin: 0, color: "var(--green)" }}>✓ 가격정책표 매입원가(${W(pt, 0)})와 같아요</div>`;
-  if (!isM) return html`<div class="note" style=${{ margin: 0 }}>가격정책표 매입원가 ${W(pt, 0)}</div>`;
+  const unit = Math.round(x.unit), same = pt != null && unit === Math.round(pt), ap = card && card.applied;
+  const apTxt = ap ? `${who(ap.by)} ${whenTxt(ap.at)} 반영 (${ap.from == null ? "없음" : won(ap.from)} → ${won(ap.v)})` : "";
+  if (same) return html`<div class="note" style=${{ margin: 0, color: "var(--green)" }}>✓ 가격정책표 완제품 원가(${W(pt, 0)})와 같아요${ap && Math.round(+ap.v) === unit ? " · " + apTxt : ""}</div>`;
+  if (role === "sub") return html`<${ReqButton} ctx=${ctx} card=${card} live=${live} unit=${unit} pt=${pt} />`;
+  if (!isM) return html`<div class="note" style=${{ margin: 0 }}>가격정책표 완제품 원가 ${W(pt, 0)} · 반영은 마스터가 해요</div>`;
+  const go = async () => {
+    if (!card) return;
+    const tmp = C.cardStatus(live) !== "확정";
+    if (!confirm(`가격정책표 완제품 원가 ${pt == null ? "(없음)" : won(pt) + "원"} → ${won(unit)}원\n지금 바로 가격정책표에 반영할까요?\n\n· 누가·언제·전→후가 원가 이력에 남아요 (가격정책표 제품 수정 창 '변경 이력')${tmp ? "\n· 아직 '임시'예요 (근거·단가가 빈 줄이 있음)" : ""}`)) return;
+    setBusy(true);
+    try { await applyToPriceTable(user, card, prod, unit, pt); setToast("가격정책표에 반영했어요 · 원가 이력에 남았어요"); }
+    catch (e) { console.error("[prod-cost] 분해원가 반영 실패", e); setToast("반영 못 했어요: " + (e.code || e.message)); }
+    setBusy(false);
+  };
+  return html`<button class="btn solid" disabled=${busy || dirty || !card || !(unit > 0)} title=${dirty ? "먼저 저장해 주세요" : ""} onClick=${go}>${busy ? "반영 중…" : `가격정책표에 반영 (${pt == null ? "없음" : won(pt)} → ${won(unit)}원)`}</button>
+    ${dirty ? html`<div class="note" style=${{ margin: "4px 0 0" }}>먼저 아래 [저장]</div>` : ap ? html`<div class="note" style=${{ margin: "4px 0 0" }}>지난 반영: ${apTxt}</div>` : ""}`;
+}
+// 부마스터: 반영 요청 — 가격정책표 개정안(product-meta/pricing-draft.cost)에 담고, 마스터가 가격정책표에서 승인해야 바뀜
+function ReqButton({ ctx, card, live, unit, pt }) {
+  const { S, user, setToast } = ctx, [busy, setBusy] = useState(false);
   const dr = S.draft, pend = dr && dr.cost && dr.cost[live.prodKey] != null ? Math.round(+dr.cost[live.prodKey]) : null;
   if (pend === unit) return html`<button class="btn sm" disabled>승인 대기 중 · ${won(unit)}원 (가격정책표 개정안)</button>`;
   const req = async () => {
-    if (!card || !confirm(`가격정책표 매입원가 ${pt == null ? "(없음)" : won(pt) + "원"} → ${won(unit)}원\n승인요청할까요?\n\n· 가격정책표 개정안에 담기고, 마스터가 가격정책표에서 승인해야 바뀌어요.`)) return;
+    if (!card || !confirm(`가격정책표 완제품 원가 ${pt == null ? "(없음)" : won(pt) + "원"} → ${won(unit)}원\n반영 요청할까요?\n\n· 가격정책표 개정안에 담기고, 마스터가 가격정책표에서 승인해야 바뀌어요.`)) return;
     setBusy(true);
     try {
       const at = new Date().toISOString(), by = user.email || "", k = live.prodKey;
-      const line = `원가 계산기: ${live.item} ${live.spec} 매입원가 ${pt == null ? "없음" : won(pt)} → ${won(unit)}`;
+      const line = `분해원가: ${live.item} ${live.spec} 완제품 원가 ${pt == null ? "없음" : won(pt)} → ${won(unit)}`;
       let mode = "";
       await db.runTransaction(async (tx) => {
         const sn = await tx.get(draftDoc()), cur = sn.exists ? sn.data() : {}, meta = cur.meta || { status: "", by: "", at: "", note: "" };
         let nm;
         if (meta.status === "대기") { nm = { ...meta, note: [meta.note, line].filter(Boolean).join(" / ").slice(0, 500) }; mode = "대기"; }
-        else if (meta.status === "작성중") { nm = meta; mode = "작성중"; }   // 작성 중인 개정안 → 같이 담기만 (승인요청은 가격정책표 위 배너에서)
+        else if (meta.status === "작성중") { nm = meta; mode = "작성중"; }   // 작성 중인 개정안 → 같이 담기만 (승인요청은 가격정책표 위 줄에서)
         else { nm = { status: "대기", by, at, note: line }; mode = "새로"; }
         tx.set(draftDoc(), { cost: { [k]: unit }, costSrc: { [k]: { card: card.id, by, at, from: pt == null ? null : pt, why: "" } }, meta: nm, updatedAt: at }, { merge: true });
       });
-      console.log(`[pricing-draft] 매입원가 요청 ${k} → ${unit} (${mode})`);
-      setToast(mode === "작성중" ? "가격정책표에 작성 중인 개정안에 같이 담았어요 · 가격정책표 위 [상급자 승인요청]을 눌러야 승인 단계로 가요" : "가격정책표 개정안에 담았어요 · 가격정책표에서 [승인·적용]하면 매입원가가 바뀌어요");
-    } catch (e) { console.error("[pricing-draft] 매입원가 요청 실패", e); setToast("요청 못 했어요: " + (e.code || e.message)); }
+      console.log(`[pricing-draft] 완제품 원가 반영 요청 ${k} → ${unit} (${mode})`);
+      setToast(mode === "작성중" ? "가격정책표에 작성 중인 개정안에 같이 담았어요 · 가격정책표 위 [승인요청]을 눌러야 승인 단계로 가요" : "가격정책표 개정안에 담았어요 · 마스터가 승인하면 바뀌어요");
+    } catch (e) { console.error("[pricing-draft] 반영 요청 실패", e); setToast("요청 못 했어요: " + (e.code || e.message)); }
     setBusy(false);
   };
-  return html`<button class="btn solid" disabled=${busy || dirty || !card || !(unit > 0)} title=${dirty ? "먼저 저장해 주세요" : ""} onClick=${req}>${busy ? "요청 중…" : `매입원가로 승인요청 (${pt == null ? "없음" : won(pt)} → ${won(unit)}원)`}</button>${dirty ? html`<div class="note" style=${{ margin: "4px 0 0" }}>먼저 아래 [저장]</div>` : ""}`;
+  return html`<button class="btn solid" disabled=${busy || !card || !(unit > 0)} onClick=${req}>${busy ? "요청 중…" : `가격정책표 반영 요청 (${pt == null ? "없음" : won(pt)} → ${won(unit)}원)`}</button>`;
 }
 
 // ── 기존 제품 → 카드 자동 생성 (6번) ──
@@ -1175,11 +1471,16 @@ function ImportSheet({ ctx, onClose }) {
     try {
       for (const it of todo) {
         const prev = it.match, pn = prev ? S.names[prev.id] || {} : {};
-        const rows = it.p.card.rows.map((r, k) => { const o = prev && prev.rows && prev.rows[k]; return { ...r, id: o && nz(o.name) === nz(r.name) ? o.id : "x" + k + Math.random().toString(36).slice(2, 7) }; });
-        const sup = {}; rows.forEach((r, k) => { sup[r.id] = it.p.names.sup[k] || ""; });
+        const pv = namesInit(pn, prev ? prev.rows : []).vsup, vsup = {};
+        const rows = it.p.card.rows.map((r, k) => {
+          const o = prev && prev.rows && prev.rows[k], same = o && nz(o.name) === nz(r.name), id = same ? o.id : "x" + k + Math.random().toString(36).slice(2, 7);
+          const a = { ...C.vendorsOf(r)[0], vid: "A" }, others = same ? C.vendorsOf(o).filter((v) => v.vid !== "A") : [];
+          vsup[id] = { ...(same ? pv[o.id] || {} : {}), A: it.p.names.sup[k] || "" };
+          return { ...r, id, vendors: [a, ...others], sel: "A" };
+        });
         const card = { ...it.p.card, rows, prodKey: prev ? prev.prodKey || "" : it.link ? it.link.k : "", prodLabel: prev ? prev.prodLabel || "" : it.link ? `${it.link.name}${it.link.spec && it.link.spec !== "-" ? " " + it.link.spec : ""}` : "",
-          need: false, seed: "excel", sale: (prev && prev.sale) || {} };
-        const r = await saveCard(ctxS, { id: prev ? prev.id : "", prev, prevNames: pn, d: toEdit(card), nm: { mfg: it.p.names.mfg, sup }, why: `엑셀 올리기 · ${st.file} › ${it.name}` });
+          method: prev ? prev.method || "" : "", origin: prev ? prev.origin || "" : "", fx: (prev && prev.fx) || {}, need: false, seed: "excel", sale: (prev && prev.sale) || {} };
+        const r = await saveCard(ctxS, { id: prev ? prev.id : "", prev, prevNames: pn, d: toEdit(card), nm: { mfg: it.p.names.mfg, vsup }, why: `엑셀 올리기 · ${st.file} › ${it.name}` });
         if (r.same) same++;
         n++; setSt((s) => ({ ...s, done: n }));
       }
@@ -1206,7 +1507,8 @@ function ImportSheet({ ctx, onClose }) {
           <td style=${{ fontSize: 12, color: "var(--mute)" }}>${it.p.warn.join(" · ")}</td></tr>`; })}</tbody></table></div>
         ${st.items.some((i) => i.cmp.diffs.length) && html`<div class="warn">'다름' 칸에 마우스를 올리면 어느 줄이 다른지 보여요. 엑셀 식이 v7과 다르게 바뀌었거나 칸이 밀렸을 수 있어요 — 확인 뒤 저장해 주세요.</div>`}
         <div style=${{ display: "flex", gap: 8, marginTop: 12, alignItems: "center" }}><button class="btn solid" disabled=${st.busy || !st.items.some((i) => i.on)} onClick=${save}>${st.busy ? `저장 중… ${st.done}/${st.items.filter((i) => i.on).length}` : `${st.items.filter((i) => i.on).length}장 저장`}</button><button class="btn" onClick=${onClose}>닫기</button></div>
-        <p class="note">· 같은 브랜드·품목·규격·차수 카드가 있으면 그 카드를 고쳐요(이력에 '엑셀 올리기'로 남음) · 없으면 새로 만들어요 · 공급처·제조사 실제 이름은 따로(마스터·경영 열람만) 저장돼요.</p>
+        <p class="note">· 같은 브랜드·품목·규격·차수 카드가 있으면 그 카드를 고쳐요(이력에 '엑셀 올리기'로 남음) · 없으면 새로 만들어요 · 공급처·제조사 실제 이름은 따로(마스터·경영 열람만) 저장돼요.
+          <br />· 엑셀 구성요소 줄 = <b>A 업체(주) · 적용</b>으로 들어가요 · 이미 넣어 둔 B·C 업체 견적, 생산 방식·국내/수입·환율은 그대로 남아요.</p>
       </div>`}
     </div></div>`;
 }

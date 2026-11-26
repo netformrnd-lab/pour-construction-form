@@ -14,6 +14,7 @@ rules_version = '2';
 //  2026-11-03 (사장님 확정 1A 2A 3A 4A 5B 6A 7A — 팀원별 권한 · 원가·제조사는 넣은 사람만):
 //   · config/access.perms {이메일:{barcode,newProd,cost}} = 팀원별 입력 권한 (소유자 마스터만 고침)
 //   · 팀원: 바코드 고치기(barcode) · 제품 등록 = 출시준비·원가 없이(newProd) · 자체상품코드는 '새 칸 추가'만
+//   · 바코드 상태(product-meta/prod-barcode-st · 2026-11-26): 팀원 모두 읽기 · 바코드 권한 팀원만 상태 표(map) 만들기·고치기
 //   · cost-private = 팀원·부마스터가 넣은 원가·제조사 — 마스터 + viewers(넣은 본인·마스터가 지정한 사람)만 읽음
 //   · cost-log = 원가 변경 이력(마스터·부마스터) · dashboard-activity = 활동 기록(추가만)
 //   · 팀원 화면엔 제조사 가칭도 안 보임 → 팀원의 product-meta/mfg-alias 읽기 뺌
@@ -191,7 +192,12 @@ service cloud.firestore {
       allow read, write: if isAllowedReader();
       // 팀원: 원가 없는 문서만 (행사 구성 순서 · 판매 엑셀 상품 연결 기억 · 자체상품코드 · 바코드)
       //  · 제조사 가칭(mfg-alias)은 2026-11-03 부터 팀원에게 안 보임
-      allow read: if isTeam() && doc in ['promo-types', 'sales-map', 'prod-code', 'prod-barcode'];
+      allow read: if isTeam() && doc in ['promo-types', 'sales-map', 'prod-code', 'prod-barcode', 'prod-barcode-st'];
+      // 바코드 권한 팀원: 바코드 상태 표(map)만 — 처음 만들기·고치기 (2026-11-26 송희님 1A · 바코드 번호 규칙과 같은 모양)
+      allow create: if isTeam() && doc == 'prod-barcode-st' && hasPerm('barcode')
+        && request.resource.data.keys().hasOnly(['map', 'updatedAt', 'updatedBy']);
+      allow update: if isTeam() && doc == 'prod-barcode-st' && hasPerm('barcode')
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['map', 'updatedAt', 'updatedBy']);
       allow write: if isTeam() && doc in ['promo-types', 'sales-map'];
       // 바코드 권한 팀원: 바코드 표(map)만 고침
       allow update: if isTeam() && doc == 'prod-barcode' && hasPerm('barcode')

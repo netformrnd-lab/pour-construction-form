@@ -1366,8 +1366,10 @@ body.dai-open #daiFab,body.dai-open #calcFab{display:none!important}
 .tp-tbl .tp-btn{border:1px solid #CBD5E1;background:#fff;border-radius:12px;padding:2px 9px;font-size:11.5px;font-weight:700;color:#334155;cursor:pointer;white-space:nowrap}
 .tp-tbl .tp-btn:hover{border-color:#93C5FD;color:#1E40AF}
 .tp-tbl .tp-bcw{display:inline-flex;gap:4px;align-items:center}
-.tp-tbl .tp-bcin{width:132px;font-family:var(--mono);font-size:13px;border:1px solid #93C5FD;border-radius:6px;padding:3px 6px}
-@media(max-width:640px){ .tp-tbl .tp-bcin{font-size:16px;width:150px} }
+.tp-tbl .tp-bcno{border:0;background:none;padding:0;font:inherit;color:inherit;cursor:pointer;text-decoration:underline dotted #94A3B8;text-underline-offset:2px}
+.tp-tbl .tp-bcno:hover{color:#1E40AF}
+.tp-tbl .tp-bcst{font-size:10.5px;font-weight:700;border-radius:8px;padding:0 6px;background:#F1F5F9;color:#334155;text-decoration:none;display:inline-block}
+.tp-tbl .tp-bcst.lb{background:#DCFCE7;color:#166534}
 /* 팀원별 권한 체크 (2026-11-03) */
 .perm-wrap{overflow-x:auto}
 .perm-tbl td{vertical-align:middle}
@@ -7399,7 +7401,7 @@ function renderTeamPrice(){
   const MAX=300;
   body.innerHTML=!list.length?'<div class="panel"><div class="bd footnote" style="margin:0">찾는 제품이 없어요.</div></div>':
     `<div class="tp-wrap"><table class="grid tp-tbl"><thead>${!TP.brand&&groups.length>1?`<tr class="tp-grp"><th class="tp-nm" rowspan="2">제품</th>${groups.map(g=>`<th colspan="${g.n}" class="tp-g tp-g-${g.k==='GROHOME'?'gh':g.k==='정가'?'rt':'ps'}">${esc(g.lb)}</th>`).join('')}</tr><tr>`:'<tr><th class="tp-nm">제품</th>'}${chs.map(c=>`<th class="num${c._g==='GROHOME'?' tp-c-gh':''}" title="${esc([c.code,c.name].filter(Boolean).join(' · '))}">${esc(c._lb)}</th>`).join('')}</tr></thead><tbody>`+
-    list.slice(0,MAX).map(p=>`<tr><td class="tp-nm"><b>${esc(p.name)}</b>${p.spec&&p.spec!=='-'?` <span class="dim">${esc(p.spec)}</span>`:''} ${badge(p.group)}<div class="dim tp-sub">${esc((p.brand||[]).join(' · '))}${p.code?` · <span class="mono">${esc(p.code)}</span>`:''}${PBARCODE[tpKey(p)]?` · ▮ <span class="mono">${esc(PBARCODE[tpKey(p)])}</span>`:''}${p.type==='세트'?' · 세트':''}</div>${tpRowExtra(p,canBc,canCostP)}</td>${chs.map(c=>tpShowVal(p,c)?`<td class="num" data-uid="${esc(c.uid)}">${w((p.prices||{})[c.uid])}</td>`:`<td class="num dim tp-na" data-uid="${esc(c.uid)}" title="이 제품 브랜드의 채널이 아니에요">—</td>`).join('')}</tr>`).join('')+
+    list.slice(0,MAX).map(p=>`<tr><td class="tp-nm"><b>${esc(p.name)}</b>${p.spec&&p.spec!=='-'?` <span class="dim">${esc(p.spec)}</span>`:''} ${badge(p.group)}<div class="dim tp-sub">${esc((p.brand||[]).join(' · '))}${p.code?` · <span class="mono">${esc(p.code)}</span>`:''}${PBARCODE[tpKey(p)]?` · <button type="button" class="tp-bcno" data-tpbcv="${esc(tpKey(p))}" title="바코드 그림·상태 보기">▮ <span class="mono">${esc(PBARCODE[tpKey(p)])}</span>${BCST_OK&&_tbcStUnsub?` <span class="tp-bcst${bcStOf(tpKey(p))==='라벨 반영'?' lb':''}">${esc(bcStOf(tpKey(p)))}</span>`:''}</button>`:''}${p.type==='세트'?' · 세트':''}</div>${tpRowExtra(p,canBc,canCostP)}</td>${chs.map(c=>tpShowVal(p,c)?`<td class="num" data-uid="${esc(c.uid)}">${w((p.prices||{})[c.uid])}</td>`:`<td class="num dim tp-na" data-uid="${esc(c.uid)}" title="이 제품 브랜드의 채널이 아니에요">—</td>`).join('')}</tr>`).join('')+
     `</tbody></table></div>`+(list.length>MAX?`<div class="footnote">${list.length-MAX}개 더 있어요 · 찾기로 좁혀 보세요</div>`:'');
 }
 document.addEventListener('click',e=>{
@@ -7410,7 +7412,7 @@ document.addEventListener('input',e=>{ if(e.target.id==='tpQ'){ TP.q=e.target.va
 /* ══════════ 팀 대시보드 — 바코드 · 제품 등록 · 원가·제조사 (2026-11-03 사장님 1A 2A 5B 6A) ══════════
    · 권한 = config/access.perms (보안 화면 › 팀원에서 마스터가 체크) · 서버 규칙도 같은 표를 본다
    · 팀원 화면엔 제조사 가칭도 없음 — 상품명·판매가·바코드·자체상품코드만 · 원가·제조사는 '본인이 넣은 제품'만 */
-let TEAM_BC_LIVE=false, _tbcUnsub=null;
+let TEAM_BC_LIVE=false, _tbcUnsub=null, _tbcStUnsub=null;
 function tpKey(p){ return `${p.cat}|${p.name}|${p.spec}`; }
 function tpMine(k){ const em=_emailLc();
   return CP_DOCS.find(d=>d.key===k && d.kind==='own' && String(d.by).toLowerCase()===em) || CP_DOCS.find(d=>d.key===k && d.kind==='share') || null; }
@@ -7429,22 +7431,17 @@ function teamStartExtras(){
     const m=d.exists&&d.data().map; TEAM_BC_LIVE=true; PBARCODE=(m&&typeof m==='object')?{...m}:{};
     console.log(`[prod-barcode] 팀 화면 바코드 ${Object.keys(PBARCODE).length}개`);
     if(!editingNow()) renderTeamPrice(); }, e=>console.warn('[prod-barcode] 팀 화면 실시간 읽기 실패 — 단가표에 담긴 바코드로 보여요 (보안 규칙 확인)', e.code||e));
+  /* 바코드 상태(발급·라벨 반영·발급일·메모) — 2026-11-26 송희님 1A: 팀원 모두 읽기 · '바코드 고치기' 권한만 고치기 (규칙 게시 전엔 못 읽음 → 상태 숨김) */
+  if(!_tbcStUnsub) _tbcStUnsub=db.collection('product-meta').doc('prod-barcode-st').onSnapshot(d=>{
+    const m=d.exists&&d.data().map; PBCST=(m&&typeof m==='object')?{...m}:{}; BCST_OK=true;
+    console.log(`[prod-barcode-st] 팀 화면 바코드 상태 ${Object.keys(PBCST).length}개`);
+    if(!editingNow()) renderTeamPrice(); }, e=>{ BCST_OK=false; PBCST={}; console.warn('[prod-barcode-st] 팀 화면 바코드 상태 못 읽음 — 상태 숨김 (보안 규칙 게시 전이면 정상)', e.code||e); });
   cpStart();   // 내가 넣은 원가 + 마스터가 보여 준 제품(원가 권한이 없어도 보여 줄 수 있음)
 }
-/* 바코드: 칸 옆 [바코드 넣기] → 입력 → 저장 (다른 제품과 겹치면 거부) */
+/* 바코드: [바코드 넣기·고치기] 또는 번호를 누르면 → 바코드 창 (번호 검사·겹침 거부 · 상태·발급일·메모 · 그림 SVG/PNG) — 2026-11-26 관리자 화면과 같은 창 */
 document.addEventListener('click',async e=>{
-  const b=e.target.closest('[data-tpbc]');
-  if(b){ const w=b.parentElement, k=b.dataset.tpbc;
-    w.innerHTML=`<input class="tp-bcin" inputmode="numeric" autocomplete="off" enterkeyhint="done" value="${esc(PBARCODE[k]||'')}" placeholder="8809…"><button type="button" class="tp-btn" data-tpbcsave="${esc(k)}">저장</button><button type="button" class="tp-btn" data-tpbcx="1">취소</button>`;
-    const i=w.querySelector('input'); i.focus(); i.select();
-    i.addEventListener('keydown',ev=>{ if(ev.key==='Enter'){ ev.preventDefault(); w.querySelector('[data-tpbcsave]').click(); } else if(ev.key==='Escape'){ ev.preventDefault(); renderTeamPrice(); } });
-    return; }
-  if(e.target.closest('[data-tpbcx]')){ renderTeamPrice(); return; }
-  const s=e.target.closest('[data-tpbcsave]');
-  if(s){ const k=s.dataset.tpbcsave, i=s.parentElement.querySelector('.tp-bcin'); s.disabled=true;
-    const err=await setBarcodeFor(k, i?i.value:'');
-    if(err){ uiToast(isDenied(err)?await teamDenyMsg('바코드','prod-barcode','barcode','permission-denied'):err,'warn'); s.disabled=false; return; }
-    uiToast(`바코드 저장 ✓ ${normBarcode(i?i.value:'')||'(지움)'}`,'ok'); renderTeamPrice(); return; }
+  const b=e.target.closest('[data-tpbc],[data-tpbcv]');
+  if(b){ bcDlgOpen(b.dataset.tpbc||b.dataset.tpbcv); return; }
   const c=e.target.closest('[data-tpcost]'); if(c){ tcOpen(c.dataset.tpcost); return; }
 });
 /* ── 제품 등록 (권한: 제품 등록) — 가격정책표와 같은 [＋ 새 제품] 창 · 팀원은 준비중으로만 · 자체상품코드 자동 ──
@@ -8235,8 +8232,8 @@ async function setBarcodeFor(k,val){   // 바코드 지정 — 다른 제품과 
 }
 /* ══ 바코드(GTIN-13) 관리 (2026-11-25 송희님 · GS1 코리아·코리안넷 등록 완료 · 라벨 디자인에 사용) ══
    번호 = product-meta/prod-barcode.map (지금 그대로 · 겹침 막기·팀원 '바코드 고치기' 권한 그대로)
-   상태·발급일·메모 = product-meta/prod-barcode-st.map[제품키] = {st, date, memo, at, by} — 관리자(허용목록) 지금 규칙으로 읽기·쓰기
-     (팀원은 지금 규칙상 이 문서를 못 읽음 → 팀원 화면은 번호·그림만 · 상태까지 열려면 규칙 추가 필요 — 보고서 질문)
+   상태·발급일·메모 = product-meta/prod-barcode-st.map[제품키] = {st, date, memo, at, by} — 관리자(허용목록) 읽기·쓰기
+     팀원(2026-11-26 송희님 1A · 규칙 반영): 모두 읽기 · '바코드 고치기' 권한 팀원만 고치기 → 팀 단가표 번호 옆 상태 · 번호·[바코드 고치기] = 같은 바코드 창
    상태: 미발급(번호 없음) · 발급(번호 있음 · 기본) · 라벨 반영
    검사: 숫자 13자리 + GS1 체크디지트 — 틀리면 저장 막음 · 880 = 한국(GS1 Korea)
    그림: EAN-13 을 화면 코드로 그림(외부 서비스 없음) → SVG(37.29×25.93mm · 100% 크기)·PNG 받기 */
@@ -8275,7 +8272,7 @@ function bcDlPng(k){ const sc=12, svg=ean13Svg(PBARCODE[k],{px:sc}); if(!svg) re
   img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg); }
 /* 바코드 창 — 칸을 누르면: 번호(검사) · 상태·발급일·메모 · 그림·받기 */
 function bcDlgOpen(k){
-  const edit=canEditBarcode(), stOk=BCST_OK && !TEAM_MODE, cur=PBARCODE[k]||'', o=PBCST[k]||{};
+  const edit=canEditBarcode(), stOk=BCST_OK, cur=PBARCODE[k]||'', o=PBCST[k]||{};   // 2026-11-26 1A: 팀원도 상태 보기 · 고치기는 '바코드 고치기' 권한(edit)
   let el=document.getElementById('bcDlg'); if(el) el.remove();
   el=document.createElement('div'); el.id='bcDlg'; el.className='bcdlg-bg'; el.setAttribute('role','dialog'); el.setAttribute('aria-label','바코드');
   el.innerHTML=`<div class="bcdlg"><div class="bcdlg-h"><b>바코드</b><span>${esc(idLabel(k))}</span><button type="button" class="bcdlg-x" aria-label="닫기">✕</button></div>
@@ -8284,7 +8281,7 @@ function bcDlgOpen(k){
       <div id="bcChk" class="bcdlg-chk"></div>
       ${stOk?`<div class="bcdlg-row"><label class="bcdlg-l">상태<select id="bcSt" ${edit?'':'disabled'}>${BC_ST.map(x=>`<option${x===bcStOf(k)?' selected':''}>${x}</option>`).join('')}</select></label>
         <label class="bcdlg-l">발급일<input id="bcDate" type="date" value="${esc(o.date||'')}" ${edit?'':'disabled'}></label></div>
-      <label class="bcdlg-l">메모<input id="bcMemo" value="${esc(o.memo||'')}" placeholder="예: 코리안넷 등록 · 라벨 v2 반영" ${edit?'':'disabled'}></label>`:`<div class="bcdlg-note">상태·발급일·메모는 관리자 화면에서 보여요</div>`}
+      <label class="bcdlg-l">메모<input id="bcMemo" value="${esc(o.memo||'')}" placeholder="예: 코리안넷 등록 · 라벨 v2 반영" ${edit?'':'disabled'}></label>`:`<div class="bcdlg-note">상태·발급일·메모를 못 불러왔어요 (보안 규칙 게시 전이면 정상)</div>`}
       <div id="bcImg" class="bcdlg-img"></div>
       <div class="bcdlg-btns"><button type="button" class="tbtn" id="bcSvg">⤓ SVG (라벨용 · 실제 크기)</button><button type="button" class="tbtn" id="bcPng">⤓ PNG</button>
         ${edit?'<span style="flex:1"></span><button type="button" class="tbtn primary" id="bcSave">저장</button>':''}</div>
@@ -8310,7 +8307,7 @@ function bcDlgOpen(k){
         if((had.st||'')!==want.st||(had.date||'')!==want.date||(had.memo||'')!==want.memo){
           try{ await saveBcSt(k, want); logAct('바코드', `${k.split('|')[1]} 상태 ${want.st||'미발급'}${date?' · 발급일 '+date:''}`, memo||'수동 변경'); msg.push('상태 '+(want.st||'미발급')); }
           catch(e2){ console.error('[prod-barcode-st] 저장 실패', e2); uiToast('상태 저장 실패: '+(e2.code||e2.message||e2),'warn'); b.disabled=false; return; } } }
-      gridToast(`${k.split('|')[1]} ${msg.join(' · ')||'바뀐 것 없음'}`); close(); renderGrid(); return; }
+      gridToast(`${k.split('|')[1]} ${msg.join(' · ')||'바뀐 것 없음'}`); close(); if(TEAM_MODE) renderTeamPrice(); else renderGrid(); return; }
   });
   el.addEventListener('keydown',e=>{ if(e.key==='Escape') close(); });
   if(edit) setTimeout(()=>{ inp.focus(); inp.select(); },30);
@@ -14728,8 +14725,9 @@ async function teamDenyMsg(what, docId, perm, code){
 }
 const isDenied=v=>/permission|PERMISSION_DENIED|insufficient/i.test(String((v&&v.code)||v||''));
 /* 팀 화면 저장 막기 (2026-11-03 사고 뒤 안전망): 마스터 계정으로 ?team=1 을 열어도 서버 규칙은 마스터라 다 허용된다.
-   그래서 팀 화면에서는 관리자 설정(product-meta·config·team-catalog)을 화면 쪽에서 아예 쓰지 않는다 — 팀원 권한으로 쓰는 4곳만 예외 */
-const TEAM_PM_OK=new Set(['prod-barcode','prod-code','promo-types','sales-map']);
+   그래서 팀 화면에서는 관리자 설정(product-meta·config·team-catalog)을 화면 쪽에서 아예 쓰지 않는다 — 팀원 권한으로 쓰는 5곳만 예외
+   (prod-barcode-st = 바코드 상태 · 2026-11-26 송희님 1A · 서버 규칙도 '바코드 고치기' 권한 팀원만 map 칸) */
+const TEAM_PM_OK=new Set(['prod-barcode','prod-barcode-st','prod-code','promo-types','sales-map']);
 function teamWriteGuard(){
   const R=firebase.firestore.DocumentReference&&firebase.firestore.DocumentReference.prototype; if(!R||R.__teamGuard) return; R.__teamGuard=true;
   const blocked=ref=>{ if(!TEAM_MODE||!ref||!ref.parent) return false; const c=ref.parent.id; return (c==='product-meta'&&!TEAM_PM_OK.has(ref.id))||c==='config'||c==='team-catalog'; };

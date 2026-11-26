@@ -83,6 +83,7 @@ select.in{padding:4px 6px}
 .in.ro,.in:disabled{background:#F7F8F9;color:var(--ink);border-color:var(--grid2);opacity:1;-webkit-text-fill-color:var(--ink)}
 .toolrow .in{width:auto}
 .toolrow .q{width:240px}
+.toolrow .pfilt{display:none}
 .tbtn{display:inline-flex;align-items:center;justify-content:center;gap:4px;border:1px solid var(--btnline);background:#fff;color:var(--ink);border-radius:8px;padding:6px 13px;font-size:12px;cursor:pointer;white-space:nowrap;text-decoration:none;line-height:1.35}
 .tbtn:hover{border-color:var(--g);color:var(--gd)}
 .tbtn.primary{background:var(--g);border-color:var(--g);color:#fff;font-weight:700}
@@ -246,6 +247,14 @@ table.vt{border-collapse:separate;border-spacing:0;font-size:12px;background:#ff
   .toolrow{padding:8px 12px}
   .toolrow .q{width:100%;flex:1 1 100%}
   .toolrow .in{flex:1 1 40%}
+  /* 목록 도구줄: 가격정책표 폰처럼 [필터] 하나로 접기 (2026-11-26 송희님 ★) — 찾기 + [필터] 한 줄 · 누르면 거르기·정렬·도구 단추 */
+  .toolrow.lsttools>.ttl{display:none}
+  .toolrow.lsttools .q{flex:1 1 55%;min-width:0;width:auto}   /* 찾기 + [필터] 가 한 줄을 채움 → 펼친 거르기는 다음 줄부터 */
+  .toolrow.lsttools .pfilt{display:inline-flex;align-items:center;gap:4px;flex:0 0 auto;max-width:42%;min-height:34px;overflow:hidden;white-space:nowrap}
+  .toolrow.lsttools .pfilt b{font-weight:800;color:var(--gd);overflow:hidden;text-overflow:ellipsis}
+  .toolrow.lsttools.flt-open .pfilt{background:#E8F5EE;border-color:var(--gd)}
+  .toolrow.lsttools:not(.flt-open)>:not(.q):not(.pfilt){display:none!important}
+  .toolrow.lsttools.flt-open .sp{display:none}
   .pstabs{padding:8px 12px 2px}
   .panel{margin:8px 10px}
   .pl-line{margin:8px 10px 0}
@@ -1468,7 +1477,7 @@ function Main({ user, role }) {
   const [open, setOpen] = useState(() => { const m = /card=([^&]+)/.exec(location.hash); return m ? decodeURIComponent(m[1]) : null; });
   const [okey, setOkey] = useState(0);   // 새 품목을 만든 뒤에도 같은 상세 화면으로 이어서
   const [sheet, setSheet] = useState(""), [toast, setToast] = useState("");
-  const [brand, setBrand] = useState(""), [q, setQ] = useState(""), [tab, setTab] = useState("all"), [sort, setSort] = useState("brand"), [mth, setMth] = useState(""), [org, setOrg] = useState(""), [xcf, setXcf] = useState("");
+  const [brand, setBrand] = useState(""), [q, setQ] = useState(""), [tab, setTab] = useState("all"), [sort, setSort] = useState("brand"), [mth, setMth] = useState(""), [org, setOrg] = useState(""), [xcf, setXcf] = useState(""), [fopen, setFopen] = useState(false);   // fopen = 폰 [필터] 펼침 (2026-11-26 송희님 ★)
   const recon = useRef(false), today = ymd();
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(""), 3600); return () => clearTimeout(t); }, [toast]);
   useEffect(() => { if (location.hash) try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {} }, []);
@@ -1565,9 +1574,11 @@ function Main({ user, role }) {
     ${S.ref === null && !S.err && html`<div class="warn">가격정책표 제품 목록이 아직 없어요. ${isM ? "가격·마진 대시보드를 한 번 열면(마스터·부마스터) 제품·원가가 여기로 넘어와요." : "마스터가 가격·마진 대시보드를 한 번 열면 생겨요."}</div>`}
     ${loading ? html`<div class="ld">분해원가 불러오는 중…</div>` : !S.err && html`<${React.Fragment}>
       <div class="pstabs"><div class="tabbar" role="tablist" aria-label="분해원가 상태">${TABS.map(([k, lb]) => html`<button key=${k} type="button" role="tab" aria-selected=${tab === k} class=${tab === k ? "on" : ""} onClick=${() => setTab(k)}><span>${lb}</span><b>${cnt[k]}</b></button>`)}</div></div>
-      <div class="toolrow">
+      <div class=${"toolrow lsttools" + (fopen ? " flt-open" : "")}>
         <span class="ttl">분해원가</span>
         <input class="in q" type="text" placeholder=${seeNames ? "🔍 찾기 (품목·코드·업체·업체 품명·품번)" : "🔍 찾기 (품목·규격·코드)"} value=${q} onInput=${(e) => setQ(e.target.value)} aria-label="찾기" />
+        ${(() => { const bits = [brand, mth ? (METHOD_OPTS.find((o) => o[0] === mth) || [])[1] : "", org ? (ORIGIN_OPTS.find((o) => o[0] === org) || [])[1] : "", xcf ? (xcf === "-" ? "국내만" : "수출 " + xcf) : "", sort !== "brand" ? "정렬" : ""].filter(Boolean);
+          return html`<button type="button" class="tbtn pfilt" aria-expanded=${fopen} onClick=${() => setFopen(!fopen)}>${fopen ? "▴" : "⚙︎"} 필터${bits.length ? html` <b>${bits.join("·")}</b>` : ""}</button>`; })()}
         <select class="in" value=${mth} onChange=${(e) => setMth(e.target.value)} aria-label="생산 방식">${METHOD_OPTS.map(([k, n]) => html`<option key=${k} value=${k}>${n}</option>`)}</select>
         <select class="in" value=${org} onChange=${(e) => setOrg(e.target.value)} aria-label="국내/수입">${ORIGIN_OPTS.map(([k, n]) => html`<option key=${k} value=${k}>${n}</option>`)}</select>
         ${(() => { const ccs = [...new Set(items.flatMap((i) => i.xcc))]; return ccs.length ? html`<select class="in" value=${xcf} onChange=${(e) => setXcf(e.target.value)} aria-label="판매 국가"><option value="">판매 국가 전체</option><option value="-">국내만</option>${ccs.map((k) => html`<option key=${k} value=${k}>수출 ${k}</option>`)}</select>` : ""; })()}

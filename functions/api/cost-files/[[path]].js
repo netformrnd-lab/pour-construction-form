@@ -11,9 +11,11 @@
  *   POST   /api/cost-files/notion-copy                   { url, name, quoteNotionId } → 노션 파일 서버에서 직접 받아 견적서로 보관 (마스터)
  *                                                        → { fileId, key, size, type, name, dedup }
  *   GET    /api/cost-files/file/<kind>/<sha256>.<ext>    → 파일
- *   DELETE /api/cost-files/file/<kind>/<sha256>.<ext>    → 휴지통(trash/… · 30일 뒤 KV 가 스스로 지움)
- *   POST   /api/cost-files/restore/<kind>/<sha256>.<ext> → 휴지통에서 되살림
+ *   DELETE /api/cost-files/file/<kind>/<sha256>.<ext>    → 휴지통 '표시'만 (파일은 그대로 · 영구 보관 · 2026-11-26 송희님 '영구 삭제 없음')
+ *   POST   /api/cost-files/restore/<kind>/<sha256>.<ext> → 휴지통 표시 풀기 (되살림)
  *   GET    /api/cost-files/trash                         → 휴지통 목록 (마스터)
+ *   ※ 이 서버에는 KV 값을 실제로 지우는 동작이 없어요 (지우기 호출 없음 · 기한 지나 자동으로 사라지는 설정 없음 · 영구 삭제 주소 없음)
+ *     휴지통 = 표시 열쇠 trash/<kind>/<sha256>.<ext> (작은 값 + metadata {st:'trash'|'live', del, dby, back, bby}) — 원본 파일은 늘 그 자리
  *   POST   /api/cost-files/recount                       → 용량 다시 세기 (마스터 · 숫자가 어긋났을 때)
  *
  * KV 무료 한도에 맞춤: 값 1개 25MiB → 파일당 20MB · 저장 1GB → 남은 용량 표시·80% 경고·꽉 차면 거절
@@ -35,7 +37,7 @@ const MAX_BYTES = 20 * 1024 * 1024;
 const LIMIT_BYTES = 1024 * 1024 * 1024;   // KV 무료 저장 1GB
 const WARN_PCT = 80;
 const DAY_WRITES = 1000;                  // KV 무료 쓰기 하루 1,000번 (UTC 0시 = 한국 오전 9시에 풀림)
-const TRASH_DAYS = 30;
+const TRASH_DAYS = 0;                     // 0 = 기한 없음 (휴지통 영구 보관 · 2026-11-26)
 const TRASH = 'trash/';
 const USAGE_KEY = 'meta/usage';
 const JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
@@ -165,7 +167,8 @@ async function exists(kv, key) {   // 값 전체를 받지 않고 있는지만 (
   if (v && typeof v.cancel === 'function') { try { await v.cancel(); } catch (e) {} }
   return !!v;
 }
-/* 용량·오늘 쓰기 장부 (meta/usage) — 올리기·지우기·되살리기 때 같이 고침(쓰기 1번 더) · 휴지통은 목록으로 셈(30일 뒤 KV 가 지우면 저절로 빠짐) */
+/* 용량·오늘 쓰기 장부 (meta/usage) — 올리기·휴지통 표시·되살리기 때 같이 고침(쓰기 1번 더)
+   휴지통 파일도 원본이 그대로 있어 용량(live)에 들어감 · 휴지통 줄은 몇 개·얼마인지 보여 주기만 */
 async function readUsage(kv) {
   let u = null; try { u = await kv.get(USAGE_KEY, { type: 'json' }); } catch (e) { u = null; }
   return u && u.live ? u : null;
@@ -182,19 +185,21 @@ async function recount(kv) {
   }
   return live;
 }
+const isTrashed = (md) => !!md && (md.st === 'trash' || (!md.st && !!md.del));   // 예전 모양(st 없음 · del 있음)도 휴지통으로 봄
 async function trashSum(kv) {
   const t = { bytes: 0, files: 0 }; let cursor;
   for (let i = 0; i < 10; i++) {
     const l = await kv.list({ prefix: TRASH, cursor, limit: 1000 });
-    for (const k of l.keys || []) { t.bytes += Number((k.metadata || {}).s || 0); t.files++; }
+    for (const k of l.keys || []) { if (!isTrashed(k.metadata)) continue; t.bytes += Number((k.metadata || {}).s || 0); t.files++; }
     if (l.list_complete !== false || !l.cursor) break; cursor = l.cursor;
   }
   return t;
 }
+async function trashMark(kv, key) { try { const { metadata } = await kv.getWithMetadata(TRASH + key, { type: 'text' }); return metadata || null; } catch (e) { return null; } }
 async function usageNow(kv) {
   let u = await readUsage(kv);
   if (!u) u = { live: await recount(kv), day: dayUtc(), w: 0 };
-  const trash = await trashSum(kv), used = u.live.bytes + trash.bytes;
+  const trash = await trashSum(kv), used = u.live.bytes;   // 휴지통 파일 = 원본 그대로(live 에 이미 들어감)
   const w = u.day === dayUtc() ? u.w : 0;
   return { live: u.live, trash, usedBytes: used, limitBytes: LIMIT_BYTES, pct: Math.round((used / LIMIT_BYTES) * 1000) / 10, warn: used >= LIMIT_BYTES * WARN_PCT / 100,
     today: { date: dayUtc(), writes: w, limit: DAY_WRITES, warn: w >= DAY_WRITES * 0.9 } };
@@ -218,7 +223,7 @@ async function store(kv, kind, buf, name, user) {
   const key = `${kind}/${sha}.${t.ext}`;
   if (await exists(kv, key)) { console.log(`[cost-files] 같은 파일 있음 ${key} · ${user.email}`); return { key, size: buf.byteLength, type: t.type, name, dup: true }; }
   const u = await usageNow(kv);
-  if (u.usedBytes + buf.byteLength > LIMIT_BYTES) throw new HttpError(507, `보관 용량이 모자라요 (1GB 중 ${u.pct}% 사용) · 휴지통이 비거나 안 쓰는 파일을 빼면 다시 돼요`, { usage: u });
+  if (u.usedBytes + buf.byteLength > LIMIT_BYTES) throw new HttpError(507, `보관 용량이 모자라요 (1GB 중 ${u.pct}% 사용) · 파일은 지우지 않으니 송희님께 알려 주세요(용량 늘리기 필요)`, { usage: u });
   if (u.today.writes >= DAY_WRITES) throw new HttpError(429, `오늘 파일 보관 쓰기 한도(하루 ${DAY_WRITES.toLocaleString()}번)를 넘었어요 · 한국 시간 오전 9시에 다시 돼요`, { limit: 'day-writes' });
   await kvPut(kv, key, buf, { metadata: { n: name.slice(0, 60), t: t.type, s: buf.byteLength, by: user.email.slice(0, 80), at: new Date().toISOString() } }, '쓰기');
   await bump(kv, buf.byteLength, 1, 1);
@@ -300,8 +305,8 @@ async function handle(context) {
     need(user, K.read, K.label + ' 보기');
     const { value, metadata } = await kv.getWithMetadata(key, { type: 'stream' });
     if (!value) {
-      const tr = await exists(kv, TRASH + key);
-      throw new HttpError(tr ? 410 : 404, tr ? `지운 파일이에요 (휴지통 ${TRASH_DAYS}일 보관 중 · 마스터가 되살릴 수 있어요)` : '파일이 없어요');
+      const md0 = await trashMark(kv, key);
+      throw new HttpError(md0 ? 410 : 404, md0 ? '휴지통에 있는 파일이에요 · 마스터가 되살릴 수 있어요' : '파일이 없어요');
     }
     const md = metadata || {}, q = new URL(request.url).searchParams.get('name');
     const name = q ? cleanName(q) : cleanName(md.n || '');
@@ -316,27 +321,41 @@ async function handle(context) {
     return new Response(value, { status: 200, headers: h });
   }
 
+  /* 휴지통으로 = 표시만 (원본 파일은 그대로 · 지우지 않음 · 기한 없음) */
   if (route === 'file' && method === 'DELETE') {
     const { key, kind } = keyFrom(parts.slice(1)); const K = KINDS[kind];
-    need(user, K.write, K.label + ' 지우기');
-    const { value, metadata } = await kv.getWithMetadata(key, { type: 'arrayBuffer' });
-    if (!value) { if (await exists(kv, TRASH + key)) return json(request, { ok: true, key, trashed: true, already: true }); throw new HttpError(404, '파일이 없어요'); }
-    await kvPut(kv, TRASH + key, value, { expirationTtl: TRASH_DAYS * 86400, metadata: { ...(metadata || {}), del: new Date().toISOString(), dby: user.email.slice(0, 80) } }, '휴지통 쓰기');
-    try { await kv.delete(key); } catch (e) { throw kvErr(e, '지우기'); }
-    await bump(kv, -Number((metadata || {}).s || value.byteLength), -1, 1);
-    console.log(`[cost-files] 휴지통으로 ${key} · ${user.email}`);
-    return json(request, { ok: true, key, trashed: true, purgeAfterDays: TRASH_DAYS });
+    need(user, K.write, K.label + ' 휴지통으로');
+    const { value, metadata } = await kv.getWithMetadata(key, { type: 'stream' });
+    if (value && typeof value.cancel === 'function') { try { await value.cancel(); } catch (e) {} }
+    const md0 = await trashMark(kv, key);
+    if (!value && !md0) throw new HttpError(404, '파일이 없어요');
+    if (isTrashed(md0)) return json(request, { ok: true, key, trashed: true, already: true });
+    const u = await usageNow(kv);
+    if (u.today.writes >= DAY_WRITES) throw new HttpError(429, `오늘 파일 보관 쓰기 한도(하루 ${DAY_WRITES.toLocaleString()}번)를 넘었어요 · 한국 시간 오전 9시에 다시 돼요`, { limit: 'day-writes' });
+    const md = { ...(metadata || md0 || {}) }; delete md.back; delete md.bby;
+    await kvPut(kv, TRASH + key, '1', { metadata: { ...md, st: 'trash', del: new Date().toISOString(), dby: user.email.slice(0, 80) } }, '휴지통 표시');
+    await bump(kv, 0, 0, 1);
+    console.log(`[cost-files] 휴지통 표시 ${key} · ${user.email} (파일은 그대로)`);
+    return json(request, { ok: true, key, trashed: true, kept: true });
   }
 
+  /* 되살리기 = 휴지통 표시 풀기 (예전 모양: 원본이 없고 휴지통에 통째로 있으면 원본 자리로 다시 씀 · 휴지통 값은 지우지 않음) */
   if (route === 'restore' && method === 'POST') {
     const { key, kind } = keyFrom(parts.slice(1)); const K = KINDS[kind];
     need(user, ['master'], K.label + ' 되살리기');
-    const { value, metadata } = await kv.getWithMetadata(TRASH + key, { type: 'arrayBuffer' });
-    if (!value) { if (await exists(kv, key)) return json(request, { ok: true, key, restored: true, already: true }); throw new HttpError(404, `휴지통에 없어요 (${TRASH_DAYS}일이 지나 정리됐을 수 있어요)`); }
+    const tv = await kv.getWithMetadata(TRASH + key, { type: 'arrayBuffer' }), md0 = tv.metadata || null;
+    const live = await exists(kv, key);
+    if (!md0 && !tv.value) { if (live) return json(request, { ok: true, key, restored: true, already: true }); throw new HttpError(404, '휴지통에 없어요'); }
     let added = false;
-    if (!(await exists(kv, key))) { const md = { ...(metadata || {}) }; delete md.del; delete md.dby; await kvPut(kv, key, value, { metadata: md }, '되살리기'); added = true; }
-    try { await kv.delete(TRASH + key); } catch (e) { throw kvErr(e, '휴지통 지우기'); }
-    if (added) await bump(kv, Number((metadata || {}).s || value.byteLength), 1, 1);
+    if (!live) {
+      if (!tv.value || tv.value.byteLength <= 1) throw new HttpError(404, '원본 파일을 찾지 못했어요');
+      const md = { ...(md0 || {}) }; ['st', 'del', 'dby', 'back', 'bby'].forEach((k) => delete md[k]);
+      await kvPut(kv, key, tv.value, { metadata: md }, '되살리기'); added = true;
+    }
+    const wasT = isTrashed(md0);
+    if (!added && !wasT) return json(request, { ok: true, key, restored: true, already: true });   // 휴지통이 아니면 쓰지 않음
+    if (wasT) await kvPut(kv, TRASH + key, '0', { metadata: { ...(md0 || {}), st: 'live', back: new Date().toISOString(), bby: user.email.slice(0, 80) } }, '휴지통 표시 풀기');
+    await bump(kv, added ? Number((md0 || {}).s || 0) : 0, added ? 1 : 0, (added ? 1 : 0) + (wasT ? 1 : 0));
     console.log(`[cost-files] 되살림 ${key} · ${user.email}`);
     return json(request, { ok: true, key, restored: true });
   }
@@ -344,8 +363,8 @@ async function handle(context) {
   if (route === 'trash' && method === 'GET') {
     need(user, ['master'], '휴지통 보기');
     const l = await kv.list({ prefix: TRASH, limit: 1000 });
-    const files = (l.keys || []).map(k => { const md = k.metadata || {};
-      return { key: k.name.slice(TRASH.length), size: Number(md.s || 0), name: md.n || '', deletedAt: md.del || '', deletedBy: md.dby || '', purgeAt: k.expiration ? new Date(k.expiration * 1000).toISOString() : '' }; });
+    const files = (l.keys || []).filter((k) => isTrashed(k.metadata)).map(k => { const md = k.metadata || {};
+      return { key: k.name.slice(TRASH.length), size: Number(md.s || 0), name: md.n || '', deletedAt: md.del || '', deletedBy: md.dby || '', purgeAt: '' }; });
     return json(request, { ok: true, files, truncated: l.list_complete === false });
   }
 

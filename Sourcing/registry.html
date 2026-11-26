@@ -134,7 +134,8 @@ const db=firebase.firestore(), auth=firebase.auth();
 const $=s=>document.querySelector(s);
 const won=v=>v==null||isNaN(v)?'—':Math.round(v).toLocaleString('ko-KR')+'원';
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let BASE=[], ADDED=[], editId=null, curUser=null;
+let BASE=[], ADDED=[], editId=null, curUser=null, PDEL={};   // PDEL = 가격대시보드 휴지통(product-meta/prod-deleted) — 지우기 = 휴지통 (2026-11-26)
+const pdKey=p=>`${p.cat}|${p.name}|${p.spec}`;
 
 /* ── 로그인 ── */
 function gmsg(t){ $('#gmsg').textContent=t||''; }
@@ -162,6 +163,8 @@ function start(){
     $('#denied').style.display='none';
   }, e=>{ console.warn('[products]',e.code||e); if((e.code||'').includes('permission')) $('#denied').style.display=''; });
   db.collection('product-meta').doc('mfg-alias').onSnapshot(d=>{ MFG_ALIAS=(d.exists&&d.data().prod)||{}; renderAdded(); }, e=>console.warn('[mfg-alias]',e.code||e));
+  db.collection('product-meta').doc('prod-deleted').onSnapshot(d=>{ const m=d.exists&&d.data().map; PDEL=(m&&typeof m==='object')?m:{}; console.log(`[prod-deleted] 휴지통 ${Object.keys(PDEL).length}개`); renderAdded(); },
+    e=>console.warn('[prod-deleted] 휴지통 못 읽음 — 목록은 그대로', e.code||e));
   db.collection('products-added').onSnapshot(s=>{
     ADDED=s.docs.map(d=>({docId:d.id,...d.data()})).sort((a,b)=>(a.seq??0)-(b.seq??0)); renderAdded(); fillDatalists();
   }, e=>{ console.warn('[products-added]',e.code||e); if((e.code||'').includes('permission')) $('#denied').style.display=''; });
@@ -176,13 +179,16 @@ function fillDatalists(){
 const typePill=t=>t==='세트'?'<span class="pill g">세트</span>':'<span class="pill m">단품</span>';
 const statusPill=s=>s==='출시'?'<span class="pill g">출시</span>':(s==='단종'?'<span class="pill a">단종</span>':'<span class="pill m">소싱중</span>');
 function renderAdded(){
-  $('#cntAdded').textContent=ADDED.length;
-  $('#addedBody').innerHTML = ADDED.length? ADDED.map(p=>`<tr>
+  const LIVE=ADDED.filter(p=>!PDEL[pdKey(p)]), TR=ADDED.filter(p=>PDEL[pdKey(p)]);   // 휴지통 = 숨김(문서는 그대로)
+  $('#cntAdded').textContent=LIVE.length+(TR.length?` · 휴지통 ${TR.length}`:'');
+  $('#addedBody').innerHTML = (LIVE.length? LIVE.map(p=>`<tr>
     <td><b>${esc(p.name)}</b></td><td class="hidem">${esc(p.cat||'')}</td><td>${esc(p.spec||'')}</td>
     <td class="hidem">${esc(p.concept||'')}</td><td>${typePill(p.type)}</td><td class="hidem">${esc(mfgAliasOf(p))}</td>
     <td>${statusPill(p.status)}</td><td class="num">${won(p.cost)}</td>
     <td><div class="rowbtns"><button class="edit" data-edit="${p.docId}">수정</button><button class="der" data-der="a:${p.docId}">파생</button><button class="del" data-del="${p.docId}">삭제</button></div></td></tr>`).join('')
-    : `<tr><td colspan="9" class="dim" style="padding:14px">아직 등록한 상품이 없습니다. 위에서 등록하거나, 아래 시드 상품에서 "파생"으로 시작하세요.</td></tr>`;
+    : `<tr><td colspan="9" class="dim" style="padding:14px">아직 등록한 상품이 없습니다. 위에서 등록하거나, 아래 시드 상품에서 "파생"으로 시작하세요.</td></tr>`)
+    + TR.map(p=>{ const d=PDEL[pdKey(p)]||{}; return `<tr style="opacity:.55"><td><b>${esc(p.name)}</b> <span class="dim">🗑 휴지통 · ${esc(String(d.by||'').split('@')[0])} ${esc(String(d.at||'').slice(0,10))}</span></td><td class="hidem">${esc(p.cat||'')}</td><td>${esc(p.spec||'')}</td><td class="hidem"></td><td></td><td class="hidem"></td><td></td><td class="num">${won(p.cost)}</td>
+      <td><div class="rowbtns"><button class="edit" data-back="${p.docId}">되살리기</button></div></td></tr>`; }).join('');
 }
 function renderBase(){
   $('#cntBase').textContent=BASE.length;
@@ -218,7 +224,14 @@ $('#fSave').addEventListener('click',async()=>{
 });
 document.addEventListener('click',async e=>{
   const ed=e.target.closest('[data-edit]'); if(ed){ const p=ADDED.find(x=>x.docId===ed.dataset.edit); if(p){ editId=p.docId; setForm(p); $('#formTitle').textContent='✎ 상품 수정'; $('#fSave').textContent='수정 저장'; window.scrollTo({top:0,behavior:'smooth'}); } return; }
-  const dl=e.target.closest('[data-del]'); if(dl){ const p=ADDED.find(x=>x.docId===dl.dataset.del); if(p&&confirm(`"${p.name}" 을(를) 삭제할까요?`)){ try{ await db.collection('products-added').doc(p.docId).delete(); toast('삭제됨'); if(editId===p.docId)clearForm(); }catch(err){ toast('삭제 실패: '+(err.code||err),true);} } return; }
+  const dl=e.target.closest('[data-del]'); if(dl){ const p=ADDED.find(x=>x.docId===dl.dataset.del); if(p&&confirm(`"${p.name}" 을(를) 휴지통으로 보낼까요?\n· 지우지 않아요 — 가격대시보드 '데이터 관리 › 휴지통'과 여기서 되살릴 수 있어요`)){   // 문서 지우기 없음 (2026-11-26)
+      try{ const at=new Date().toISOString(), by=(curUser&&curUser.email)||''; await db.collection('product-meta').doc('prod-deleted').set({map:{[pdKey(p)]:{at,by,name:p.name,spec:p.spec||'',cat:p.cat||''}},updatedAt:at,updatedBy:by},{merge:true});
+        await db.collection('dashboard-activity').add({ts:at,by,type:'제품삭제',target:`${p.name}${p.spec?' ('+p.spec+')':''}`,detail:'소싱 원장에서 휴지통'}).catch(()=>{});
+        toast('휴지통으로 옮겼어요'); if(editId===p.docId)clearForm(); }catch(err){ toast('실패: '+(err.code||err),true);} } return; }
+  const bk=e.target.closest('[data-back]'); if(bk){ const p=ADDED.find(x=>x.docId===bk.dataset.back); if(p){ try{ const at=new Date().toISOString(), by=(curUser&&curUser.email)||'';
+      await db.collection('product-meta').doc('prod-deleted').set({map:{[pdKey(p)]:firebase.firestore.FieldValue.delete()},updatedAt:at,updatedBy:by},{merge:true});
+      await db.collection('dashboard-activity').add({ts:at,by,type:'제품복원',target:`${p.name}${p.spec?' ('+p.spec+')':''}`,detail:'소싱 원장에서 되살림'}).catch(()=>{});
+      toast('되살렸어요'); }catch(err){ toast('실패: '+(err.code||err),true);} } return; }
   const dr=e.target.closest('[data-der]'); if(dr){ const [t,k]=dr.dataset.der.split(':'); const src=t==='a'?ADDED.find(x=>x.docId===k):BASE[+k]; if(src){ clearForm(); setForm({...src,name:src.name+' (파생)',concept:src.concept||src.name,type:'세트',status:'소싱중'}); $('#formTitle').textContent='＋ 파생 상품 등록'; window.scrollTo({top:0,behavior:'smooth'}); $('#fName').focus(); } return; }
 });
 let toastT=null;

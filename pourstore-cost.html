@@ -917,6 +917,7 @@ function fromEdit(d) {
     sched: schedFromEdit(d.sched),
     exports: exportsFromEdit(d), ...(d.exportCc ? { exportCc: d.exportCc } : {}),
     sale: { price: N(s.price), ch: s.ch || "", chName: T(s.chName), fee: fromPct(s.feePct), logi: N(s.logi) },
+    bin: plain(d.bin || []),
   };
 }
 // 실제 업체 이름 (cost-names) — vsup = {줄: {A: 이름, B: 이름}} · sup = 줄마다 적용 업체 이름(예전 모양 · 엑셀 받기)
@@ -937,12 +938,103 @@ function namesInit(names, rows) {
   const n = names || {}, vsup = {}, vfiles = {}, vurl = {}, vprod = {};
   (rows || []).forEach((r) => { const m = { ...((n.vsup || {})[r.id] || (n.vsup || {})[baseRid(r.id)] || {}) }; if (!Object.keys(m).length && (n.sup || {})[r.id]) m[C.selOf(r)] = n.sup[r.id]; vsup[r.id] = m;
     vfiles[r.id] = clone((n.vfiles || {})[r.id] || {}); vurl[r.id] = { ...((n.vurl || {})[r.id] || {}) }; vprod[r.id] = clone((n.vprod || {})[r.id] || {}); });
-  return { mfg: n.mfg || "", vsup, vfiles, vurl, vprod };
+  return { mfg: n.mfg || "", vsup, vfiles, vurl, vprod, bin: clone(n.bin || {}) };
 }
 const cleanF = (vf) => { const o = {}; Object.entries(vf || {}).forEach(([rid, m]) => { const mm = {}; Object.entries(m || {}).forEach(([k, l]) => { if (Array.isArray(l) && l.length) mm[k] = l.map((f) => ({ id: f.id, name: f.name || "", kind: f.kind || "", url: f.url || "", key: f.key || "", del: f.del || "" })); }); if (Object.keys(mm).length) o[rid] = mm; }); return o; };
 const cleanP = (vp) => { const o = {}; Object.entries(vp || {}).forEach(([rid, m]) => { const mm = {}; Object.entries(m || {}).forEach(([k, p]) => { const n = String((p && p.n) || "").trim(), no = String((p && p.no) || "").trim(); if (n || no) mm[k] = { n, no }; }); if (Object.keys(mm).length) o[rid] = mm; }); return o; };
 const vprodTxt = (p) => [p && p.n, p && p.no].filter((x) => String(x || "").trim()).join(" · ");
 const cleanV = (vs) => { const o = {}; Object.entries(vs || {}).forEach(([rid, m]) => { const mm = {}; Object.entries(m || {}).forEach(([k, n]) => { n = String(n || "").trim(); if (n) mm[k] = n; }); if (Object.keys(mm).length) o[rid] = mm; }); return o; };
+// ── 지우지 않기 (2026-11-26 송희님 "올려 · 단, 데이터 영구 삭제되지 않도록 · 삭제로 표시되지만 실제는 숨김 · 복구 가능") ──
+//  ① 저장할 때마다 바뀌기 전 카드 통째로 → 이력 보관함 cost-cards/{id}/versions/{vid} (실제 이름 = cost-names/{id}/versions/{vid} · 마스터·경영 열람만)
+//     → 이력 탭 [이 변경 전으로 되돌리기] = 그 값을 불러와 [저장] (되돌리기도 또 이력에 남음 · 문서를 지우는 코드 없음)
+//  ② 줄·업체·판매 국가·나라 줄·일정 단계·3팀 항목·사진이 저장 때 빠지면 → 카드 안 '뺀 것'(bin: 누가·언제·무엇 · 실제 이름은 cost-names.bin) → [되살리기]
+//     (어느 길로 저장해도 같음: 화면 · 엑셀 올리기 · 줄 목록 · 노션 · 되돌리기)
+//  ③ 견적서 '빼기' = 목록에 '뺀 파일'로 남음(기한 없음) · 파일 보관(KV)은 휴지통 '표시'만(파일은 그대로)
+const verId = (at) => String(at || "").replace(/[^0-9]/g, "").slice(0, 17) + "-" + Math.random().toString(36).slice(2, 7);
+const verCol = (col, id) => db.collection(col).doc(id).collection("versions");
+const plain = (o) => JSON.parse(JSON.stringify(o == null ? null : o));
+function addVersion(b, { vid, id, prev, prevNames, at, by, what, why, names }) {   // b = batch 또는 transaction (set 모양 같음)
+  if (!prev || !id || !vid) return "";
+  const { history: _h, id: _i, ...body } = prev;
+  b.set(verCol("cost-cards", id).doc(vid), { at, by, what: String(what || "").slice(0, 500), why: String(why || "").slice(0, 200), card: plain(body) });
+  if (names && prevNames) { const { id: _j, ...nb } = prevNames; b.set(verCol("cost-names", id).doc(vid), { at, by, names: plain(nb) }); }
+  return vid;
+}
+const BIN_KIND = { row: "구성요소 줄", vendor: "업체", export: "판매 국가", xrow: "나라 줄", step: "일정 단계", t3: "3팀 항목", img: "사진" };
+const binLive = (c) => ((c && c.bin) || []).filter((x) => x && !x.back);
+function binDiff(prev, card, pnm, at, by, why, vid) {
+  const items = [], names = {}, nm = pnm || {};
+  if (!prev) return { items, names };
+  const nmOf = (rid, v0) => { const o = {}; ["vsup", "vfiles", "vurl", "vprod"].forEach((f) => { const x = (nm[f] || {})[rid]; if (!x) return; if (!v0) { if (Object.keys(x).length) o[f] = x; } else if (x[v0] !== undefined) o[f] = { [v0]: x[v0] }; }); return o; };
+  const push = (kind, label, item, extra, rids) => { const id = "b" + uid(); items.push(plain({ id, kind, label: String(label || BIN_KIND[kind]).slice(0, 80), at, by, why: String(why || "").slice(0, 120), ...(vid ? { ver: vid } : {}), ...(extra || {}), item }));
+    const nn = {}; (rids || []).forEach(([rid, v0]) => { const o = nmOf(rid, v0); if (Object.keys(o).length) nn[rid] = o; }); if (Object.keys(nn).length) names[id] = nn; };
+  const rowsDiff = (pa, na, ex) => { const nmap = new Map((na || []).map((r) => [r.id, r]));
+    (pa || []).forEach((r, i) => { if (r.mode === "omit") return; const n = nmap.get(r.id), rl = r.name || r.kind || "구성요소";
+      if (!n) { push(ex && ex.cc ? "xrow" : "row", rl, r, { ...(ex || {}), pos: i }, [[r.id]]); return; }
+      const nvs = C.vendorsOf(n), nv = new Set(nvs.map((v) => v.vid));
+      C.vendorsOf(r).forEach((v) => { if (!nv.has(v.vid)) push("vendor", `${rl} · ${v.vid} 업체`, v, { ...(ex || {}), rowId: r.id }, [[r.id, v.vid]]); });
+      if (r.img && r.img !== n.img) push("img", `${rl} 사진`, { img: r.img, imgOrig: r.imgOrig || "" }, { ...(ex || {}), where: "row", rowId: r.id });
+      C.vendorsOf(r).forEach((v) => { const w = nvs.find((x) => x.vid === v.vid); if (v.img && w && v.img !== w.img) push("img", `${rl} · ${v.vid} 업체 사진`, { img: v.img, imgOrig: v.imgOrig || "" }, { ...(ex || {}), where: "vendor", rowId: r.id, vid: v.vid }); });
+    }); };
+  const stepsDiff = (ps, ns, ex) => { if (!ps || !ns) return; const ids = new Set((ns.steps || []).map((x) => x.id)); (ps.steps || []).forEach((x) => { if (!ids.has(x.id)) push("step", x.name || "단계", x, ex); }); };
+  rowsDiff(prev.rows, card.rows);
+  if (prev.img && prev.img !== card.img) push("img", "완제품 사진", { img: prev.img, imgOrig: prev.imgOrig || "" }, { where: "card" });
+  stepsDiff(prev.sched, card.sched, {});
+  const nx = new Map((card.exports || []).map((x) => [x.cc, x]));
+  (prev.exports || []).forEach((x) => { const n = nx.get(x.cc);
+    if (!n) { push("export", `${x.cc} ${x.name || ""}`.trim(), x, { cc: x.cc }, (x.rows || []).filter((r) => r.mode !== "omit").map((r) => [r.id])); return; }
+    rowsDiff(x.rows, n.rows, { cc: x.cc }); stepsDiff(x.sched, n.sched, { cc: x.cc });
+    const t3 = new Set((n.t3 || []).map((t) => t.id)); (x.t3 || []).forEach((t) => { if (!t3.has(t.id)) push("t3", t.name || "3팀 항목", t, { cc: x.cc }); }); });
+  return { items, names };
+}
+function binApply(d0, it, img, by) {   // → { d, vmap } 또는 { err } · 편집 모양 d0 에 넣고 [저장]해야 반영
+  const d = clone(d0); d.rows = d.rows || []; d.exports = d.exports || [];
+  const X = it.cc ? d.exports.find((e) => e.cc === it.cc) : null;
+  if (it.cc && it.kind !== "export" && !X) return { err: `판매 국가 ${it.cc}가 없어요 — 먼저 그 나라를 되살려 주세요` };
+  const L = it.cc && it.kind !== "export" ? (X.rows = X.rows || []) : d.rows, findRow = (rid) => L.find((r) => r.id === rid);
+  let vmap = null;
+  if (it.kind === "row" || it.kind === "xrow") {
+    if (L.some((r) => r.id === it.item.id)) return { err: "이미 그 줄이 있어요" };
+    if (it.item.mode === "swap" && L.some((r) => r.mode === "swap" && r.of === it.item.of)) return { err: "그 공통 줄은 이 나라에서 이미 바꿔 둔 값이 있어요" };
+    const er = it.kind === "xrow" ? { ...rowToEdit(it.item), mode: it.item.mode || "add", of: it.item.of || "" } : rowToEdit(it.item);
+    if (!it.cc && L.length === 1 && C.rowEmpty(C.syncRow(L[0]))) L.splice(0, 1);   // 빈 줄 하나만 있으면 그 자리에
+    L.splice(Math.min(it.pos ?? L.length, L.length), 0, er);
+  } else if (it.kind === "vendor") {
+    const r = findRow(it.rowId); if (!r) return { err: "그 구성요소 줄이 없어요 — 먼저 줄을 되살려 주세요" };
+    let vid = it.item.vid; if (r.vendors.some((v) => v.vid === vid)) { const nv = C.nextVid(r.vendors); vmap = { [vid]: nv }; vid = nv; }   // 같은 글자 업체가 이미 있으면 다음 글자로
+    r.vendors.push(rowToEdit({ id: r.id, vendors: [{ ...it.item, vid }] }).vendors[0]);
+  } else if (it.kind === "export") {
+    if (d.exports.some((e) => e.cc === it.item.cc)) return { err: `판매 국가 ${it.item.cc}는 이미 있어요` };
+    d.exports.push(toEdit({ exports: [it.item] }).exports[0]);
+  } else if (it.kind === "step") {
+    const sc = it.cc ? X.sched : d.sched; if (!sc) return { err: "일정이 기본 양식 그대로예요 — 일정 탭에서 한 번 고친 뒤 되살려 주세요" };
+    if (sc.steps.some((x) => x.id === it.item.id)) return { err: "이미 그 단계가 있어요" };
+    sc.steps.push(schedToEdit({ steps: [it.item] }).steps[0]);
+  } else if (it.kind === "t3") {
+    if ((X.t3 || []).some((t) => t.id === it.item.id)) return { err: "이미 그 항목이 있어요" };
+    X.t3 = [...(X.t3 || []), toEdit({ exports: [{ cc: it.cc, rows: [], t3: [it.item] }] }).exports[0].t3[0]];
+  } else if (it.kind === "img") {
+    const im = img || it.item || {}; if (!im.img) return { err: "사진을 찾지 못했어요" };
+    if (it.where === "card") { d.img = im.img; d.imgOrig = im.imgOrig || ""; }
+    else { const r = findRow(it.rowId); if (!r) return { err: "그 구성요소 줄이 없어요" };
+      if (it.where === "row") { r.img = im.img; r.imgOrig = im.imgOrig || ""; }
+      else { const v = r.vendors.find((x) => x.vid === it.vid); if (!v) return { err: "그 업체가 없어요" }; v.img = im.img; v.imgOrig = im.imgOrig || ""; } }
+  } else return { err: "모르는 종류예요" };
+  d.bin = (d.bin || []).map((x) => { if (x.id !== it.id) return x; const { item, ...rest } = x; return { ...rest, back: new Date().toISOString(), bby: by || "" }; });   // 기록은 남기고 '되살림' 표시
+  return { d, vmap };
+}
+function nmBack(o, bid, vmap) {   // 뺀 것의 실제 이름·견적서·노션 주소·업체 품명 → 제자리 (cost-names.bin 기록은 그대로)
+  const src = ((o.bin || {})[bid]) || {}, n = clone(o);
+  Object.entries(src).forEach(([rid, f]) => ["vsup", "vfiles", "vurl", "vprod"].forEach((k) => { if (!f[k]) return; n[k] = n[k] || {}; const t = { ...(n[k][rid] || {}) };
+    Object.entries(f[k]).forEach(([v0, val]) => { t[(vmap && vmap[v0]) || v0] = val; }); n[k][rid] = t; }));
+  return n;
+}
+const binWhat = (items) => items.map((x) => `뺌: ${BIN_KIND[x.kind] || x.kind} '${x.label}'${x.cc && x.kind !== "export" ? ` (${x.cc})` : ""}`);
+// 카드가 너무 커지면(1MB 한도) 오래된 '뺀 사진'의 작은 그림만 이력 보관함 쪽으로 (기록·되살리기는 그대로 — 되살릴 때 보관함에서 꺼냄)
+const binTrim = (doc) => { const imgs = (doc.bin || []).filter((x) => x.kind === "img" && x.item && x.item.img && x.ver).sort((a, b) => String(a.at).localeCompare(String(b.at)));
+  for (const x of imgs) { if (docBytes(doc) <= CARD_WARN) break; x.item = { ...x.item, img: "" }; x.inVer = true; } };
+// 파일 열쇠 찾기 (뺀 것·이름 보관 안에 든 견적서·사진 원본도 '쓰는 중'으로 셈 → 휴지통 표시 안 함)
+const keysIn = (o, kind) => new Set((JSON.stringify(o || {}).match(new RegExp(kind + "/[0-9a-f]{64}\\.[a-z]+", "g")) || []));
 // 업체 이름 → 가칭 (가격정책표 제조사 가칭과 같은 이름이면 같은 가칭 · 새 이름은 비어 있는 다음 글자)
 function makeAliaser(amap, mfgList) {
   const used = new Set([...Object.values(amap), ...(mfgList || []).map((m) => m && m.alias).filter(Boolean)]);
@@ -963,7 +1055,7 @@ async function saveCard(ctx, { id, prev, prevNames, d, nm, why }) {
     const m = ((nm && nm.vsup) || {})[r.id] || ((nm && nm.vsup) || {})[baseRid(r.id)] || {}; vsup[r.id] = {};
     const fm = ((nm && nm.vfiles) || {})[r.id] || {}, um = ((nm && nm.vurl) || {})[r.id] || {}, pm = ((nm && nm.vprod) || {})[r.id] || {};
     r.vendors.forEach((v) => { if (pm[v.vid] && vprodTxt(pm[v.vid])) (vprod[r.id] = vprod[r.id] || {})[v.vid] = { n: String(pm[v.vid].n || "").trim(), no: String(pm[v.vid].no || "").trim() }; });
-    r.vendors.forEach((v) => { const fl = Array.isArray(fm[v.vid]) ? fm[v.vid].filter((f) => !(f && f.del && Date.now() - Date.parse(f.del) > FILE_STORE.trashDays * 864e5)) : []; if (fl.length) (vfiles[r.id] = vfiles[r.id] || {})[v.vid] = fl; if (um[v.vid]) (vurl[r.id] = vurl[r.id] || {})[v.vid] = um[v.vid]; });
+    r.vendors.forEach((v) => { const fl = Array.isArray(fm[v.vid]) ? fm[v.vid].filter(Boolean) : []; if (fl.length) (vfiles[r.id] = vfiles[r.id] || {})[v.vid] = fl; if (um[v.vid]) (vurl[r.id] = vurl[r.id] || {})[v.vid] = um[v.vid]; });   // 뺀 파일(del)도 기한 없이 남김 (2026-11-26)
     const vendors = r.vendors.map((v) => { const n = String(m[v.vid] || "").trim(); vsup[r.id][v.vid] = n; return { ...v, alias: al(n) }; });
     const x = C.syncRow({ ...r, vendors }); sup[r.id] = vsup[r.id][x.sel] || ""; return x;
   };
@@ -980,20 +1072,29 @@ async function saveCard(ctx, { id, prev, prevNames, d, nm, why }) {
   const fdiff = stable(cleanF(pn.vfiles)) !== stable(cleanF(vfiles));
   if (fdiff) what.push("견적서 바뀜");
   if (stable(cleanP(pn.vprod)) !== stable(cleanP(vprod))) what.push("업체 품명·품번 바뀜");
+  /* 빠진 것 → '뺀 것'(bin) · 되살린 것 기록 (2026-11-26) */
+  const vid = prev ? verId(at) : "";
+  const bd = binDiff(prev, card, pn, at, by, why, vid);
+  card.bin = [...(card.bin || []), ...bd.items];   // 무엇이 빠졌는지는 위 비교 글(줄 뺌·업체 뺌·수출 뺌·단계 뺌·사진 바뀜)에 이미 있음
+  (card.bin || []).forEach((x) => { if (x.back && !((prev && prev.bin) || []).some((y) => y.id === x.id && y.back)) what.push(`되살림: ${BIN_KIND[x.kind] || x.kind} '${x.label}'`); });
+  const nbin = { ...((prevNames && prevNames.bin) || {}), ...((nm && nm.bin) || {}), ...bd.names };
   if (prev && !what.length && (pn.mfg || "") === mfg && stable(cleanV(pn.vsup)) === stable(cleanV(vsup))) return { id, same: true };
   id = id || cardsCol().doc().id;
-  const history = [{ at, by, what: joinWhat(what.length ? what : ["업체 이름 고침"]), why: String(why || "").trim().slice(0, 200) }, ...((prev && prev.history) || [])].slice(0, 100);
+  const whatTxt = joinWhat(what.length ? what : ["업체 이름 고침"]), whyTxt = String(why || "").trim().slice(0, 200);
+  const history = [{ at, by, what: whatTxt, why: whyTxt, ...(vid ? { ver: vid } : {}) }, ...((prev && prev.history) || [])].slice(0, 100);   // 100건 넘는 옛 이력도 이력 보관함(versions)에 그대로
   const doc = { ...card, history, deleted: false, createdAt: (prev && prev.createdAt) || at, createdBy: (prev && prev.createdBy) || by, updatedAt: at, updatedBy: by };
+  binTrim(doc);
   const bytes = docBytes(doc); if (bytes > CARD_MAX) throw new Error(`카드 한 장 용량 ${Math.round(bytes / 1024)}KB — Firestore 한도(1MB)를 넘어요. 사진을 몇 장 빼 주세요`);
   const b = db.batch();
+  if (vid) addVersion(b, { vid, id, prev, prevNames, at, by, what: whatTxt, why: whyTxt, names: true });   // 바뀌기 전 카드 통째로 → 이력 보관함
   b.set(cardsCol().doc(id), doc);
-  b.set(namesCol().doc(id), { mfg, sup, vsup, vfiles, vurl, vprod, updatedAt: at, updatedBy: by });
+  b.set(namesCol().doc(id), { mfg, sup, vsup, vfiles, vurl, vprod, bin: plain(nbin), updatedAt: at, updatedBy: by });
   if (stable(ctx.amap) !== before) b.set(namesCol().doc("_alias"), { map: ctx.amap, updatedAt: at, updatedBy: by }, { merge: true });
   b.set(refDoc("cards"), { map: { [id]: C.summaryOf(doc) }, at }, { merge: true });
   await b.commit();
   console.log(`[cost-cards] ${id} 저장 · ${what.length}가지`);
-  fileGc(ctx, { id, prev, card: doc, pvf: pn.vfiles, vf: vfiles });
-  return { id, doc, what, names: namesInit({ mfg, vsup, vfiles, vurl, vprod }, allRows(doc)) };
+  fileGc(ctx, { id, prev, card: doc, pvf: pn.vfiles, vf: vfiles, bin: nbin });
+  return { id, doc, what, names: namesInit({ mfg, vsup, vfiles, vurl, vprod, bin: nbin }, allRows(doc)) };
 }
 // 가격정책표에 반영 (마스터 · 2026-11-25 송희님 C) — 버튼으로만 · 몰래 안 바뀜
 //  한 번에: 가격정책표 원가(product-meta/prod-cost.map[제품]) + 원가 이력(cost-log · 가격정책표 제품 수정 창 '변경 이력'과 같은 자리)
@@ -1006,8 +1107,10 @@ async function applyToPriceTable(user, card, prod, unit, pt) {
   await db.runTransaction(async (tx) => {
     const pc = await tx.get(pcRef), cr = await tx.get(crRef), cd = await tx.get(cRef);
     const map = (pc.exists && pc.data().map) || {}; from = k in map ? map[k] : pt == null ? null : pt;
-    const cur = cd.exists ? cd.data() : card, applied = { v: unit, at, by, from: from == null ? null : from };
-    const history = [{ at, by, what: `가격정책표에 반영: 완제품 원가 ${from == null ? "없음" : won(from)} → ${won(unit)}`, why: "" }, ...(cur.history || [])].slice(0, 100);
+    const cur = cd.exists ? cd.data() : card, applied = { v: unit, at, by, from: from == null ? null : from }, vid = verId(at);
+    const what = `가격정책표에 반영: 완제품 원가 ${from == null ? "없음" : won(from)} → ${won(unit)}`;
+    const history = [{ at, by, what, why: "", ver: vid, kind: "apply", k, from: from == null ? null : from, to: unit, pa: cur.applied || null }, ...(cur.history || [])].slice(0, 100);   // [가격정책표 원가 되돌리기] 용
+    addVersion(tx, { vid, id: card.id, prev: cur, at, by, what, why: "가격정책표에 반영" });
     tx.set(pcRef, { map: { [k]: unit }, updatedAt: at, updatedBy: by }, { merge: true });
     tx.set(db.collection("cost-log").doc(cpHash(k)), { key: k, name: prod.name || "", spec: prod.spec || "", updatedAt: at, hist: FV.arrayUnion({ at, by, from: from == null ? null : from, to: unit, via: "분해원가 반영" }) }, { merge: true });
     tx.set(db.collection("dashboard-activity").doc(), { ts: at, by, type: "원가변경", target: `${prod.name || ""} ${prod.spec && prod.spec !== "-" ? prod.spec : ""}`.trim(), detail: `분해원가 반영 · 완제품 원가 ${from == null ? "없음" : won(from)} → ${won(unit)}` });
@@ -1018,28 +1121,54 @@ async function applyToPriceTable(user, card, prod, unit, pt) {
   console.log(`[prod-cost] 분해원가 반영 ${k}: ${from} → ${unit}`);
   return from;
 }
+// 가격정책표 반영 되돌리기 (2026-11-26) — 그 반영 전 값으로 가격정책표 원가를 다시 씀(지우지 않음 · 전 값이 '없음'이면 빈 값) + 원가 이력·활동 기록·카드 이력
+//  지금 가격정책표 값이 그 반영 값과 다르면(그 뒤 누가 바꿈) 먼저 물어봄
+async function undoApplyPriceTable(user, card, h, prod) {
+  const at = new Date().toISOString(), by = user.email || "", k = h.k, to = h.from == null ? null : +h.from;
+  const pcRef = db.collection("product-meta").doc("prod-cost"), crRef = refDoc("products"), cRef = cardsCol().doc(card.id);
+  let was = null;
+  await db.runTransaction(async (tx) => {
+    const pc = await tx.get(pcRef), cr = await tx.get(crRef), cd = await tx.get(cRef);
+    const map = (pc.exists && pc.data().map) || {}; was = k in map ? map[k] : null;
+    if (was !== h.to && h._ok !== was) throw Object.assign(new Error("지금 가격정책표 값이 바뀌어 있어요"), { code: "changed", was });
+    const cur = cd.exists ? cd.data() : card, vid = verId(at), nm = `${(prod && prod.name) || card.item || ""} ${(prod && prod.spec && prod.spec !== "-" ? prod.spec : card.spec) || ""}`.trim();
+    const what = `가격정책표 반영 되돌림: 완제품 원가 ${was == null ? "없음" : won(was)} → ${to == null ? "없음" : won(to)}`;
+    const history = [{ at, by, what, why: `${whenTxt(h.at)} 반영 되돌리기`, ver: vid, kind: "unapply", k, from: was, to }, ...(cur.history || []).map((x) => (x.at === h.at && x.kind === "apply" ? { ...x, undone: at, undoneBy: by } : x))].slice(0, 100);
+    addVersion(tx, { vid, id: card.id, prev: cur, at, by, what, why: "가격정책표 반영 되돌리기" });
+    tx.set(pcRef, { map: { [k]: to }, updatedAt: at, updatedBy: by }, { merge: true });
+    tx.set(db.collection("cost-log").doc(cpHash(k)), { key: k, name: (prod && prod.name) || "", spec: (prod && prod.spec) || "", updatedAt: at, hist: FV.arrayUnion({ at, by, from: was, to, via: "분해원가 반영 되돌림" }) }, { merge: true });
+    tx.set(db.collection("dashboard-activity").doc(), { ts: at, by, type: "원가변경", target: nm, detail: `분해원가 반영 되돌림 · 완제품 원가 ${was == null ? "없음" : won(was)} → ${to == null ? "없음" : won(to)}` });
+    tx.set(cRef, { applied: h.pa || null, history, updatedAt: at, updatedBy: by }, { merge: true });
+    tx.set(refDoc("cards"), { map: { [card.id]: C.summaryOf({ ...cur, applied: h.pa || null, updatedAt: at }) }, at }, { merge: true });
+    if (cr.exists && Array.isArray(cr.data().list)) tx.set(crRef, { list: cr.data().list.map((p) => (p.k === k ? { ...p, cost: to } : p)) }, { merge: true });
+  });
+  console.log(`[prod-cost] 분해원가 반영 되돌림 ${k}: ${was} → ${to}`);
+  return was;
+}
 // 카드 용량 (Firestore 문서 1MB 한도) · 사진 바뀜 · 일정 바뀜 이력 한 줄
 const CARD_MAX = 1000000, CARD_WARN = 750000;
 const docBytes = (o) => new Blob([JSON.stringify(o)]).size;
-const imgKey = (c) => stable([(c && c.img) || "", ((c && c.rows) || []).map((r) => [r.img || "", C.vendorsOf(r).map((v) => v.img || "")])]);
+const imgKey = (c) => { const o = {}; if (c && c.img) o._ = c.img; ((c && c.rows) || []).forEach((r) => { if (r.img) o[r.id] = r.img; C.vendorsOf(r).forEach((v) => { if (v.img) o[r.id + "/" + v.vid] = v.img; }); }); return stable(o); };   // 사진이 있는 자리만 비교 (줄을 빼거나 더해도 '사진 바뀜'이 안 뜨게 · 2026-11-26)
 // 저장 뒤 파일 정리 (마스터 · 파일 보관이 켜졌을 때만) — 다른 카드가 같은 파일(같은 내용 = 같은 열쇠)을 쓰면 안 지움
 //  견적서: 이번 저장으로 빠진 파일 → 파일 보관 휴지통(30일) · '되살리기'로 다시 넣은 파일 → 휴지통에서 되살림 / 사진 원본: 이 카드에서 빠진 원본 → 휴지통
 const qKeys = (vf, del) => { const s = new Set(); Object.values(vf || {}).forEach((m) => Object.values(m || {}).forEach((l) => (Array.isArray(l) ? l : []).forEach((f) => { if (f && f.key && !!f.del === !!del) s.add(f.key); }))); return s; };
 const pKeys = (c) => { const s = new Set(), add = (o) => { if (origOk(o)) s.add(o.key); }; if (c) { add(c.imgOrig); allRows(c).forEach((r) => { add(r.imgOrig); C.vendorsOf(r).forEach((v) => add(v.imgOrig)); }); } return s; };
-async function fileGc(ctx, { id, prev, card, pvf, vf }) {
-  if (FILE_STORE.state !== "ready" || !ctx.allCards || !ctx.allNames) return;   // 다른 카드를 모르면 안 지움
+async function fileGc(ctx, { id, prev, card, pvf, vf, bin }) {
+  if (FILE_STORE.state !== "ready" || !ctx.allCards || !ctx.allNames) return;   // 다른 카드를 모르면 표시 안 함
+  /* 2026-11-26: 휴지통 = 파일 보관(KV)의 '표시'만 (파일은 그대로 · 영구 보관) · 뺀 것(bin)·이름 보관 안 파일은 '쓰는 중' */
   const otherQ = new Set(), otherP = new Set();
-  Object.entries(ctx.allNames || {}).forEach(([cid, nm]) => { if (cid !== id) qKeys(nm && nm.vfiles).forEach((k) => otherQ.add(k)); });
-  (ctx.allCards || []).forEach((c) => { if (c.id !== id && !c.deleted) pKeys(c).forEach((k) => otherP.add(k)); });
-  /* 지울 후보 = 저장 전에 있던 것 + 이번에 올린 것(저장 전에 빼거나 바꾼 것 포함) + 이번에 뺀 것 → 지금 어디에도 안 쓰면 휴지통 */
+  Object.entries(ctx.allNames || {}).forEach(([cid, nm]) => { if (cid !== id) { qKeys(nm && nm.vfiles).forEach((k) => otherQ.add(k)); keysIn(nm && nm.bin, "quote").forEach((k) => otherQ.add(k)); } });
+  (ctx.allCards || []).forEach((c) => { if (c.id !== id && !c.deleted) { pKeys(c).forEach((k) => otherP.add(k)); keysIn(c.bin, "photo").forEach((k) => otherP.add(k)); } });
   const before = qKeys(pvf), after = qKeys(vf), wasDel = qKeys(pvf, true), nowDel = qKeys(vf, true), ops = [];
+  keysIn(bin, "quote").forEach((k) => after.add(k));
   new Set([...before, ...FILE_STORE.sess.quote, ...[...nowDel].filter((k) => !wasDel.has(k))]).forEach((k) => { if (!after.has(k) && !otherQ.has(k)) ops.push(["del", k]); });
-  after.forEach((k) => { if (wasDel.has(k)) ops.push(["restore", k]); });
-  const pb = pKeys(prev), pa = pKeys(card);
+  after.forEach((k) => { if (wasDel.has(k) || (!before.has(k) && !FILE_STORE.sess.quote.has(k))) ops.push(["restore", k]); });   // 되살린 파일 · 이력에서 되돌려 다시 쓰게 된 파일
+  const pb = pKeys(prev), pa = pKeys(card); keysIn(card && card.bin, "photo").forEach((k) => pa.add(k));
   new Set([...pb, ...FILE_STORE.sess.photo]).forEach((k) => { if (!pa.has(k) && !otherP.has(k)) ops.push(["del", k]); });
+  pa.forEach((k) => { if (!pb.has(k) && !FILE_STORE.sess.photo.has(k)) ops.push(["restore", k]); });
   FILE_STORE.sess.quote.clear(); FILE_STORE.sess.photo.clear();
   const errs = [];
-  for (const [op, k] of ops) { try { await FILE_STORE[op](k); console.log(`[cost-files] ${op === "del" ? "휴지통으로" : "되살림"} ${k}`); } catch (e) { console.error(`[cost-files] ${op} 실패 ${k}`, e); errs.push(e.message || String(e)); } }
+  for (const [op, k] of ops) { try { await FILE_STORE[op](k); console.log(`[cost-files] ${op === "del" ? "휴지통 표시(파일은 그대로)" : "휴지통 표시 풀기"} ${k}`); } catch (e) { if (op === "restore" && /휴지통에 없어요/.test(e.message || "")) continue; console.error(`[cost-files] ${op} 실패 ${k}`, e); errs.push(e.message || String(e)); } }
   if (errs.length && ctx.onFileErr) ctx.onFileErr(`파일 정리 ${errs.length}개 못 함: ${errs[0]}`);
 }
 let LAST_SET = null;   /* 일정 설정(cost-ref/schedule) 마지막 값 — 저장 이력에서 기본 양식과 비교할 때 */
@@ -1057,7 +1186,7 @@ async function setDeleted(user, c, del) {
   const history = [{ at, by, what: del ? "휴지통으로 옮김" : "휴지통에서 되살림", why: "" }, ...(c.history || [])].slice(0, 100);
   const b = db.batch();
   b.set(cardsCol().doc(c.id), { deleted: del, deletedAt: del ? at : "", deletedBy: del ? by : "", history, updatedAt: at, updatedBy: by }, { merge: true });
-  b.set(refDoc("cards"), { map: { [c.id]: del ? FV.delete() : C.summaryOf({ ...c, updatedAt: at }) }, at }, { merge: true });
+  b.set(refDoc("cards"), { map: { [c.id]: { ...C.summaryOf({ ...c, updatedAt: at }), del: !!del } }, at }, { merge: true });   // 휴지통 카드도 요약에 남김(del 표시 · 가격정책표는 안 봄 · 되살리면 del false)
   await b.commit();
 }
 
@@ -1200,7 +1329,7 @@ async function applyLineOps(ctx, ops, opt = {}) {
   const live = (S.cards || []).filter((c) => !c.deleted);
   const work = {}, wnames = {}, prevCards = {}, prevNames = {}, created = {};
   const getCard = (c) => {
-    if (!work[c.id]) { prevCards[c.id] = c; prevNames[c.id] = S.names[c.id] || {}; wnames[c.id] = namesInit(S.names[c.id], c.rows);
+    if (!work[c.id]) { prevCards[c.id] = c; prevNames[c.id] = S.names[c.id] || {}; wnames[c.id] = namesInit(S.names[c.id], allRows(c));   // 수출 나라 줄 이름도 그대로 (2026-11-26 · 예전엔 국내 줄만 남아 나라 줄 업체 이름이 빠질 수 있었음)
       work[c.id] = { ...clone(c), rows: (c.rows || []).map((r) => ({ ...clone(r), vendors: C.vendorsOf(r).map((v) => ({ ...v })), sel: C.selOf(r) })) }; }
     return work[c.id];
   };
@@ -1208,8 +1337,12 @@ async function applyLineOps(ctx, ops, opt = {}) {
   const newCard = (base) => {   // 카드 없음 → 새 카드 (가격표 제품이면 그 값 · 아니면 줄의 품목·규격)
     const ck = base.k || "new:" + nz(base.item) + "|" + nz(base.spec);
     if (created[ck]) return work[created[ck]];
-    const id = (src === "sheet" ? "ls-" : "nt-") + hid(ck), r = base.k ? (S.refNames || {})[base.k] || {} : {};
+    let id = (src === "sheet" ? "ls-" : "nt-") + hid(ck); const r = base.k ? (S.refNames || {})[base.k] || {} : {};
     const ex = live.find((c) => c.id === id); if (ex) { created[ck] = id; return getCard(ex); }   // 전에 같은 줄로 만든 카드 — 다시 안 만듦
+    for (let n = 2; n < 50; n++) {   // 같은 열쇠 카드가 휴지통에 있으면 덮지 않고 다음 열쇠(-2, -3 …) · 그 열쇠 카드가 살아 있으면 그것을 씀 (2026-11-26)
+      const c0 = (S.cards || []).find((c) => c.id === id); if (!c0 && !work[id]) break;
+      if (c0 && !c0.deleted) { created[ck] = id; return getCard(c0); }
+      id = (src === "sheet" ? "ls-" : "nt-") + hid(ck) + "-" + n; }
     work[id] = { id, brand: C.normBrand(base.brand || ""), round: "1차", item: base.item || "", spec: base.spec || "", method: base.method || (base.k ? seedMethodOf(r.sup || r.mfg) : ""), origin: base.origin || (base.k ? "국내" : ""),
       scope: "", qty: "", validUntil: "", include: true, need: false, prodKey: base.k || "", prodLabel: base.k ? `${base.item}${base.spec ? " " + base.spec : ""}` : "", mfgAlias: "", seed: src === "sheet" ? "lines" : "notion",
       fx: {}, frag: { name: "", ratio: "", batchKg: "", directKg: "" }, rows: [], sale: {} };
@@ -1316,17 +1449,23 @@ async function applyLineOps(ctx, ops, opt = {}) {
     const c = work[id], pv = prevCards[id], nmw = wnames[id];
     c.rows = c.rows.map((r) => C.syncRow({ ...r, vendors: r.vendors.map((v) => ({ ...v, alias: al(((nmw.vsup[r.id] || {})[v.vid]) || "") })) }));
     const sup = {}; c.rows.forEach((r) => { sup[r.id] = ((nmw.vsup[r.id] || {})[r.sel]) || ""; });
-    const what = C.diffCard(pv, c), pn = namesInit(prevNames[id], pv ? pv.rows : []);
+    const what = C.diffCard(pv, c), pn = namesInit(prevNames[id], pv ? allRows(pv) : []);
     const nk = (rows) => stable((rows || []).map((r) => C.vendorsOf(r).map((v) => [r.id, v.vid, v.nid || "", ...NOTION_OWN.map((k) => v[k] ?? "")])));
     if (pv) c.rows.forEach((r) => { const o = (pv.rows || []).find((x) => x.id === r.id); r.vendors.forEach((v) => { const ov = o && C.vendorsOf(o).find((x) => x.vid === v.vid); if (v.ndel && !(ov && ov.ndel)) what.push(`${r.name || r.kind} ${v.vid}업체 노션에서 삭제됨`); }); });
     if (stable((pv && pv.nsamples) || []) !== stable(c.nsamples || [])) what.push(`샘플 ${(c.nsamples || []).length}건`);
     const nch = nk(pv && pv.rows) !== nk(c.rows) || stable(cleanF(pn.vfiles)) !== stable(cleanF(nmw.vfiles)) || stable(cleanV(pn.vsup)) !== stable(cleanV(nmw.vsup)) || stable(cleanU(pn.vurl)) !== stable(cleanU(nmw.vurl)) || stable(cleanP(pn.vprod)) !== stable(cleanP(nmw.vprod));
+    const vid = pv ? verId(at) : "", whyTxt = opt.file ? `${tag} · ${opt.file}` : SRC_NAME[src];
+    const bd = binDiff(pv, c, namesInit(prevNames[id], pv ? allRows(pv) : []), at, by, whyTxt, vid);   // 가져오기는 줄·업체를 빼지 않지만 혹시 빠지면 '뺀 것'에 (2026-11-26)
+    if (bd.items.length) { c.bin = [...(c.bin || []), ...bd.items]; what.push(...binWhat(bd.items)); }
     if (pv && !what.length && !nch) return;
     changed++;
     const { id: _drop, history: _h, ...body } = c;
-    const history = [{ at, by, what: `${tag}: ${joinWhat(what.length ? what : ["견적서·업체 이름·노션 주소"])}`, why: opt.file ? `${tag} · ${opt.file}` : SRC_NAME[src] }, ...((pv && pv.history) || [])].slice(0, 100);
+    const whatTxt = `${tag}: ${joinWhat(what.length ? what : ["견적서·업체 이름·노션 주소"])}`;
+    const history = [{ at, by, what: whatTxt, why: whyTxt, ...(vid ? { ver: vid } : {}) }, ...((pv && pv.history) || [])].slice(0, 100);
     const doc = { ...body, history, deleted: false, createdAt: (pv && pv.createdAt) || at, createdBy: (pv && pv.createdBy) || by, updatedAt: at, updatedBy: by };
-    const nmDoc = { mfg: nmw.mfg || (prevNames[id] || {}).mfg || "", sup, vsup: cleanV(nmw.vsup), vfiles: packF(nmw.vfiles), vurl: cleanU(nmw.vurl), vprod: cleanP(nmw.vprod), updatedAt: at, updatedBy: by };
+    const nmDoc = { mfg: nmw.mfg || (prevNames[id] || {}).mfg || "", sup, vsup: cleanV(nmw.vsup), vfiles: packF(nmw.vfiles), vurl: cleanU(nmw.vurl), vprod: cleanP(nmw.vprod),
+      bin: plain({ ...((prevNames[id] || {}).bin || {}), ...bd.names }), updatedAt: at, updatedBy: by };
+    if (vid) ops2.push((b) => addVersion(b, { vid, id, prev: pv, prevNames: prevNames[id], at, by, what: whatTxt, why: whyTxt, names: true }));   // 바뀌기 전 카드 통째로 → 이력 보관함
     ops2.push((b) => b.set(cardsCol().doc(id), doc), (b) => b.set(namesCol().doc(id), nmDoc), (b) => b.set(refDoc("cards"), { map: { [id]: C.summaryOf(doc) }, at }, { merge: true }));
   });
   if (stable(amap) !== before) ops2.push((b) => b.set(namesCol().doc("_alias"), { map: amap, updatedAt: at, updatedBy: by }, { merge: true }));
@@ -1335,7 +1474,7 @@ async function applyLineOps(ctx, ops, opt = {}) {
   const keep = src === "notion" && !opt.partial;
   ops2.push((b) => b.set(notionDoc(), { links: reg.links, lineLinks: reg.lineLinks, keyLinks: reg.keyLinks, unmatched: reg.unmatched, ignore: reg.ignore, suppliers: reg.suppliers, runs: [run, ...(reg.runs || [])].slice(0, 30),
     lastAt: keep ? at : reg.lastAt || "", lastSyncedAt: keep ? str(opt.syncedAt) : reg.lastSyncedAt || "", updatedAt: at, updatedBy: by }));
-  for (let i = 0; i < ops2.length; i += 400) { const b = db.batch(); ops2.slice(i, i + 400).forEach((f) => f(b)); await b.commit(); }
+  for (let i = 0; i < ops2.length; i += 200) { const b = db.batch(); ops2.slice(i, i + 200).forEach((f) => f(b)); await b.commit(); }   // 이력 보관함 함수 1개 = 쓰기 2번 → 한 묶음 500 안
   console.log(`[${tag}] 추가 ${res.added} · 바뀜 ${res.updated} · 그대로 ${res.unchanged} · 삭제 표시 ${res.deleted} · 새 카드 ${res.newCards} · 연결 필요 ${res.unmatched.length} · 오류 ${res.errors.length} · 카드 ${changed}장 저장`);
   return res;
 }
@@ -1381,7 +1520,7 @@ const toParent = (msg) => { if (EMBED) try { window.parent.postMessage(msg, loca
 //  파일 목록(이름·열쇠)은 cost-names/{카드}.vfiles[줄][업체] · 사진 원본 열쇠는 카드 imgOrig(작은 썸네일 img 는 그대로 카드 안)
 //  버킷 연결 전(/status 의 ready 가 false · 주소가 없음) = '파일 보관 준비 중'만 보이고 다른 기능은 그대로
 const FILE_STORE = {
-  api: "/api/cost-files", state: "checking", maxMB: 20, trashDays: 30, limitMB: 1024, dayWrites: 1000, _p: null,
+  api: "/api/cost-files", state: "checking", maxMB: 20, trashDays: 0, limitMB: 1024, dayWrites: 1000, _p: null,
   sess: { quote: new Set(), photo: new Set() },   /* 이번에 올린 열쇠 — 저장할 때 안 쓰게 된 것은 휴지통으로 */
   check() {
     if (!this._p) this._p = fetch(this.api + "/status", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => {
@@ -1485,9 +1624,10 @@ function Main({ user, role }) {
   const refMap = useMemo(() => { const m = {}; refList.forEach((p) => { m[p.k] = p; }); return m; }, [S.ref]);
   useEffect(() => {   // 요약(가격정책표 '완제품 원가' 칸 꼬리표용)이 카드와 어긋나 있으면 맞춤 — 마스터가 열 때 한 번
     if (!isM || !S.cards || recon.current || S.err) return; recon.current = true;
-    const exp = {}; S.cards.filter((c) => !c.deleted).forEach((c) => { exp[c.id] = C.summaryOf(c); });
+    const exp = {}; S.cards.forEach((c) => { exp[c.id] = c.deleted ? { ...C.summaryOf(c), del: true } : C.summaryOf(c); });   // 휴지통 카드 = del 표시로 남김 (2026-11-26)
     refDoc("cards").get().then((d) => { const cur = (d.exists && d.data().map) || {};
-      if (stable(cur) === stable(exp)) return;
+      const nz0 = (m) => { const o = {}; Object.entries(m || {}).forEach(([k, v]) => { const { del, ...r } = v || {}; o[k] = del ? { ...r, del: true } : r; }); return o; };   // del:false = 표시 없음과 같음
+      if (stable(nz0(cur)) === stable(nz0(exp))) return;
       return refDoc("cards").set({ map: exp, at: new Date().toISOString(), by: user.email || "" }).then(() => console.log(`[cost-ref/cards] 요약 맞춤 ${Object.keys(exp).length}장`));
     }).catch((e) => console.warn("[cost-ref/cards] 맞추기 실패", e.code || e));
   }, [S.cards, S.err]);
@@ -1763,8 +1903,9 @@ function SchedSettingsSheet({ ctx, onClose }) {
   const save = async () => {
     if (ph.bad.length) { setToast(`공휴일 줄을 못 읽었어요: ${ph.bad[0]}`); return; }
     setBusy(true);
-    try { await refDoc("schedule").set({ loss: N(f.loss, 10), inbound: N(f.inbound, 3), mfg: N(f.mfg, 15), stepDays: Object.fromEntries(Object.entries(f.stepDays).map(([k, v]) => [k, N(v, 0)])),
-        certOpts: f.certOpts.map(([a, b]) => ({ name: String(a).trim() || "인증", days: N(b, 15) })), holidays: ph.o, at: new Date().toISOString(), by: user.email || "" });
+    try { const { hist: _h0, ...old } = cur || {}, hist = Object.keys(old).length ? [plain(old), ...((cur && cur.hist) || [])] : (cur && cur.hist) || [];   // 바뀌기 전 설정 → 이전 설정(지우지 않음 · 2026-11-26)
+      await refDoc("schedule").set({ loss: N(f.loss, 10), inbound: N(f.inbound, 3), mfg: N(f.mfg, 15), stepDays: Object.fromEntries(Object.entries(f.stepDays).map(([k, v]) => [k, N(v, 0)])),
+        certOpts: f.certOpts.map(([a, b]) => ({ name: String(a).trim() || "인증", days: N(b, 15) })), holidays: ph.o, at: new Date().toISOString(), by: user.email || "", hist });
       console.log(`[cost-ref/schedule] 일정 설정 저장 · 공휴일 ${Object.keys(ph.o).length}일`); setToast("일정 설정을 저장했어요 · 모든 품목 날짜가 다시 계산돼요"); onClose(); }
     catch (e) { console.error("[cost-ref/schedule] 저장 실패", e); setToast("저장 못 했어요: " + (e.code || e.message)); }
     setBusy(false);
@@ -1784,6 +1925,10 @@ function SchedSettingsSheet({ ctx, onClose }) {
       <textarea class="in" style=${{ height: 260, fontFamily: "inherit", fontSize: 13, lineHeight: 1.6 }} disabled=${ro} value=${f.hol} onInput=${(e) => setF((o) => ({ ...o, hol: e.target.value }))} aria-label="공휴일 목록"></textarea>
       ${ph.bad.length ? html`<div class="note" style=${{ color: "var(--red)" }}>못 읽은 줄: ${ph.bad.slice(0, 3).join(" · ")}</div>` : ""}
       <div class="note">2026·2027 한국 공휴일·대체공휴일(지방선거일 포함)을 미리 넣어 두었어요 — 새로 정해지는 임시공휴일은 여기에 한 줄 더하면 돼요.</div></div></div>
+    ${((cur && cur.hist) || []).length > 0 && html`<div class="panel"><div class="ph">이전 설정 <b>${cur.hist.length}</b><span class="rt">저장할 때마다 바뀌기 전 설정이 남아요 · [불러오기] 뒤 [저장]하면 그 설정으로</span></div><div class="pb flush"><div class="gridwrap"><table class="grid hist" style=${{ minWidth: 520 }}><thead><tr><th>그 설정을 저장한 때</th><th>누가</th><th>로스·입고·생산</th><th></th></tr></thead><tbody>
+      ${cur.hist.map((h, k) => html`<tr key=${k}><td class="nw">${whenTxt(h.at) || "—"}</td><td class="nw">${who(h.by)}</td><td class="nw">${h.loss ?? "—"} · ${h.inbound ?? "—"} · ${h.mfg ?? "—"}영업일 · 공휴일 ${Object.keys(h.holidays || {}).length}일</td>
+        <td class="nw">${isM ? html`<button type="button" class="tbtn sm" onClick=${() => { setF({ loss: str(h.loss ?? C.SCHED_DEF.loss), inbound: str(h.inbound ?? C.SCHED_DEF.inbound), mfg: str(h.mfg ?? C.SCHED_DEF.mfg),
+          stepDays: Object.fromEntries(C.STEP_TPL.map((t) => [t.id, str((h.stepDays || {})[t.id] ?? t.days)])), certOpts: certPairs(h.certOpts).map(([a, b]) => [a, str(b)]), hol: holToTxt(h.holidays && Object.keys(h.holidays).length ? h.holidays : C.HOLIDAYS_KR) }); setToast("그 설정을 불러왔어요 — [저장]하면 바뀌어요"); }}>불러오기</button>` : ""}</td></tr>`)}</tbody></table></div></div></div>`}
   <//>`;
 }
 
@@ -1895,7 +2040,7 @@ const newExport = (code) => { const [cc, name, cur] = C.EXPORT_CC.find((e) => e[
 function CountryBar({ d0, cc, setCc, setD0, ro, domUnit, unit, sx }) {
   const xs = d0.exports || [], left = C.EXPORT_CC.filter((e) => !xs.some((x) => x.cc === e[0]));
   const add = (code) => { if (!code) return; setD0((o) => ({ ...o, exports: [...(o.exports || []), newExport(code)] })); setCc(code); };
-  const rm = () => { const x = xs.find((e) => e.cc === cc); if (!x || !confirm(`'${x.cc} ${x.name}' 판매 국가를 뺄까요? (그 나라 구성·일정·판매가·3팀 진행이 같이 빠져요 · [저장]해야 반영)`)) return; setD0((o) => ({ ...o, exports: (o.exports || []).filter((e) => e.cc !== cc) })); setCc(""); };
+  const rm = () => { const x = xs.find((e) => e.cc === cc); if (!x || !confirm(`'${x.cc} ${x.name}' 판매 국가를 뺄까요? (그 나라 구성·일정·판매가·3팀 진행이 같이 빠져요 · [저장]해야 반영)\n· 지우지 않고 '이력·뺀 것' 탭에 남아 되살릴 수 있어요`)) return; setD0((o) => ({ ...o, exports: (o.exports || []).filter((e) => e.cc !== cc) })); setCc(""); };
   const X = xs.find((e) => e.cc === cc), om = X ? (X.rows || []).filter((r) => r.mode === "omit").map((r) => ({ of: r.of, name: (d0.rows.find((b) => b.id === r.of) || {}).name || r.of })) : [];
   const back = (of) => setD0((o) => ({ ...o, exports: o.exports.map((e) => (e.cc === cc ? { ...e, rows: e.rows.filter((r) => !(r.mode === "omit" && r.of === of)) } : e)) }));
   if (!xs.length && ro) return "";
@@ -1980,9 +2125,10 @@ function CardSheet({ id, ctx, onClose, onSaved }) {
   const setX = (f) => setD0((o) => ({ ...o, exports: (o.exports || []).map((e) => (e.cc === cc ? f(e) : e)) }));
   const [nm, setNm] = useState(() => namesInit(names, card ? allRows(card) : []));
   const [tab, setTab] = useState("cost"), [why, setWhy] = useState(""), [busy, setBusy] = useState(false), [openV, setOpenV] = useState({}), [filesFor, setFilesFor] = useState(null);
+  const [verBusy, setVerBusy] = useState(""), [vers, setVers] = useState(null);   // 이력 보관함 (2026-11-26)
   const base = useRef(stable({ d: toEdit(card), nm: namesInit(names, card ? allRows(card) : []) }));
   const namesKey = stable(names);
-  useEffect(() => { if (!card) return; const fresh = namesInit(names, card.rows);   // 실제 이름은 늦게 올 수 있음 → 아직 안 고쳤으면 새 값
+  useEffect(() => { if (!card) return; const fresh = namesInit(names, allRows(card));   /* 나라 줄 이름도 (2026-11-26) */   // 실제 이름은 늦게 올 수 있음 → 아직 안 고쳤으면 새 값
     setNm((cur) => (stable(cur) === stable(JSON.parse(base.current).nm) ? fresh : cur)); base.current = stable({ d: JSON.parse(base.current).d, nm: fresh }); }, [namesKey]);
   const cardKey = card ? stable({ ...card, history: (card.history || []).length }) : "";
   useEffect(() => { if (!card) return; const fresh = toEdit(card);   // 다른 곳에서 바뀌면(반영·노션) 아직 안 고쳤을 때만 새 값
@@ -2045,6 +2191,54 @@ function CardSheet({ id, ctx, onClose, onSaved }) {
   };
   const del = async () => { if (!card || !confirm(`'${card.item} ${card.spec}' 카드를 휴지통으로 옮길까요? (휴지통에서 되살릴 수 있어요)`)) return;
     try { await setDeleted(user, card, true); setToast("휴지통으로 옮겼어요"); onClose(); } catch (e) { console.error("[cost-cards] 휴지통 실패", e); setToast("못 옮겼어요: " + (e.code || e.message)); } };
+  /* 뺀 것 되살리기 · 이 변경 전으로 되돌리기 · 가격정책표 반영 되돌리기 (2026-11-26 송희님) — 앞의 둘은 편집 화면에 넣고 [저장]해야 반영 */
+  const binOpen = (d0.bin || []).filter((x) => x && !x.back).slice().sort((a, b) => String(b.at).localeCompare(String(a.at)));
+  const restoreBin = async (it) => {
+    if (!isM) return;
+    let img = null;
+    if (it.kind === "img" && !(it.item && it.item.img) && it.ver && card) {   // 작은 그림이 이력 보관함에만 있음
+      try { const v = await verCol("cost-cards", card.id).doc(it.ver).get(), vc = (v.exists && v.data().card) || {}, r = it.where === "card" ? null : allRows(vc).find((x) => x.id === it.rowId);
+        img = it.where === "card" ? { img: vc.img, imgOrig: vc.imgOrig } : !r ? null : it.where === "row" ? { img: r.img, imgOrig: r.imgOrig } : (C.vendorsOf(r).find((x) => x.vid === it.vid) || null); }
+      catch (e) { console.error("[cost-cards] 이력 보관함 읽기 실패", e); setToast("이력 보관함을 못 읽었어요: " + (e.code || e.message)); return; } }
+    const r = binApply(d0, it, img, user.email || "");
+    if (r.err) { setToast(r.err); return; }
+    setD0(r.d); setNm((o) => nmBack(o, it.id, r.vmap));
+    setToast(`되살렸어요 — [저장]해야 반영돼요${r.vmap ? ` (같은 글자 업체가 있어 ${Object.values(r.vmap)[0]} 업체로)` : ""}`);
+  };
+  const loadVer = async (vid, label) => {
+    if (!isM || !card) return;
+    if (dirty && !confirm("저장하지 않은 고침이 있어요. 버리고 그 시점 값을 불러올까요?")) return;
+    setVerBusy(vid);
+    try {
+      const [cv, nv] = await Promise.all([verCol("cost-cards", card.id).doc(vid).get(), verCol("cost-names", card.id).doc(vid).get()]);
+      if (!cv.exists) { setToast("이력 보관함에 그 시점 값이 없어요"); setVerBusy(""); return; }
+      const vc = cv.data().card || {}, vn = nv.exists ? nv.data().names || null : null, ed = toEdit(vc);
+      if (vc.prodKey !== card.prodKey && !refMap[vc.prodKey]) { ed.prodKey = card.prodKey || ""; ed.prodLabel = card.prodLabel || ""; }   // 지금 가격정책표에 없는 옛 연결로 돌리지 않음
+      const ids = new Set((d0.bin || []).map((x) => x.id)); ed.bin = [...(d0.bin || []), ...((vc.bin || []).filter((x) => !ids.has(x.id)))];   // 뺀 것 기록은 합침(줄지 않음)
+      setCc(""); setD0(ed);
+      if (vn) { const n = namesInit(vn, allRows(vc)); n.bin = { ...(vn.bin || {}), ...(nm.bin || {}) }; setNm(n); }
+      setWhy(`되돌림: ${label}`.slice(0, 200)); setTab("cost");
+      setToast("그 변경 전 값을 불러왔어요 — 확인하고 [저장]하면 되돌려져요 (지금 값도 이력 보관함에 남아요)");
+    } catch (e) { console.error("[cost-cards] 이력 보관함 읽기 실패", e); setToast("못 불러왔어요: " + (e.code || e.message)); }
+    setVerBusy("");
+  };
+  const loadVers = async () => {
+    if (!card) return;
+    try { const sn = await verCol("cost-cards", card.id).get(), l = sn.docs.map((x) => ({ id: x.id, at: x.data().at, by: x.data().by, what: x.data().what, why: x.data().why }));
+      l.sort((a, b) => String(b.at).localeCompare(String(a.at))); console.log(`[cost-cards/versions] ${card.id} ${l.length}건`); setVers(l); }
+    catch (e) { console.error("[cost-cards/versions] 읽기 실패", e); setToast("이력 보관함을 못 읽었어요: " + (e.code || e.message)); }
+  };
+  const undoApply = async (h) => {
+    if (!isM || !card) return;
+    try {
+      const pc = await db.collection("product-meta").doc("prod-cost").get(), map = (pc.exists && pc.data().map) || {}, curV = h.k in map ? map[h.k] : null, to = h.from == null ? null : +h.from;
+      const tx = (v) => (v == null ? "없음" : won(v) + "원");
+      const msg = curV !== h.to ? `⚠️ 지금 가격정책표 값(${tx(curV)})이 이 반영 값(${tx(h.to)})과 달라요 — 그 뒤 누가 바꿨어요.\n그래도 ${tx(to)}(으)로 되돌릴까요?`
+        : `가격정책표 완제품 원가를 이 반영 전 값으로 되돌릴까요?\n\n${tx(curV)} → ${tx(to)}\n· 원가 이력·활동 기록에 남아요 (지우지 않고 값만 되돌림)`;
+      if (!confirm(msg)) return;
+      await undoApplyPriceTable(user, card, { ...h, _ok: curV }, refMap[h.k]); setToast("가격정책표 원가를 되돌렸어요 · 원가 이력에 남았어요");
+    } catch (e) { console.error("[prod-cost] 반영 되돌리기 실패", e); setToast(e.code === "changed" ? "그 사이 가격정책표 값이 또 바뀌었어요 — 다시 눌러 주세요" : "못 되돌렸어요: " + (e.code || e.message)); }
+  };
   const title = card ? `${card.item || "(품목 없음)"} ${card.spec || ""}` : "새 품목";
   const val = C.validity(live.validUntil, ctx.today), cst = C.cardStatus(live);
   const inp = (v, on, o = {}) => html`<input class=${"in" + (o.num ? " num" : "") + (ro || o.lock ? " ro" : "")} value=${v ?? ""} onInput=${(e) => on(e.target.value)} disabled=${ro || !!o.lock} placeholder=${ro || o.lock ? "" : o.ph || ""} inputmode=${o.num ? "decimal" : undefined} list=${o.list} type=${o.type || "text"} aria-label=${o.al || o.ph || ""} title=${o.lock ? "노션에서 온 값 — 노션에서 고쳐요" : undefined} />`;
@@ -2091,7 +2285,7 @@ function CardSheet({ id, ctx, onClose, onSaved }) {
     </div></div>` : "";
   const meta = html`<${ImgSlot} src=${d.img} orig=${d.imgOrig} onSet=${(v, o) => setD((x) => ({ ...x, img: v, imgOrig: o || "" }))} ro=${ro} size=${36} title="완제품 사진" /><span>${live.brand || "브랜드 —"} · ${live.round || "차수 —"} · ${C.methodName(live.method) || "생산 방식 미정"}${live.origin ? " · " + live.origin : ""}</span>${stTag2(cst)}${live.need ? html`<span class="tag need">분해 필요</span>` : ""}${ro ? html`<span class="tag off">보기 전용</span>` : ""}${card && card.updatedAt ? html`<span>마지막 ${who(card.updatedBy)} ${whenTxt(card.updatedAt)}</span>` : ""}`;
   return html`<${Frame} title=${title} meta=${meta} close=${close} rawClose=${onClose} bar=${bar} tab=${tab} setTab=${setTab}
-      tabs=${[["cost", "원가 계산"], ["cmp", "업체 비교", multiN || null], ...(cc ? [["t3", "3팀 진행 상황", X ? (X.t3 || []).filter((t) => t.st !== "완료" && t.st !== "해당 없음").length || null : null]] : []), ["sched", cc ? "일정 (1팀)" : "일정", sx && sx.ready ? "상차 " + (+sx.ready.slice(5, 7)) + "/" + (+sx.ready.slice(8, 10)) : null], ["hist", "이력", card && card.history ? card.history.length : 0]]}
+      tabs=${[["cost", "원가 계산"], ["cmp", "업체 비교", multiN || null], ...(cc ? [["t3", "3팀 진행 상황", X ? (X.t3 || []).filter((t) => t.st !== "완료" && t.st !== "해당 없음").length || null : null]] : []), ["sched", cc ? "일정 (1팀)" : "일정", sx && sx.ready ? "상차 " + (+sx.ready.slice(5, 7)) + "/" + (+sx.ready.slice(8, 10)) : null], ["hist", "이력·뺀 것", binOpen.length || (card && card.history ? card.history.length : 0)]]}
       right=${isM && card ? html`<button type="button" class="tbtn red" onClick=${del}>휴지통</button>` : ""}>
     ${tab !== "hist" && html`<${CountryBar} d0=${d0} cc=${cc} setCc=${(v) => { setCc(v); if (!v && tab === "t3") setTab("cost"); }} setD0=${setD0} ro=${ro} domUnit=${domUnit} unit=${x.unit} sx=${sx} />`}
     ${tab === "t3" && X && html`<${T3Tab} X=${X} setX=${setX} ro=${ro} cc=${cc} />`}
@@ -2190,8 +2384,23 @@ function CardSheet({ id, ctx, onClose, onSaved }) {
     ${tab === "cmp" && html`<${CompareTab} live=${live} x=${x} cmp=${cmp} cheap=${cheap} ro=${ro} vName=${vName} vProd=${vProd} nTags=${nTags} fileBtn=${fileBtn} swapOf=${swapOf} sx=${sx} rowImg=${rowImg} supI=${supI} onPick=${(rid, vid) => { const i = rowIdx(rid); if (i >= 0) pickV(i, vid); }}
       onAll=${() => setD((o) => ({ ...o, rows: o.rows.map((r) => { const c = cmp.find((y) => y && y.r.id === r.id); return c && c.best && !c.best.on ? { ...r, sel: c.best.v.vid } : r; }) }))}
       goRow=${(rid) => { setOpenV((o) => ({ ...o, [rid]: true })); setTab("cost"); }} dirty=${dirty} />`}
-    ${tab === "hist" && html`<div class="panel"><div class="ph">변경 이력 <span class="rt">누가 · 언제 · 무엇을 · 이유 (최근 100건)</span></div><div class="pb flush">
-      ${card && card.history && card.history.length ? html`<div class="gridwrap"><table class="grid hist" style=${{ minWidth: 640 }}><thead><tr><th>언제</th><th>누가</th><th>무엇을</th><th>이유</th></tr></thead><tbody>${card.history.map((h, k) => html`<tr key=${k}><td class="nw">${whenTxt(h.at)}</td><td class="nw">${who(h.by)}</td><td>${h.what}</td><td class="dim">${h.why || ""}</td></tr>`)}</tbody></table></div>` : html`<div class="empty">아직 이력이 없어요.</div>`}</div></div>`}
+    ${tab === "hist" && html`<${React.Fragment}>
+      <div class="panel"><div class="ph">🗑 뺀 것 <b>${binOpen.length}</b><span class="rt">저장할 때 빠진 줄·업체·판매 국가·일정 단계·3팀 항목·사진 — 지우지 않고 여기 남아요${isM ? " · [되살리기] 뒤 [저장]" : ""}</span></div><div class="pb flush">
+        ${binOpen.length ? html`<div class="gridwrap"><table class="grid hist" style=${{ minWidth: 640 }}><thead><tr><th>무엇</th><th>언제</th><th>누가</th><th>어떻게</th><th></th></tr></thead><tbody>${binOpen.map((x) => html`<tr key=${x.id}>
+          <td><span class="tag off">${BIN_KIND[x.kind] || x.kind}</span> ${x.label}${x.cc && x.kind !== "export" ? html` <span class="tag xc">${x.cc}</span>` : ""}${x.kind === "img" && x.item && x.item.img ? html` <img src=${x.item.img} alt="" style=${{ width: 26, height: 26, objectFit: "cover", borderRadius: 4, verticalAlign: "middle" }} />` : ""}</td>
+          <td class="nw">${whenTxt(x.at)}</td><td class="nw">${who(x.by)}</td><td class="dim">${x.why || ""}</td>
+          <td class="nw">${isM ? html`<button type="button" class="tbtn sm" onClick=${() => restoreBin(x)}>되살리기</button>` : ""}</td></tr>`)}</tbody></table></div>` : html`<div class="empty" style=${{ padding: 14 }}>뺀 것이 없어요.</div>`}
+      </div></div>
+      <div class="panel"><div class="ph">변경 이력 <span class="rt">누가 · 언제 · 무엇을 · 이유 · 바뀌기 전 값은 이력 보관함에${isM ? " · [이 변경 전으로] = 그 값을 불러와 [저장]" : ""}</span></div><div class="pb flush">
+        ${card && card.history && card.history.length ? html`<div class="gridwrap"><table class="grid hist" style=${{ minWidth: 720 }}><thead><tr><th>언제</th><th>누가</th><th>무엇을</th><th>이유</th><th></th></tr></thead><tbody>${card.history.map((h, k) => html`<tr key=${k}>
+          <td class="nw">${whenTxt(h.at)}</td><td class="nw">${who(h.by)}</td><td>${h.what}${h.undone ? html` <span class="tag off">되돌림 ${whenTxt(h.undone)}</span>` : ""}</td><td class="dim">${h.why || ""}</td>
+          <td class="nw">${isM && h.ver ? html`<button type="button" class="tbtn sm" disabled=${!!verBusy} onClick=${() => loadVer(h.ver, `${whenTxt(h.at)} '${String(h.what || "").slice(0, 60)}' 이전으로`)}>${verBusy === h.ver ? "불러오는 중…" : "이 변경 전으로"}</button>` : ""}${isM && h.kind === "apply" && h.k && !h.undone ? html` <button type="button" class="tbtn sm" onClick=${() => undoApply(h)}>가격정책표 원가 되돌리기</button>` : ""}</td></tr>`)}</tbody></table></div>` : html`<div class="empty">아직 이력이 없어요.</div>`}
+        ${card && html`<div style=${{ padding: "8px 12px" }}>${vers ? html`<div style=${{ fontWeight: 700, fontSize: 12.5, margin: "4px 0" }}>이력 보관함 ${vers.length}건 <span class="dim" style=${{ fontWeight: 500 }}>(바뀌기 전 카드 통째로 · 100건 넘는 옛 이력도)</span></div>
+          ${vers.length ? html`<div class="gridwrap"><table class="grid hist" style=${{ minWidth: 640 }}><thead><tr><th>언제</th><th>누가</th><th>그때 바뀐 것</th><th></th></tr></thead><tbody>${vers.map((v) => html`<tr key=${v.id}><td class="nw">${whenTxt(v.at)}</td><td class="nw">${who(v.by)}</td><td>${v.what || ""}${v.why ? html`<div class="sub">${v.why}</div>` : ""}</td>
+            <td class="nw">${isM ? html`<button type="button" class="tbtn sm" disabled=${!!verBusy} onClick=${() => loadVer(v.id, `${whenTxt(v.at)} '${String(v.what || "").slice(0, 60)}' 이전으로`)}>${verBusy === v.id ? "불러오는 중…" : "이 변경 전으로"}</button>` : ""}</td></tr>`)}</tbody></table></div>` : html`<div class="dim">아직 보관된 값이 없어요.</div>`}`
+          : html`<button type="button" class="tbtn sm" onClick=${loadVers}>📚 이력 보관함 전체 보기</button>`}</div>`}
+      </div></div>
+    <//>`}
     ${filesFor && (() => { const r = d.rows.find((y) => y.id === filesFor.rid), v = r && r.vendors.find((y) => y.vid === filesFor.vid); if (!r || !v) return "";
       return html`<${FilesModal} title=${filesFor.lb} files=${vFiles(r, v)} canEdit=${isM} notionUrl=${vUrl(r, v)} user=${user} onChange=${(l) => setVFiles(r.id, v.vid, l)} onClose=${() => setFilesFor(null)} />`; })()}
     <datalist id="pccBrands">${brandList.map((b) => html`<option key=${b} value=${b} />`)}</datalist>
@@ -2364,12 +2573,11 @@ function FilesModal({ title, files, canEdit, notionUrl, onChange, onClose, user 
   useEffect(() => { if (fs === "ready") loadUse(); }, [fs]);
   const ref = useRef(files); ref.current = files;
   useEffect(() => () => { if (pv) URL.revokeObjectURL(pv.u); }, [pv]);
-  const okUrl = /^https?:\/\/\S+$/i.test(url.trim()), now = Date.now(), TD = FILE_STORE.trashDays * 864e5;
-  const act = files.filter((f) => !f.del), gone = files.filter((f) => f.del && now - Date.parse(f.del) < TD);
+  const okUrl = /^https?:\/\/\S+$/i.test(url.trim());
+  const act = files.filter((f) => !f.del), gone = files.filter((f) => f.del);   // 뺀 파일 = 기한 없이 남음 (2026-11-26)
   const add = () => { if (!okUrl) return; onChange([...files, { id: "f" + Date.now().toString(36), name: nmTxt.trim() || "견적서", kind: "link", url: url.trim(), at: new Date().toISOString(), by: (user && user.email) || "" }]); setNmTxt(""); setUrl(""); };
   const rm = (f) => {
-    if (f.kind === "r2") { if (confirm(`'${f.name}' 을(를) 뺄까요?\n[저장]하면 파일은 휴지통으로 가요 (${FILE_STORE.trashDays}일 동안 되살릴 수 있어요)`)) onChange(files.map((x) => (x.id === f.id ? { ...x, del: new Date().toISOString(), delBy: (user && user.email) || "" } : x))); return; }
-    if (confirm(`'${f.name}' 을(를) 목록에서 뺄까요? ([저장]해야 반영)`)) onChange(files.filter((x) => x.id !== f.id));
+    if (confirm(`'${f.name}' 을(를) 뺄까요? ([저장]해야 반영)\n· 지우지 않고 '뺀 파일'에 남아 언제든 되살릴 수 있어요`)) onChange(files.map((x) => (x.id === f.id ? { ...x, del: new Date().toISOString(), delBy: (user && user.email) || "" } : x)));   // 파일·링크 모두 표시만 (2026-11-26)
   };
   const back = (f) => onChange(files.map((x) => (x.id === f.id ? { ...x, del: "", delBy: "" } : x)));
   const uploadAll = async (list) => {
@@ -2405,8 +2613,8 @@ function FilesModal({ title, files, canEdit, notionUrl, onChange, onClose, user 
           <td class="nw">${f.key ? r2Btns(f) : ""}${f.url ? html` <a class="tbtn sm" href=${f.url} target="_blank" rel="noopener">${f.kind === "notion" && f.key ? "노션 ↗" : "열기 ↗"}</a>` : ""}${!f.key && !f.url ? html`<span class="dim">—</span>` : ""}
             ${canEdit && f.kind !== "notion" ? html` <button type="button" class="tbtn sm red" onClick=${() => rm(f)}>빼기</button>` : ""}</td></tr>`)}</tbody></table>`
         : html`<div class="empty" style=${{ padding: 16 }}>아직 견적서가 없어요.</div>`}
-      ${canEdit && gone.length > 0 && html`<div style=${{ marginTop: 10 }}><div style=${{ fontWeight: 700, fontSize: 12.5, marginBottom: 4 }}>뺀 파일 <span class="dim" style=${{ fontWeight: 500 }}>(${FILE_STORE.trashDays}일 동안 되살릴 수 있어요)</span></div>
-        ${gone.map((f) => html`<div key=${f.id} class="mline" style=${{ alignItems: "center", opacity: 0.75, marginTop: 4 }}><span style=${{ flex: 1, minWidth: 0, wordBreak: "break-all" }}>${f.name} <span class="sub">${who(f.delBy)} ${whenTxt(f.del)} 뺌</span></span><button type="button" class="tbtn sm" onClick=${() => back(f)}>되살리기</button></div>`)}</div>`}
+      ${gone.length > 0 && html`<div style=${{ marginTop: 10 }}><div style=${{ fontWeight: 700, fontSize: 12.5, marginBottom: 4 }}>뺀 파일 <span class="dim" style=${{ fontWeight: 500 }}>(지우지 않아요 · 언제든 되살릴 수 있어요)</span></div>
+        ${gone.map((f) => html`<div key=${f.id} class="mline" style=${{ alignItems: "center", opacity: 0.75, marginTop: 4 }}><span style=${{ flex: 1, minWidth: 0, wordBreak: "break-all" }}>${f.name} <span class="sub">${who(f.delBy)} ${whenTxt(f.del)} 뺌</span></span>${f.key && fs === "ready" ? html`<button type="button" class="tbtn sm" onClick=${() => look(f)}>미리보기</button>` : ""}${canEdit ? html`<button type="button" class="tbtn sm" onClick=${() => back(f)}>되살리기</button>` : ""}</div>`)}</div>`}
       ${canEdit && html`<div style=${{ marginTop: 12, borderTop: "1px solid var(--grid2)", paddingTop: 10 }}>
         <div style=${{ fontWeight: 700, fontSize: 12.5, marginBottom: 6 }}>파일 올리기 <span class="dim" style=${{ fontWeight: 500 }}>(PDF·이미지 · ${FILE_STORE.maxMB}MB까지 · 같은 파일은 하나로)</span></div>
         ${fs === "ready" && use && !use.err ? html`<div class="note" style=${{ marginTop: 0, color: use.warn || (use.today && use.today.warn) ? "var(--red)" : null }}>보관 용량 ${mbTxt(use.usedBytes)} / ${Math.round(use.limitBytes / 1073741824)}GB 사용 (${use.pct}%) · 남은 ${mbTxt(Math.max(0, use.limitBytes - use.usedBytes))}${use.trash && use.trash.files ? ` · 휴지통 ${use.trash.files}개` : ""} · 오늘 쓰기 ${use.today.writes}/${use.today.limit.toLocaleString()}번
@@ -2527,8 +2735,13 @@ function LinkSheet({ ctx, onClose }) {
     setBusy("");
   };
   const ignore = async (u) => { if (!confirm(`'${u.title || u.where}' 줄을 무시할까요? (다음 가져오기 때도 건너뜀)`)) return;
-    try { await notionDoc().set({ ignore: { [u.key]: true }, unmatched: { [u.key]: FV.delete() }, updatedAt: new Date().toISOString(), updatedBy: user.email || "" }, { merge: true }); setToast("무시했어요"); }
+    const at = new Date().toISOString();   // 무시 = 그 줄 내용을 '무시한 줄'로 옮겨 남김(지우지 않음) · [되살리기] = 연결 필요로 다시 (2026-11-26)
+    try { await notionDoc().set({ ignore: { [u.key]: { at, by: user.email || "", u: plain(u) } }, unmatched: { [u.key]: FV.delete() }, updatedAt: at, updatedBy: user.email || "" }, { merge: true }); setToast("무시했어요 · 아래 '무시한 줄'에서 되살릴 수 있어요"); }
     catch (e) { console.error("[무시] 실패", e); setToast("못 했어요: " + (e.code || e.message)); } };
+  const ign = Object.entries(reg.ignore || {}).filter(([, v]) => v).map(([k, v]) => ({ key: k, at: (v && v.at) || "", by: (v && v.by) || "", u: (v && v.u) || null })).sort((a, b) => String(b.at).localeCompare(String(a.at)));
+  const unIgnore = async (g) => { const at = new Date().toISOString();
+    try { await notionDoc().set({ ignore: { [g.key]: false }, ...(g.u ? { unmatched: { [g.key]: g.u } } : {}), updatedAt: at, updatedBy: user.email || "" }, { merge: true }); setToast(g.u ? "되살렸어요 · 연결 필요에 다시 보여요" : "되살렸어요 · 다음 가져오기 때 다시 들어와요"); }
+    catch (e) { console.error("[무시 되살리기] 실패", e); setToast("못 했어요: " + (e.code || e.message)); } };
   const KIND_OPTS = [["", "구분 고르기"], ...C.KINDS.map((k) => [k, k])];
   return html`<${Frame} title="가져오기 · 연결 필요" label="가져오기 연결 필요" close=${onClose} meta=${html`<span>노션 견적(매일 19:00) · 줄 목록 엑셀 → 분해원가 업체 단가</span>`}>
     <div class="panel"><div class="ph">연결 필요 <span class="rt">${un.length}줄 · '이 줄 = 이 품목의 이 구성요소(구분)'를 한 번 고르면 기억해서 다음부터 자동 (같은 업체·같은 제목 줄도)</span></div><div class="pb flush">
@@ -2547,6 +2760,8 @@ function LinkSheet({ ctx, onClose }) {
           <td class="nw">${isM && html`<button type="button" class="tbtn primary sm" disabled=${busy === u.key} onClick=${() => link(u)}>${busy === u.key ? "…" : "연결"}</button> <button type="button" class="tbtn sm" onClick=${() => ignore(u)}>무시</button>`}</td></tr>`; })}</tbody></table></div>
         <datalist id="pccLinkPick"><option value="＋ 새 카드" />${opts.map((o) => html`<option key=${o.v} value=${o.lb} />`)}</datalist>` : html`<div class="empty">연결 필요한 줄이 없어요 ✓</div>`}
     </div></div>
+    ${ign.length > 0 && html`<div class="panel"><div class="ph">무시한 줄 <b>${ign.length}</b><span class="rt">지우지 않고 남겨 둔 줄 · [되살리기] = 다시 연결 필요로</span></div><div class="pb flush"><div class="gridwrap"><table class="grid" style=${{ minWidth: 640 }}><thead><tr><th>줄</th><th>언제</th><th>누가</th><th></th></tr></thead><tbody>
+      ${ign.map((g) => html`<tr key=${g.key}><td>${g.u ? `${g.u.supplier || ""} · ${g.u.title || g.u.where || ""}` : html`<span class="dim">${g.key}</span>`}</td><td class="nw">${whenTxt(g.at)}</td><td class="nw">${who(g.by)}</td><td class="nw">${isM ? html`<button type="button" class="tbtn sm" onClick=${() => unIgnore(g)}>되살리기</button>` : ""}</td></tr>`)}</tbody></table></div></div></div>`}
     <div class="panel"><div class="ph">가져오기 기록 <span class="rt">최근 30번 · 노션 동기화 / 줄 목록 올리기</span></div><div class="pb flush">
       ${runs.length ? html`<div class="gridwrap"><table class="grid" style=${{ minWidth: 860 }}><thead><tr><th>종류</th><th>언제</th><th>누가</th><th class="num">줄</th><th class="num">추가</th><th class="num">바뀜</th><th class="num">그대로</th><th class="num">노션에서 삭제됨</th><th class="num">새 카드</th><th class="num">연결 필요</th><th class="num">오류</th><th>파일</th></tr></thead><tbody>
         ${runs.map((r, k) => html`<tr key=${k}><td class="nw">${r.src === "sheet" ? "줄 목록 올리기" : "노션 동기화"}${r.partial ? html` <span class="tag off">일부</span>` : ""}</td><td class="nw">${whenTxt(r.at)}</td><td class="nw">${who(r.by)}</td><td class="num">${r.lines ?? ""}</td><td class="num">${r.added}</td><td class="num">${r.updated}</td><td class="num">${r.unchanged}</td><td class="num">${r.deleted || 0}</td><td class="num">${r.newCards || 0}</td><td class="num">${r.unmatched}</td><td class="num">${r.errors ? html`<span style=${{ color: "var(--red)" }}>${r.errors}</span>` : 0}</td><td class="dim">${r.file || ""}</td></tr>`)}</tbody></table></div>`
@@ -2632,7 +2847,7 @@ function ImportSheet({ ctx, onClose }) {
     try {
       for (const it of todo) {
         const prev = it.match, pn = prev ? S.names[prev.id] || {} : {};
-        const pv = namesInit(pn, prev ? prev.rows : []).vsup, vsup = {};
+        const pv = namesInit(pn, prev ? allRows(prev) : []).vsup, vsup = prev ? clone(pv) : {};   // 나라 줄 이름도 그대로 (2026-11-26)
         const rows = it.p.card.rows.map((r, k) => {
           const o = prev && prev.rows && prev.rows[k], same = o && nz(o.name) === nz(r.name), id = same ? o.id : "x" + k + Math.random().toString(36).slice(2, 7);
           const a = { ...C.vendorsOf(r)[0], vid: "A" }, others = same ? C.vendorsOf(o).filter((v) => v.vid !== "A") : [];
@@ -2640,7 +2855,8 @@ function ImportSheet({ ctx, onClose }) {
           return { ...r, id, vendors: [a, ...others], sel: "A" };
         });
         const card = { ...it.p.card, rows, prodKey: prev ? prev.prodKey || "" : it.link ? it.link.k : "", prodLabel: prev ? prev.prodLabel || "" : it.link ? `${it.link.name}${it.link.spec && it.link.spec !== "-" ? " " + it.link.spec : ""}` : "",
-          method: prev ? prev.method || "" : "", origin: prev ? prev.origin || "" : "", fx: (prev && prev.fx) || {}, need: false, seed: "excel", sale: (prev && prev.sale) || {} };
+          method: prev ? prev.method || "" : "", origin: prev ? prev.origin || "" : "", fx: (prev && prev.fx) || {}, need: false, seed: "excel", sale: (prev && prev.sale) || {},
+          ...(prev ? { exports: prev.exports || [], sched: prev.sched || null, img: prev.img || "", imgOrig: prev.imgOrig || "", bin: prev.bin || [], ...(prev.nsamples ? { nsamples: prev.nsamples } : {}) } : {}) };   // 엑셀에 없는 것(판매 국가·일정·사진·뺀 것)은 그대로 (2026-11-26)
         const r = await saveCard(ctxS, { id: prev ? prev.id : "", prev, prevNames: pn, d: toEdit(card), nm: { mfg: it.p.names.mfg, vsup }, why: `엑셀 올리기 · ${st.file} › ${it.name}` });
         if (r.same) same++;
         n++; setSt((s) => ({ ...s, done: n }));

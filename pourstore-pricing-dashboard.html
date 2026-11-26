@@ -1965,6 +1965,7 @@ body[data-sh="sh-price"]:not(.fx-has) #fxbar .expr{color:var(--ink-faint)}
 .bc-st{display:inline-block;margin-left:6px;padding:0 5px;border-radius:4px;font-size:10.5px;font-weight:700;line-height:16px;background:#E8F5EC;color:#1E7A3C;vertical-align:1px}
 .bc-st.lb{background:#1E7A3C;color:#fff}.bc-st.bad{background:#FDECEC;color:#C62828}
 th.bc-col .bcopt{width:auto;padding:0 5px;margin-left:4px;font-size:10.5px;border-radius:4px}th.bc-col .bcopt.on{background:#1E7A3C;color:#fff}
+.bcdlg-gone{margin:8px 0 2px;padding:8px 10px;background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:8px;font-size:12px;line-height:1.7}.bcdlg-gone .tbtn{padding:1px 8px;font-size:11.5px}
 .bcdlg-bg{position:fixed;inset:0;z-index:3000;background:rgba(17,24,39,.42);display:flex;align-items:center;justify-content:center;padding:12px}
 .bcdlg{background:#fff;border-radius:12px;width:440px;max-width:100%;max-height:92vh;overflow:auto;box-shadow:0 12px 40px rgba(0,0,0,.25)}
 .bcdlg-h{display:flex;align-items:center;gap:8px;padding:12px 14px;background:#14532D;color:#fff;border-radius:12px 12px 0 0}.bcdlg-h span{flex:1;min-width:0;font-size:12.5px;opacity:.9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -2860,6 +2861,9 @@ th.bc-col .bcopt{width:auto;padding:0 5px;margin-left:4px;font-size:10.5px;borde
         <div class="panel"><h3>🗑 휴지통 — 채널 <span class="tag" id="trashChanCnt">0</span></h3>
           <div class="bd" style="padding:0;overflow-x:auto"><table class="grid" id="trashChanTable" style="width:100%"></table></div>
         </div>
+      </div>
+      <div class="panel"><h3>🗑 휴지통 — 지운·바뀐 바코드 <span class="tag" id="trashBcCnt">0</span></h3>
+        <div class="bd" style="padding:0;overflow-x:auto"><table class="grid" id="trashBcTable" style="width:100%"></table></div>
       </div>
       <div id="applyLog"></div>
       <div class="panel"><h3>📝 활동 이력 <span class="tag" id="actCnt">0</span> <span style="margin-left:auto;font-size:11px;color:var(--ink-faint);font-weight:400">이 대시보드에서 일어난 제품·채널·가격 변경 기록 (append-only)</span></h3>
@@ -6973,9 +6977,10 @@ function renderFixed(){
     {h:'인건비 외',v:won(mTotal-labor)+'원/월',f:'플랫폼·서비스·임대 등'}
   ].map(c=>`<div class="card"><h4>${c.h}</h4><div class="big">${c.v}</div><div class="foot">${c.f}</div></div>`).join('');
   if(!FX.length){ $('#fxGroups').innerHTML='<div class="panel"><div class="bd"><p class="footnote">아직 등록된 고정지출이 없습니다. 위에서 인건비·플랫폼 항목을 추가하세요.</p></div></div>'; return; }
-  const groups=[...new Set(FX.map(x=>x.g))];
+  const FXL=FX.filter(x=>!x.del), FXD=FX.filter(x=>x.del);   // 지운 항목 = 숨김 (2026-11-26)
+  const groups=[...new Set(FXL.map(x=>x.g))];
   $('#fxGroups').innerHTML=groups.map(g=>{
-    const list=FX.filter(x=>x.g===g);
+    const list=FXL.filter(x=>x.g===g);
     const sub=list.filter(x=>x.on!==false).reduce((s,x)=>s+fxMonthly(x),0);
     const rows=list.map(x=>`<tr data-fxid="${x.id}" style="${x.on===false?'opacity:.42':''}">
       <td style="text-align:center"><input type="checkbox" class="fxOn" ${x.on===false?'':'checked'} style="width:auto"></td>
@@ -6989,7 +6994,7 @@ function renderFixed(){
       <div class="bd" style="padding:0;overflow-x:auto"><table class="grid" style="width:100%">
       <thead><tr><th style="width:48px">사용</th><th style="min-width:180px">항목명</th><th class="num">금액</th><th style="width:82px">주기</th><th class="num">월 환산</th><th>메모</th><th></th></tr></thead>
       <tbody>${rows}</tbody></table></div></div>`;
-  }).join('');
+  }).join('')+(FXD.length?`<div class="panel"><h3>🗑 지운 항목 <span class="tag">${FXD.length}개</span></h3><div class="bd" style="padding:0;overflow-x:auto"><table class="grid" style="width:100%"><tbody>${FXD.map(x=>`<tr><td class="name">${esc(x.g)} · ${esc(x.name)}</td><td class="num">${won(x.amt)}</td><td class="dim">${fmtTs(x.del.at)} ${esc(x.del.by||'')}</td><td style="text-align:center"><button class="tbtn" data-fxback="${x.id}" style="padding:2px 9px;font-size:11px">되살리기</button></td></tr>`).join('')}</tbody></table></div></div>`:'');
 }
 $('#btnFxAdd').addEventListener('click',()=>{
   const g=($('#fxG').value||'').trim()||'기타', name=($('#fxName').value||'').trim();
@@ -7032,7 +7037,8 @@ document.addEventListener('click',e=>{
   const idl=e.target.closest('[data-idel]');
   if(idl){ const id=+idl.dataset.idel, r=M.find(x=>x.id===id); if(r&&r.added&&confirm(`상품 "${r.item}"을(를) 삭제할까요?`)){ M=M.filter(x=>x.id!==id); M.forEach((x,i)=>x.id=i); refreshAll(); persistSecure(); } return; }
   const fd=e.target.closest('[data-fxdel]');
-  if(fd){ const id=+fd.dataset.fxdel, x=FX.find(v=>v.id==id); if(confirm(`"${x?x.name:''}" 항목을 삭제할까요?`)){ FX=FX.filter(v=>v.id!=id); renderFixed(); } return; }
+  if(fd){ const id=+fd.dataset.fxdel, x=FX.find(v=>v.id==id); if(x&&confirm(`"${x.name}" 항목을 지울까요?\n(지우지 않고 숨겨 둬요 · 아래 '지운 항목'에서 되살릴 수 있어요)`)){ x.del={at:new Date().toISOString(), by:(curUser&&curUser.email)||''}; x.on=false; renderFixed(); persist(); } return; }   // 숨김 (2026-11-26)
+  const fb=e.target.closest('[data-fxback]'); if(fb){ const x=FX.find(v=>v.id==+fb.dataset.fxback); if(x){ delete x.del; x.on=true; renderFixed(); persist(); } return; }
 });
 
 /* ══════════ 마케팅 성과 ══════════ */
@@ -7134,7 +7140,7 @@ async function promoAdd(){
   }catch(e){ alert('추가 실패: '+(e.code||e.message||e)); }
 }
 async function promoSet(id,patch){ try{ await db.collection('promotions').doc(id).set({...patch,updatedAt:new Date().toISOString()},{merge:true}); }catch(e){ alert('저장 실패: '+(e.code||e.message||e)); } }
-async function promoDel(id){ const p=PROMOS.find(x=>x.id===id); if(!confirm(`"${(p&&p.name)||''}" 삭제할까요?`))return; try{ await db.collection('promotions').doc(id).delete(); await fetchMkt(); refreshAll(); }catch(e){ alert('삭제 실패: '+(e.code||e.message||e)); } }
+async function promoDel(id){ const p=PROMOS.find(x=>x.id===id); if(!confirm(`"${(p&&p.name)||''}"을(를) 휴지통으로 보낼까요?\n기록은 지우지 않아요.`))return; try{ await db.collection('promotions').doc(id).set({deleted:true, deletedAt:new Date().toISOString(), deletedBy:(curUser&&curUser.email)||''},{merge:true}); logAct('프로모션', (p&&p.name)||id, '휴지통'); await fetchMkt(); refreshAll(); }catch(e){ alert('실패: '+(e.code||e.message||e)); } }   // 문서 지우기 없음 (2026-11-26)
 const roasPct=r=>r==null?'—':Math.round(r*100)+'%';
 function renderMktLinks(){ const on=$('#sh-mktlink'); if(on&&on.classList.contains('on')) mlRender(); }
 function renderMktOverview(){ const on=$('#sh-mkt'); if(on&&on.classList.contains('on')) maRender(); }
@@ -8013,6 +8019,12 @@ function renderData(){
     ? '<thead><tr><th>코드</th><th>채널명</th><th>삭제일시</th><th>삭제자</th><th style="width:64px"></th></tr></thead><tbody>'
       + ck.map(u=>{ const d=CHDEL[u]||{}; return `<tr><td style="font-weight:700;color:var(--amber);font-family:var(--mono)">${esc(d.code||'')}</td><td class="name">${esc(d.name||u)}</td><td class="dim">${fmtTs(d.at)}</td><td class="dim">${esc(d.by||'')}</td><td><button class="tbtn dataRestoreC" data-u="${esc(u)}" style="padding:2px 10px">복원</button></td></tr>`; }).join('') + '</tbody>'
     : '<tbody><tr><td class="dim" style="padding:12px">휴지통이 비어 있습니다.</td></tr></tbody>';
+  { const gl=bcGoneList(), can=canEditBarcode();   // 지운·바뀐 바코드 (2026-11-26)
+    if(el('trashBcCnt'))el('trashBcCnt').textContent=gl.length+'개';
+    if(el('trashBcTable'))el('trashBcTable').innerHTML = gl.length
+      ? '<thead><tr><th>제품</th><th>지운 번호</th><th>지금 번호</th><th>어떻게</th><th>일시</th><th>누가</th><th style="width:76px"></th></tr></thead><tbody>'
+        + gl.map(g=>`<tr><td class="name">${esc(idLabel(g.k))}</td><td class="mono">${esc(g.code)}</td><td class="mono dim">${esc(PBARCODE[g.k]||'—')}</td><td class="dim">${esc(g.kind||'지움')}</td><td class="dim">${fmtTs(g.at)}</td><td class="dim">${esc(g.by||'')}</td><td>${can?`<button class="tbtn dataRestoreBc" data-k="${esc(g.k)}" data-i="${g.i}" style="padding:2px 10px">되살리기</button>`:''}</td></tr>`).join('') + '</tbody>'
+      : '<tbody><tr><td class="dim" style="padding:12px">지운 바코드가 없습니다.</td></tr></tbody>'; }
   if(el('actCnt'))el('actCnt').textContent=ACTLOG.length+'건';
   if(el('actTable'))el('actTable').innerHTML = ACTLOG.length
     ? '<thead><tr><th style="width:140px">일시</th><th style="width:84px">유형</th><th>대상</th><th>내용</th><th style="width:150px">담당</th></tr></thead><tbody>'
@@ -8043,6 +8055,7 @@ function wireData(){
   const sec=$('#sh-data'); if(sec)sec.addEventListener('click',e=>{
     const rp=e.target.closest('.dataRestoreP'); if(rp){ restoreProduct(rp.dataset.k); renderData(); return; }
     const rc=e.target.closest('.dataRestoreC'); if(rc){ restoreChannel(rc.dataset.u); renderData(); return; }
+    const rb=e.target.closest('.dataRestoreBc'); if(rb){ bcRestoreGone(rb.dataset.k, +rb.dataset.i).then(()=>renderData()); return; }
   });
 }
 wireData();
@@ -8229,7 +8242,9 @@ async function setBarcodeFor(k,val){   // 바코드 지정 — 다른 제품과 
   { const ge=gtinErr(v); if(ge) return '바코드 '+ge; }   // GTIN-13 (13자리 + 체크디지트) — 2026-11-25
   if(v){ await refreshIdMaps(['bc']); const c=barcodeClash(v,[k]); if(c) return clashText(c,'바코드'); }
   if((PBARCODE[k]||'')===v) return '';
-  const old=PBARCODE[k]; if(v) PBARCODE[k]=v; else delete PBARCODE[k];
+  const old=PBARCODE[k];
+  if(old){ const ke=await bcKeepGone(k, old, v?'바뀜':'지움'); if(ke) return ke; }   // 지운·바뀐 번호는 기록에 남김 → 휴지통에서 되살리기 (2026-11-26 송희님)
+  if(v) PBARCODE[k]=v; else delete PBARCODE[k];
   try{ await saveBarcodePatch({[k]:v}); logAct('바코드', `${k.split('|')[1]} ${old||'—'} → ${v||'—'}`, '수동 변경'); return ''; }
   catch(e){ if(old) PBARCODE[k]=old; else delete PBARCODE[k]; return '저장 실패: '+(e.code||e.message||e); }
 }
@@ -8246,10 +8261,29 @@ function gtinCheck(d12){ let s=0; for(let i=0;i<12;i++) s+=(+d12[i])*(i%2?3:1); 
 function gtinErr(v){ const s=normBarcode(v); if(!s) return ''; if(!/^\d+$/.test(s)) return '숫자만 넣어 주세요 (GTIN-13)';
   if(s.length!==13) return `13자리여야 해요 (지금 ${s.length}자리)`; const c=gtinCheck(s.slice(0,12)); if(c!==+s[12]) return `끝자리(체크디지트)가 맞지 않아요 — ${s.slice(0,12)}${c} 이어야 해요`; return ''; }
 function bcStOf(k){ const b=PBARCODE[k]||''; if(!b) return '미발급'; return (PBCST[k]||{}).st==='라벨 반영'?'라벨 반영':'발급'; }
-async function saveBcSt(k, o){
-  const del=firebase.firestore.FieldValue.delete(), v=o&&(o.st||o.date||o.memo)?{st:o.st||'', date:o.date||'', memo:String(o.memo||'').slice(0,300), at:new Date().toISOString(), by:(curUser&&curUser.email)||''}:del;
+async function saveBcSt(k, o){   // 칸을 지우지 않고 값만 비움 (같은 칸의 '지운 번호' 기록 gone 은 그대로 · 2026-11-26)
+  const v={st:(o&&o.st)||'', date:(o&&o.date)||'', memo:String((o&&o.memo)||'').slice(0,300), at:new Date().toISOString(), by:(curUser&&curUser.email)||''};
   await db.collection('product-meta').doc('prod-barcode-st').set({map:{[k]:v}, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''},{merge:true});
-  if(v===del) delete PBCST[k]; else PBCST[k]=v;
+  PBCST[k]={...(PBCST[k]||{}), ...v};
+}
+/* 지운·바뀐 바코드 번호 기록 (2026-11-26 송희님 '데이터 영구 삭제 안 되게') — product-meta/prod-barcode-st.map[제품].gone = [{code, at, by, kind, back?}]
+   · 번호 칸(prod-barcode)은 지금 모양 그대로(번호만) · 기록을 못 남기면 번호도 안 바꿈 · 휴지통 화면·바코드 창에서 [되살리기] */
+async function bcKeepGone(k, code, kind){
+  const at=new Date().toISOString(), by=(curUser&&curUser.email)||'', cur=PBCST[k]||{}, gone=[{code:String(code), at, by, kind:kind||'지움'}, ...(Array.isArray(cur.gone)?cur.gone:[])];
+  try{ await db.collection('product-meta').doc('prod-barcode-st').set({map:{[k]:{gone}}, updatedAt:at, updatedBy:by},{merge:true}); PBCST[k]={...cur, gone}; return ''; }
+  catch(e){ console.error('[prod-barcode-st] 지운 번호 기록 실패 — 번호를 바꾸지 않음', e); return '지운 번호를 기록하지 못해 바꾸지 않았어요 ('+(e.code||e.message||e)+')'+(TEAM_MODE?' · 새 보안 규칙 게시 뒤 다시 해 주세요':''); }
+}
+function bcGoneList(){ const out=[]; Object.entries(PBCST||{}).forEach(([k,o])=>{ (Array.isArray(o&&o.gone)?o.gone:[]).forEach((g,i)=>{ if(!g.back && normBarcode(PBARCODE[k]||'')!==normBarcode(g.code)) out.push({k, i, ...g}); }); }); return out.sort((a,b)=>String(b.at).localeCompare(String(a.at))); }
+async function bcRestoreGone(k, i){
+  const o=PBCST[k]||{}, g=(o.gone||[])[i]; if(!g) return;
+  const cur=PBARCODE[k]||'';
+  if(cur && !confirm(`${idLabel(k)} 지금 바코드 ${cur} 을(를) ${g.code} 로 바꿀까요?\n(지금 번호도 기록에 남아요)`)) return;
+  const err=await setBarcodeFor(k, g.code); if(err){ uiToast(err,'warn'); return; }
+  const o2=PBCST[k]||{}, gone=(o2.gone||[]).map(x=>x.code===g.code&&x.at===g.at?{...x, back:new Date().toISOString(), bby:(curUser&&curUser.email)||''}:x);
+  try{ await db.collection('product-meta').doc('prod-barcode-st').set({map:{[k]:{gone}}, updatedAt:new Date().toISOString(), updatedBy:(curUser&&curUser.email)||''},{merge:true}); PBCST[k]={...o2, gone}; }catch(e){ console.warn('[prod-barcode-st] 되살림 표시 실패', e.code||e); }
+  logAct('바코드', `${idLabel(k)} 되살림 ${g.code}`, '휴지통에서'); uiToast(`바코드 되살림 ✓ ${g.code}`,'ok');
+  if(TEAM_MODE) renderTeamPrice(); else renderGrid();
+  if(typeof renderData==='function' && document.getElementById('trashBcTable')) renderData();
 }
 const EAN_L=['0001101','0011001','0010011','0111101','0100011','0110001','0101111','0111011','0110111','0001011'];
 const EAN_R=EAN_L.map(x=>[...x].map(b=>b==='1'?'0':'1').join('')), EAN_G=EAN_R.map(x=>[...x].reverse().join(''));
@@ -8285,6 +8319,7 @@ function bcDlgOpen(k){
       ${stOk?`<div class="bcdlg-row"><label class="bcdlg-l">상태<select id="bcSt" ${edit?'':'disabled'}>${BC_ST.map(x=>`<option${x===bcStOf(k)?' selected':''}>${x}</option>`).join('')}</select></label>
         <label class="bcdlg-l">발급일<input id="bcDate" type="date" value="${esc(o.date||'')}" ${edit?'':'disabled'}></label></div>
       <label class="bcdlg-l">메모<input id="bcMemo" value="${esc(o.memo||'')}" placeholder="예: 코리안넷 등록 · 라벨 v2 반영" ${edit?'':'disabled'}></label>`:`<div class="bcdlg-note">상태·발급일·메모를 못 불러왔어요 (보안 규칙 게시 전이면 정상)</div>`}
+      ${(()=>{ const g=(Array.isArray(o.gone)?o.gone:[]).map((x,i)=>({...x,i})).filter(x=>!x.back && normBarcode(x.code)!==normBarcode(cur)); return g.length?`<div class="bcdlg-gone"><b>지운·바뀐 번호</b> <span class="dim">(지우지 않고 남겨 둠)</span>${g.map(x=>`<div><span class="mono">${esc(x.code)}</span> <span class="dim">${esc(x.kind||'지움')} · ${esc(String(x.by||'').split('@')[0])} ${fmtTs(x.at)}</span>${edit?` <button type="button" class="tbtn" data-bcback="${x.i}">되살리기</button>`:''}</div>`).join('')}</div>`:''; })()}
       <div id="bcImg" class="bcdlg-img"></div>
       <div class="bcdlg-btns"><button type="button" class="tbtn" id="bcSvg">⤓ SVG (라벨용 · 실제 크기)</button><button type="button" class="tbtn" id="bcPng">⤓ PNG</button>
         ${edit?'<span style="flex:1"></span><button type="button" class="tbtn primary" id="bcSave">저장</button>':''}</div>
@@ -8301,6 +8336,7 @@ function bcDlgOpen(k){
   el.addEventListener('click',async e=>{
     if(e.target===el||e.target.closest('.bcdlg-x')) return close();
     if(e.target.closest('#bcSvg')) return bcDlSvg(k);
+    { const bb=e.target.closest('[data-bcback]'); if(bb){ close(); return bcRestoreGone(k, +bb.dataset.bcback); } }
     if(e.target.closest('#bcPng')) return bcDlPng(k);
     if(e.target.closest('#bcSave')){ const b=e.target.closest('#bcSave'), v=normBarcode(inp.value), er=gtinErr(v); if(er) return uiToast('바코드 '+er,'warn');
       b.disabled=true; const msg=[];
@@ -9723,9 +9759,11 @@ async function relinkCostCards(oldKey, newKey, newLabel, oldLabel){
     console.log(`[cost-cards] 이름 변경 따라 연결 옮길 카드 ${snap.size}장`);
     if(!snap.size) return 0;
     const at=new Date().toISOString(), by=(curUser&&curUser.email)||'', b=db.batch(), sum={};
-    snap.docs.forEach(d=>{ const h=Array.isArray(d.data().history)?d.data().history:[];
+    snap.docs.forEach(d=>{ const x=d.data(), h=Array.isArray(x.history)?x.history:[], vid=at.replace(/[^0-9]/g,'').slice(0,17)+'-'+Math.random().toString(36).slice(2,7);
+      const what=`가격정책표 제품 연결 따라감: ${oldLabel} → ${newLabel}`, {history:_h, ...body}=x;
+      b.set(d.ref.collection('versions').doc(vid),{at, by, what, why:'가격정책표에서 제품명·규격 변경', card:JSON.parse(JSON.stringify(body))});   // 바뀌기 전 카드 → 이력 보관함 (2026-11-26)
       b.update(d.ref,{prodKey:newKey, prodLabel:newLabel, updatedAt:at, updatedBy:by,
-        history:[{at, by, what:`가격정책표 제품 연결 따라감: ${oldLabel} → ${newLabel}`, why:'가격정책표에서 제품명·규격 변경'}, ...h].slice(0,100)});
+        history:[{at, by, what, why:'가격정책표에서 제품명·규격 변경', ver:vid}, ...h].slice(0,100)});
       sum[d.id]={k:newKey}; });
     b.set(db.collection('cost-ref').doc('cards'),{map:sum, at},{merge:true});
     await b.commit(); return snap.size;
@@ -11168,6 +11206,9 @@ async function suUndo(){
   if(!confirm('방금 기록한 판매 엑셀을 되돌릴까요?\n(이 대시보드 기록과 그로홈 대시보드에 넣은 매출을 함께 빼요)'))return;
   try{
     const bd=await db.collection('sales-orders').doc('batch-'+b).get();const x=bd.exists?bd.data():null;if(!x){alert('되돌릴 기록을 찾지 못했어요');return;}
+    const kept={};   // 빼는 줄은 묶음 기록(batch-…)에 통째로 남김 — 지우지 않음 (2026-11-26)
+    for(const d of x.dates||[]){const cur=await db.collection('sales-orders').doc(d).get();if(!cur.exists)continue;const out=(cur.data().rows||[]).filter(r=>r.batch===b);if(out.length)kept[d]=out;}
+    if(Object.keys(kept).length) await db.collection('sales-orders').doc('batch-'+b).set({undoneRows:kept,undoneRowsAt:new Date().toISOString()},{merge:true});
     for(const d of x.dates||[]){const ref=db.collection('sales-orders').doc(d);const cur=await ref.get();if(!cur.exists)continue;
       await ref.set({rows:(cur.data().rows||[]).filter(r=>r.batch!==b),updatedAt:new Date().toISOString(),updatedBy:(curUser&&curUser.email)||''},{merge:true});}
     for(const id of x.gh||[]){try{const r=ghDB().collection('salesRecords').doc(id);const s=await r.get();if(s.exists){await ghDB().collection('trash').doc('margin-undo-'+id).set({col:'salesRecords',id,data:s.data(),at:new Date().toISOString()}).catch(()=>{});await r.delete();}}catch(e){console.warn('[판매엑셀] 그로홈 기록 빼기 실패',id,e);}}
@@ -11917,6 +11958,11 @@ function draftSetRetail(p,val){ const k=pKey(p); const v=(val==null)?null:ceil10
   if(v==null||v===VRETAIL[k])delete DRETAIL[k]; else DRETAIL[k]=v; DRAFT_META.status=DRAFT_META.status||'작성중'; saveDraft(); }
 function draftSetCoeff(code,obj){ const cur=VCOEFF[code]||VCOEFF_DEFAULT[code]||{a:'manual',f:0}; if(obj.a===cur.a && (+obj.f)===(+cur.f))delete DCOEFF[code]; else DCOEFF[code]={a:obj.a,f:+obj.f||0}; DRAFT_META.status=DRAFT_META.status||'작성중'; saveDraft(); }
 function draftImport(){ const r=importVendorPricesTo(DVBASE); DRAFT_META.status=DRAFT_META.status||'작성중'; saveDraft(); return r; }
+/* 개정안 반려·취소 전 내용 보관 (2026-11-26 '데이터 영구 삭제 안 되게') — product-meta/pricing-draft-bin.map[시각] = 그때 개정안 통째로 (승인으로 비울 때는 이미 반영돼서 보관 안 함) */
+function draftKeep(why){ if(!draftCount()) return; const at=new Date().toISOString(), by=(curUser&&curUser.email)||'';
+  const snap=JSON.parse(JSON.stringify({vbase:DVBASE,retail:DRETAIL,coeff:DCOEFF,ovr:DPOVR,todo:DTODO,cost:DCOST,costSrc:DCOSTSRC,meta:DRAFT_META}));
+  db.collection('product-meta').doc('pricing-draft-bin').set({map:{[at.replace(/[^0-9]/g,'')]:{at,by,why,draft:snap}}, updatedAt:at, updatedBy:by},{merge:true})
+    .then(()=>console.log('[pricing-draft-bin] 버린 개정안 보관'), e=>console.warn('[pricing-draft-bin] 보관 실패', e.code||e)); }
 function draftDiscard(){ const ck=Object.keys(DCOST); DVBASE={};DRETAIL={};DCOEFF={};DPOVR={};DTODO={};DCOST={};DCOSTSRC={};DRAFT_META={status:'',by:'',at:'',note:''};PREVIEW=false; saveDraft(ck); }
 /* 저장: 예전처럼 vbase~meta 칸을 통째로 씀. 매입원가(cost·costSrc) 칸은 원가 분해 화면이 따로 담으므로 덮지 않고,
    이 화면이 본 것(승인·반려·취소)만 지운다(clearCost) — 열어 둔 옛 창이 새 요청을 지우지 않게 (2026-11-23) */
@@ -11950,7 +11996,7 @@ async function approveDraft(){
   alert('개정안을 승인·적용했습니다.\n변동이력에 기록되었습니다.'+(CRM_AUTO?'\n· CRM으로 단가를 보내는 중입니다.':''));
   if(CRM_AUTO) syncPriceBookToCrm(true);   // 승인된 값만 CRM 으로 (설정에서 끌 수 있음)
 }
-async function rejectDraft(){ if(!isApprover()){ alert('반려는 상급자(마스터)만 가능합니다.'); return; } if(!confirm('이 개정안을 반려(폐기)할까요?'))return; draftDiscard(); await saveDraft(); refreshAll(); }
+async function rejectDraft(){ if(!isApprover()){ alert('반려는 상급자(마스터)만 가능합니다.'); return; } if(!confirm('이 개정안을 반려(폐기)할까요?'))return; draftKeep('반려'); draftDiscard(); await saveDraft(); refreshAll(); }
 async function appendHistory(rev){ try{ const d=await db.collection('product-meta').doc('pricing-history').get(); const arr=(d.exists&&Array.isArray(d.data().revisions))?d.data().revisions:[]; arr.push(rev); await db.collection('product-meta').doc('pricing-history').set({revisions:arr.slice(-500)}); }catch(e){ console.warn('[pricing-history] 저장 실패',e.code||e); } }
 /* ── 미리보기: 팀원(일반)/부마스터 화면으로 보기 ── */
 function setViewAs(mode){ VIEW_AS=mode||''; if(VIEW_AS)PREVIEW=false; recomputeSecAllowed(); recomputeCostAllowed(); recomputeDataAllowed(); refreshAll(); }
@@ -12101,7 +12147,7 @@ document.addEventListener('click',async e=>{ const b=e.target.closest('#pricingB
   if(a==='view'){ DRAFT_VIEW=!DRAFT_VIEW; renderPricingBanner(); return; }
   if(a==='approve'){ if(!confirm(`개정안 ${draftCount()}건을 승인·적용할까요?\n바로 가격에 반영되고 변동이력에 남아요.`)) return; await approveDraft(); return; }
   if(a==='submit'){ const note=prompt('상급자에게 승인요청 — 변경 사유(선택)',''); if(note==null) return; await submitDraft(note); return; }
-  if(a==='discard'){ if(confirm('개정안을 취소(폐기)할까요?')){ draftDiscard(); refreshAll(); } return; }
+  if(a==='discard'){ if(confirm('개정안을 취소(폐기)할까요?\n(내용은 지우지 않고 보관해 둬요)')){ draftKeep('취소'); draftDiscard(); refreshAll(); } return; }
   if(a==='save'){ const s=$('#btnSave'); if(s) s.click(); return; }
   if(a==='undo'){ const u=$('#btnUndo'); if(u) u.click(); return; }
   if(a==='probx'){ PROB_ONLY=false; refreshAll(); return; }
@@ -14586,7 +14632,7 @@ async function cpSync(){
         if(d.status!=='req'){ await ref.update({status:'req'}); console.log(`[cost-private] 변경 요청: ${d.name} (${d.by})`); }
         continue;
       }
-      const mirror=d.kind==='share' || (d.kind==='own' && d.status==='ok' && d.applied && !cpFresh(d));
+      const mirror=(d.kind==='share' && d.status!=='off') || (d.kind==='own' && d.status==='ok' && d.applied && !cpFresh(d));
       if(mirror && ((d.cost??null)!==off.cost || (d.mfg||'')!==off.mfg)){
         await ref.update({cost:off.cost, mfg:off.mfg, applied:{at:now,by,cost:off.cost,mfg:off.mfg},
           history:firebase.firestore.FieldValue.arrayUnion({at:now,by,cost:off.cost,mfg:off.mfg,via:'공식 값에 맞춤'})});
@@ -14666,7 +14712,7 @@ async function cpRenderEditInfo(p){
   if(secAllowed){
     const team=(ACCESS&&Array.isArray(ACCESS.teamEmails))?ACCESS.teamEmails:[];
     if(team.length){ const chips=team.map(em=>{ const own=mine.find(d=>String(d.by).toLowerCase()===String(em).toLowerCase() && d.applied);
-        const sh=CP_DOCS.some(d=>d.id===cpId('share',k,em));
+        const sh=CP_DOCS.some(d=>d.id===cpId('share',k,em) && d.status!=='off');   // 'off' = 보여 주기 끔(기록은 남김 · 2026-11-26)
         return own?`<label class="own" title="이 팀원이 직접 넣어서 이미 봐요">✓ ${esc(em)}</label>`:`<label><input type="checkbox" data-cpshare="${esc(em)}" ${sh?'checked':''}> ${esc(em)}</label>`; }).join('');
       parts.push(`<b>이 제품 원가·제조사를 볼 팀원</b> <span class="dim">(체크하면 그 팀원 단가표에 보여요 · 다른 제품은 안 보임)</span><div class="cp-share" data-cpkey="${esc(k)}">${chips}</div>`); }
   }
@@ -14687,9 +14733,10 @@ document.addEventListener('change',async e=>{
   const ref=db.collection('cost-private').doc(cpId('share',k,em)), now=new Date().toISOString(), off=cpOfficial(p);
   cb.disabled=true;
   try{
-    if(cb.checked){ await ref.set({kind:'share',key:k,name:p.name,spec:p.spec||'',cost:off.cost,mfg:off.mfg,by:curUser.email,viewers:[em],status:'ok',rev:0,seenRev:0,createdAt:now,updatedAt:now,applied:{at:now,by:curUser.email,cost:off.cost,mfg:off.mfg},history:[]});
+    if(cb.checked){ const had=CP_DOCS.some(d=>d.id===ref.id);   // 전에 끈 기록이 있으면 그 문서를 다시 켬(이력 그대로)
+      await ref.set({kind:'share',key:k,name:p.name,spec:p.spec||'',cost:off.cost,mfg:off.mfg,by:curUser.email,viewers:[em],status:'ok',rev:0,seenRev:0,updatedAt:now,applied:{at:now,by:curUser.email,cost:off.cost,mfg:off.mfg},...(had?{onAt:now}:{createdAt:now,history:[]})},{merge:true});
       logAct('원가 보여 주기', prodLabel(p), em); }
-    else { await ref.delete(); logAct('원가 보여 주기 끔', prodLabel(p), em); }
+    else { await ref.set({viewers:[], status:'off', offAt:now, offBy:curUser.email, updatedAt:now},{merge:true}); logAct('원가 보여 주기 끔', prodLabel(p), em); }   // 지우지 않고 끔 표시 (2026-11-26)
   }catch(err){ console.error('[cost-private] 보여 주기 실패', err); uiToast('실패: '+(err.code||err.message||err)+' · 보안 규칙을 확인해 주세요','err'); cb.checked=!cb.checked; }
   finally{ cb.disabled=false; }
 });
@@ -14840,7 +14887,7 @@ function costRefPayload(){
 function startCostSum(){
   if(_costSumOff||TEAM_MODE||!costAllowed) return;
   _costSumOff=db.collection('cost-ref').doc('cards').onSnapshot(d=>{ const map=d.exists?(d.data().map||{}):{}, idx={}, rn=x=>{ const m=String(x||'').match(/\d+/); return m?+m[0]:0; };
-      Object.entries(map).forEach(([id,s])=>{ if(!s||!s.k) return; const b=idx[s.k]; if(!b||rn(s.r)>rn(b.r)||(rn(s.r)===rn(b.r)&&String(s.at||'')>String(b.at||''))) idx[s.k]={...s,id}; });   // 1차·2차… 높은 차수 → 최근
+      Object.entries(map).forEach(([id,s])=>{ if(!s||!s.k||s.del) return; const b=idx[s.k];   /* s.del = 휴지통 카드(요약에 남겨만 둠 · 2026-11-26) */ if(!b||rn(s.r)>rn(b.r)||(rn(s.r)===rn(b.r)&&String(s.at||'')>String(b.at||''))) idx[s.k]={...s,id}; });   // 1차·2차… 높은 차수 → 최근
       COSTIDX=idx; console.log(`[cost-ref/cards] 원가 분해 요약 ${Object.keys(map).length}장`); GRID_DIRTY=true; refreshAll(); },
     e=>{ console.warn('[cost-ref/cards] 못 읽음(새 규칙 게시 전이면 정상) — 매입원가 옆 표시 없이 그대로', e.code||e.message||e); COSTIDX=null; });
 }

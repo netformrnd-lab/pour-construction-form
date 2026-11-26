@@ -15,6 +15,10 @@ rules_version = '2';
 //   · config/access.perms {이메일:{barcode,newProd,cost}} = 팀원별 입력 권한 (소유자 마스터만 고침)
 //   · 팀원: 바코드 고치기(barcode) · 제품 등록 = 출시준비·원가 없이(newProd) · 자체상품코드는 '새 칸 추가'만
 //   · 바코드 상태(product-meta/prod-barcode-st · 2026-11-26): 팀원 모두 읽기 · 바코드 권한 팀원만 상태 표(map) 만들기·고치기
+//  2026-11-26 송희님 "데이터 영구 삭제되지 않도록": 문서 지우기(delete) 금지 — 분해원가(cost-cards·cost-names·cost-ref + 이력 보관함 versions)
+//   · 지금 어느 화면도 문서를 지우지 않는 자리도 같이 막음: product-meta · promotions · mkt-links · mkt-perf · team-catalog · sales-orders · config/seckey
+//   · 아직 못 막는 자리(main 화면이 지금 지우기를 씀 → 막으면 옛 화면이 깨짐): products-added(소싱 원장) · cost-private(원가 보여 주기 끔)
+//     → 이 브랜치 화면은 둘 다 지우지 않게 바꿈 · 병합·배포 뒤 옛 화면이 없어지면 막기 제안
 //   · cost-private = 팀원·부마스터가 넣은 원가·제조사 — 마스터 + viewers(넣은 본인·마스터가 지정한 사람)만 읽음
 //   · cost-log = 원가 변경 이력(마스터·부마스터) · dashboard-activity = 활동 기록(추가만)
 //   · 팀원 화면엔 제조사 가칭도 안 보임 → 팀원의 product-meta/mfg-alias 읽기 뺌
@@ -163,7 +167,8 @@ service cloud.firestore {
     //  → 마스터는 어느 PC/장소에서든 자동 잠금해제. 일반계정은 규칙상 이 문서를 아예 못 읽음.
     //  → config/secure 자체도 isMaster 전용이므로, 키가 여기 있어도 열람 권한은 마스터로 동일하게 강제됨.
     match /config/seckey {
-      allow read, write: if isMaster();
+      allow read, create, update: if isMaster();
+      allow delete: if false;
     }
 
     // ── 마케팅 성과 ──────────────────────────────────────────────
@@ -173,7 +178,7 @@ service cloud.firestore {
     match /mkt-links/{id} {
       allow read: if true;
       allow create: if canTeam();
-      allow delete: if isAllowedReader();
+      allow delete: if false;   // 2026-11-26: 지우지 않음 (보관 = archived 칸)
       allow update: if canTeam()
         || ( request.resource.data.diff(resource.data).affectedKeys().hasOnly(['clicks','lastClickAt','clicksByDay'])
              && request.resource.data.clicks == resource.data.clicks + 1
@@ -181,15 +186,18 @@ service cloud.firestore {
     }
     // 링크별 실측(주문·매출·광고비 등) — 허용목록 계정만(비공개)
     match /mkt-perf/{id} {
-      allow read, write: if canTeam();
+      allow read, create, update: if canTeam();
+      allow delete: if false;
     }
     // 프로모션 성과 — 허용목록 계정만
     match /promotions/{id} {
-      allow read, write: if canTeam();
+      allow read, create, update: if canTeam();
+      allow delete: if false;   // 휴지통 = deleted 칸 (2026-11-26)
     }
     // 상품 기준 메타(시장조사최저가·상품별 마케팅·프로모션 파라미터) — 허용목록 계정만
     match /product-meta/{doc} {
-      allow read, write: if isAllowedReader();
+      allow read, create, update: if isAllowedReader();
+      allow delete: if false;   // 2026-11-26 지우기 금지 (칸 값 고치기·비우기는 update)
       // 팀원: 원가 없는 문서만 (행사 구성 순서 · 판매 엑셀 상품 연결 기억 · 자체상품코드 · 바코드)
       //  · 제조사 가칭(mfg-alias)은 2026-11-03 부터 팀원에게 안 보임
       allow read: if isTeam() && doc in ['promo-types', 'sales-map', 'prod-code', 'prod-barcode', 'prod-barcode-st'];
@@ -198,7 +206,7 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['map', 'updatedAt', 'updatedBy']);
       allow update: if isTeam() && doc == 'prod-barcode-st' && hasPerm('barcode')
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['map', 'updatedAt', 'updatedBy']);
-      allow write: if isTeam() && doc in ['promo-types', 'sales-map'];
+      allow create, update: if isTeam() && doc in ['promo-types', 'sales-map'];
       // 바코드 권한 팀원: 바코드 표(map)만 고침
       allow update: if isTeam() && doc == 'prod-barcode' && hasPerm('barcode')
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['map', 'updatedAt', 'updatedBy']);
@@ -211,7 +219,8 @@ service cloud.firestore {
     // 팀용 단가표(원가 없음) — 관리자 화면이 자동으로 만들어 저장, 팀원은 읽기만
     match /team-catalog/{doc} {
       allow read: if canTeam();
-      allow write: if isAllowedReader();
+      allow create, update: if isAllowedReader();
+      allow delete: if false;
     }
     // 공유 상품 원장(앱에서 등록한 상품) — 대시보드·소싱앱 공용. 허용목록 계정 등록·수정·삭제
     match /products-added/{id} {
@@ -265,25 +274,40 @@ service cloud.firestore {
     }
     // 📥 판매 엑셀 업로드 기록 (날짜별 문서 · 묶음 기록 batch-*) — 허용목록 계정 (2026-09 대표와 협의 후 추가)
     match /sales-orders/{id} {
-      allow read, write: if canTeam();
+      allow read, create, update: if canTeam();
+      allow delete: if false;   // 되돌리기 = 빼는 줄을 묶음 기록(batch-…)에 남김 (2026-11-26)
     }
 
     // ── 🧾 원가 분해 (2026-11-23 송희님 승인 · pourstore-cost.html) ──
     // 품목 1장 = 원가 분해 1장 — 숫자·구성·가칭(A사·B사)만, 실제 업체 이름 없음
     match /cost-cards/{id} {
       allow read: if canCostView();
-      allow write: if isMaster();
+      allow create, update: if isMaster();
+      allow delete: if false;   // 휴지통 = deleted 칸 · 빠진 줄·업체 = 카드 안 bin (2026-11-26)
+      // 이력 보관함: 저장할 때마다 바뀌기 전 카드 통째로 (더하기만 · 고치기·지우기 없음)
+      match /versions/{v} {
+        allow read: if canCostView();
+        allow create: if isMaster();
+        allow update, delete: if false;
+      }
     }
     // 실제 공급처·제조사 이름 — 보안구역과 같은 급(마스터 전용) + 경영 열람 읽기만
     match /cost-names/{id} {
       allow read: if isMaster() || isMgmt();
-      allow write: if isMaster();
+      allow create, update: if isMaster();
+      allow delete: if false;
+      match /versions/{v} {
+        allow read: if isMaster() || isMgmt();
+        allow create: if isMaster();
+        allow update, delete: if false;
+      }
     }
     // 연결 문서: products = 가격정책표가 만들어 두는 제품·매입원가 목록(마스터·부마스터 화면이 저장)
     //            cards = 원가 분해 요약(가격정책표 매입원가 옆 표시용) · settings = 판매가 설정
     match /cost-ref/{doc} {
       allow read: if canCostView();
-      allow write: if isMaster() || (isSubMaster() && doc == 'products');
+      allow create, update: if isMaster() || (isSubMaster() && doc == 'products');
+      allow delete: if false;
     }
 
     // 그 외 모든 경로(다른 config 문서 포함) 금지
